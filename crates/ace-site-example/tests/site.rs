@@ -1149,6 +1149,50 @@ fn a_site_s_parser_is_built_alone_in_its_task_process() {
     assert_eq!(code, Some(0), "{stderr}");
     assert_eq!(end(&stdout)["outcome"], "skipped");
 
+    // what the module declares it takes: the pool checks it before `analyze`, so a file the
+    // settings skip is declined though it names tickets, and an empty one is
+    let skip = Some(json!({"skip_extensions": [".TXT", ".txt"]}));
+    let (code, stdout, stderr) =
+        task_process(&task_request(dir.path(), module, module, skip, text));
+    assert_eq!(code, Some(0), "{stderr}");
+    assert_eq!(end(&stdout)["outcome"], "skipped", "{stderr}");
+    let (code, stdout, stderr) = task_process(&task_request(dir.path(), module, module, None, b""));
+    assert_eq!(code, Some(0), "{stderr}");
+    assert_eq!(end(&stdout)["outcome"], "skipped", "{stderr}");
+    // and the core reads the same declaration from the overlay's settings, as data
+    let overlay = ace_sdk::Overlay::from_yaml(
+        "modules:\n  example_ticket_file:\n    settings:\n      skip_extensions: [.bin]\n",
+    )
+    .expect("parses");
+    let components = overlay
+        .components(&[ace_sdk::Manifest::parser::<ace_site_example::TicketFile>()])
+        .expect("builds");
+    let takes = &components[0].takes;
+    assert_eq!(
+        takes.describe()[1]["when"],
+        json!({"not": {"extension": {"test": {"one_of": [".bin"]}, "case": "lower"}}})
+    );
+    let facts = |path: &'static str| ace_sdk::takes::Facts {
+        kind: ace_results::ObservableKind::File,
+        directives: &[],
+        relationships: &[],
+        redirected: false,
+        added_by: &[],
+        mode: None,
+        file: Some(ace_sdk::takes::FileFacts {
+            path,
+            size: Some(10),
+            mime: None,
+            yara_meta: Some(&[]),
+        }),
+        results: Box::leak(Box::default()),
+    };
+    assert_eq!(
+        takes.check(&facts("dir/a.BIN")),
+        Err("its extension is one the settings skip")
+    );
+    assert_eq!(takes.check(&facts("a.bin/notes.txt")), Ok(()));
+
     // settings its init refuses fail the setup, exit 10, before anything is contained or run
     let settings = Some(json!({"prefix": ""}));
     let (code, stdout, stderr) =

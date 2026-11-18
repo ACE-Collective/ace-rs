@@ -33,6 +33,7 @@ use std::fs;
 use ace_results::types::email::EmailAnalysis;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::{AnalysisType, NewFile, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
 use ace_sdk::{
     FileOutputError, ListSpec, Manifest, Module, ModuleError, Outcome, Parser, TaskContext,
 };
@@ -76,6 +77,35 @@ impl Module for EmailAnalyzer {
     fn init(_: &EmailAnalyzerSettings) -> Result<Self, ModuleError> {
         Ok(EmailAnalyzer)
     }
+
+    fn takes(_: &EmailAnalyzerSettings) -> Takes {
+        let file_type = FileTypeAnalysis::MODULE;
+        Takes::everything()
+            // the headers file is this module's own output, and looks like an email
+            .and(
+                Condition::Path(Text::ends_with(".headers", Case::Exact)).negated(),
+                "a headers file",
+            )
+            // ace3 waits for file_type, and reads whether this is an email from its result
+            .and(
+                Condition::HasResult(file_type.to_owned()),
+                "no file type analysis",
+            )
+            .and(
+                Condition::result_text(file_type, "type", Text::exact(Match::NotEmpty)),
+                "file_type has no description",
+            )
+            .and(
+                Condition::Any(vec![
+                    Condition::result_text(file_type, "type", Text::contains("RFC 822 mail")),
+                    Condition::result_text(file_type, "type", Text::contains("message/rfc822")),
+                    Condition::result_text(file_type, "mime", Text::contains("message/rfc822")),
+                    Condition::directive(analyze::DIRECTIVE_ORIGINAL_EMAIL),
+                    Condition::result_true(file_type, "is_email_file"),
+                ]),
+                "not an RFC 822 message",
+            )
+    }
 }
 
 impl Parser for EmailAnalyzer {
@@ -83,29 +113,8 @@ impl Parser for EmailAnalyzer {
         &self,
         ctx: &TaskContext<EmailAnalyzerSettings>,
     ) -> Result<Outcome<EmailAnalysis>, ModuleError> {
+        // `takes` checked whether file_type's result calls this an email
         let file = ctx.input_file()?;
-        // the headers file is this module's own output, and looks like an email
-        if file.path.as_str().ends_with(".headers") {
-            return Ok(Outcome::Skipped("a headers file".to_owned()));
-        }
-        // ace3 waits for file_type, and reads whether this is an email from its result
-        let Some(file_type) = ctx.dependency_result::<FileTypeAnalysis>()? else {
-            return Ok(Outcome::Skipped("no file type analysis".to_owned()));
-        };
-        if file_type.file_type.is_empty() {
-            return Ok(Outcome::Skipped("file_type has no description".to_owned()));
-        }
-        let directives = &ctx.observable().directives;
-        let is_email = file_type.file_type.contains("RFC 822 mail")
-            || file_type.file_type.contains("message/rfc822")
-            || file_type.mime.contains("message/rfc822")
-            || directives
-                .iter()
-                .any(|d| d == analyze::DIRECTIVE_ORIGINAL_EMAIL)
-            || file_type.is_email_file;
-        if !is_email {
-            return Ok(Outcome::Skipped("not an RFC 822 message".to_owned()));
-        }
         let bytes = fs::read(&file.local_path)?;
         ctx.check_cancelled()?;
 
@@ -122,6 +131,7 @@ impl Parser for EmailAnalyzer {
             recipients: ctx.list(&RECIPIENT_WHITELIST)?,
             now: ctx.now(),
         };
+        let directives = &ctx.observable().directives;
         let analysis =
             match analyze::analyze_headers(&root, file, directives, ctx.settings(), &whitelists) {
                 Ok(analysis) => analysis,

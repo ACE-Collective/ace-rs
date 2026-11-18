@@ -38,6 +38,7 @@ use ace_results::{
     RelationshipKind, ResultEnvelope, YaraMeta,
 };
 use ace_sdk::scanners::{PHISHKIT, ScanInput, ScanRequest, ScanState};
+use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
 use ace_sdk::{Delay, Module, ModuleError, Observable, Outcome, Parser, Resources, TaskContext};
 use ace_urlfinder::{Finder, Magic, Url};
 use schemars::JsonSchema;
@@ -145,6 +146,47 @@ impl Module for PhishkitAnalyzer {
             magic: std::fs::read(ace_urlfinder::magic::DATABASE).map_err(|e| e.to_string()),
         })
     }
+
+    fn takes(settings: &PhishkitSettings) -> Takes {
+        // `custom_requirement` for a file; a URL's crawl directive is REQUIRED_DIRECTIVES_BY_KIND's,
+        // and its deny patterns read the URL, which `analyze` does
+        let for_a_file = |condition: Condition| {
+            Condition::Any(vec![
+                Condition::Kind(vec![ObservableKind::File]).negated(),
+                condition,
+            ])
+        };
+        let strings = |items: &[String]| Match::OneOf(items.to_vec());
+        Takes::everything()
+            .and(
+                for_a_file(Condition::Any(vec![
+                    Condition::directive(RENDER),
+                    Condition::yara_meta("type", "email.attachment"),
+                ])),
+                "no render directive",
+            )
+            .and(
+                for_a_file(Condition::Mode("correlation".to_owned())),
+                "files render only in correlation mode",
+            )
+            .and(for_a_file(Condition::not_empty()), "an empty file")
+            // `_file_scan_enabled`: the file's extension, lowered, or file_type's mime type is one
+            // the module renders
+            .and(
+                for_a_file(Condition::Any(vec![
+                    Condition::Extension(Text::new(
+                        strings(&settings.valid_file_extensions),
+                        Case::Lower,
+                    )),
+                    Condition::result_text(
+                        FileTypeAnalysis::MODULE,
+                        "mime",
+                        Text::exact(strings(&settings.valid_mime_types)),
+                    ),
+                ])),
+                "not a type phishkit renders",
+            )
+    }
 }
 
 impl Parser for PhishkitAnalyzer {
@@ -184,41 +226,11 @@ fn refusal(ctx: &TaskContext<PhishkitSettings>) -> Result<Option<String>, Module
             Ok(None)
         }
     } else if observable.kind == ObservableKind::File {
-        {
-            let file = ctx.input_file()?;
-            let attachment = file
-                .yara_meta
-                .iter()
-                .any(|m| m.name() == "type" && m.value() == "email.attachment");
-            if !observable.has_directive(RENDER) && !attachment {
-                return Ok(Some("no render directive".to_owned()));
-            }
-            let mode = ctx.tree().and_then(|t| t.analysis_mode.as_deref());
-            if mode != Some("correlation") {
-                return Ok(Some("files render only in correlation mode".to_owned()));
-            }
-            if file.size == 0 {
-                return Ok(Some("an empty file".to_owned()));
-            }
-            if !scan_enabled(ctx)? {
-                return Ok(Some("not a type phishkit renders".to_owned()));
-            }
-            Ok(None)
-        }
+        // what a file needs is in `takes`
+        Ok(None)
     } else {
         Ok(Some("not a URL or a file".to_owned()))
     }
-}
-
-/// `_file_scan_enabled`: the file's extension or file_type's type is one the module renders.
-fn scan_enabled(ctx: &TaskContext<PhishkitSettings>) -> Result<bool, ModuleError> {
-    let file = ctx.input_file()?;
-    let extension = pystr::lower(splitext(file.name()).1).into_owned();
-    if ctx.settings().valid_file_extensions.contains(&extension) {
-        return Ok(true);
-    }
-    let mime = ctx.dependency_result::<FileTypeAnalysis>()?.map(|f| f.mime);
-    Ok(mime.is_some_and(|m| ctx.settings().valid_mime_types.contains(&m)))
 }
 
 /// `os.path.splitext(name)`: the name and its last extension, with its dot; a leading dot isn't one.

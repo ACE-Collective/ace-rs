@@ -30,6 +30,7 @@ use ace_results::{
     AnalysisType, ObservableKind, Relationship, RelationshipKind, ResultEnvelope, YaraMeta,
 };
 use ace_sdk::scanners::{JS_DEOBFUSCATOR, ScanInput, ScanRequest, ScanState};
+use ace_sdk::takes::{Case, Condition, Takes, Text};
 use ace_sdk::tree::TreeView;
 use ace_sdk::{Delay, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
@@ -97,6 +98,18 @@ impl Module for JavaScriptDeobfuscationAnalyzer {
     fn init(_: &JsSettings) -> Result<Self, ModuleError> {
         Ok(JavaScriptDeobfuscationAnalyzer)
     }
+
+    fn takes(_: &JsSettings) -> Takes {
+        // a file with neither file_type's nor another module's tag, and no .js name; whether the
+        // tag is file_type's own reads the bytes, which `analyze` does
+        Takes::everything().and(
+            Condition::Any(vec![
+                Condition::yara_meta("type", JAVASCRIPT),
+                Condition::Name(Text::ends_with(".js", Case::Exact)),
+            ]),
+            "not JavaScript",
+        )
+    }
 }
 
 impl Parser for JavaScriptDeobfuscationAnalyzer {
@@ -107,6 +120,7 @@ impl Parser for JavaScriptDeobfuscationAnalyzer {
         let file = ctx.input_file()?;
         let has_js_tag = tagged_before_file_type(ctx)?;
         let name = file.name();
+        // `takes` declined a file with no tag and no .js name; this is a tag file_type gave
         if !has_js_tag && !name.ends_with(".js") {
             return Ok(Outcome::Skipped("not JavaScript".to_owned()));
         }

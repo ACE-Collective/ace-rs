@@ -26,9 +26,10 @@ use ace_mod_oletools::pyemail::{self, Setup, WalkedPart};
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::html::MhtmlAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_sdk::takes::{Case, Condition, Takes, Text};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 
-use crate::py::{NAME_MAX_BYTES, ends_with_lower};
+use crate::py::NAME_MAX_BYTES;
 use crate::{MAX_FILES, copied_directives, item_list};
 
 /// The module's manifest.
@@ -112,17 +113,24 @@ impl Module for MhtmlAnalyzer {
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(MhtmlAnalyzer)
     }
+
+    fn takes(_: &()) -> Takes {
+        // ends_with_lower: lowered as Python's str.lower
+        Takes::everything().and(
+            Condition::Any(
+                MHTML_EXTENSIONS
+                    .iter()
+                    .map(|ext| Condition::Name(Text::ends_with(ext, Case::Lower)))
+                    .collect(),
+            ),
+            "not an MHTML file",
+        )
+    }
 }
 
 impl Parser for MhtmlAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<MhtmlAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if !MHTML_EXTENSIONS
-            .iter()
-            .any(|ext| ends_with_lower(file.name(), ext))
-        {
-            return Ok(Outcome::Skipped("not an MHTML file".to_owned()));
-        }
         let data = std::fs::read(&file.local_path)?;
         let parts = match walk(&data, MHTML_ROOT_DEPTH) {
             Ok(parts) => parts,

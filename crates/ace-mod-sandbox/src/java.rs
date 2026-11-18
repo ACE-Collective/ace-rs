@@ -12,6 +12,7 @@ use std::time::Duration;
 use ace_pycompat::pystr::{lstrip, splitlines_keepends, strip};
 use ace_results::types::executables::JavaClassDecompilerAnalysis;
 use ace_results::{ObservableKind, ResultEnvelope, YaraMeta};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::tools::ToolRun;
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
@@ -54,6 +55,10 @@ impl Module for JavaClassDecompiler {
     fn init(_: &JavaClassDecompilerSettings) -> Result<Self, ModuleError> {
         Ok(JavaClassDecompiler)
     }
+
+    fn takes(_: &JavaClassDecompilerSettings) -> Takes {
+        Takes::everything().and(Condition::not_empty(), "an empty file")
+    }
 }
 
 /// What the JVM starts its output with when the sandbox keeps it from starting: too little address
@@ -86,9 +91,6 @@ impl Parser for JavaClassDecompiler {
         ctx: &TaskContext<JavaClassDecompilerSettings>,
     ) -> Result<Outcome<JavaClassDecompilerAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
         if head(&file.local_path, 4)? != b"\xca\xfe\xba\xbe" {
             return Ok(Outcome::Skipped("not a Java class file".to_owned()));
         }

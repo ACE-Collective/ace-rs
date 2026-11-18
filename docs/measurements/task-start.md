@@ -184,9 +184,9 @@ On the stack the comparison left up, 14 of the larger samples were run again wit
 
 Leasing several tasks a request, or keeping several requests in flight, would be a small change to the lease loop and the lease API, with nothing to do with containment. It wasn't made, because it changes how a pool takes work and wasn't this step. Until it is, the wall time of a run follows the number of tasks the parser pool has to lease, which is the other reason the next section matters.
 
-## The tasks that store nothing: a design, not built
+## The tasks that store nothing: a design, built since as option 2
 
-85.8% of a comparison's tasks end without a result: 199,921 of 232,927. A module is started on an observable only to decide it has nothing to do there, and for a parser that is a process, a download of the file, a row in the queue, a lease and an end. Nothing here is built. It is what decides those tasks today, what a cheaper decision could remove, and what each way of making it risks.
+85.8% of a comparison's tasks end without a result: 199,921 of 232,927. A module is started on an observable only to decide it has nothing to do there, and for a parser that is a process, a download of the file, a row in the queue, a lease and an end. This section is the design as it was written, before any of it was built: what decided those tasks, what a cheaper decision could remove, and what each way of making it risks. The owner chose option 2 on 2026-11-17, and it is built with the checks declared as data: *Option 2, built* below.
 
 ### What decides today
 
@@ -277,10 +277,179 @@ Two cheaper things the same numbers show, either of which could go first:
 
 ### What is the owner's to decide
 
-1. Whether to build option 2, and whether module code may run in the core for it (`takes`), or the checks must be declared as data only, which covers fewer of them.
+1. Whether to build option 2, and whether module code may run in the core for it (`takes`), or the checks must be declared as data only, which covers fewer of them. Decided on 2026-11-17: built, as data, which covers 95.5% of the tasks option 2 could reach (below).
 2. Whether a kilobyte of each file may be kept in the store for option 3, if it comes to that.
-3. How long the audit setting stays on in production before the core stops queueing what `takes` declines.
+3. How long the audit setting stays on in production before the core stops queueing what `takes` declines. Still open.
 4. Whether a change to the overlay under a running parser pool now needing a restart is acceptable. It is what this step does, and it is what a network pool always did.
+
+## Option 2, built: what a module takes, declared as data
+
+PLAN.md decision 23. The owner chose option 2 on 2026-11-17; the director's call was to try it as declared conditions rather than as module code in the core, and to stop if declarations covered too little. They cover 95.5% of what option 2 could reach, so that is what is built.
+
+### The form
+
+A module states the checks it makes before it does anything in `Module::takes`, built from its settings: a list of rules, each a condition and the reason the module gave when it didn't hold (`ace_sdk::takes`). The conditions are data over facts the core holds:
+
+- the observable's own type, its directives and relationships, whether it redirects;
+- which modules' results added it (a rule on it needs `READS_ADDED_BY`);
+- the root's analysis mode (needs `READS_TREE`);
+- a file's analysis path, name or extension, compared exactly, in ASCII either case, or lowered as Python lowers; its size, the store's mime type and its `yara_meta` tags;
+- a top-level field of a dependency's result, such as file_type's `is_x509` or `mime` (needs the module in `DEPENDS_ON`).
+
+The core evaluates them with its own matcher (`Takes::check`), so it runs no module code on a name or value an attacker chose. `Module::takes` itself is module code, but it runs on the overlay's settings only, where the core and the pools already run the module's settings type (`Manifest::check_settings`). The declaration travels with the manifest: the core's components carry it (`Component::takes`), `Manifest::describe` has it, `ace serve` logs each one it applies when it starts, and the pool builds it from the same settings. A declaration may read only what the module's lease carries, which `Manifest::declaration` checks and a pool refuses to start without (`ace` tests every open-source module's, `App::modules_with_unusable_declarations`). A module with no declaration takes everything, as before.
+
+**Where it is checked.** The core checks it in eligibility, after its own rules, and doesn't queue a task it declines (`Orchestrator::queue_eligible_locked`, the facts from `ace_core::takes::held`, read once for every observable a declaring component is eligible for). The pool checks it again on the leased task before `analyze` (`run_parser`, `run_lookup`), from the facts the task carries, and `analyze` no longer repeats it. A task queued while a declaration took it, and leased after a fact changed, so declines as the core would decline it then.
+
+**What declarations cover, of the 67,993 tasks decided by facts the core holds.** By module, from the baseline run's tasks and the core's log (`tools/task-start/declines`, the counts in the table further up):
+
+| Module | Tasks | Declared | What decided it |
+|---|---:|---:|---|
+| `site_tagger` | 8,537 | 8,537 | the observable's type against the settings' rows |
+| `encrypted_archive_analyzer` | 4,066 | 4,066 | the path ends in `.gz.e` |
+| `cve_2021_30657_analyzer` | 4,057 | 4,057 | the path ends in `.img` |
+| `dmg_analyzer` | 4,056 | 4,056 | the name ends in `.dmg` |
+| `office_xml_rel` | 4,052 | 4,052 | the name |
+| `vbscript_analyzer` | 4,061 | 4,061 | the path ends in `.vbs`; empty |
+| `phishkit_analyzer` | 3,689 | 3,689 | `render` or an attachment's tag; the mode; the extension or file_type's mime type |
+| `mhtml` | 3,684 | 3,684 | the name's extension |
+| `x509_analyzer` | 3,681 | 3,681 | file_type's `is_x509` |
+| `extracted_rtf_analyzer` | 3,595 | 3,595 | `rtfole` added it |
+| `javascript_deobfuscation` | 3,570 | 3,567 | the tag or a `.js` name; whether file_type gave the tag reads the bytes, which stays |
+| `email_analyzer` | 3,482 | 3,482 | file_type's description, mime type and `is_email_file`, or `original_email` |
+| `pcodedmp` | 3,477 | 3,477 | an Office extension or file_type's description |
+| `html_js_extraction` | 3,356 | 3,356 | an HTML name, or the tag and file_type's mime type; empty |
+| `email_conversation_attachment_analyzer` | 3,682 | 644 | file_type's `is_office_document`; whether the root has an email (3,008) and its macros (30) are facts of the whole root, which stay |
+| `extracted_ole_analyzer` | 2,931 | 2,931 | `officeparser3` added it |
+| `file_hash_analyzer` | 2,474 | 2,474 | the ignore patterns on the path and file_type's mime type; empty |
+| `xml_plain_text_analyzer` | 333 | 331 | `.noxml`; the size; extracted from something; the source's `microsoft_office` tag (2) is another observable's, which stays |
+| `exif`, `archive`, `hidden_mime`, `pdf_analyzer` | 986 | 986 | paths of other modules' outputs, a file of an email, an email |
+| 12 modules' empty files | 221 | 200 | the size; YARA's (19) comes after its ruleset's check and url_extraction's (2) after file_type's, which stay |
+| `olevba_v1_2` | 3 | 0 | the store's mime type: left, being 3 |
+| **All** | **67,993** | **64,926** | **95.5%** |
+
+Of the 3,067 left, 3,040 need the whole root's tree or another observable's tags, and 27 come after a check that has to stay in the module (YARA's ruleset, file_type's result for url_extraction, the bytes behind javascript_deobfuscation's tag) or are olevba's 3. A rule on them would have to be checked again whenever anything in the root changed, and the attachment module's check that the root has an email is one ace4 makes once, at the lease: run again when an email lands later, the module would analyze attachments it declines today, which changes what it finds. So they stay in the module. A `takes` function in the core, the other form, could reach the same facts and no more, since it would see what the core holds: what it would add is the code to run them, not coverage.
+
+The rules are the modules' own checks, moved: the same subject, the same comparison and the same case rule (`Case` names each: exact, `eq_ignore_ascii_case`, or Python's `str.lower`, which lowers to the same ASCII as Rust's `to_lowercase`). Only a check that ends the task with nothing whatever comes after it moved, so the order of the rules and the module's later checks doesn't change what a task does. Spot checks against ace3 at `37a765bf`, which ace4's modules ported these from: phishkit's `custom_requirement` (render or an attachment's tag, correlation mode, not empty, extension or mime type), the DMG, VBS, XML, exif, PDF, archive and encrypted archive name checks, and the email module's test. The table in `docs/modules.md` (*What a module takes*) lists every module's rules.
+
+### Facts that arrive later
+
+Eligibility reruns for an observable whenever a result adds to it, adds it again (with a new path, directive, relationship, tag or `yara_meta`), or names it in `others` or a redirection, and when a hook changes it, and over the whole root when its mode changes, which was already so for the rules it had (decision 1). A declaration is checked on each of those reruns, so a fact that arrives later queues the task then. The file's path is the one its tasks read (`tree::analysis_file`): the settled one, or before that the one the rule would settle on now, which only a path added later can change, and adding a path is a rerun. A dependency's result arrives with its own rerun, and a module waits for it as before. A file's size and mime type are the store's for its bytes and never change. Facts a rule could name but no rule uses, such as an observable's tags, aren't on the lease and can't be declared.
+
+| Fact | Test |
+|---|---|
+| A nearer name, a directive, the module that adds a file, a relationship and a `yara_meta` tag, each arriving with a later result that adds the file again; file_type's stand-in's result; the mode's change | `ace-core` `tests/eligibility.rs`: `a_fact_that_arrives_later_queues_the_task_a_declaration_declined` |
+| The same under the audit setting: every task queued and marked, a mark cleared when its fact arrives, and a marked task that stores a result reported | `the_audit_queues_every_task_and_reports_a_declined_one_that_stored_a_result` |
+| The pool declines on the task's own facts before `analyze` | `ace-sdk` `manifest.rs`: `a_parser_s_declaration_is_checked_again_before_analyze` |
+| A declaration reads only what its lease carries | `a_declaration_may_read_only_what_its_lease_carries`; `ace`: `every_module_s_declaration_reads_what_its_lease_carries` |
+| The matcher: case rules, Python's extension, a file rule on a non-file, a dependency's field | `ace-sdk` `takes.rs`'s tests |
+| A site's module declares from its settings, the core reads it from the overlay, and the site's task process declines before `analyze` | `ace-site-example`: `a_site_s_parser_is_built_alone_in_its_task_process` |
+
+### The audit setting
+
+`ACE4_TAKES_AUDIT=1` in `ace serve`'s environment (the Compose file passes it through). The core then queues every task as before and records in `queue.tasks.declined` why a declaration would have declined it (migration 0067). A mark is cleared when eligibility reruns and the declaration takes the task, which is when the core would have queued it without the setting. The pool checks every task's declaration as always, so a marked task ends skipped. A marked task that stores a result, which is how a module adds an observable, a tag, a detection or a file, or that fails, is what a declaration would lose: the core logs each at ERROR under the target `ace_takes` as it ends, and `ace_core::takes::audit_report` lists them all. `tests/e2e/run` with `ACE4_TAKES_AUDIT=1` writes the marked tasks by module to `target/e2e/takes-audit.txt` and fails if any of them stored a result or failed. An operator who finds one has a declaration that is narrower than its module: the module's rules are wrong for that task, and the fix is the module's, before the setting comes off.
+
+Over the whole comparison with the setting on (`ACE4_TAKES_AUDIT=1 tests/e2e/run --compare --keep`):
+
+```
+68836 of 232927 tasks marked as declined by their module's declaration
+     8537 site_tagger (8537 done)
+     4066 encrypted_archive_analyzer (4066 done)
+     4061 vbscript_analyzer (4061 done)
+     4057 cve_2021_30657_analyzer (4057 done)
+     4056 dmg_analyzer (4056 done)
+     4052 office_xml_rel (4052 done)
+     3689 phishkit_analyzer (3689 done)
+     3684 mhtml (3684 done)
+     3681 x509_analyzer (3681 done)
+     3595 extracted_rtf_analyzer (3595 done)
+     3567 javascript_deobfuscation (3567 done)
+     3482 email_analyzer (3482 done)
+     3477 pcodedmp (3477 done)
+     3436 email_conversation_attachment_analyzer (3436 done)
+     3356 html_js_extraction (3356 done)
+     2931 extracted_ole_analyzer (2931 done)
+     2474 file_hash_analyzer (2474 done)
+     1430 xml_plain_text_analyzer (1430 done)
+      306 exif (306 done)
+      295 archive (295 done)
+      225 hidden_mime (225 done)
+      160 pdf_analyzer (160 done)
+       39 nowhitespace_analyzer (39 done)
+       20 active_mime (20 done)
+       20 binary_file_analyzer (20 done)
+       20 har_extraction (20 done)
+       20 html_data_url_extraction (20 done)
+       20 java_class_decompiler (20 done)
+       20 microsoft_script_encoding_analysis (20 done)
+       20 onenote_extraction (20 done)
+       20 qrcode (20 done)
+       20 rtfole (20 done)
+0 marked tasks stored a result or failed
+```
+
+The run was made twice on two builds of this change (the second only skipping a no-op update), and each run's second pass over the whole set on the same stack marked the same 68,836 again (137,672 of 465,854 in the table); in all four passes none stored a result or failed. The marks are more than the 64,926 above because a task counted under the first check that declined it can also fail a declared one that comes later in the module: 1,099 of `xml_plain_text_analyzer`'s were first declined for not starting `<?xml`, and 2,792 of the attachment module's for the root having no email. With the rules applied, a run has exactly 68,836 fewer tasks, so the marks and what the core leaves out agree.
+
+### Before and after
+
+Measured on 2026-11-17 as `lease.md` measured, on one machine, release images, the e2e stack's pools (8 parser and 8 sandbox slots, 16 lookup), a 15-second lease. "HEAD" is `9eb17a81`; "audit" and "applied" are this change, with the setting on and off; the applied runs were on a build before the last change, which acts only under the setting (it stopped an update for every task the audit queues unmarked). For each: `tests/e2e/run --compare --keep` on a new stack with `tools/lease/cpu` sampling (the first pass), `tools/lease/measure --all` on the stack it left (a second pass over the whole set), then `tools/lease/measure --runs 2` over the 14 samples. Every run: 472 or 14 samples, none failed, no task failed or leased twice. CPU is every container of the stack, by `tools/lease/cpu` for the first pass and by each container's cgroup before and after for the others.
+
+| | HEAD | audit | applied |
+|---|---:|---:|---:|
+| Tasks in a run of the whole set | 232,927 | 232,927, 68,836 marked | 164,091 |
+| First pass: `ace compare`, seconds | 786.1 | 778.6 | 560.8 |
+| a sample: median (range) | 9.83 (1.29 to 65.88) | 9.34 (1.03 to 68.65) | 6.56 (0.52 to 49.12) |
+| CPU seconds | 3,429 | 3,422 | 2,500 |
+| parsers | 1,050 | 1,053 | 686 |
+| Postgres | 1,016 | 974 | 703 |
+| sandbox | 615 | 620 | 544 |
+| the core | 580 | 607 | 439 |
+| bucket | 136 | 138 | 104 |
+| lookups | 15 | 15 | 13 |
+| Second pass: `ace compare`, seconds | 699.9 | 769.9 | 509.0 |
+| a sample: median (range) | 8.57 (1.04 to 59.34) | 9.82 (1.03 to 64.14) | 6.31 (0.78 to 42.01) |
+| tasks a second | 333 | 303 | 322 |
+| CPU seconds | 3,289 | 3,465 | 2,489 |
+| parser tasks leased while over 50 were due: mean | 5.37 | 5.21 | 5.26 |
+| sandbox tasks leased then: mean | 3.12 | 2.99 | 3.80 |
+| roots' time: running, due, held back | 28%, 69%, 3% | 27%, 71%, 2% | 32%, 65%, 3% |
+| The 14 samples: tasks | 43,074 | 43,074 | 30,460 |
+| seconds, two runs | 148.0, 151.4 | 161.8, 162.7 | 104.9, 106.7 |
+| CPU seconds, two runs | 630, 646 | 672, 677 | 481, 501 |
+
+HEAD's first-pass CPU is over the whole of `tests/e2e/run`'s span, 824 s, which is 32 s more than the comparison's (the stack starting and the report): the stack is idle then, and the comparison's own span gives 3,427 from the sampler's readings.
+
+- **Applied: a run is 27% to 29% shorter on 24% to 27% less CPU.** The first pass 786 s to 561 s, the second 700 s to 509 s, the 14 samples 150 s to 106 s at the median of two. 68,836 fewer tasks is 29.6% of them; the parser pool's container used 35% less, Postgres 31% and the core 24% less, the sandbox pool 12% (it lost 8,914 of its 55,662 tasks). The tasks that went were cheaper than the average: 927 CPU-seconds for 68,836 tasks on the first pass, 13.5 ms a task, against 14.7 ms for an average task at HEAD.
+- **The audit costs about what HEAD does on the first pass and 5% to 10% more after it.** On the final code the first pass took 1% less time on the same CPU; the second pass 10% longer on 5% more CPU; the 14 samples 8% longer on 6% more CPU, in Postgres and the core. A first build of this change, which also sent an update for every task it queued, marked or not, measured alike (798 s, 785 s, 169 and 162 s), so that update wasn't what costs. What the audit adds on every landing is the read of the facts, as the applied runs do, and the 68,836 marks and their clearing, each an update; the applied runs read the same facts and are much cheaper overall, so the marks are the likelier cost. One run of each kind can't settle it: `lease.md` found two runs of one kind on one code differing by up to 23%. The audit is a setting for checking declarations, not for every day, and at 5% to 10% it does its job; it would cost more where most tasks are marked.
+- **What bounds a run is the same as before.** The stack ends about as many tasks a second (322 applied against 333 at HEAD on the second pass), and a root still spends two thirds of its time with a task due and none leased, so a run's time follows its number of tasks, as `lease.md` found. The parser pool leases 5.3 of its 8 slots while work is due, as at HEAD; the sandbox pool more (3.8 against 3.1), since its share of the remaining tasks grew. Whether the path hold is still the largest part of a lease wasn't measured here: that needs `tools/lease/measure --statements`, which these runs didn't use (*What is left*).
+
+What else the numbers could be measuring: one fresh stack and one second pass for each configuration, so the whole-set times have one run of each kind; the 14 samples' two runs differ by 1% to 4%. ace3's stack was idle on the same VM. The runs were one after another on the same afternoon, HEAD first. The second passes read tables that hold the first pass's rows, alike in all three.
+
+### The same report
+
+`tools/lease/same-report` on the three first-pass reports, pair by pair: the same samples in the same order, none absent or failed, the threshold met (0 unexplained, 378 harness, 0 unported), the same rows matched and none stale, and for every sample the same differences by module, class and path with the same values, except the redirection of pdftotext's text, the coin toss `compare-speed.md` describes: it differs in 25 samples between HEAD and applied, 27 between HEAD and audit, and 17 and 22 against the first build's audit run, and nothing else differs in any pair. Explained differences: 7,889 at HEAD, 7,882 audit (7,892 on the first build), 7,890 applied, all of the difference in those redirections.
+
+### What reads the task table
+
+- **The alert view's failed modules** (`ace_service` `alerts.rs`, `queue::failed_tasks`): failed tasks without a result. A task a declaration declines never existed and couldn't fail, and a declined task in the pool ends done, as its module's skip did. No change.
+- **The metrics event's `task_count`** (`ace_core::metrics`): the root's tasks, less the core's hooks task. It counts 29.6% fewer over the comparison, because those tasks no longer exist. It is ace4's own count, not ace3's, and what it counts is still the tasks a root ran; `failed_task_count` is unchanged.
+- **The monitoring page** (`ace_core::monitoring`): queued, delayed and running tasks by module. It shows fewer queued tasks of the declaring modules, which is the point.
+- **Crash listings** (`ace_service` `crashes.rs`): failed tasks only. No change.
+- **`ace compare`'s own waiting**: it waits for the root to be idle and reads its failed tasks, neither of which counts tasks. No change, and every sample completed.
+- **Tests that count tasks**: three `ace-core` tests listed `email_analyzer` or `archive` among a file's tasks on a catalog without file_type, or on a path inside an email. They now give the file a file_type result that calls it an email (`file_type_says_email`), or, in the submission test, expect the one task that takes an `email.rfc822` file in that catalog, YARA's.
+
+### What a site does
+
+Nothing, for a site whose modules declare nothing: they take everything, as before. A site's module declares its own in `Module::takes`, as the open-source modules do; `crates/ace-site-example`'s ticket parser declares from a setting (`skip_extensions`), and its test shows the site's binary declining before `analyze` and the core reading the declaration from the overlay. A site checks its declarations with `ACE4_TAKES_AUDIT=1` over its own traffic, and its binary's test can assert `App::modules_with_unusable_declarations` is empty. site_port gets this when its `Cargo.toml` moves to the tag.
+
+### What is left
+
+**The first bytes.** After this step a run's tasks that store nothing are 131,085 of 164,091 (79.9%), and 98,164 of those are decided by a file's first bytes: 68,035 that compare fixed bytes or search the first kilobyte, 30,129 that ask libmagic or read some structure. Option 3 (a stored first kilobyte and declared magic bytes) would reach the 68,035, about 44% of the remaining tasks. At the 13.5 ms of CPU a removed task saved here, that is about 920 CPU-seconds of a run's 2,500, and since a run's time still follows its tasks, about 225 s of its 561, if their tasks cost what these did; libmagic's stored answer standing in for the other 30,129 would be about 400 CPU-seconds and 100 s more, module by module as it is shown equal. Its risk is as before: a declared byte test narrower than the module's check loses a detection, and several checks aren't one comparison. Its cost is a kilobyte a file in the store and a read of it when a file is uploaded.
+
+A cheaper part of it needs no stored bytes. file_type's result, which the core already holds, carries `is_pdf_file`, `is_rtf_file`, `is_ole_file`, `is_pe_file`, `is_lnk_file`, `is_zip_file` and `is_jar_file`, and several modules' own first-byte checks call the same functions in `ace_mod_files::checks` that file_type does: `lnk_parser` (4,062 tasks), `pdftotext` (3,759), `upx` (4,047), and probably the RTF modules (`rtfole`, `nowhitespace_analyzer`, `binary_file_analyzer`, 12,026 together) and `officeparser3` (3,550). Where a module's check is file_type's function on the same bytes and path, a rule on file_type's field would be exact; each such module would have to wait for file_type, which every file already runs first. That is up to about 27,000 tasks, each module shown equal before it is declared. Not built.
+
+**The path hold.** `lease.md` found the hold for a file's path to be a third of the core's lease time. These runs didn't load `pg_stat_statements`, so whether it still is wasn't measured. The tasks that went were mostly files' tasks, each of which could be held, so the holds a run makes should have fallen with them; a root's time with a task due and none leased is still two thirds of it, so the lease still bounds a run.
+
+**Still the owner's**: how long the audit setting stays on in production before the core applies the declarations there (item 3 above); whether to build option 3 or the file_type part of it; and whether the attachment module may run when an email lands after its first look, which would let the root's email be declared (3,008 tasks here) but changes what that module finds.
 
 ## Not measured
 

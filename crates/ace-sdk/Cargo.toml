@@ -12,6 +12,8 @@ publish.workspace = true
 example-modules = []
 
 [dependencies]
+# Python's str.lower and fnmatch, which a module's declared checks compare with (takes.rs).
+ace-pycompat = { path = "../ace-pycompat" }
 ace-results = { path = "../ace-results" }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "serde", "std"] }
 # rustls with aws-lc-rs, verifying against the platform's roots.

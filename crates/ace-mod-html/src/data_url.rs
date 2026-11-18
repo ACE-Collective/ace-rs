@@ -15,6 +15,7 @@ use ace_results::{
     AnalysisType, ObservableKind, ObservableRef, Relationship, RelationshipKind, ResultEnvelope,
     YaraMeta,
 };
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use regex::bytes::Regex;
 use schemars::JsonSchema;
@@ -61,6 +62,10 @@ impl Module for HtmlDataUrlAnalyzer {
     fn init(_: &DataUrlSettings) -> Result<Self, ModuleError> {
         Ok(HtmlDataUrlAnalyzer)
     }
+
+    fn takes(_: &DataUrlSettings) -> Takes {
+        Takes::everything().and(Condition::not_empty(), "an empty file")
+    }
 }
 
 impl Parser for HtmlDataUrlAnalyzer {
@@ -69,9 +74,6 @@ impl Parser for HtmlDataUrlAnalyzer {
         ctx: &TaskContext<DataUrlSettings>,
     ) -> Result<Outcome<HtmlDataUrlAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
         let limit = ctx.settings().max_bytes.min(file.size);
         let mut data = Vec::new();
         std::io::Read::read_to_end(

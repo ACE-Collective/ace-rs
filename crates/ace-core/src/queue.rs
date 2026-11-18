@@ -893,17 +893,23 @@ impl Worker {
             "UPDATE queue.tasks
              SET state = $3, error = $4, lease_owner = NULL, lease_expires_at = NULL,
                  updated_at = now()
-             WHERE id = $1 AND lease_owner = $2 AND state = 'running'",
+             WHERE id = $1 AND lease_owner = $2 AND state = 'running'
+             RETURNING module, declined",
             task as TaskId,
             self.name,
             state as TaskState,
             error,
         )
-        .execute(tx.conn())
-        .await?
-        .rows_affected();
-        if finished == 0 {
+        .fetch_optional(tx.conn())
+        .await?;
+        let Some(finished) = finished else {
             return Err(QueueError::LeaseLost(task));
+        };
+        // the audit of the modules' declarations: a task one declined that fails (`crate::takes`)
+        if state == TaskState::Failed
+            && let Some(declined) = &finished.declined
+        {
+            crate::takes::report_lost(task, &finished.module, declined, "failed");
         }
         Ok(root)
     }

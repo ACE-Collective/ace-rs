@@ -477,6 +477,17 @@ impl App {
             .collect()
     }
 
+    /// Each module whose declaration of what it takes, on its default settings, names a fact its
+    /// lease wouldn't carry (`Manifest::declaration`), with why. A pool refuses such a module when
+    /// it starts; a binary's own test keeps this empty.
+    pub fn modules_with_unusable_declarations(&self) -> Vec<String> {
+        self.registry()
+            .manifests()
+            .iter()
+            .filter_map(|m| m.declaration(None).err().map(|e| e.to_string()))
+            .collect()
+    }
+
     /// Runs the `ace` command.
     pub fn ace_main(self) -> ExitCode {
         if let Err(code) = self.install_types() {

@@ -219,6 +219,9 @@ services:
       ACE4_SIGNATURES_REPO: ${ACE4_SIGNATURES:+/signatures}
       ACE4_RULESET_POLL_SECONDS: ${ACE4_RULESET_POLL_SECONDS:-60}
       ACE4_LEASE_SECONDS: ${ACE4_LEASE_SECONDS:-60}
+      # 1 queues every task and marks the ones a module's declaration of what it takes would
+      # decline (PLAN.md decision 23, ace_core::takes)
+      ACE4_TAKES_AUDIT: ${ACE4_TAKES_AUDIT:-}
       ACE4_POOL_TOKEN_PARSERS: ${ACE4_POOL_TOKEN_PARSERS:-ace4-dev-parsers-token}
       ACE4_POOL_TOKEN_LOOKUPS: ${ACE4_POOL_TOKEN_LOOKUPS:-ace4-dev-lookups-token}
       ACE4_POOL_TOKEN_SANDBOX: ${ACE4_POOL_TOKEN_SANDBOX:-ace4-dev-sandbox-token}

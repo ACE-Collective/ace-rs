@@ -23,6 +23,7 @@ use ace_results::types::brocess::{
 use ace_results::types::email::EmailAnalysis;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::{AnalysisType, Detection, ObservableKind, ResultEnvelope};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Delay, Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 
 use crate::frequency::NEW_SENDER;
@@ -54,6 +55,19 @@ impl Module for EmailConversationAttachmentAnalyzer {
 
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(EmailConversationAttachmentAnalyzer)
+    }
+
+    fn takes(_: &()) -> Takes {
+        // whether the root has an email is a fact of the whole root, which stays in `analyze`
+        Takes::everything()
+            .and(
+                Condition::HasResult(FileTypeAnalysis::MODULE.to_owned()),
+                "the file has no file type",
+            )
+            .and(
+                Condition::result_true(FileTypeAnalysis::MODULE, "is_office_document"),
+                "not an Office document",
+            )
     }
 }
 
@@ -87,18 +101,12 @@ impl Parser for EmailConversationAttachmentAnalyzer {
         &self,
         ctx: &TaskContext<()>,
     ) -> Result<Outcome<EmailConversationAttachmentAnalysis>, ModuleError> {
-        let Some(file_type) = ctx.dependency_result::<FileTypeAnalysis>()? else {
-            return Ok(Outcome::Skipped("the file has no file type".to_owned()));
-        };
         let tree = ctx
             .tree()
             .ok_or_else(|| ModuleError::other("the task came without its root's tree"))?;
         // this is for email scanning: the root must have an email's analysis
         if !tree.has_result_of(EmailAnalysis::NAME) {
             return Ok(Outcome::Skipped("the root has no email".to_owned()));
-        }
-        if !file_type.is_office_document {
-            return Ok(Outcome::Skipped("not an Office document".to_owned()));
         }
         if MACRO_TAGGERS.iter().any(|m| tree.this().is_pending(m)) {
             return Ok(Outcome::Delay(wait(ctx)));

@@ -213,7 +213,7 @@ The counts are Postgres's, from the run with pg_stat_statements, and the times a
 
 ## For the next step
 
-The `takes` function of `task-start.md`'s option 2 changes how many tasks exist, so its measurements compare with these by task and by run:
+Built since: `task-start.md`'s *Option 2, built* has the runs that compare with these. The `takes` function of `task-start.md`'s option 2 changes how many tasks exist, so its measurements compare with these by task and by run:
 
 - A whole comparison is 232,927 tasks: 150,098 parser, 55,662 sandbox and 26,695 lookup tasks and 472 of the core's hooks (`task-start.md`). The 14 samples of `tools/lease/measure` are 43,074.
 - On this change a run of the whole set took 770 to 941 s on 3,479 to 3,731 CPU-seconds, which is 3.3 to 4.0 ms of wall time and 14.9 to 16.0 ms of CPU a task. The 14 samples took 165 to 260 s, 3.8 to 6.0 ms a task, on 672 to 803 CPU-seconds.

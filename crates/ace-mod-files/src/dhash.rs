@@ -22,6 +22,7 @@ use std::time::Duration;
 
 use ace_results::types::dhash::{DHashImageAnalysis, DHashScore};
 use ace_results::{AnalysisType, Detection, ObservableKind, ResultEnvelope};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -120,6 +121,10 @@ impl Module for DHashImageAnalyzer {
                 .and_then(references),
         })
     }
+
+    fn takes(_: &DHashSettings) -> Takes {
+        Takes::everything().and(Condition::not_empty(), "an empty file")
+    }
 }
 
 /// `generate_summary`.
@@ -151,9 +156,6 @@ impl Parser for DHashImageAnalyzer {
         ctx: &TaskContext<DHashSettings>,
     ) -> Result<Outcome<DHashImageAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
         let data = fs::read(&file.local_path)?;
         if !ace_dhash::is_image(&data) {
             return Ok(Outcome::Skipped("not an image".to_owned()));

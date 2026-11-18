@@ -23,6 +23,7 @@ use ace_results::{
     AnalysisType, Detection, NewFile, NewObservable, ObservableKind, ObservableRef, ResultEnvelope,
     YaraMeta,
 };
+use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
 use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use regex::Regex;
 use schemars::JsonSchema;
@@ -391,6 +392,25 @@ impl Module for PCode {
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(PCode)
     }
+
+    fn takes(_: &()) -> Takes {
+        // ace3's is_office_file: by the extension, or by what file_type's libmagic description calls
+        // the file
+        let mut office: Vec<Condition> = vec![Condition::Extension(Text::exact(Match::OneOf(
+            KNOWN_OFFICE_EXTENSIONS
+                .iter()
+                .map(|ext| format!(".{ext}"))
+                .collect(),
+        )))];
+        office.extend(OFFICE_DESCRIPTIONS.iter().map(|name| {
+            Condition::result_text(
+                FileTypeAnalysis::MODULE,
+                "type",
+                Text::new(Match::Contains((*name).to_owned()), Case::Lower),
+            )
+        }));
+        Takes::everything().and(Condition::Any(office), "not an Office file")
+    }
 }
 
 const KNOWN_OFFICE_EXTENSIONS: &[&str] = &[
@@ -402,34 +422,15 @@ const KNOWN_OFFICE_EXTENSIONS: &[&str] = &[
 ];
 
 /// `os.path.splitext`'s extension of a name, without its dot: a name's leading dots aren't one.
-fn extension(name: &str) -> Option<&str> {
-    let start = name.len() - name.trim_start_matches('.').len();
-    let at = name[start..].rfind('.')? + start;
-    Some(&name[at + 1..])
-}
-
-impl PCode {
-    /// ace3's is_office_file: by the extension, or by what file_type's libmagic description calls
-    /// the file.
-    fn is_office_file(file: &InputFile, file_type: Option<&FileTypeAnalysis>) -> bool {
-        if extension(file.name()).is_some_and(|ext| KNOWN_OFFICE_EXTENSIONS.contains(&ext)) {
-            return true;
-        }
-        let Some(file_type) = file_type else {
-            return false;
-        };
-        let description = file_type.file_type.to_lowercase();
-        [
-            "microsoft powerpoint",
-            "microsoft excel",
-            "microsoft word",
-            "microsoft ooxml",
-            "opendocument",
-        ]
-        .iter()
-        .any(|name| description.contains(name))
-    }
-}
+/// What file_type's libmagic description of an Office file contains, lowered: the other half of
+/// ace3's is_office_file.
+const OFFICE_DESCRIPTIONS: [&str; 5] = [
+    "microsoft powerpoint",
+    "microsoft excel",
+    "microsoft word",
+    "microsoft ooxml",
+    "opendocument",
+];
 
 /// bin/pcodedmp_wrapper's `sed -ne '/^Module streams:/,$ p' | egrep '^[[:space:]]'`. A newline is the only
 /// thing that ends a line, whatever a string in the macro holds. `[[:space:]]` is the C.UTF-8 locale's.
@@ -463,10 +464,6 @@ fn is_posix_space(c: char) -> bool {
 impl Parser for PCode {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<PCodeAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        let file_type = ctx.dependency_result::<FileTypeAnalysis>()?;
-        if !Self::is_office_file(file, file_type.as_ref()) {
-            return Ok(Outcome::Skipped("not an Office file".to_owned()));
-        }
         let data = read_input(&file.local_path)?;
         let (text, _) = pcodedmp_process_file(file.path.as_str(), data, false);
         let code = disassembly(&text);
@@ -661,10 +658,42 @@ mod tests {
     }
 
     #[test]
-    fn a_splitext_extension_ignores_leading_dots() {
-        assert_eq!(extension("a.b.docm"), Some("docm"));
-        assert_eq!(extension(".docm"), None);
-        assert_eq!(extension("..x.xls"), Some("xls"));
-        assert_eq!(extension("plain"), None);
+    fn an_office_file_by_its_extension_or_file_type_s_description() {
+        let takes = PCode::takes(&());
+        let check = |path: &str, description: &str| {
+            let results = std::collections::BTreeMap::from([(
+                "file_type".to_owned(),
+                serde_json::json!({"type": description}),
+            )]);
+            let facts = ace_sdk::takes::Facts {
+                kind: ObservableKind::File,
+                directives: &[],
+                relationships: &[],
+                redirected: false,
+                added_by: &[],
+                mode: None,
+                file: Some(ace_sdk::takes::FileFacts {
+                    path,
+                    size: Some(1),
+                    mime: None,
+                    yara_meta: Some(&[]),
+                }),
+                results: &results,
+            };
+            takes.check(&facts).is_ok()
+        };
+        // splitext's extension: leading dots aren't one, and the case is as written
+        assert!(check("a.b.docm", "data"));
+        assert!(!check(".docm", "data"));
+        assert!(check("..x.xls", "data"));
+        assert!(!check("plain", "data"));
+        assert!(!check("a.DOCM", "data"));
+        assert!(!check("a.docm/b", "data"));
+        // or the description, lowered
+        assert!(check(
+            "plain",
+            "Composite Document File V2 Document, Microsoft Excel"
+        ));
+        assert!(!check("plain", "Zip archive data"));
     }
 }

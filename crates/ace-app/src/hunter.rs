@@ -915,7 +915,11 @@ async fn hunt(app: &App) -> Result<ExitCode> {
         .with_svs(ace_core::svs::attribution::HookConfig {
             attribution_extra: runs.windows.attribution_extra,
         });
-    let orchestrator = Orchestrator::new(Catalog::of(components), modes).with_hooks(hooks);
+    // as `ace serve` applies or audits the modules' declarations
+    let takes = ace_core::takes::TakesMode::from_env().map_err(anyhow::Error::msg)?;
+    let orchestrator = Orchestrator::new(Catalog::of(components), modes)
+        .with_hooks(hooks)
+        .with_takes(takes);
     // the site's dispositions, as `ace serve` has them, for whatever the hunter reads through the service
     let dispositions = ace_service::Dispositions::configured(&overlay)
         .map_err(anyhow::Error::msg)

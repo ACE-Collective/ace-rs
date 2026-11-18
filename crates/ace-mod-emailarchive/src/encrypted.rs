@@ -13,6 +13,7 @@
 use ace_results::types::email_archive::EncryptedArchiveAnalysis;
 use ace_results::{AlertPath, NewFile, ObservableKind, ResultEnvelope, Sha256, YaraMeta};
 use ace_sdk::reads::{DecryptedArchive, DecryptedArchiveRequest, Read, ReadKind};
+use ace_sdk::takes::{Case, Condition, Takes, Text};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 
 use crate::DECRYPTED_EMAIL;
@@ -36,6 +37,13 @@ impl Module for EncryptedArchiveAnalyzer {
     fn init(_settings: &()) -> Result<Self, ModuleError> {
         Ok(EncryptedArchiveAnalyzer)
     }
+
+    fn takes(_: &()) -> Takes {
+        Takes::everything().and(
+            Condition::Path(Text::ends_with(SEALED_SUFFIX, Case::Exact)),
+            "not an archived email",
+        )
+    }
 }
 
 impl Lookup for EncryptedArchiveAnalyzer {
@@ -53,6 +61,7 @@ impl Lookup for EncryptedArchiveAnalyzer {
                 ctx.observable()
             )));
         };
+        // `takes` declined any other path
         let Some(stem) = input.as_str().strip_suffix(SEALED_SUFFIX) else {
             return Ok(Outcome::Skipped("not an archived email".to_owned()));
         };

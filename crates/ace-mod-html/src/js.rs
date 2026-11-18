@@ -27,6 +27,7 @@ use ace_results::{
     AnalysisType, NewFile, NewObservable, ObservableKind, ObservableRef, Relationship,
     RelationshipKind, ResultEnvelope, YaraMeta,
 };
+use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
 use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use ace_urlfinder::Url;
 use schemars::JsonSchema;
@@ -134,6 +135,40 @@ impl Module for HtmlJavaScriptExtractor {
 
     fn init(_: &HtmlJsSettings) -> Result<Self, ModuleError> {
         Ok(HtmlJavaScriptExtractor)
+    }
+
+    fn takes(_: &HtmlJsSettings) -> Takes {
+        // a name Office or a browser opens as HTML, or else file_type's mime type; whether it is
+        // JSON reads the bytes, which `analyze` does
+        let is_html = Condition::Any(
+            HTML_EXTENSIONS
+                .iter()
+                .chain(MHTML_EXTENSIONS.iter())
+                .map(|ext| Condition::Name(Text::ends_with(ext, Case::Lower)))
+                .collect(),
+        );
+        Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            .and(
+                Condition::Any(vec![
+                    is_html.clone(),
+                    Condition::yara_meta("type", "script.javascript").negated(),
+                ]),
+                "JavaScript source sniffed as HTML",
+            )
+            .and(
+                Condition::Any(vec![
+                    is_html,
+                    Condition::result_text(
+                        FileTypeAnalysis::MODULE,
+                        "mime",
+                        Text::exact(Match::OneOf(
+                            HTML_MIME_TYPES.iter().map(|m| (*m).to_owned()).collect(),
+                        )),
+                    ),
+                ]),
+                "not HTML",
+            )
     }
 }
 
@@ -497,9 +532,6 @@ impl Parser for HtmlJavaScriptExtractor {
         ctx: &TaskContext<HtmlJsSettings>,
     ) -> Result<Outcome<HtmlJavaScriptExtractionAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
         let name = file.name();
         let is_html = HTML_EXTENSIONS
             .iter()
@@ -509,25 +541,10 @@ impl Parser for HtmlJavaScriptExtractor {
             .dependency_result::<FileTypeAnalysis>()?
             .map(|file_type| file_type.mime);
         let content = std::fs::read(&file.local_path)?;
-        if !is_html {
-            if file
-                .yara_meta
-                .iter()
-                .any(|m| m.name() == "type" && m.value() == "script.javascript")
-            {
-                return Ok(Outcome::Skipped(
-                    "JavaScript source sniffed as HTML".to_owned(),
-                ));
-            }
-            if !mime
-                .as_deref()
-                .is_some_and(|m| HTML_MIME_TYPES.contains(&m))
-            {
-                return Ok(Outcome::Skipped("not HTML".to_owned()));
-            }
-            if is_json_document(&content) {
-                return Ok(Outcome::Skipped("a JSON file sniffed as HTML".to_owned()));
-            }
+        // `takes` declined a file not named as HTML that is tagged JavaScript or that file_type
+        // doesn't call HTML
+        if !is_html && is_json_document(&content) {
+            return Ok(Outcome::Skipped("a JSON file sniffed as HTML".to_owned()));
         }
         let is_mhtml = MHTML_EXTENSIONS
             .iter()

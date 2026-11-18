@@ -11,6 +11,12 @@
 //! runs the programs it declares through `tools` (PLAN.md 7.3), and sends its observable through the
 //! scanner images it declares through `scanners` (7.7). `actions` holds what remediators, remediation
 //! probes and file collectors are built on (7.9).
+//!
+//! A module states the checks it makes before it does anything, such as "the file's name ends in
+//! `.dmg`", in `Module::takes`, as data over facts the core holds (`takes`, PLAN.md decision 23). The
+//! core queues no task those checks decline, the pool checks them again before `analyze`, and
+//! `analyze` doesn't repeat them. `takes`' docs say how to write one and how to check it with the
+//! core's audit setting before relying on it.
 
 pub mod actions;
 pub mod context;
@@ -30,6 +36,7 @@ pub mod nrd;
 pub mod overlay;
 pub mod reads;
 pub mod scanners;
+pub mod takes;
 pub mod tools;
 pub mod tree;
 pub mod wire;
@@ -38,7 +45,9 @@ pub mod writes;
 pub use context::{CarryingEmail, DelayedRun, InputFile, Observable, Secret, Secrets, TaskContext};
 pub use files::{FileOutputError, FileStore, LocalFileStore};
 pub use lists::{List, ListSpec};
-pub use manifest::{Manifest, ModuleKind, Resources, Sandbox, SettingsError, load_settings};
+pub use manifest::{
+    DeclarationError, Manifest, ModuleKind, Resources, Sandbox, SettingsError, load_settings,
+};
 pub use module::{
     BoxError, Delay, EXCLUDE_ALL, Lookup, Module, ModuleError, OtherAdditionsAllowed, Outcome,
     Parser, Settings, WHITELISTED, run_lookup, run_parser,

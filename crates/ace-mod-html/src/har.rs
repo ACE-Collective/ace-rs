@@ -27,6 +27,7 @@ use ace_results::{
     AnalysisType, NewFile, NewObservable, ObservableKind, ObservableRef, Relationship,
     RelationshipKind, ResultEnvelope,
 };
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use regex::bytes::Regex;
 use schemars::JsonSchema;
@@ -95,6 +96,10 @@ impl Module for HarExtractor {
 
     fn init(_: &HarSettings) -> Result<Self, ModuleError> {
         Ok(HarExtractor)
+    }
+
+    fn takes(_: &HarSettings) -> Takes {
+        Takes::everything().and(Condition::not_empty(), "an empty file")
     }
 }
 
@@ -467,9 +472,6 @@ fn summary(analysis: &HarAnalysis, error: Option<&str>) -> String {
 impl Parser for HarExtractor {
     fn analyze(&self, ctx: &TaskContext<HarSettings>) -> Result<Outcome<HarAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
         let mut head = Vec::new();
         std::io::Read::read_to_end(
             &mut std::io::Read::take(

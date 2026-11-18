@@ -40,6 +40,7 @@ use ace_results::types::office::{
 use ace_results::{
     AnalysisType, Detection, NewObservable, ObservableKind, RelationshipKind, ResultEnvelope,
 };
+use ace_sdk::takes::{Case, Condition, Takes, Text};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -123,6 +124,13 @@ impl Module for OfficeXmlRelAnalyzer {
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(OfficeXmlRelAnalyzer)
     }
+
+    fn takes(_: &()) -> Takes {
+        Takes::everything().and(
+            Condition::Name(Text::equals("document.xml.rels")),
+            "not document.xml.rels",
+        )
+    }
 }
 
 impl Parser for OfficeXmlRelAnalyzer {
@@ -131,9 +139,6 @@ impl Parser for OfficeXmlRelAnalyzer {
         ctx: &TaskContext<()>,
     ) -> Result<Outcome<OfficeXmlRelationshipAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.name() != "document.xml.rels" {
-            return Ok(Outcome::Skipped("not document.xml.rels".to_owned()));
-        }
         let data = std::fs::read(&file.local_path)?;
         let (urls, raised) = external_ole_objects(&data);
         let summary = relationship_summary(&urls);
@@ -364,6 +369,19 @@ impl Module for XmlPlainTextAnalyzer {
     fn init(_: &XmlPlainTextSettings) -> Result<Self, ModuleError> {
         Ok(XmlPlainTextAnalyzer)
     }
+
+    fn takes(settings: &XmlPlainTextSettings) -> Takes {
+        Takes::everything()
+            .and(
+                Condition::Name(Text::ends_with(".noxml", Case::Exact)).negated(),
+                "a .noxml file",
+            )
+            .and(Condition::at_most(settings.maximum_size), "too large")
+            .and(
+                Condition::Relationship(RelationshipKind::ExtractedFrom),
+                "not extracted from anything",
+            )
+    }
 }
 
 impl Parser for XmlPlainTextAnalyzer {
@@ -372,16 +390,11 @@ impl Parser for XmlPlainTextAnalyzer {
         ctx: &TaskContext<XmlPlainTextSettings>,
     ) -> Result<Outcome<XmlPlainTextAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.name().ends_with(".noxml") {
-            return Ok(Outcome::Skipped("a .noxml file".to_owned()));
-        }
-        if file.size > ctx.settings().maximum_size {
-            return Ok(Outcome::Skipped("too large".to_owned()));
-        }
         let data = std::fs::read(&file.local_path)?;
         if !contains(head(&data), b"<?xml") {
             return Ok(Outcome::Skipped("not an XML document".to_owned()));
         }
+        // `takes` declined a file without one
         let Some(source) = ctx
             .observable()
             .relationship(RelationshipKind::ExtractedFrom)

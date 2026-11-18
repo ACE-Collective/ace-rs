@@ -36,6 +36,7 @@ pub mod scans;
 pub mod scheduler;
 pub mod submit;
 pub mod svs;
+pub mod takes;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 pub mod tree;

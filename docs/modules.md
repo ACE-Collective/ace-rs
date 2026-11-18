@@ -16,6 +16,37 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 | sandbox | a parser pool whose image carries external programs, which its supervisor runs at a task's request in ACE's sandbox runner (*External tools*, 7.3) |
 | scanner | 7.7's scanner pool, the one process with the Docker socket, which starts a scanner image per scan, and parses nothing it wrote; the module itself runs on the parser pool, which asks for the scan, waits for it as a delayed task, and reads what came back contained |
 
+## What a module takes
+
+PLAN.md decision 23. A module that declares what it takes (`Module::takes`, `ace_sdk::takes`) has its first checks as rules over facts the core holds, and the core queues no task they decline; the pool checks them again before the module runs, and the module's own code no longer does. A check that reads the file's bytes, the whole root or an observable's value stays in the module. The rules, each the module's own check moved:
+
+| Module | Rules, in order |
+|---|---|
+| `active_mime`, `binary_file_analyzer`, `dhash`, `har_extraction`, `html_data_url_extraction`, `java_class_decompiler`, `microsoft_script_encoding_analysis`, `onenote_extraction`, `qrcode`, `rtfole` | not an empty file |
+| `archive` | the path doesn't contain `email.rfc822` |
+| `cve_2021_30657_analyzer` | the path ends in `.img`, lowered; `dmg_analyzer` added it and it redirects |
+| `dmg_analyzer` | the name ends in `.dmg`, lowered |
+| `email_analyzer` | the path doesn't end in `.headers`; file_type has a result with a description; that description has `RFC 822 mail` or `message/rfc822`, or its mime type has `message/rfc822`, or file_type calls it an email, or the file has `original_email` |
+| `email_conversation_attachment_analyzer` | file_type has a result that calls it an Office document (whether the root has an email stays in the module) |
+| `encrypted_archive_analyzer` | the path ends in `.gz.e` |
+| `exif` | the path doesn't end in `.pdfparser` or `.gs.pdf`; at most `file_size_limit` bytes, when it is set |
+| `extracted_ole_analyzer` | file_type has a result; `officeparser3` added it |
+| `extracted_rtf_analyzer` | `rtfole` added it; file_type has a result |
+| `file_hash_analyzer` | not empty; file_type has a result; no `ignore_pattern` matches the path on ace3's node, and no `ignore_mime_type` file_type's mime type |
+| `hidden_mime` | not empty; no `original_email` and not named `email.rfc822`; file_type doesn't call it `message/rfc822` or an email |
+| `html_js_extraction` | not empty; named as HTML or MHTML (lowered), or else not tagged `type=script.javascript` and file_type's mime type is an HTML one |
+| `javascript_deobfuscation` | tagged `type=script.javascript` or named `.js` (whether file_type gave the tag reads the bytes, and stays) |
+| `mhtml` | the name ends in `.mhtml` or `.mht`, lowered |
+| `nowhitespace_analyzer` | the path doesn't end in `.nowhitespace`; not empty |
+| `office_xml_rel` | named `document.xml.rels` |
+| `pcodedmp` | an Office extension, or file_type's description, lowered, names an Office format |
+| `pdf_analyzer` | the path doesn't end in `.pdfparser` or `.ocr` |
+| `phishkit_analyzer` | a file has `render` or `type=email.attachment`, the root is in correlation mode, the file isn't empty, and its extension, lowered, or file_type's mime type is one the settings render (a URL's checks stay) |
+| `site_tagger` | the observable's type is one the settings' rows are for |
+| `vbscript_analyzer` | not empty; the path ends in `.vbs`, ASCII letters in either case |
+| `x509_analyzer` | file_type has a result that calls it a certificate |
+| `xml_plain_text_analyzer` | the name doesn't end in `.noxml`; at most `maximum_size` bytes; extracted from something (the source's `microsoft_office` tag stays) |
+
 ## Counts
 
 | Pool | Modules | Ported |

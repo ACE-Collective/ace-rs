@@ -32,6 +32,7 @@ use std::time::Duration;
 use ace_pycompat::ipaddress::{IpAddress, ip_address, ipv4_address, ipv6_address};
 use ace_results::types::tag::SiteTagAnalysis;
 use ace_results::{ObservableKind, ResultEnvelope};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use regex::{Regex, RegexBuilder};
 use schemars::JsonSchema;
@@ -234,7 +235,15 @@ impl Rule {
 }
 
 /// The rows of the CSV by observable type, in the file's order, as ace3's `load_csv_file` loads them.
-fn load(csv: &str) -> BTreeMap<String, Vec<std::sync::Arc<Rule>>> {
+/// Whether `load` logs the rows it can't read: once, where the module is built, and not again for
+/// its declaration.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Report {
+    Errors,
+    Quiet,
+}
+
+fn load(csv: &str, report: Report) -> BTreeMap<String, Vec<std::sync::Arc<Rule>>> {
     // ace3 opens the file in text mode, which reads `\r\n` and `\r` as `\n`
     let text = csv.replace("\r\n", "\n").replace('\r', "\n");
     let mut rules: BTreeMap<String, Vec<std::sync::Arc<Rule>>> = BTreeMap::new();
@@ -243,7 +252,9 @@ fn load(csv: &str) -> BTreeMap<String, Vec<std::sync::Arc<Rule>>> {
             Ok(row) => row,
             // ace3's reader raises out of the load, keeping the rows before it
             Err(e) => {
-                tracing::error!("the site tags CSV stops at an error: {}", e.message);
+                if report == Report::Errors {
+                    tracing::error!("the site tags CSV stops at an error: {}", e.message);
+                }
                 break;
             }
         };
@@ -270,7 +281,10 @@ fn load(csv: &str) -> BTreeMap<String, Vec<std::sync::Arc<Rule>>> {
                         .push(rule.clone());
                 }
             }
-            Err(e) => tracing::error!("invalid tag specification {}: {e}", row.join(",")),
+            Err(e) if report == Report::Errors => {
+                tracing::error!("invalid tag specification {}: {e}", row.join(","));
+            }
+            Err(_) => {}
         }
     }
     rules
@@ -308,8 +322,18 @@ impl Module for SiteTagger {
 
     fn init(settings: &SiteTaggerSettings) -> Result<Self, ModuleError> {
         Ok(SiteTagger {
-            rules: load(&settings.csv),
+            rules: load(&settings.csv, Report::Errors),
         })
+    }
+
+    fn takes(settings: &SiteTaggerSettings) -> Takes {
+        // the types the rows are for, read as `init` reads them; a type this binary hasn't is no
+        // observable's
+        let kinds = load(&settings.csv, Report::Quiet)
+            .keys()
+            .filter_map(|kind| kind.parse().ok())
+            .collect();
+        Takes::everything().and(Condition::Kind(kinds), "no site tag row is for its type")
     }
 }
 
@@ -320,9 +344,6 @@ impl Parser for SiteTagger {
     ) -> Result<Outcome<SiteTagAnalysis>, ModuleError> {
         let observable = ctx.observable();
         let kind = observable.kind.as_str();
-        if !self.rules.contains_key(kind) {
-            return Ok(Outcome::Skipped(format!("no site tag row is for {kind}")));
-        }
         let tags = self.tags_for(kind, &observable.value);
         if tags.is_empty() {
             return Ok(Outcome::Skipped("no site tag row matches".to_owned()));

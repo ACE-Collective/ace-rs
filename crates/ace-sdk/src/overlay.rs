@@ -82,6 +82,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use crate::manifest::{Manifest, SettingsError};
+use crate::takes::Takes;
 
 /// A site's overlay, as its YAML file says it.
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
@@ -883,6 +884,12 @@ pub enum OverlayError {
     DuplicateKey { module: String, instance: String },
     #[error("the overlay names instance {0:?}; a name is lowercase letters, digits and _")]
     BadName(String),
+    #[error("the overlay's {path}: {source}")]
+    Declaration {
+        path: String,
+        #[source]
+        source: crate::manifest::DeclarationError,
+    },
     #[error("the overlay {path} can't be read: {message}")]
     Read { path: String, message: String },
 }
@@ -899,10 +906,14 @@ pub struct Component {
     pub settings: Option<Value>,
     /// The module groups an instance joins (`InstanceSection::groups`).
     pub groups: Vec<String>,
+    /// What it takes on its settings (`Module::takes`, `crate::takes`).
+    pub takes: Takes,
 }
 
 impl Component {
-    /// The module as itself, on its defaults.
+    /// The module as itself, on its defaults. A declaration that can't be used
+    /// (`Manifest::declaration`) takes everything here; `Overlay::components`, which every
+    /// binary's catalog and pools come from, refuses it.
     pub fn of(manifest: Manifest) -> Component {
         Component {
             key: manifest.name.to_owned(),
@@ -910,7 +921,28 @@ impl Component {
             inputs: manifest.inputs.to_vec(),
             settings: None,
             groups: Vec::new(),
+            takes: manifest.declaration(None).unwrap_or_default(),
         }
+    }
+
+    /// The component on a settings block, with its declaration checked.
+    fn with_settings(
+        manifest: Manifest,
+        key: String,
+        settings: Option<Value>,
+        path: String,
+    ) -> Result<Component, OverlayError> {
+        let takes = manifest
+            .declaration(settings.as_ref())
+            .map_err(|source| OverlayError::Declaration { path, source })?;
+        Ok(Component {
+            key,
+            manifest,
+            inputs: manifest.inputs.to_vec(),
+            settings,
+            groups: Vec::new(),
+            takes,
+        })
     }
 
     /// True when it takes observables of `kind`, directly or through a parent type.
@@ -1082,7 +1114,12 @@ impl Overlay {
             }
             let Some(section) = section else {
                 if manifest.enabled_by_default {
-                    components.push(Component::of(manifest));
+                    components.push(Component::with_settings(
+                        manifest,
+                        manifest.name.to_owned(),
+                        None,
+                        format!("modules.{}", manifest.name),
+                    )?);
                 } else {
                     tracing::info!(
                         module = manifest.name,
@@ -1097,14 +1134,14 @@ impl Overlay {
                     .map_err(|source| OverlayError::Settings { path, source })
             };
             if section.instances.is_empty() {
-                check(
-                    format!("modules.{}.settings", manifest.name),
-                    section.settings.as_ref(),
-                )?;
-                components.push(Component {
-                    settings: section.settings.clone(),
-                    ..Component::of(manifest)
-                });
+                let path = format!("modules.{}.settings", manifest.name);
+                check(path.clone(), section.settings.as_ref())?;
+                components.push(Component::with_settings(
+                    manifest,
+                    manifest.name.to_owned(),
+                    section.settings.clone(),
+                    path,
+                )?);
                 continue;
             }
             if section.settings.is_some() {
@@ -1121,10 +1158,8 @@ impl Overlay {
                 {
                     return Err(OverlayError::BadName(name.clone()));
                 }
-                check(
-                    format!("modules.{}.instances.{name}.settings", manifest.name),
-                    instance.settings.as_ref(),
-                )?;
+                let path = format!("modules.{}.instances.{name}.settings", manifest.name);
+                check(path.clone(), instance.settings.as_ref())?;
                 let inputs = match &instance.inputs {
                     None => manifest.inputs.to_vec(),
                     Some(inputs) => {
@@ -1139,11 +1174,14 @@ impl Overlay {
                     }
                 };
                 components.push(Component {
-                    key: name.clone(),
-                    manifest,
                     inputs,
-                    settings: instance.settings.clone(),
                     groups: instance.groups.clone(),
+                    ..Component::with_settings(
+                        manifest,
+                        name.clone(),
+                        instance.settings.clone(),
+                        path,
+                    )?
                 });
             }
         }

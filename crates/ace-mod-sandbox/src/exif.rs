@@ -13,6 +13,7 @@ use ace_pycompat::json::{Value, loads};
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::sandbox::ExifAnalysis;
 use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope, YaraMeta};
+use ace_sdk::takes::{Case, Condition, Takes, Text};
 use ace_sdk::tools::{ToolOutput, ToolRun, is_plain_name};
 use ace_sdk::{InputFile, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
@@ -61,6 +62,26 @@ impl Module for ExifAnalyzer {
 
     fn init(_: &ExifSettings) -> Result<Self, ModuleError> {
         Ok(ExifAnalyzer)
+    }
+
+    fn takes(settings: &ExifSettings) -> Takes {
+        let takes = Takes::everything()
+            .and(
+                Condition::Path(Text::ends_with(".pdfparser", Case::Exact)).negated(),
+                "pdfparser output",
+            )
+            .and(
+                Condition::Path(Text::ends_with(".gs.pdf", Case::Exact)).negated(),
+                "Ghostscript output",
+            );
+        // a limit of 0 is none
+        if settings.file_size_limit > 0 {
+            return takes.and(
+                Condition::at_most(settings.file_size_limit),
+                "larger than file_size_limit",
+            );
+        }
+        takes
     }
 }
 
@@ -172,16 +193,6 @@ impl Parser for ExifAnalyzer {
     ) -> Result<Outcome<ExifAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let path = file.path.as_str();
-        if path.ends_with(".pdfparser") {
-            return Ok(Outcome::Skipped("pdfparser output".to_owned()));
-        }
-        if path.ends_with(".gs.pdf") {
-            return Ok(Outcome::Skipped("Ghostscript output".to_owned()));
-        }
-        let limit = ctx.settings().file_size_limit;
-        if limit > 0 && file.size > limit {
-            return Ok(Outcome::Skipped("larger than file_size_limit".to_owned()));
-        }
         let file_type = ctx.dependency_result::<FileTypeAnalysis>()?;
         let start = head(&file.local_path, 1024)?;
         if !is_office_file(file, file_type.as_ref())

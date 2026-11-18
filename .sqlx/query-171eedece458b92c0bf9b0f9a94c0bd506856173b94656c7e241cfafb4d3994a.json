@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.tasks SET declined = $2 WHERE id = $1 AND declined IS DISTINCT FROM $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "171eedece458b92c0bf9b0f9a94c0bd506856173b94656c7e241cfafb4d3994a"
+}

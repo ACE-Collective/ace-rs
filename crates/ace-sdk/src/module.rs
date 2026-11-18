@@ -140,6 +140,17 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// Builds the module once per process, before any task, such as loading a ruleset. A failure
     /// here is a setup failure, not a failed task.
     fn init(settings: &Self::Settings) -> Result<Self, ModuleError>;
+
+    /// What the module takes, from its settings: the checks it makes before it does anything, over
+    /// facts the core holds, as data (`crate::takes`, PLAN.md decision 23). The core doesn't queue a
+    /// task these decline, and the pool checks them again before `analyze`, which therefore
+    /// doesn't repeat them. The default takes everything the inputs, modes and directives allow.
+    /// It runs where the module's settings are checked, in the core and in the pool, on the
+    /// overlay's settings and nothing else.
+    fn takes(settings: &Self::Settings) -> crate::takes::Takes {
+        let _ = settings;
+        crate::takes::Takes::everything()
+    }
 }
 
 /// What a module may add to other observables in its root (`Module::ADDS_TO_OTHERS`): these tags and
@@ -330,6 +341,18 @@ fn skipping_directive<M: Module, S>(ctx: &TaskContext<S>) -> Option<&str> {
         .find(|d| *d == EXCLUDE_ALL || M::SKIP_DIRECTIVES.contains(d))
 }
 
+/// Why module `M`'s declaration (`Module::takes`) declines the task, from the facts the task
+/// carries: the same check the core made before it queued the task, made again on the facts as they
+/// are now.
+pub fn declined<M: Module>(ctx: &TaskContext<M::Settings>) -> Option<String> {
+    let takes = M::takes(ctx.settings());
+    if takes.is_everything() {
+        return None;
+    }
+    let results = ctx.dependency_details();
+    takes.check(&ctx.facts(results)).err().map(str::to_owned)
+}
+
 /// Runs a parser on one task, inside the task's span.
 pub fn run_parser<M: Parser>(
     module: &M,
@@ -340,6 +363,9 @@ pub fn run_parser<M: Parser>(
     ctx.check_cancelled()?;
     if let Some(directive) = skipping_directive::<M, _>(ctx) {
         return Ok(Outcome::Skipped(format!("directive {directive}")));
+    }
+    if let Some(why) = declined::<M>(ctx) {
+        return Ok(Outcome::Skipped(why));
     }
     let outcome = module.analyze(ctx)?;
     check_delay(ctx, outcome)
@@ -355,6 +381,9 @@ pub async fn run_lookup<M: Lookup>(
         ctx.check_cancelled()?;
         if let Some(directive) = skipping_directive::<M, _>(ctx) {
             return Ok(Outcome::Skipped(format!("directive {directive}")));
+        }
+        if let Some(why) = declined::<M>(ctx) {
+            return Ok(Outcome::Skipped(why));
         }
         let outcome = tokio::select! {
             biased;

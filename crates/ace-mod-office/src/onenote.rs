@@ -16,6 +16,7 @@
 
 use ace_results::types::office::OneNoteFileAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -117,6 +118,10 @@ impl Module for OneNoteAnalyzer {
     fn init(_: &OneNoteSettings) -> Result<Self, ModuleError> {
         Ok(OneNoteAnalyzer)
     }
+
+    fn takes(_: &OneNoteSettings) -> Takes {
+        Takes::everything().and(Condition::not_empty(), "an empty file")
+    }
 }
 
 impl Parser for OneNoteAnalyzer {
@@ -125,9 +130,6 @@ impl Parser for OneNoteAnalyzer {
         ctx: &TaskContext<OneNoteSettings>,
     ) -> Result<Outcome<OneNoteFileAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
         let mut header = Vec::new();
         let mut data = Vec::new();
         {

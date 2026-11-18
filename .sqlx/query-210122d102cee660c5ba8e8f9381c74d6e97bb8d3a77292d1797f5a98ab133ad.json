@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id AS \"task!\", t.root_id AS \"root!\", t.module AS \"module!\",\n                  (o.type || ':' || o.value) AS \"observable!\", t.declined AS \"declined!\",\n                  (CASE WHEN r.id IS NOT NULL THEN 'result' ELSE 'failed' END) AS \"ended!\"\n           FROM queue.tasks t\n           JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id\n           LEFT JOIN analysis.results r ON r.root_id = t.root_id\n                AND r.observable_id = t.observable_id AND r.module = t.module\n           WHERE t.declined IS NOT NULL AND (r.id IS NOT NULL OR t.state = 'failed')\n           ORDER BY t.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "task!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "root!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "module!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "observable!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "declined!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "declined"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "ended!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      true,
+      null
+    ]
+  },
+  "hash": "210122d102cee660c5ba8e8f9381c74d6e97bb8d3a77292d1797f5a98ab133ad"
+}

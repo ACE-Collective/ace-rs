@@ -17,6 +17,7 @@ use ace_mod_files::javascript::is_javascript_file;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::office::{ExtractedOleAnalysis, OfficeParserAnalysis};
 use ace_results::{AnalysisType, Detection, ObservableKind, ResultEnvelope};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -86,6 +87,18 @@ impl Module for ExtractedOleAnalyzer {
     fn init(_: &ExtractedOleSettings) -> Result<Self, ModuleError> {
         Ok(ExtractedOleAnalyzer)
     }
+
+    fn takes(_: &ExtractedOleSettings) -> Takes {
+        Takes::everything()
+            .and(
+                Condition::HasResult(FileTypeAnalysis::MODULE.to_owned()),
+                "no file type analysis",
+            )
+            .and(
+                Condition::added_by(OfficeParserAnalysis::MODULE),
+                "not an output of officeparser3",
+            )
+    }
 }
 
 impl Parser for ExtractedOleAnalyzer {
@@ -97,15 +110,6 @@ impl Parser for ExtractedOleAnalyzer {
         let Some(file_type) = ctx.dependency_result::<FileTypeAnalysis>()? else {
             return Ok(Outcome::Skipped("no file type analysis".to_owned()));
         };
-        if !ctx
-            .added_by()
-            .iter()
-            .any(|m| m == OfficeParserAnalysis::MODULE)
-        {
-            return Ok(Outcome::Skipped(
-                "not an output of officeparser3".to_owned(),
-            ));
-        }
         let data = std::fs::read(&file.local_path)?;
         let path = file.path.as_str();
         let mut result = ResultEnvelope::new(ExtractedOleAnalysis::default());

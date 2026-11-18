@@ -21,6 +21,7 @@
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::x509::{SerialNumber, SubjectAlternativeNames, X509Analysis};
 use ace_results::{AnalysisType, NewObservable, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 
 /// The module's manifest.
@@ -47,6 +48,18 @@ impl Module for X509Analyzer {
 
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(X509Analyzer)
+    }
+
+    fn takes(_: &()) -> Takes {
+        Takes::everything()
+            .and(
+                Condition::HasResult(FileTypeAnalysis::MODULE.to_owned()),
+                "no file type analysis",
+            )
+            .and(
+                Condition::result_true(FileTypeAnalysis::MODULE, "is_x509"),
+                "not an x509 certificate",
+            )
     }
 }
 
@@ -76,12 +89,6 @@ fn named(kind: ObservableKind, value: &str, display: &str, crawl: bool) -> NewOb
 impl Parser for X509Analyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<X509Analysis>, ModuleError> {
         let file = ctx.input_file()?;
-        let Some(file_type) = ctx.dependency_result::<FileTypeAnalysis>()? else {
-            return Ok(Outcome::Skipped("no file type analysis".to_owned()));
-        };
-        if !file_type.is_x509 {
-            return Ok(Outcome::Skipped("not an x509 certificate".to_owned()));
-        }
         let data = std::fs::read(&file.local_path)?;
         let cert = ace_x509::load_cert(&data)
             .map_err(|e| ModuleError::other(e.to_string()))?

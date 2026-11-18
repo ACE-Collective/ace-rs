@@ -20,6 +20,7 @@ use ace_mod_files::libmagic::{self, Answer, Magic};
 use ace_pycompat::pystr::strip;
 use ace_results::types::macos::{Cve202130657Analysis, DmgAnalysis};
 use ace_results::{Detection, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_sdk::takes::{Case, Condition, Takes, Text};
 use ace_sdk::tools::{MAX_RUNS, ToolOutput, ToolRun};
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use regex::Regex;
@@ -59,21 +60,27 @@ impl Module for DmgAnalyzer {
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(DmgAnalyzer)
     }
+
+    fn takes(_: &()) -> Takes {
+        // "The first noteable fact about the DMG file format is, that there is no DMG file format."
+        // ace3 checks the name lowered; to_lowercase lowers the same ASCII
+        Takes::everything().and(
+            Condition::Name(Text::ends_with(".dmg", Case::Lower)),
+            "not named .dmg",
+        )
+    }
 }
 
 impl Parser for DmgAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<DmgAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        // "The first noteable fact about the DMG file format is, that there is no DMG file format."
-        if !file.name().to_lowercase().ends_with(".dmg") {
-            return Ok(Outcome::Skipped("not named .dmg".to_owned()));
-        }
         let mut result = ResultEnvelope::new(DmgAnalysis::default());
         let local = file.local_path.display().to_string();
         // the image is kept next to the dmg, replacing .dmg with .img; the name ends in four
-        // ASCII characters, whatever their case
+        // ASCII characters, whatever their case (`takes`)
         let path = file.path.to_string();
-        let image_path = format!("{}.img", &path[..path.len() - 4]);
+        let stem = path.get(..path.len().saturating_sub(4)).unwrap_or(&path);
+        let image_path = format!("{stem}.img");
         let convert = ToolRun::new("dmg2img", [local.as_str(), "image.img"])
             .read(&file.local_path)
             .keep("image.img")
@@ -229,23 +236,28 @@ impl Module for Cve202130657Analyzer {
             entry: Regex::new(r"^.+?\d+\s+\d+\s+(.+)$").map_err(ModuleError::other)?,
         })
     }
+
+    fn takes(_: &()) -> Takes {
+        // the file should end with .img and be dmg_analyzer's, which tags it macos and dmg and
+        // redirects it to the DMG whose analysis added it
+        Takes::everything()
+            .and(
+                Condition::Path(Text::ends_with(".img", Case::Lower)),
+                "not named .img",
+            )
+            .and(
+                Condition::All(vec![
+                    Condition::added_by(DmgAnalyzer::NAME),
+                    Condition::Redirected,
+                ]),
+                "not an image dmg_analyzer added",
+            )
+    }
 }
 
 impl Parser for Cve202130657Analyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<Cve202130657Analysis>, ModuleError> {
         let file = ctx.input_file()?;
-        // the file should end with .img and be dmg_analyzer's, which tags it macos and dmg and
-        // redirects it to the DMG whose analysis added it
-        if !file.path.to_string().to_lowercase().ends_with(".img") {
-            return Ok(Outcome::Skipped("not named .img".to_owned()));
-        }
-        if !ctx.added_by().iter().any(|m| m == DmgAnalyzer::NAME)
-            || ctx.observable().redirection.is_none()
-        {
-            return Ok(Outcome::Skipped(
-                "not an image dmg_analyzer added".to_owned(),
-            ));
-        }
         let mut result = ResultEnvelope::new(Cve202130657Analysis::default());
         let lines = match list(ctx, &file.local_path)? {
             // a listing 7z failed part way through is checked as far as it goes, as ace3 checks

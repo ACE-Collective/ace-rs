@@ -19,6 +19,7 @@ use std::fs;
 
 use ace_results::types::scripts::MicrosoftScriptEncodingAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 
 use crate::{DIRECTIVE_SANDBOX, ends_with_lower, name_fits, name_too_long, source};
@@ -182,6 +183,10 @@ impl Module for MicrosoftScriptEncodingAnalyzer {
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(MicrosoftScriptEncodingAnalyzer)
     }
+
+    fn takes(_: &()) -> Takes {
+        Takes::everything().and(Condition::not_empty(), "an empty file")
+    }
 }
 
 /// What ace3 names the decoded file: `.decrypted`, then `.vbs` for a `.vbe` and `.js` for a `.jse`.
@@ -201,9 +206,6 @@ impl Parser for MicrosoftScriptEncodingAnalyzer {
         ctx: &TaskContext<()>,
     ) -> Result<Outcome<MicrosoftScriptEncodingAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
         let data = fs::read(&file.local_path)?;
         if !data.starts_with(START) {
             return Ok(Outcome::Skipped("not an encoded script".to_owned()));

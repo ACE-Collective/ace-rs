@@ -192,6 +192,22 @@ pub fn manifests() -> Vec<ace_sdk::Manifest> {
     ]
 }
 
+/// file_type's result on `on`, calling it an email, which the email module's declaration of what it
+/// takes reads (`ace_sdk::takes`, PLAN.md decision 23). These tests' catalogs haven't file_type, so
+/// nothing else lands one, and without it the email module takes no file.
+pub async fn file_type_says_email(db: &Db, root: Uuid, on: ObservableId) {
+    let mut tx = db.begin().await.expect("begins");
+    let envelope = result(serde_json::json!({
+        "analysis_type": "file_type_analysis", "schema_version": 1,
+        "details": {"type": "RFC 822 mail, ASCII text", "mime": "message/rfc822",
+                    "is_email_file": true},
+    }));
+    tree::insert_result(&mut tx, root, on, "file_type", &envelope)
+        .await
+        .expect("inserts");
+    tx.commit().await.expect("commits");
+}
+
 /// A result envelope from JSON, as a worker would send it.
 pub fn result(value: serde_json::Value) -> ace_results::ResultEnvelope<serde_json::Value> {
     serde_json::from_value(value).expect("a result envelope")

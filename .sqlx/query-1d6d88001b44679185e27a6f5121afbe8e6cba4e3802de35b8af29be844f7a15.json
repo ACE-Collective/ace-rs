@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id AS \"id: TaskId\", observable_id AS \"observable_id: ObservableId\", module,\n                      state AS \"state: TaskState\"\n               FROM queue.tasks\n               WHERE root_id = $1 AND ($2::bigint[] IS NULL OR observable_id = ANY($2))",
+  "query": "SELECT id AS \"id: TaskId\", observable_id AS \"observable_id: ObservableId\", module,\n                      state AS \"state: TaskState\", declined IS NOT NULL AS \"declined!\"\n               FROM queue.tasks\n               WHERE root_id = $1 AND ($2::bigint[] IS NULL OR observable_id = ANY($2))",
   "describe": {
     "columns": [
       {
@@ -60,6 +60,12 @@
             "name": "state"
           }
         }
+      },
+      {
+        "ordinal": 4,
+        "name": "declined!",
+        "type_info": "Bool",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -72,8 +78,9 @@
       false,
       false,
       false,
-      false
+      false,
+      null
     ]
   },
-  "hash": "7eb4f97f5208321e43617a10cc1f43d9cd887aee84614e5943781de9e41b3dfc"
+  "hash": "1d6d88001b44679185e27a6f5121afbe8e6cba4e3802de35b8af29be844f7a15"
 }

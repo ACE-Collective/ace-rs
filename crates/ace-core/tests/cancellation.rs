@@ -21,7 +21,7 @@ use ace_sdk::{
 use common::stubs::StubOutput;
 use serde_json::json;
 
-use common::{manifests, result, root_with, tasks_of, worker};
+use common::{file_type_says_email, manifests, result, root_with, tasks_of, worker};
 
 const EMAIL_SHA256: &str = "5d2569cdbe088294e456effabcfd8362108468f12deaf6464f95bc5400f85874";
 /// How often the parser below checks its cancellation token.
@@ -198,7 +198,7 @@ async fn a_dispositioned_alert_runs_only_alert_added_to_event() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let orchestrator = Orchestrator::new(Catalog::new(manifests()), Modes::ace3());
-    let (root, _) = root_with(
+    let (root, ids) = root_with(
         db,
         "correlation",
         &[
@@ -207,6 +207,7 @@ async fn a_dispositioned_alert_runs_only_alert_added_to_event() {
         ],
     )
     .await;
+    file_type_says_email(db, root, ids[0]).await;
     let mut tx = db.begin().await.expect("begins");
     orchestrator.start(&mut tx, root).await.expect("starts");
     tx.commit().await.expect("commits");
@@ -382,7 +383,8 @@ async fn a_result_that_lands_after_the_cancel_is_kept_and_queues_nothing() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let orchestrator = Orchestrator::new(Catalog::new(manifests()), Modes::ace3());
-    let (root, _) = root_with(db, "email", &[(ObservableKind::File, EMAIL_SHA256)]).await;
+    let (root, ids) = root_with(db, "email", &[(ObservableKind::File, EMAIL_SHA256)]).await;
+    file_type_says_email(db, root, ids[0]).await;
     let mut tx = db.begin().await.expect("begins");
     orchestrator.start(&mut tx, root).await.expect("starts");
     tx.commit().await.expect("commits");

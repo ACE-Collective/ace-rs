@@ -31,6 +31,7 @@ use ace_results::{
     AnalysisType, NewFile, ObservableKind, ObservableRef, Relationship, RelationshipKind,
     ResultEnvelope, YaraMeta,
 };
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -390,6 +391,10 @@ impl Module for RtfOle {
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(RtfOle)
     }
+
+    fn takes(_: &()) -> Takes {
+        Takes::everything().and(Condition::not_empty(), "an empty file")
+    }
 }
 
 fn rtf_summary(extracted: &[String]) -> Option<String> {
@@ -411,9 +416,6 @@ fn rtf_summary(extracted: &[String]) -> Option<String> {
 impl Parser for RtfOle {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<RtfOleObjectAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
         let data = read_input(&file.local_path)?;
         if !is_rtf_file(&data) {
             return Ok(Outcome::Skipped("not an RTF file".to_owned()));

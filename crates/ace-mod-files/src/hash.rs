@@ -17,13 +17,13 @@
 use std::collections::BTreeMap;
 use std::fs;
 
-use ace_pycompat::fnmatch::fnmatch;
 use ace_results::types::file_hash::FileHashAnalysis;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::{
     AnalysisType, NewObservable, ObservableKind, ObservableRef, Relationship, RelationshipKind,
     ResultEnvelope,
 };
+use ace_sdk::takes::{Condition, Match, Takes, Text};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use md5::Md5;
 use schemars::JsonSchema;
@@ -105,29 +105,47 @@ impl Module for FileHashAnalyzer {
     fn init(_: &FileHashSettings) -> Result<Self, ModuleError> {
         Ok(FileHashAnalyzer)
     }
-}
 
-/// The path ace3 matches, its file's path on its node: a directory, then the alert path.
-fn node_path(alert_path: &str) -> String {
-    format!("/opt/ace/data/root/{alert_path}")
-}
-
-/// The ignore pattern the file matches, if one does.
-pub fn ignored_by(settings: &FileHashSettings, alert_path: &str, mime: &str) -> Option<String> {
-    let path = node_path(alert_path);
-    if let Some(pattern) = settings
-        .ignore_patterns
-        .values()
-        .find(|p| fnmatch(&path, p))
-    {
-        return Some(pattern.clone());
+    fn takes(settings: &FileHashSettings) -> Takes {
+        // each pattern matched on the file's path on ace3's node, and each mime pattern on
+        // file_type's mime type, as `fnmatch` on POSIX
+        let globs = |patterns: &BTreeMap<String, String>, prefix: &str| -> Vec<(String, Text)> {
+            patterns
+                .values()
+                .map(|pattern| {
+                    let glob = Match::Glob {
+                        pattern: pattern.clone(),
+                        prefix: prefix.to_owned(),
+                    };
+                    (pattern.clone(), Text::exact(glob))
+                })
+                .collect()
+        };
+        let mut takes = Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            .and(
+                Condition::HasResult(FileTypeAnalysis::MODULE.to_owned()),
+                "no file type analysis",
+            );
+        for (pattern, text) in globs(&settings.ignore_patterns, NODE_ROOT) {
+            takes = takes.and(
+                Condition::Path(text).negated(),
+                format!("ignored by {pattern}"),
+            );
+        }
+        for (pattern, text) in globs(&settings.ignore_mime_types, "") {
+            takes = takes.and(
+                Condition::result_text(FileTypeAnalysis::MODULE, "mime", text).negated(),
+                format!("ignored by {pattern}"),
+            );
+        }
+        takes
     }
-    settings
-        .ignore_mime_types
-        .values()
-        .find(|p| fnmatch(mime, p))
-        .cloned()
 }
+
+/// The directory ace3's node keeps an alert's files under, which its patterns match with the
+/// file's path.
+const NODE_ROOT: &str = "/opt/ace/data/root/";
 
 impl Parser for FileHashAnalyzer {
     fn analyze(
@@ -135,15 +153,6 @@ impl Parser for FileHashAnalyzer {
         ctx: &TaskContext<FileHashSettings>,
     ) -> Result<Outcome<FileHashAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
-        let Some(file_type) = ctx.dependency_result::<FileTypeAnalysis>()? else {
-            return Ok(Outcome::Skipped("no file type analysis".to_owned()));
-        };
-        if let Some(pattern) = ignored_by(ctx.settings(), file.path.as_str(), &file_type.mime) {
-            return Ok(Outcome::Skipped(format!("ignored by {pattern}")));
-        }
         let data = fs::read(&file.local_path)?;
         let md5 = hex(&Md5::digest(&data));
         let sha1 = hex(&Sha1::digest(&data));
@@ -179,8 +188,29 @@ mod tests {
 
     #[test]
     fn ace3_s_patterns_match_as_they_do_on_its_node() {
-        let settings = FileHashSettings::default();
-        let ignored = |path: &str, mime: &str| ignored_by(&settings, path, mime);
+        let takes = FileHashAnalyzer::takes(&FileHashSettings::default());
+        let ignored = |path: &str, mime: &str| {
+            let results = std::collections::BTreeMap::from([(
+                "file_type".to_owned(),
+                serde_json::json!({"mime": mime}),
+            )]);
+            let facts = ace_sdk::takes::Facts {
+                kind: ace_results::ObservableKind::File,
+                directives: &[],
+                relationships: &[],
+                redirected: false,
+                added_by: &[],
+                mode: None,
+                file: Some(ace_sdk::takes::FileFacts {
+                    path,
+                    size: Some(1),
+                    mime: None,
+                    yara_meta: Some(&[]),
+                }),
+                results: &results,
+            };
+            takes.check(&facts).err().map(str::to_owned)
+        };
         assert!(ignored("email.rfc822.headers", "text/plain").is_some());
         assert!(ignored("email.rfc822.combined", "text/plain").is_none());
         assert!(ignored("phishkit/a.html", "text/html").is_none());

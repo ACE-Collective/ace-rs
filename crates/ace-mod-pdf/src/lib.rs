@@ -37,6 +37,7 @@ use ace_results::{
     NewFile, ObservableKind, ObservableRef, Relationship, RelationshipKind, ResultEnvelope,
     YaraMeta,
 };
+use ace_sdk::takes::{Case, Condition, Takes, Text};
 use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -82,6 +83,18 @@ impl Module for PdfAnalyzer {
 
     fn init(_: &PdfSettings) -> Result<Self, ModuleError> {
         Ok(PdfAnalyzer)
+    }
+
+    fn takes(_: &PdfSettings) -> Takes {
+        Takes::everything()
+            .and(
+                Condition::Path(Text::ends_with(".pdfparser", Case::Exact)).negated(),
+                "this module's own output",
+            )
+            .and(
+                Condition::Path(Text::ends_with(".ocr", Case::Exact)).negated(),
+                "OCR output",
+            )
     }
 }
 
@@ -288,12 +301,6 @@ impl Parser for PdfAnalyzer {
     fn analyze(&self, ctx: &TaskContext<PdfSettings>) -> Result<Outcome<PdfAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let path = file.path.as_str();
-        if path.ends_with(".pdfparser") {
-            return Ok(Outcome::Skipped("this module's own output".to_owned()));
-        }
-        if path.ends_with(".ocr") {
-            return Ok(Outcome::Skipped("OCR output".to_owned()));
-        }
         if !looks_like_pdf(&file.local_path)? {
             return Ok(Outcome::Skipped("not a PDF".to_owned()));
         }

@@ -175,6 +175,16 @@ mod tests {
         assert_eq!(super::app().modules_without_a_view(), []);
     }
 
+    /// Every open-source module's declaration of what it takes reads only what its lease carries
+    /// (PLAN.md decision 23).
+    #[test]
+    fn every_module_s_declaration_reads_what_its_lease_carries() {
+        assert_eq!(
+            super::app().modules_with_unusable_declarations(),
+            Vec::<String>::new()
+        );
+    }
+
     /// Each of the signatures' 7 hunt scripts is a script command type (PLAN.md decision 16).
     #[test]
     fn the_hunt_scripts_are_script_command_types() {

@@ -30,6 +30,7 @@ use ace_results::{
     Detection, NewFile, ObservableKind, ObservableRef, Relationship, RelationshipKind,
     ResultEnvelope,
 };
+use ace_sdk::takes::{Condition, Takes, Text};
 use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -86,6 +87,14 @@ impl Module for ArchiveAnalyzer {
 
     fn init(_: &ArchiveSettings) -> Result<Self, ModuleError> {
         Ok(ArchiveAnalyzer)
+    }
+
+    fn takes(_: &ArchiveSettings) -> Takes {
+        // an email's archive members are the email module's business (ace3, 10/19/2021)
+        Takes::everything().and(
+            Condition::Path(Text::contains("email.rfc822")).negated(),
+            "a file of an email",
+        )
     }
 }
 
@@ -269,10 +278,6 @@ impl Parser for ArchiveAnalyzer {
     ) -> Result<Outcome<ArchiveAnalysis>, ModuleError> {
         let settings = ctx.settings();
         let file = ctx.input_file()?;
-        // an email's archive members are the email module's business (ace3, 10/19/2021)
-        if file.path.as_str().contains("email.rfc822") {
-            return Ok(Outcome::Skipped("a file of an email".to_owned()));
-        }
         let mut head = Vec::with_capacity(16);
         File::open(&file.local_path)?
             .take(16)

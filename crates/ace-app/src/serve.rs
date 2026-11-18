@@ -174,7 +174,19 @@ async fn serve(app: &App) -> Result<ExitCode> {
     for (name, priority) in routers.names() {
         tracing::info!(router = name, priority, "routing alerts with this router");
     }
-    let orchestrator = Orchestrator::new(Catalog::of(components), modes).with_hooks(hooks);
+    // the modules' declarations of what they take, applied or only audited (PLAN.md decision 23)
+    let takes = ace_core::takes::TakesMode::from_env().map_err(anyhow::Error::msg)?;
+    if takes == ace_core::takes::TakesMode::Audit {
+        tracing::warn!(
+            "ACE4_TAKES_AUDIT is set: every task is queued, and the ones a module's declaration declines are marked"
+        );
+    }
+    for component in components.iter().filter(|c| !c.takes.is_everything()) {
+        tracing::info!(module = %component.key, takes = %component.takes, "the module declares what it takes");
+    }
+    let orchestrator = Orchestrator::new(Catalog::of(components), modes)
+        .with_hooks(hooks)
+        .with_takes(takes);
     // a pool that lists a module leases its overlay instances too
     // the remediators, probes and collectors the pools host decide their actions' tries (PLAN.md 7.9)
     let actions = app

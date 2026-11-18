@@ -14,6 +14,7 @@
 use ace_mod_oletools::pyzip::zlib_decompress;
 use ace_results::types::office::ActiveMimeAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 
 use crate::extracted_from;
@@ -107,14 +108,15 @@ impl Module for ActiveMimeAnalyzer {
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(ActiveMimeAnalyzer)
     }
+
+    fn takes(_: &()) -> Takes {
+        Takes::everything().and(Condition::not_empty(), "an empty file")
+    }
 }
 
 impl Parser for ActiveMimeAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<ActiveMimeAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
         let rawdoc = std::fs::read(&file.local_path)?;
         let payload = match parse_active_mime(&rawdoc) {
             None => return Ok(Outcome::Skipped("not an ActiveMime file".to_owned())),

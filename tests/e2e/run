@@ -109,6 +109,11 @@ Usage: tests/e2e/run [--keep] [--compare] [--jobs N]
               the parser pool has slots here: 8 on a machine whose Docker has 10 CPUs or more,
               4 on a small one
 
+With ACE4_TAKES_AUDIT=1 in the environment, the stack's core audits the modules' declarations of what
+they take rather than applying them (PLAN.md decision 23): it queues every task and marks the ones a
+declaration declines. After the comparison the test then fails if a marked task stored a result or
+failed, and writes the marked tasks by module to <work>/takes-audit.txt.
+
 Exits 0 when every check passes. Needs docker compose and python3 on the host.
 
 A site repository runs the same scenario against its own images (PLAN.md 2.32) by setting:
@@ -1906,6 +1911,46 @@ def jobs_of(argv):
     return int(following[0])
 
 
+# The audit of the modules' declarations of what they take (PLAN.md decision 23, ace_core::takes):
+# with ACE4_TAKES_AUDIT=1 in the environment (a site's prefix in place of ACE4_) the stack's core
+# queues every task and marks the ones a declaration would have declined. This is
+# ace_core::takes::audit_report's query.
+TAKES_AUDIT = os.environ.get(PREFIX + "TAKES_AUDIT", "") in ("1", "true")
+LOST_TASKS = """
+SELECT t.id, t.module, o.type || ':' || o.value, t.declined,
+       CASE WHEN r.id IS NOT NULL THEN 'result' ELSE 'failed' END
+FROM queue.tasks t
+JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id
+LEFT JOIN analysis.results r ON r.root_id = t.root_id
+     AND r.observable_id = t.observable_id AND r.module = t.module
+WHERE t.declined IS NOT NULL AND (r.id IS NOT NULL OR t.state = 'failed')
+ORDER BY t.id
+"""
+
+
+def check_takes_audit(failures):
+    """Under ACE4_TAKES_AUDIT, that no task a declaration declined stored a result or failed. The
+    marked tasks by module, and any such task, go to <work>/takes-audit.txt."""
+    if not TAKES_AUDIT:
+        return
+    marked = sql("SELECT module, count(*), count(*) FILTER (WHERE state = 'done') FROM queue.tasks "
+                 "WHERE declined IS NOT NULL GROUP BY module ORDER BY count(*) DESC, module")
+    total = sql("SELECT count(*), count(*) FILTER (WHERE declined IS NOT NULL) FROM queue.tasks")[0]
+    lost = sql(LOST_TASKS)
+    lines = [f"{total[1]} of {total[0]} tasks marked as declined by their module's declaration",
+             *(f"  {count:>7} {module} ({done} done)" for module, count, done in marked),
+             f"{len(lost)} marked tasks stored a result or failed",
+             *("  " + "\t".join(row) for row in lost)]
+    (WORK / "takes-audit.txt").write_text("\n".join(lines) + "\n")
+    if lost:
+        log(f"FAIL  {len(lost)} tasks a module's declaration declined stored a result or failed; "
+            f"see {WORK / 'takes-audit.txt'}")
+        failures.append("the audit of the modules' declarations found tasks they would lose")
+    else:
+        log(f"ok    the audit: {total[1]} of {total[0]} tasks marked as declined, and none of them "
+            f"stored a result or failed")
+
+
 def compare_with_ace3(threshold=False, jobs=None):
     """Runs `ace compare` over the sample set in a one-off ace container, with the report under
     <work>/compare, `jobs` samples at once when it's given. Returns its exit code."""
@@ -2031,6 +2076,7 @@ def main(argv):
         if compare_only:
             if compare_with_ace3(jobs=jobs) != 0:
                 failures.append("ace compare couldn't run every sample; see above")
+            check_takes_audit(failures)
             return finish(failures)
         check_gui(failures)
         make_analyst()
@@ -2071,6 +2117,7 @@ def main(argv):
         if COMPARE:
             compare_failed = compare_with_ace3(threshold=True, jobs=jobs) != 0
             check_ports_compared(failures)
+            check_takes_audit(failures)
             if compare_failed:
                 failures.append("the acceptance threshold (docs/acceptance.md) isn't met; see "
                                 "above and target/e2e/compare/report.md")

@@ -27,6 +27,7 @@
 use ace_app::App;
 use ace_gui::{AlertSummary, AnalysisView, ObservableAction, SummaryInput};
 use ace_results::{AnalysisType, NewObservable, ObservableKind, ObservableType, ResultEnvelope};
+use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
 use ace_sdk::{Lookup, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -273,12 +274,16 @@ impl AnalysisView for TicketFileAnalysis {
 pub struct TicketFileSettings {
     /// What a ticket's name starts with, before its number.
     pub prefix: String,
+    /// Extensions, such as `.bin`, of files the module never reads: its declaration of what it
+    /// takes (`Module::takes`) is built from these, so the core queues no task for such a file.
+    pub skip_extensions: Vec<String>,
 }
 
 impl Default for TicketFileSettings {
     fn default() -> Self {
         TicketFileSettings {
             prefix: "TICKET-".to_owned(),
+            skip_extensions: Vec::new(),
         }
     }
 }
@@ -298,6 +303,22 @@ impl Module for TicketFile {
             return Err(ModuleError::other("prefix must not be empty"));
         }
         Ok(TicketFile)
+    }
+
+    /// What it takes, as a site's module declares it (PLAN.md decision 23): a file with bytes, and
+    /// not one of the extensions the settings skip, compared lowered. The core queues no task for
+    /// anything else, and the pool checks it again before `analyze`, which therefore doesn't.
+    fn takes(settings: &TicketFileSettings) -> Takes {
+        Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            .and(
+                Condition::Extension(Text::new(
+                    Match::OneOf(settings.skip_extensions.clone()),
+                    Case::Lower,
+                ))
+                .negated(),
+                "its extension is one the settings skip",
+            )
     }
 }
 

@@ -20,6 +20,7 @@ use serde_json::{Value, json};
 use crate::lists::ListSpec;
 use crate::module::{EXCLUDE_ALL, Lookup, Module, OtherAdditionsAllowed, Parser, Settings};
 use crate::reads::Read;
+use crate::takes::Takes;
 use crate::tree::TreeFiles;
 use crate::writes::Write;
 
@@ -125,6 +126,7 @@ pub struct Manifest {
     pub scanners: &'static [&'static str],
     settings_schema: fn() -> Schema,
     check_settings: fn(Option<&Value>) -> Result<(), SettingsError>,
+    takes: fn(Option<&Value>) -> Result<Takes, SettingsError>,
 }
 
 impl Manifest {
@@ -202,6 +204,7 @@ impl Manifest {
             scanners: M::SCANNERS,
             settings_schema: settings_schema::<M::Settings>,
             check_settings: check_settings::<M::Settings>,
+            takes: takes::<M>,
         }
     }
 
@@ -213,6 +216,37 @@ impl Manifest {
     /// Checks a settings block without building the module, as a config overlay is loaded.
     pub fn check_settings(&self, block: Option<&Value>) -> Result<(), SettingsError> {
         (self.check_settings)(block)
+    }
+
+    /// What the module takes on a settings block (`Module::takes`, `crate::takes`), checked against
+    /// what its lease carries: a rule that reads which modules added the observable needs
+    /// `READS_ADDED_BY`, one on the root's mode needs `READS_TREE`, one on a dependency's result
+    /// needs the dependency in `DEPENDS_ON`, and a lookup's rules can read a file's path but not its
+    /// size, mime type or `yara_meta`, which only a parser's lease carries. Otherwise the pool would
+    /// decline on a fact its task lacks where the core took it.
+    pub fn declaration(&self, block: Option<&Value>) -> Result<Takes, DeclarationError> {
+        let takes = (self.takes)(block).map_err(DeclarationError::Settings)?;
+        let reads = takes.reads();
+        let refuse = |what: String| Err(DeclarationError::Unread(self.name, what));
+        if reads.added_by && !self.reads_added_by {
+            return refuse("which modules added the observable, without READS_ADDED_BY".into());
+        }
+        if reads.mode && !self.reads_tree {
+            return refuse("the root's mode, without READS_TREE".into());
+        }
+        if let Some(module) = reads
+            .results
+            .iter()
+            .find(|m| !self.depends_on.contains(&m.as_str()))
+        {
+            return refuse(format!("{module}'s result, which isn't in DEPENDS_ON"));
+        }
+        if reads.file_record && self.kind == ModuleKind::Lookup {
+            return refuse(
+                "a file's size, mime type or yara_meta, which a lookup's lease lacks".into(),
+            );
+        }
+        Ok(takes)
     }
 
     /// True when the module takes observables of `kind`, directly or through a parent type.
@@ -287,6 +321,8 @@ impl Manifest {
                 .map(|(kind, directives)| json!({"type": kind, "directives": directives}))
                 .collect::<Vec<_>>(),
             "settings_schema": self.settings_schema(),
+            // on its default settings; a site's settings can change it (`Component::takes`)
+            "takes": self.declaration(None).map_or(Value::Null, |takes| takes.describe()),
         })
     }
 }
@@ -313,6 +349,19 @@ fn settings_schema<S: Settings>() -> Schema {
 
 fn check_settings<S: Settings>(block: Option<&Value>) -> Result<(), SettingsError> {
     load_settings::<S>(block).map(drop)
+}
+
+fn takes<M: Module>(block: Option<&Value>) -> Result<Takes, SettingsError> {
+    load_settings::<M::Settings>(block).map(|settings| M::takes(&settings))
+}
+
+/// A declaration of what a module takes that can't be used.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum DeclarationError {
+    #[error(transparent)]
+    Settings(SettingsError),
+    #[error("{0} declares what it takes from {1}")]
+    Unread(&'static str, String),
 }
 
 /// A settings block that didn't load.
@@ -500,6 +549,116 @@ mod tests {
         let refused = std::panic::catch_unwind(Manifest::parser::<WritingParser>);
         assert!(refused.is_err());
         assert_eq!(RESOLVER.describe()["writes"], json!([]));
+    }
+
+    /// A parser and a lookup that declare what they take from facts named in their settings.
+    struct Declaring;
+
+    impl Module for Declaring {
+        const NAME: &'static str = "declaring";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        type Output = crate::example::LineStats;
+        type Settings = DeclaringSettings;
+        fn init(_: &DeclaringSettings) -> Result<Self, crate::ModuleError> {
+            Ok(Declaring)
+        }
+        fn takes(settings: &DeclaringSettings) -> Takes {
+            use crate::takes::{Case, Condition, Text};
+            let condition = match settings.fact.as_str() {
+                "added_by" => Condition::added_by("archive"),
+                "mode" => Condition::Mode("correlation".to_owned()),
+                "result" => Condition::HasResult("file_type".to_owned()),
+                "size" => Condition::not_empty(),
+                _ => Condition::Path(Text::ends_with(".x", Case::Exact)),
+            };
+            Takes::everything().and(condition, "no")
+        }
+    }
+
+    #[derive(Debug, Default, Deserialize, JsonSchema)]
+    #[serde(deny_unknown_fields, default)]
+    struct DeclaringSettings {
+        fact: String,
+    }
+
+    impl Parser for Declaring {
+        fn analyze(
+            &self,
+            _: &crate::TaskContext<DeclaringSettings>,
+        ) -> Result<crate::Outcome<crate::example::LineStats>, crate::ModuleError> {
+            Ok(crate::Outcome::Skipped(String::new()))
+        }
+    }
+
+    impl crate::Lookup for Declaring {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(
+            &self,
+            _: &crate::TaskContext<DeclaringSettings>,
+        ) -> Result<crate::Outcome<crate::example::LineStats>, crate::ModuleError> {
+            Ok(crate::Outcome::Skipped(String::new()))
+        }
+    }
+
+    #[test]
+    fn a_declaration_may_read_only_what_its_lease_carries() {
+        let parser = Manifest::parser::<Declaring>();
+        let lookup = Manifest::lookup::<Declaring>();
+        let fact = |fact: &str| json!({"fact": fact});
+        // a path is in every file task's lease; a file's size only in a parser's
+        assert!(parser.declaration(Some(&fact("path"))).is_ok());
+        assert!(lookup.declaration(Some(&fact("path"))).is_ok());
+        assert!(parser.declaration(Some(&fact("size"))).is_ok());
+        let refused = |manifest: &Manifest, which: &str| {
+            manifest
+                .declaration(Some(&fact(which)))
+                .expect_err("refused")
+                .to_string()
+        };
+        assert!(refused(&lookup, "size").contains("a lookup's lease lacks"));
+        // the rest need the module to ask for what it reads
+        assert!(refused(&parser, "added_by").contains("READS_ADDED_BY"));
+        assert!(refused(&parser, "mode").contains("READS_TREE"));
+        assert!(refused(&parser, "result").contains("DEPENDS_ON"));
+        let mut asks = parser;
+        asks.reads_added_by = true;
+        asks.reads_tree = true;
+        asks.depends_on = &["file_type"];
+        for which in ["added_by", "mode", "result"] {
+            assert!(asks.declaration(Some(&fact(which))).is_ok(), "{which}");
+        }
+        // a block that doesn't load is the settings' error
+        assert!(matches!(
+            parser.declaration(Some(&json!({"facts": 1}))),
+            Err(DeclarationError::Settings(_))
+        ));
+        assert_eq!(parser.describe()["takes"][0]["otherwise"], "no");
+    }
+
+    /// The pool checks the declaration on the task's own facts before `analyze`
+    /// (`crate::module::run_parser`), so a task queued while it took the file, or under the core's
+    /// audit, declines as the core would decline it now.
+    #[test]
+    fn a_parser_s_declaration_is_checked_again_before_analyze() {
+        let run = |path: &str| {
+            let file = crate::InputFile {
+                path: ace_results::AlertPath::new(path).expect("a path"),
+                sha256: ace_results::Sha256([0; 32]),
+                size: 1,
+                yara_meta: Vec::new(),
+                mime_type: None,
+                local_path: Default::default(),
+            };
+            let ctx = crate::TaskContext::new::<Declaring>(
+                uuid::Uuid::nil(),
+                crate::Observable::file(file),
+                std::sync::Arc::new(DeclaringSettings::default()),
+            );
+            crate::run_parser(&Declaring, &ctx).expect("runs")
+        };
+        assert_eq!(run("a.y"), crate::Outcome::Skipped("no".to_owned()));
+        // analyze ran, and said nothing
+        assert_eq!(run("a.x"), crate::Outcome::Skipped(String::new()));
     }
 
     #[test]

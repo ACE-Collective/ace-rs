@@ -17,11 +17,12 @@ use std::fs;
 use ace_pycompat::json::float_repr;
 use ace_results::types::scripts::VbScriptAnalysis;
 use ace_results::{AnalysisType, Detection, ObservableKind, ResultEnvelope};
+use ace_sdk::takes::{Case, Condition, Takes, Text};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::{DIRECTIVE_SANDBOX, ends_with_lower};
+use crate::DIRECTIVE_SANDBOX;
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<VbScriptAnalyzer>();
@@ -69,6 +70,16 @@ impl Module for VbScriptAnalyzer {
 
     fn init(_: &VbScriptSettings) -> Result<Self, ModuleError> {
         Ok(VbScriptAnalyzer)
+    }
+
+    fn takes(_: &VbScriptSettings) -> Takes {
+        Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            // ends_with_lower: ASCII letters in either case
+            .and(
+                Condition::Path(Text::ends_with(".vbs", Case::Ascii)),
+                "not a .vbs file",
+            )
     }
 }
 
@@ -176,12 +187,6 @@ impl Parser for VbScriptAnalyzer {
         ctx: &TaskContext<VbScriptSettings>,
     ) -> Result<Outcome<VbScriptAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
-        if !ends_with_lower(file.path.as_str(), ".vbs") {
-            return Ok(Outcome::Skipped("not a .vbs file".to_owned()));
-        }
         let data = fs::read(&file.local_path)?;
         Ok(match analyze_bytes(ctx.settings(), &data) {
             Some(result) => Outcome::Done(result),

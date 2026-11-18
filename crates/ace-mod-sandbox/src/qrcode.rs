@@ -16,6 +16,7 @@ use std::time::Duration;
 use ace_mod_files::checks::is_pdf_file;
 use ace_results::types::sandbox::QrCodeAnalysis;
 use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope, YaraMeta};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::tools::ToolRun;
 use ace_sdk::{List, ListSpec, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use opencv::core::{Mat, Vector};
@@ -82,6 +83,10 @@ impl Module for QrCodeAnalyzer {
     fn init(_: &QrCodeSettings) -> Result<Self, ModuleError> {
         opencv::core::set_num_threads(1).map_err(ModuleError::other)?;
         Ok(QrCodeAnalyzer)
+    }
+
+    fn takes(_: &QrCodeSettings) -> Takes {
+        Takes::everything().and(Condition::not_empty(), "an empty file")
     }
 }
 
@@ -343,9 +348,6 @@ impl Parser for QrCodeAnalyzer {
         ctx: &TaskContext<QrCodeSettings>,
     ) -> Result<Outcome<QrCodeAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
         let is_pdf = is_pdf_file(file.path.as_str(), &head(&file.local_path, 1024)?);
         if !is_image(&file.local_path)? && !is_pdf {
             return Ok(Outcome::Skipped("not an image or a PDF".to_owned()));

@@ -426,6 +426,44 @@ impl<S> TaskContext<S> {
         self
     }
 
+    /// The details of the observable's results from the modules this one depends on, by module.
+    pub fn dependency_details(&self) -> &BTreeMap<String, serde_json::Value> {
+        &self.dependency_results
+    }
+
+    /// The facts the task carries that a module's declaration reads (`crate::takes`).
+    pub fn facts<'a>(
+        &'a self,
+        results: &'a BTreeMap<String, serde_json::Value>,
+    ) -> crate::takes::Facts<'a> {
+        let observable = &self.observable;
+        crate::takes::Facts {
+            kind: observable.kind,
+            directives: &observable.directives,
+            relationships: &observable.relationships,
+            redirected: observable.redirection.is_some(),
+            added_by: &self.added_by,
+            mode: self.tree.as_ref().and_then(|t| t.analysis_mode.as_deref()),
+            // a parser has the file's record with its bytes; a lookup has its path alone
+            file: match (&observable.file, &observable.path) {
+                (Some(file), _) => Some(crate::takes::FileFacts {
+                    path: file.path.as_str(),
+                    size: Some(file.size),
+                    mime: file.mime_type.as_deref(),
+                    yara_meta: Some(&file.yara_meta),
+                }),
+                (None, Some(path)) => Some(crate::takes::FileFacts {
+                    path: path.as_str(),
+                    size: None,
+                    mime: None,
+                    yara_meta: None,
+                }),
+                (None, None) => None,
+            },
+            results,
+        }
+    }
+
     /// Why the module that writes `D`, which this module depends on, said it failed on the
     /// observable (`ResultEnvelope::error`). None when it didn't fail or has no result. Its
     /// details are then a partial result, so a module that needs the whole of them checks this

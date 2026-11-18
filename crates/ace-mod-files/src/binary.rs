@@ -10,6 +10,7 @@ use std::io::Read;
 
 use ace_results::types::binary::BinaryFileAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 
 /// The module's manifest.
@@ -27,6 +28,10 @@ impl Module for BinaryFileAnalyzer {
 
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(BinaryFileAnalyzer)
+    }
+
+    fn takes(_: &()) -> Takes {
+        Takes::everything().and(Condition::not_empty(), "an empty file")
     }
 }
 
@@ -46,9 +51,6 @@ pub fn has_unexpected_nul(data: &[u8]) -> bool {
 impl Parser for BinaryFileAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<BinaryFileAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
         let mut head = Vec::with_capacity(11);
         File::open(&file.local_path)?
             .take(11)

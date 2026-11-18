@@ -30,6 +30,7 @@ use crate::eligibility::{Catalog, Facts, check, is_whitelisted};
 use crate::hooks::{self, Hooks};
 use crate::modes::{CORRELATION, DISPOSITIONED, Modes};
 use crate::queue::{self, QueueError, Task, TaskId, TaskState, Worker};
+use crate::takes::{self as declared, TakesMode};
 use crate::tree::{self, ObservableId, ResultId};
 
 #[derive(Debug, thiserror::Error)]
@@ -94,6 +95,9 @@ pub struct Orchestrator {
     registry: Arc<OnceLock<Result<Registry, String>>>,
     /// The hooks the core runs over the tree (`crate::hooks`).
     hooks: Hooks,
+    /// Whether the modules' declarations keep tasks off the queue or are only audited
+    /// (`crate::takes`).
+    takes: TakesMode,
 }
 
 /// Why a result was refused before anything from it was written.
@@ -111,7 +115,18 @@ impl Orchestrator {
             modes,
             registry: Arc::default(),
             hooks: Hooks::none(),
+            takes: TakesMode::default(),
         }
+    }
+
+    /// This orchestrator, applying or auditing the modules' declarations (`crate::takes`).
+    pub fn with_takes(mut self, takes: TakesMode) -> Self {
+        self.takes = takes;
+        self
+    }
+
+    pub fn takes(&self) -> TakesMode {
+        self.takes
     }
 
     /// This orchestrator, running `hooks` (`crate::hooks`).
@@ -262,10 +277,11 @@ impl Orchestrator {
                 .or_default()
                 .insert(row.module);
         }
-        let mut tasks: BTreeMap<(ObservableId, String), (TaskId, TaskState)> = BTreeMap::new();
+        let mut tasks: BTreeMap<(ObservableId, String), (TaskId, TaskState, bool)> =
+            BTreeMap::new();
         for row in sqlx::query!(
             r#"SELECT id AS "id: TaskId", observable_id AS "observable_id: ObservableId", module,
-                      state AS "state: TaskState"
+                      state AS "state: TaskState", declined IS NOT NULL AS "declined!"
                FROM queue.tasks
                WHERE root_id = $1 AND ($2::bigint[] IS NULL OR observable_id = ANY($2))"#,
             root,
@@ -274,11 +290,17 @@ impl Orchestrator {
         .fetch_all(tx.conn())
         .await?
         {
-            tasks.insert((row.observable_id, row.module), (row.id, row.state));
+            tasks.insert(
+                (row.observable_id, row.module),
+                (row.id, row.state, row.declined),
+            );
         }
 
         let none = BTreeSet::new();
-        let mut queued = Vec::new();
+        // each observable's eligible components first, then the facts their declarations read,
+        // read once for every observable that has a declaring component (`crate::takes`)
+        let mut eligible: Vec<(ObservableKind, Vec<&ace_sdk::Component>)> = Vec::new();
+        let mut declaring = Vec::new();
         for observable in &observables {
             let kind: ObservableKind = observable
                 .kind
@@ -297,24 +319,62 @@ impl Orchestrator {
                 .iter()
                 .map(String::as_str)
                 .collect();
-            for component in self.catalog.iter() {
-                if check(component, facts, &mode_modules, &done).is_err() {
+            let components: Vec<&ace_sdk::Component> = self
+                .catalog
+                .iter()
+                .filter(|component| check(component, facts, &mode_modules, &done).is_ok())
+                .collect();
+            if components.iter().any(|c| !c.takes.is_everything()) {
+                declaring.push(observable.id);
+            }
+            eligible.push((kind, components));
+        }
+        let held = if declaring.is_empty() {
+            BTreeMap::new()
+        } else {
+            let needs = declared::Needs::of(self.catalog.iter());
+            declared::held(tx, root, &declaring, &needs).await?
+        };
+        let nothing_held = declared::Held::default();
+        let mut queued = Vec::new();
+        for (observable, (kind, components)) in observables.iter().zip(eligible) {
+            let facts = held.get(&observable.id).unwrap_or(&nothing_held).facts(
+                kind,
+                &observable.directives,
+                mode,
+            );
+            for component in components {
+                let key = component.key.as_str();
+                let task = tasks.get(&(observable.id, key.to_owned()));
+                // the module's declaration over what the core holds now (`crate::takes`)
+                let declined = component.takes.check(&facts).err();
+                if declined.is_some() && self.takes == TakesMode::Applied {
                     continue;
                 }
-                let key = component.key.as_str();
-                match tasks.get(&(observable.id, key.to_owned())) {
-                    None => {
-                        if let Some(id) = queue::enqueue(tx, root, observable.id, key).await? {
-                            queued.push(id);
-                        }
+                let added = match task {
+                    None => queue::enqueue(tx, root, observable.id, key).await?,
+                    Some((id, TaskState::Cancelled, _)) if requeue_cancelled => {
+                        queue::requeue_cancelled(tx, *id).await?.then_some(*id)
                     }
-                    Some((id, TaskState::Cancelled)) if requeue_cancelled => {
-                        if queue::requeue_cancelled(tx, *id).await? {
-                            queued.push(*id);
+                    Some(_) => None,
+                };
+                if self.takes == TakesMode::Audit {
+                    // a task queued now is marked if the declaration declines it; one queued
+                    // earlier and marked is cleared once it takes it, which is when the core
+                    // would have queued it without the setting
+                    let marked = matches!(task, Some((_, _, true)));
+                    match (added, task) {
+                        // a new task is unmarked; a requeued one may carry an old mark
+                        (Some(id), _) if declined.is_some() || marked => {
+                            declared::mark(tx, id, declined).await?;
                         }
+                        (None, Some((id, _, true))) if declined.is_none() => {
+                            declared::mark(tx, *id, None).await?;
+                        }
+                        _ => {}
                     }
-                    Some(_) => {}
                 }
+                queued.extend(added);
             }
         }
         Ok(queued)
@@ -478,6 +538,9 @@ impl Orchestrator {
         let locked = lock_root(tx, root).await?;
         let mode = locked.mode;
         worker.finish_in(tx, task.id, TaskState::Done, None).await?;
+        if self.takes == TakesMode::Audit {
+            declared::report_if_marked(tx, task.id, &task.module, "stored a result").await?;
+        }
         let result_id = tree::insert_result(tx, root, analyzed, &task.module, result).await?;
         tree::add_to_observable(tx, root, analyzed, &result.analyzed).await?;
 

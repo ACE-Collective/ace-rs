@@ -18,6 +18,7 @@ use ace_mod_oletools::pyemail::{self, Setup};
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::office::HiddenMimeAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
+use ace_sdk::takes::{Condition, Takes, Text};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use regex::bytes::Regex;
 use std::sync::LazyLock;
@@ -117,24 +118,34 @@ impl Module for HiddenMimeAnalyzer {
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(HiddenMimeAnalyzer)
     }
+
+    fn takes(_: &()) -> Takes {
+        let file_type = FileTypeAnalysis::MODULE;
+        Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            .and(
+                Condition::Any(vec![
+                    Condition::directive(DIRECTIVE_ORIGINAL_EMAIL),
+                    Condition::Name(Text::equals("email.rfc822")),
+                ])
+                .negated(),
+                "an email",
+            )
+            // ace3 goes on without file_type's result
+            .and(
+                Condition::Any(vec![
+                    Condition::result_text(file_type, "mime", Text::equals("message/rfc822")),
+                    Condition::result_true(file_type, "is_email_file"),
+                ])
+                .negated(),
+                "an email",
+            )
+    }
 }
 
 impl Parser for HiddenMimeAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<HiddenMimeAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
-        if ctx.observable().has_directive(DIRECTIVE_ORIGINAL_EMAIL) || file.name() == "email.rfc822"
-        {
-            return Ok(Outcome::Skipped("an email".to_owned()));
-        }
-        // ace3 goes on without file_type's result
-        if let Some(file_type) = ctx.dependency_result::<FileTypeAnalysis>()?
-            && (file_type.mime == "message/rfc822" || file_type.is_email_file)
-        {
-            return Ok(Outcome::Skipped("an email".to_owned()));
-        }
         let data = std::fs::read(&file.local_path)?;
         if is_pcap(&data) {
             return Ok(Outcome::Skipped("a packet capture".to_owned()));

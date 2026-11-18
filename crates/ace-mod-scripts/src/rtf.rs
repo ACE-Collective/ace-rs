@@ -21,6 +21,7 @@ use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::rtf::RtfOleObjectAnalysis;
 use ace_results::types::scripts::{ExtractedRtfAnalysis, NoWhiteSpaceAnalysis};
 use ace_results::{AnalysisType, Detection, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_sdk::takes::{Case, Condition, Takes, Text};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -74,6 +75,18 @@ impl Module for ExtractedRtfAnalyzer {
     fn init(_: &ExtractedRtfSettings) -> Result<Self, ModuleError> {
         Ok(ExtractedRtfAnalyzer)
     }
+
+    fn takes(_: &ExtractedRtfSettings) -> Takes {
+        Takes::everything()
+            .and(
+                Condition::added_by(RtfOleObjectAnalysis::MODULE),
+                "not an output of rtfole",
+            )
+            .and(
+                Condition::HasResult(FileTypeAnalysis::MODULE.to_owned()),
+                "no file type analysis",
+            )
+    }
 }
 
 /// The detections a file at `path` gets, in ace3's order, each once.
@@ -115,13 +128,6 @@ impl Parser for ExtractedRtfAnalyzer {
         ctx: &TaskContext<ExtractedRtfSettings>,
     ) -> Result<Outcome<ExtractedRtfAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if !ctx
-            .added_by()
-            .iter()
-            .any(|m| m == RtfOleObjectAnalysis::MODULE)
-        {
-            return Ok(Outcome::Skipped("not an output of rtfole".to_owned()));
-        }
         let Some(file_type) = ctx.dependency_result::<FileTypeAnalysis>()? else {
             return Ok(Outcome::Skipped("no file type analysis".to_owned()));
         };
@@ -148,6 +154,15 @@ impl Module for NoWhiteSpaceAnalyzer {
 
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(NoWhiteSpaceAnalyzer)
+    }
+
+    fn takes(_: &()) -> Takes {
+        Takes::everything()
+            .and(
+                Condition::Path(Text::ends_with(NOWHITESPACE_SUFFIX, Case::Exact)).negated(),
+                "already without whitespace",
+            )
+            .and(Condition::not_empty(), "an empty file")
     }
 }
 
@@ -191,12 +206,6 @@ impl Parser for NoWhiteSpaceAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<NoWhiteSpaceAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let path = file.path.as_str();
-        if path.ends_with(NOWHITESPACE_SUFFIX) {
-            return Ok(Outcome::Skipped("already without whitespace".to_owned()));
-        }
-        if file.size == 0 {
-            return Ok(Outcome::Skipped("an empty file".to_owned()));
-        }
         let mut head = Vec::with_capacity(4);
         File::open(&file.local_path)?
             .take(4)

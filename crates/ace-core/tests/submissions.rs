@@ -175,7 +175,9 @@ async fn a_submitted_file_is_in_the_bucket_and_its_tasks_are_queued() {
         .expect("the file's record");
     assert_eq!(path, "email.rfc822");
 
-    // its tasks: the email mode's file modules on the file; RDAP isn't in the email mode
+    // its tasks: the email mode's file modules on the file that take it; RDAP isn't in the email
+    // mode. The archive module declines a file of an email by its path, and the email module one
+    // file_type hasn't called an email, and this catalog has no file_type (PLAN.md decision 23)
     let tasks: Vec<(i64, String, String, String)> = sqlx::query_as(
         "SELECT t.id, t.module, o.type, t.state::text FROM queue.tasks t
          JOIN analysis.observables o ON o.id = t.observable_id
@@ -189,14 +191,7 @@ async fn a_submitted_file_is_in_the_bucket_and_its_tasks_are_queued() {
         .iter()
         .map(|(_, m, t, s)| (m.as_str(), t.as_str(), s.as_str()))
         .collect();
-    assert_eq!(
-        described,
-        [
-            ("archive", "file", "queued"),
-            ("email_analyzer", "file", "queued"),
-            ("yara_scanner_v3_4", "file", "queued"),
-        ]
-    );
+    assert_eq!(described, [("yara_scanner_v3_4", "file", "queued")]);
     let mut ids: Vec<i64> = tasks.iter().map(|(id, ..)| *id).collect();
     let mut queued = queued;
     ids.sort_unstable();

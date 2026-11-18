@@ -16,7 +16,7 @@ use ace_core::tree;
 use ace_results::{ObservableKind, ObservableRef};
 use serde_json::json;
 
-use common::{manifests, result, root_with, tasks_of, worker};
+use common::{file_type_says_email, manifests, result, root_with, tasks_of, worker};
 
 const EMAIL_SHA256: &str = "5d2569cdbe088294e456effabcfd8362108468f12deaf6464f95bc5400f85874";
 
@@ -292,7 +292,7 @@ async fn a_detection_mid_analysis_queues_the_correlation_group_for_the_tree() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let orchestrator = orchestrator();
-    let (root, _) = root_with(
+    let (root, ids) = root_with(
         db,
         "email",
         &[
@@ -301,6 +301,7 @@ async fn a_detection_mid_analysis_queues_the_correlation_group_for_the_tree() {
         ],
     )
     .await;
+    file_type_says_email(db, root, ids[0]).await;
     let mut tx = db.begin().await.expect("begins");
     orchestrator
         .queue_eligible(&mut tx, root, Scope::All, false)
@@ -393,7 +394,8 @@ async fn a_whitelisting_result_stops_the_root_and_nothing_in_it_alerts() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let orchestrator = orchestrator();
-    let (root, _) = root_with(db, "email", &[(ObservableKind::File, EMAIL_SHA256)]).await;
+    let (root, ids) = root_with(db, "email", &[(ObservableKind::File, EMAIL_SHA256)]).await;
+    file_type_says_email(db, root, ids[0]).await;
     let mut tx = db.begin().await.expect("begins");
     orchestrator
         .queue_eligible(&mut tx, root, Scope::All, false)
@@ -451,6 +453,7 @@ async fn a_whitelisting_result_stops_the_root_and_nothing_in_it_alerts() {
         ],
     )
     .await;
+    file_type_says_email(db, other, ids[1]).await;
     let mut tx = db.begin().await.expect("begins");
     tree::add_to_observable(
         &mut tx,
@@ -2344,4 +2347,381 @@ fn the_svs_hook_runs_in_the_modes_that_list_its_module() {
     for mode in ["analysis", "cli", "dispositioned", "email", "event"] {
         assert!(!hooks.run_in(&modes, mode), "{mode}");
     }
+}
+
+/// Modules that declare what they take (`ace_sdk::takes`, PLAN.md decision 23), one fact each, for
+/// the tests below, and two that add files and one whose result the last reads.
+mod declaring {
+    use ace_results::{ObservableKind, RelationshipKind};
+    use ace_sdk::takes::{Case, Condition, Takes, Text};
+    use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
+
+    use crate::common::stubs::StubOutput;
+
+    macro_rules! declaring {
+        ($ty:ident, $name:literal, $kind:ident, { $($extra:tt)* }, $takes:expr) => {
+            pub struct $ty;
+
+            impl Module for $ty {
+                const NAME: &'static str = $name;
+                const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+                $($extra)*
+                type Output = StubOutput;
+                type Settings = ();
+
+                fn init(_: &()) -> Result<Self, ModuleError> {
+                    Ok($ty)
+                }
+
+                fn takes(_: &()) -> Takes {
+                    $takes
+                }
+            }
+
+            declaring!(@run $kind $ty);
+        };
+        (@run parser $ty:ident) => {
+            impl Parser for $ty {
+                fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<StubOutput>, ModuleError> {
+                    Ok(Outcome::Skipped("a stub".to_owned()))
+                }
+            }
+        };
+        (@run lookup $ty:ident) => {
+            impl Lookup for $ty {
+                const TCP_PORTS: &'static [u16] = &[];
+
+                async fn analyze(
+                    &self,
+                    _: &TaskContext<()>,
+                ) -> Result<Outcome<StubOutput>, ModuleError> {
+                    Ok(Outcome::Skipped("a stub".to_owned()))
+                }
+            }
+        };
+    }
+
+    declaring!(Carrier, "test_carrier", lookup, {}, Takes::everything());
+    declaring!(Carrier2, "test_carrier2", lookup, {}, Takes::everything());
+    declaring!(Typer, "test_typer", lookup, {}, Takes::everything());
+    declaring!(
+        ByName,
+        "test_takes_name",
+        parser,
+        {},
+        Takes::everything().and(
+            Condition::Name(Text::ends_with(".dmg", Case::Lower)),
+            "not named .dmg"
+        )
+    );
+    declaring!(
+        ByDirective,
+        "test_takes_directive",
+        parser,
+        {},
+        Takes::everything().and(Condition::directive("render"), "no render directive")
+    );
+    declaring!(
+        ByAdder,
+        "test_takes_added_by",
+        parser,
+        {
+            const READS_ADDED_BY: bool = true;
+        },
+        Takes::everything().and(Condition::added_by("test_carrier2"), "not test_carrier2's")
+    );
+    declaring!(
+        ByMode,
+        "test_takes_mode",
+        parser,
+        {
+            const READS_TREE: bool = true;
+        },
+        Takes::everything().and(Condition::Mode("correlation".to_owned()), "not correlation")
+    );
+    declaring!(
+        ByResult,
+        "test_takes_result",
+        parser,
+        {
+            const DEPENDS_ON: &'static [&'static str] = &["test_typer"];
+        },
+        Takes::everything().and(Condition::result_true("test_typer", "flag"), "no flag")
+    );
+    declaring!(
+        ByRelationship,
+        "test_takes_relationship",
+        parser,
+        {},
+        Takes::everything().and(
+            Condition::Relationship(RelationshipKind::ExtractedFrom),
+            "not extracted"
+        )
+    );
+    declaring!(
+        ByYaraMeta,
+        "test_takes_yara_meta",
+        parser,
+        {},
+        Takes::everything().and(Condition::yara_meta("type", "x"), "not type=x")
+    );
+
+    pub const DECLARING: [&str; 7] = [
+        "test_takes_name",
+        "test_takes_directive",
+        "test_takes_added_by",
+        "test_takes_mode",
+        "test_takes_result",
+        "test_takes_relationship",
+        "test_takes_yara_meta",
+    ];
+
+    pub fn manifests() -> Vec<Manifest> {
+        vec![
+            Manifest::lookup::<Carrier>(),
+            Manifest::lookup::<Carrier2>(),
+            Manifest::lookup::<Typer>(),
+            Manifest::parser::<ByName>(),
+            Manifest::parser::<ByDirective>(),
+            Manifest::parser::<ByAdder>(),
+            Manifest::parser::<ByMode>(),
+            Manifest::parser::<ByResult>(),
+            Manifest::parser::<ByRelationship>(),
+            Manifest::parser::<ByYaraMeta>(),
+        ]
+    }
+}
+
+/// A mode that runs every module of `declaring`, and a correlation mode that does too.
+fn declaring_orchestrator(takes: ace_core::takes::TakesMode) -> Orchestrator {
+    let mode = |name: &str| AnalysisMode {
+        name: name.to_owned(),
+        module_groups: Vec::new(),
+        enabled_modules: declaring::manifests()
+            .iter()
+            .map(|m| m.name.to_owned())
+            .collect(),
+        disabled_modules: Vec::new(),
+    };
+    let modes = Modes::ace3()
+        .with_mode(mode("takes"))
+        .with_mode(mode("correlation"));
+    Orchestrator::new(Catalog::new(declaring::manifests()), modes).with_takes(takes)
+}
+
+/// Lands a result of `module` on the task a worker of it claims.
+async fn land(
+    test_db: &TestDb,
+    orchestrator: &Orchestrator,
+    module: &str,
+    envelope: serde_json::Value,
+) -> ace_core::orchestrator::Landed {
+    let db = test_db.db();
+    let worker = worker(test_db, module, &[module], Duration::from_secs(60)).await;
+    let task = worker.claim().await.expect("claims").expect("a task");
+    let mut tx = db.begin().await.expect("begins");
+    let landed = orchestrator
+        .land_result(&mut tx, &worker, &task, &result(envelope))
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+    landed
+}
+
+/// The declaring modules with a task on `file`, and whether each is marked declined.
+async fn declaring_tasks(
+    db: &ace_core::db::Db,
+    root: uuid::Uuid,
+    file: &str,
+) -> Vec<(String, bool)> {
+    sqlx::query_as(
+        "SELECT t.module, t.declined IS NOT NULL FROM queue.tasks t
+         JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id
+         WHERE t.root_id = $1 AND o.value = $2 AND t.module LIKE 'test_takes_%'
+         ORDER BY t.module",
+    )
+    .bind(root)
+    .bind(file)
+    .fetch_all(db.pool())
+    .await
+    .expect("lists tasks")
+}
+
+/// The steps both tests take: a root with a file C, a result on C that adds a file F under a name
+/// none of the declarations takes, then a second result on C that adds F again with each fact the
+/// declarations wait for (a nearer name, a directive, the module that adds it, a relationship, a
+/// `yara_meta` tag), then file_type's stand-in's result on F, then the mode's change. Each step's
+/// tasks are returned.
+async fn late_facts(
+    test_db: &TestDb,
+    orchestrator: &Orchestrator,
+) -> (uuid::Uuid, Vec<Vec<(String, bool)>>) {
+    let db = test_db.db();
+    let (c, f) = ("c1".repeat(32), "f1".repeat(32));
+    let (root, ids) = root_with(db, "takes", &[(ObservableKind::File, c.as_str())]).await;
+    let mut tx = db.begin().await.expect("begins");
+    tree::add_file(&mut tx, root, ids[0], "c.bin", &[])
+        .await
+        .expect("adds");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+    let mut steps = vec![declaring_tasks(db, root, &c).await];
+
+    let added = |path: &str, extra: serde_json::Value| {
+        let mut file = json!({"path": path, "sha256": f, "size": 1});
+        if let (Some(file), Some(extra)) = (file.as_object_mut(), extra.as_object()) {
+            file.extend(extra.clone());
+        }
+        json!({"analysis_type": "test_stub", "schema_version": 1, "details": {"note": ""},
+               "files": [file]})
+    };
+    land(
+        test_db,
+        orchestrator,
+        "test_carrier",
+        added("z.bin", json!({})),
+    )
+    .await;
+    steps.push(declaring_tasks(db, root, &f).await);
+    let reference = json!({"type": "file", "value": c});
+    land(
+        test_db,
+        orchestrator,
+        "test_carrier2",
+        added(
+            "a.dmg",
+            json!({
+                "directives": ["render"],
+                "yara_meta": ["type=x"],
+                "relationships": [{"type": "extracted_from", "target": reference}],
+            }),
+        ),
+    )
+    .await;
+    steps.push(declaring_tasks(db, root, &f).await);
+    // the stand-in for file_type: a worker of it takes C's task first, then F's
+    for _ in 0..2 {
+        land(
+            test_db,
+            orchestrator,
+            "test_typer",
+            json!({"analysis_type": "test_stub", "schema_version": 1,
+                   "details": {"note": "", "flag": true}}),
+        )
+        .await;
+    }
+    steps.push(declaring_tasks(db, root, &f).await);
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .set_mode(&mut tx, root, "correlation")
+        .await
+        .expect("changes the mode");
+    tx.commit().await.expect("commits");
+    steps.push(declaring_tasks(db, root, &f).await);
+    (root, steps)
+}
+
+/// PLAN.md decision 23: the core doesn't queue a task a module's declaration declines, and a fact
+/// that arrives later queues it then: a nearer path, a directive, the module that adds the file, a
+/// relationship and a `yara_meta` tag when a result adds the file again, a dependency's result when
+/// it lands, and the mode when it changes.
+#[tokio::test]
+async fn a_fact_that_arrives_later_queues_the_task_a_declaration_declined() {
+    let test_db = TestDb::new().await;
+    let orchestrator = declaring_orchestrator(ace_core::takes::TakesMode::Applied);
+    let (_, steps) = late_facts(&test_db, &orchestrator).await;
+    let names = |step: &[(String, bool)]| -> Vec<String> {
+        step.iter().map(|(module, _)| module.clone()).collect()
+    };
+    // C, named c.bin, with nothing any declaration waits for
+    assert_eq!(names(&steps[0]), Vec::<String>::new());
+    // F, added as z.bin by test_carrier
+    assert_eq!(names(&steps[1]), Vec::<String>::new());
+    // F, added again as a.dmg, which sorts first at the same depth, with the rest
+    assert_eq!(
+        names(&steps[2]),
+        [
+            "test_takes_added_by",
+            "test_takes_directive",
+            "test_takes_name",
+            "test_takes_relationship",
+            "test_takes_yara_meta",
+        ]
+    );
+    // file_type's stand-in's result, which test_takes_result waits for and reads
+    assert!(names(&steps[3]).contains(&"test_takes_result".to_owned()));
+    assert!(!names(&steps[3]).contains(&"test_takes_mode".to_owned()));
+    // the mode's change
+    let mut all: Vec<String> = declaring::DECLARING
+        .iter()
+        .map(|m| (*m).to_owned())
+        .collect();
+    all.sort();
+    assert_eq!(names(&steps[4]), all);
+    assert!(steps.iter().flatten().all(|(_, marked)| !marked));
+}
+
+/// The audit setting queues every task as before and marks the ones a declaration declines; a
+/// mark goes when the declaration takes the task, which is when the setting's absence would have
+/// queued it; and a marked task that stores a result is in the audit's report.
+#[tokio::test]
+async fn the_audit_queues_every_task_and_reports_a_declined_one_that_stored_a_result() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = declaring_orchestrator(ace_core::takes::TakesMode::Audit);
+    let (root, steps) = late_facts(&test_db, &orchestrator).await;
+    let marked = |step: &[(String, bool)]| -> Vec<String> {
+        step.iter()
+            .filter(|(_, marked)| *marked)
+            .map(|(module, _)| module.clone())
+            .collect()
+    };
+    // on C every declaring module is queued, all but the result's marked, since that one waits for
+    // its dependency
+    assert_eq!(steps[0].len(), 6);
+    assert_eq!(marked(&steps[0]).len(), 6);
+    // on F after the second result: the facts arrived, so only the mode's is still marked
+    assert_eq!(marked(&steps[2]), ["test_takes_mode"]);
+    assert_eq!(marked(&steps[3]), ["test_takes_mode"]);
+    assert_eq!(marked(&steps[4]), Vec::<String>::new());
+    assert!(
+        ace_core::takes::audit_report(db.pool())
+            .await
+            .expect("reads")
+            .is_empty()
+    );
+
+    // C's task of the name's module is still marked: a result from it is what the report lists
+    let worker = worker(
+        &test_db,
+        "namer",
+        &["test_takes_name"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let mut task = worker.claim().await.expect("claims").expect("a task");
+    while task.observable.value != "c1".repeat(32) {
+        worker.complete(task.id).await.expect("ends");
+        task = worker.claim().await.expect("claims").expect("a task");
+    }
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .land_result(
+            &mut tx,
+            &worker,
+            &task,
+            &result(json!({"analysis_type": "test_stub", "schema_version": 1,
+                           "details": {"note": ""}})),
+        )
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+    let report = ace_core::takes::audit_report(db.pool())
+        .await
+        .expect("reads");
+    assert_eq!(report.len(), 1, "{report:?}");
+    assert_eq!(report[0].root, root);
+    assert_eq!(report[0].module, "test_takes_name");
+    assert_eq!(report[0].declined, "not named .dmg");
+    assert_eq!(report[0].ended, "result");
 }
