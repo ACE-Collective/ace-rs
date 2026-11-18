@@ -1,6 +1,6 @@
 # 0003: What a file is, known when it is added
 
-Status: decided on 2026-11-17, not yet built. The owner chose option 2 (the byte facts as each file's first, contained task) and accepted that `file_type`'s result leaves the tree. The owner kept the distinction this design draws between a file's *type* (what its bytes are, such as `text/plain`) and its *role* (what its producer made it, such as an email's text body); the two are named so from here on. Open: whether the role is `yara_meta`'s `type=` value as it is, or a field of its own that `yara_meta` is built from.
+Status: decided on 2026-11-17, not yet built. The owner chose option 2 (the byte facts as each file's first, contained task) and accepted that `file_type`'s result leaves the tree. The owner kept the distinction this design draws between a file's *type* (what its bytes are, such as `text/plain`) and its *role* (what its producer made it, such as an email's text body); the two are named so from here on. The role is a field of its own on the file, with ace3's values (today's `type=` names); `yara_meta`'s `type=` tag is built from it, so YARA rules and the signatures see what they see today.
 
 ## The problem
 
