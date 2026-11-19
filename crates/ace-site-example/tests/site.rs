@@ -404,6 +404,174 @@ async fn an_operator_makes_the_first_admin_with_the_sites_binary() {
     assert!(!stderr.contains("created"), "{stderr}");
 }
 
+/// The site builds on ace4's list (`ace::app()`) and adds to two of its pools, so it holds what ace4's
+/// does: its cacheable modules, hunt types, script command types and action handlers, and the site's
+/// collector besides.
+#[test]
+fn the_site_s_list_is_ace4_s_with_its_own_added() {
+    let (ace4, site) = (ace::app(), ace_site_example::app());
+    assert_eq!(site.cacheable_modules(), ace4.cacheable_modules());
+    assert_eq!(site.hunt_script_names(), ace4.hunt_script_names());
+    let kinds = |app: &ace_app::App| -> Vec<String> {
+        app.hunt_types()
+            .iter()
+            .map(|k| k.name().to_owned())
+            .collect()
+    };
+    assert_eq!(kinds(&site), kinds(&ace4));
+    let handlers = |app: &ace_app::App| -> Vec<String> {
+        app.action_catalog()
+            .expect("a catalog")
+            .iter()
+            .map(|spec| spec.pool_entry())
+            .collect()
+    };
+    assert_eq!(handlers(&site), handlers(&ace4));
+    assert_eq!(site.collector_names(), ["example"]);
+    assert!(ace4.collector_names().is_empty(), "ace4 ships no collector");
+    assert_eq!(site.modules_without_a_view(), []);
+}
+
+/// PLAN.md 6.1: `ace collect example` runs the site's collector as a process of the site's binary. It
+/// reads its own section and its one secret, submits each ticket file once as `collector:example`, which
+/// holds `alert:create` through the class `collector`, answers a file that comes back with the root it
+/// made (and deletes it), skips Finder's `.DS_Store`, logs a metrics event for each submission, and stops
+/// on SIGTERM with exit code 0.
+#[tokio::test]
+async fn a_site_s_collector_submits_each_item_once_and_stops() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db().pool().clone();
+    let dir = tempfile::tempdir().expect("a directory");
+    let source = dir.path().join("source");
+    std::fs::create_dir(&source).expect("the source");
+    std::fs::write(source.join("a.ticket"), "TICKET-1\n").expect("written");
+    std::fs::write(source.join("b.ticket"), "TICKET-2\n").expect("written");
+    std::fs::write(source.join(".DS_Store"), "finder").expect("written");
+    let overlay = dir.path().join("overlay.yaml");
+    std::fs::write(
+        &overlay,
+        format!(
+            "collectors:\n  example:\n    poll_seconds: 1\n    settings:\n      directory: {}\n\
+             secrets:\n  example_collector_token: env:EXAMPLE_COLLECTOR_TOKEN\n  \
+             other_token: env:OTHER_TOKEN\n",
+            source.display()
+        ),
+    )
+    .expect("the overlay");
+    let mut collect = Command::new(env!("CARGO_BIN_EXE_example-ace"));
+    collect
+        .args(["collect", "example"])
+        .env("ACE4_DATABASE_URL", database_url(test_db.name()))
+        .env("ACE4_OVERLAY", &overlay)
+        .env("EXAMPLE_COLLECTOR_TOKEN", "a-source-credential")
+        .env("OTHER_TOKEN", "another-process-credential")
+        .env("ACE4_LOG", "info")
+        .env_remove("ACE4_OTLP_ENDPOINT");
+    let mut process = Process::start(collect, &dir.path().join("collect.log"));
+    let roots = || {
+        let db = db.clone();
+        async move {
+            sqlx::query_as::<_, (String, Value, Value)>(
+                "SELECT description, submitted_by::jsonb, origin FROM analysis.roots
+                 ORDER BY description",
+            )
+            .fetch_all(&db)
+            .await
+            .expect("the roots")
+        }
+    };
+    wait_for("both files submitted", Duration::from_secs(60), || {
+        let roots = roots();
+        let source = source.clone();
+        async move {
+            (roots.await.len() == 2
+                && !source.join("a.ticket").exists()
+                && !source.join("b.ticket").exists())
+            .then_some(())
+        }
+    })
+    .await;
+    // the source offers a.ticket again
+    std::fs::write(source.join("a.ticket"), "TICKET-1\n").expect("written");
+    wait_for(
+        "the redelivered file taken",
+        Duration::from_secs(60),
+        || {
+            let source = source.clone();
+            async move { (!source.join("a.ticket").exists()).then_some(()) }
+        },
+    )
+    .await;
+    let log = process.stop();
+    let status = process.child.try_wait().expect("waited");
+    assert!(status.is_some_and(|s| s.success()), "{status:?}\n{log}");
+    // without the terminal's colours
+    let mut plain = String::with_capacity(log.len());
+    let mut rest = log.as_str();
+    while let Some(at) = rest.find('\u{1b}') {
+        plain.push_str(&rest[..at]);
+        rest = rest[at..].split_once('m').map_or("", |(_, after)| after);
+    }
+    plain.push_str(rest);
+    let log = plain;
+
+    let by = json!({"kind": "internal", "id": "collector:example"});
+    let origin = |name: &str| {
+        (
+            format!("Example ticket file {name}"),
+            by.clone(),
+            json!({
+                "alert_type": "example - ticket",
+                "tool": "example collector",
+                "details": {"ticket_queue": "triage"},
+            }),
+        )
+    };
+    assert_eq!(
+        roots().await,
+        [origin("a.ticket"), origin("b.ticket")],
+        "{log}"
+    );
+    assert!(
+        source.join(".DS_Store").exists(),
+        "a dot file isn't an item"
+    );
+    let keys: i64 = sqlx::query_scalar("SELECT count(*) FROM collection.submitted_keys")
+        .fetch_one(&db)
+        .await
+        .expect("counted");
+    assert_eq!(keys, 2);
+    let metrics: Vec<&str> = log
+        .lines()
+        .filter_map(|line| {
+            line.split_once("METRICS (collector): ")
+                .map(|(_, json)| json)
+        })
+        .collect();
+    let outcomes: Vec<String> = metrics
+        .iter()
+        .map(|json| {
+            // the line's fields follow the event's JSON
+            serde_json::Deserializer::from_str(json)
+                .into_iter::<Value>()
+                .next()
+                .expect("an event")
+                .expect("JSON")["outcome"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned()
+        })
+        .collect();
+    assert_eq!(outcomes, ["submitted", "submitted", "duplicate"], "{log}");
+    assert!(
+        log.contains(r#"secrets=["example_collector_token"]"#),
+        "it resolves its own secret and no other: {log}"
+    );
+    assert!(!log.contains("a-source-credential"), "{log}");
+    assert!(!log.contains("another-process-credential"), "{log}");
+    assert!(log.contains("collection ended"), "{log}");
+}
+
 /// `ace schema check` (PLAN.md 4.2) says what the core would, for an author with no pool running.
 #[test]
 fn the_site_binary_checks_a_result_against_its_types_schema() {

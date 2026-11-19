@@ -110,6 +110,7 @@ mod alert_graph;
 mod alert_view;
 mod alerts;
 mod auth;
+mod collection;
 mod commands;
 mod crashes;
 mod detection;
@@ -202,6 +203,7 @@ pub use auth::{
     InvalidUsername, IssuedToken, MAX_PASSWORD_BYTES, MIN_PASSWORD_CHARS, NewApiKey, NewSession,
     Password, RequestParts, SESSION_LIFETIME_SECONDS, SessionCookie, Transport, Username,
 };
+pub use collection::{Collected, DEFAULT_KEY_LIFETIME};
 pub use commands::{
     CommandDetail, CommandPage, CommandRun, CommandState, DEFAULT_COMMAND_TIMEOUT_SECONDS,
     MAX_COMMAND_CHARS, MAX_COMMAND_TIMEOUT_SECONDS, MAX_COMMAND_WORDS, MAX_COMMANDS_PAGE,

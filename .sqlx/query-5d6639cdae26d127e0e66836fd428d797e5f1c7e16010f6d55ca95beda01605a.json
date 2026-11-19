@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO collection.submitted_keys\n                                   (collector, hash, created_at, expires_at)\n                               VALUES ($1, sha256(convert_to($2, 'UTF8')), now(), now() + make_interval(secs => $3))\n                               ON CONFLICT (collector, hash) DO NOTHING\n                               RETURNING 1 AS \"claimed!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "claimed!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5d6639cdae26d127e0e66836fd428d797e5f1c7e16010f6d55ca95beda01605a"
+}

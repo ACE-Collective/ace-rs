@@ -860,11 +860,7 @@ pub fn run(app: &App, telemetry: &mut ace_pool::telemetry::Telemetry) -> Result<
 }
 
 async fn hunt(app: &App) -> Result<ExitCode> {
-    use ace_core::bucket::{Bucket, BucketSettings};
     use ace_core::db::{Db, DbConfig};
-    use ace_core::eligibility::Catalog;
-    use ace_core::orchestrator::Orchestrator;
-    use ace_store::{BucketConfig, DEFAULT_CACHE_MAX_BYTES, NodeCache, Store};
 
     let path =
         std::env::var_os("ACE4_HUNTER").context("ACE4_HUNTER names no hunter configuration")?;
@@ -894,43 +890,8 @@ async fn hunt(app: &App) -> Result<ExitCode> {
     let db = Db::connect(&DbConfig::from_env("ace-hunter")?)
         .await
         .context("connecting to Postgres")?;
-    let cache_dir = std::env::temp_dir().join("ace4-hunter-cache");
-    let store = Store::new(
-        &BucketConfig::from_env()?,
-        NodeCache::new(&cache_dir, DEFAULT_CACHE_MAX_BYTES)
-            .with_context(|| format!("the cache in {}", cache_dir.display()))?,
-    );
-    let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
-    let components = crate::cli::components(&app.registry(), &overlay)?;
-    let modes = app.modes_with(&components);
-    // SVS's settings, as `ace serve` has them: a run's record asks the core who owns each match
-    // (PLAN.md 7.10 batch 6)
-    let runs = ace_core::svs::runs::RunsConfig::from_section(&overlay.svs.runs)
-        .map_err(anyhow::Error::msg)
-        .context("the overlay's svs.runs section")?;
-    // a hunt's root runs the pre rules as it's submitted; `ace serve` runs the rest, and the hooks a
-    // pass ends with are marked due here as there, so the two have the same hooks
-    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks)
-        .context("the overlay's hooks section")?
-        .with_svs(ace_core::svs::attribution::HookConfig {
-            attribution_extra: runs.windows.attribution_extra,
-        });
-    // as `ace serve` applies or audits the modules' declarations
-    let takes = ace_core::takes::TakesMode::from_env().map_err(anyhow::Error::msg)?;
-    // a hunt's root looks results up and keeps them as `ace serve`'s roots do
-    let cache = crate::cli::analysis_cache(&overlay, &components)?;
-    let orchestrator = Orchestrator::new(Catalog::of(components), modes)
-        .with_hooks(hooks)
-        .with_takes(takes)
-        .with_exclusions(crate::cli::exclusions(&overlay)?)
-        .with_cache(cache);
-    // the site's dispositions, as `ace serve` has them, for whatever the hunter reads through the service
-    let dispositions = ace_service::Dispositions::configured(&overlay)
-        .map_err(anyhow::Error::msg)
-        .context("the overlay's disposition sections")?;
-    let service = ace_service::Service::new(db, orchestrator)
-        .with_dispositions(dispositions)
-        .with_runs(runs);
+    let bucket = crate::cli::submitting_bucket(&db, "ace4-hunter-cache")?;
+    let service = crate::cli::submitting_service(app, &overlay, db)?;
     let actor = ace_service::Actor::Internal {
         id: ace_service::Component::new("hunter")?,
     };

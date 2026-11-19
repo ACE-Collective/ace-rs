@@ -30,7 +30,14 @@
 //! stand in for hunt scripts (decision 16, `hunt_script`), scheduled tasks (6.7,
 //! `scheduled_task`), remediators, remediation probes and file collectors (7.9, `LookupPool::action`),
 //! alert routers and their types (7.13, `alert_router`, `alert_router_type`),
-//! collectors with the first collector (6.1), and the rest with the phases that build them.
+//! collectors (6.1, `collector`, run by `ace collect <name>`), and the rest with the phases that
+//! build them.
+//!
+//! A site builds on the open-source list rather than repeating it: `ace::app()` is an `App`, and
+//! `add_to_parser_pool`, `add_to_lookup_pool` and `add_to_scanner_pool` add to one of its pools by
+//! name. They only add: the closure is given an empty pool of that name, and what it holds joins the
+//! pool already there, so a site can't drop one of the open-source modules, and a module the pool has
+//! already, or a pool the list hasn't, is refused.
 //!
 //! Everything here reads its configuration from the environment and the site overlay at run
 //! time, and nothing from this workspace's checkout, so a binary built in another repository
@@ -38,6 +45,7 @@
 
 pub mod ai;
 mod cli;
+pub mod collector;
 mod compare;
 pub mod hunter;
 pub mod nrd;
@@ -82,6 +90,7 @@ pub struct App {
     alert_routers: Vec<(String, i32, Arc<dyn ace_service::routing::Router>)>,
     router_types: ace_service::routing::RouterTypes,
     ai_backend_types: Vec<(String, ai::AiBackendFactory)>,
+    collectors: Vec<(collector::CollectorSpec, collector::CollectorFactory)>,
 }
 
 /// What builds a script command type from the hunter's network and the type's settings (its entry
@@ -396,6 +405,130 @@ impl App {
         types
     }
 
+    /// Adds a collector (PLAN.md 6.1), which `ace collect <name>` runs as its own process: a source
+    /// outside ACE that submits roots, as an ace3 integration adds a collector service. `build` makes
+    /// it from its overlay section's `settings` and the secrets `spec` names, or says why it can't,
+    /// which stops `ace collect`. It acts as the component `collector:<name>` (`collector`'s module
+    /// docs). One with a collector's name already added takes its place.
+    ///
+    /// # Panics
+    ///
+    /// When `spec.name` can't be a component's name: lowercase letters, digits and `- _ .`.
+    pub fn collector(
+        mut self,
+        spec: collector::CollectorSpec,
+        build: impl Fn(&collector::CollectorSetup) -> Result<Arc<dyn collector::Collector>, String>
+        + Send
+        + Sync
+        + 'static,
+    ) -> App {
+        assert!(
+            !spec.name.contains(':')
+                && ace_service::Component::new(format!("collector:{}", spec.name)).is_ok(),
+            "{:?} can't name a collector: use lowercase letters, digits and - _ .",
+            spec.name
+        );
+        self.collectors.retain(|(s, _)| s.name != spec.name);
+        self.collectors.push((spec, Arc::new(build)));
+        self
+    }
+
+    /// The collectors' names, as `ace collect` takes them.
+    pub fn collector_names(&self) -> Vec<&'static str> {
+        self.collectors.iter().map(|(spec, _)| spec.name).collect()
+    }
+
+    /// Adds to the parser pool named `name` what `add` puts in an empty pool of that name: its
+    /// modules, tools and rulesets, and its commands. Nothing of the pool's is dropped.
+    ///
+    /// # Panics
+    ///
+    /// When the list has no parser pool `name`, when `add` names a module the pool has, or when both
+    /// keep YARA rulesets.
+    pub fn add_to_parser_pool(
+        mut self,
+        name: &str,
+        add: impl FnOnce(ParserPool) -> ParserPool,
+    ) -> App {
+        let added = add(ParserPool::new(name));
+        let pool = self
+            .parser_pools
+            .iter_mut()
+            .find(|p| p.name == name)
+            .unwrap_or_else(|| panic!("the list has no parser pool {name}"));
+        refuse_repeats(name, &pool.registry, &added.registry);
+        pool.registry = std::mem::take(&mut pool.registry).merge(&added.registry);
+        for tool in added.tools {
+            if !pool.tools.iter().any(|t| t.name == tool.name) {
+                pool.tools.push(tool);
+            }
+        }
+        pool.commands |= added.commands;
+        if let Some(rulesets) = added.rulesets {
+            assert!(
+                pool.rulesets.is_none(),
+                "the parser pool {name} keeps YARA rulesets already"
+            );
+            pool.rulesets = Some(rulesets);
+        }
+        self
+    }
+
+    /// Adds to the network pool named `name` what `add` puts in an empty pool of that name: its
+    /// modules and action handlers. Nothing of the pool's is dropped, though a handler with one of
+    /// the pool's kinds and names takes its place, as `LookupPool::action` says.
+    ///
+    /// # Panics
+    ///
+    /// When the list has no network pool `name`, or when `add` names a module the pool has.
+    pub fn add_to_lookup_pool(
+        mut self,
+        name: &str,
+        add: impl FnOnce(LookupPool) -> LookupPool,
+    ) -> App {
+        let added = add(LookupPool::new(name));
+        let pool = self
+            .lookup_pools
+            .iter_mut()
+            .find(|p| p.name == name)
+            .unwrap_or_else(|| panic!("the list has no network pool {name}"));
+        refuse_repeats(name, &pool.registry, &added.registry);
+        pool.registry = std::mem::take(&mut pool.registry).merge(&added.registry);
+        for (spec, build) in added.actions {
+            pool.actions
+                .retain(|(s, _)| !(s.kind == spec.kind && s.name == spec.name));
+            pool.actions.push((spec, build));
+        }
+        self
+    }
+
+    /// Adds to the scanner pool named `name` the scanners `add` puts in an empty pool of that name.
+    ///
+    /// # Panics
+    ///
+    /// When the list has no scanner pool `name`, or when `add` names a scanner the pool has.
+    pub fn add_to_scanner_pool(
+        mut self,
+        name: &str,
+        add: impl FnOnce(ScannerPool) -> ScannerPool,
+    ) -> App {
+        let added = add(ScannerPool::new(name));
+        let pool = self
+            .scanner_pools
+            .iter_mut()
+            .find(|p| p.name == name)
+            .unwrap_or_else(|| panic!("the list has no scanner pool {name}"));
+        for scanner in added.scanners {
+            assert!(
+                !pool.scanners.iter().any(|s| s.name == scanner.name),
+                "the scanner pool {name} has the scanner {} already",
+                scanner.name
+            );
+            pool.scanners.push(scanner);
+        }
+        self
+    }
+
     /// The alert routers `ace serve` runs: the built-in one, SVS's marker router, the binary's and the
     /// overlay's, or why one of them can't be built.
     ///
@@ -677,6 +810,17 @@ impl App {
     }
 }
 
+/// Panics when `added` holds a module `pool` has, which would run twice.
+fn refuse_repeats(name: &str, pool: &Registry, added: &Registry) {
+    for manifest in added.manifests() {
+        assert!(
+            pool.manifest(manifest.name).is_none(),
+            "the pool {name} has the module {} already",
+            manifest.name
+        );
+    }
+}
+
 impl ParserPool {
     /// An empty pool. Its name is what `ACE4_POOLS` and `pool_main` call it.
     pub fn new(name: &str) -> ParserPool {
@@ -798,6 +942,85 @@ mod tests {
         let unknown =
             std::collections::BTreeMap::from([("nope".to_owned(), serde_json::json!({}))]);
         assert!(app.build_hunt_scripts(&mut types, &net, &unknown).is_err());
+    }
+
+    fn base() -> App {
+        App::new()
+            .parser_pool(
+                ParserPool::new("parsers")
+                    .module::<ace_mod_email::EmailAnalyzer>()
+                    .commands(),
+            )
+            .lookup_pool(LookupPool::new("lookups").action(
+                &ace_sdk::actions::TEST_REMEDIATOR,
+                |_| {
+                    Ok(ActionHandler::Remediator(Arc::new(
+                        ace_sdk::actions::TestRemediator,
+                    )))
+                },
+            ))
+            .scanner_pool(ScannerPool::new("scanners").scanner(ace_sdk::scanners::PHISHKIT))
+    }
+
+    /// A site adds to a pool of a list it builds on (PLAN.md 6.1): what it adds joins the pool, and
+    /// everything the pool held stays.
+    #[test]
+    fn a_site_adds_to_a_pool_and_drops_nothing() {
+        let app = base()
+            .add_to_parser_pool("parsers", |pool| pool.module::<ace_mod_yara::YaraScanner>())
+            .add_to_lookup_pool("lookups", |pool| pool.module::<ace_mod_dns::FqdnAnalyzer>())
+            .add_to_scanner_pool("scanners", |pool| {
+                pool.scanner(ace_sdk::scanners::JS_DEOBFUSCATOR)
+            });
+        assert_eq!(
+            app.pool_list(),
+            "parsers:email_analyzer,yara_scanner_v3_4,@commands;\
+             lookups:fqdn_analyzer,@remediation/test;\
+             scanners:@scan/phishkit,@scan/js-deobfuscator"
+        );
+    }
+
+    /// A module the pool has already would run twice, so it's refused, as is a pool the list hasn't.
+    #[test]
+    #[should_panic(expected = "the pool parsers has the module email_analyzer already")]
+    fn a_site_can_t_add_a_module_twice() {
+        let _ = base().add_to_parser_pool("parsers", |pool| {
+            pool.module::<ace_mod_email::EmailAnalyzer>()
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "the list has no network pool network")]
+    fn a_site_can_t_add_to_a_pool_the_list_hasn_t() {
+        let _ =
+            base().add_to_lookup_pool("network", |pool| pool.module::<ace_mod_dns::FqdnAnalyzer>());
+    }
+
+    /// A collector's name is its component's, so it can't hold a `:`.
+    #[test]
+    #[should_panic(expected = "can't name a collector")]
+    fn a_collector_s_name_is_a_component_s() {
+        struct Nothing;
+        impl collector::Collector for Nothing {
+            fn collect<'a>(&'a self, _: &'a collector::Submitter) -> collector::PassFuture<'a> {
+                Box::pin(async { Ok(collector::Pass::Drained) })
+            }
+        }
+        let app = App::new().collector(
+            collector::CollectorSpec {
+                name: "journal",
+                secrets: &[],
+            },
+            |_| Ok(Arc::new(Nothing)),
+        );
+        assert_eq!(app.collector_names(), ["journal"]);
+        let _ = app.collector(
+            collector::CollectorSpec {
+                name: "a:b",
+                secrets: &[],
+            },
+            |_| Ok(Arc::new(Nothing)),
+        );
     }
 
     #[test]

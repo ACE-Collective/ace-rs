@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT root AS \"root!\" FROM collection.submitted_keys\n                                   WHERE collector = $1 AND hash = sha256(convert_to($2, 'UTF8'))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "collection.submitted_keys",
+            "name": "root"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "c0f2593035edd21589ec0b4d77fd440cd66a14c786acce25c8400dc5fe5683b5"
+}

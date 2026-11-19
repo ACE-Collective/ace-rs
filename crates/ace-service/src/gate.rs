@@ -238,7 +238,9 @@ pub(crate) async fn holds(
                 }
         }
         Actor::Internal { id } => {
-            !is_people_only(name) && rows_allow(conn, &Holder::Component(id.clone()), name).await?
+            !is_people_only(name)
+                && rows_allow_with_class(conn, &Holder::Component(id.clone()), id.class(), name)
+                    .await?
         }
     })
 }
@@ -250,6 +252,17 @@ async fn rows_allow(
     holder: &Holder,
     name: &PermissionName,
 ) -> Result<bool, ServiceError> {
+    rows_allow_with_class(conn, holder, None, name).await
+}
+
+/// `rows_allow` over a component's own rows and its class's (`Component::class`) together, so a deny
+/// on either wins over an allow on the other.
+async fn rows_allow_with_class(
+    conn: &mut PgConnection,
+    holder: &Holder,
+    class: Option<&str>,
+    name: &PermissionName,
+) -> Result<bool, ServiceError> {
     let (user, group, api_key, component) = holder.columns();
     let rows = sqlx::query!(
         r#"SELECT major::text AS "major!", minor::text AS "minor!", effect AS "effect: Effect"
@@ -258,11 +271,13 @@ async fn rows_allow(
               OR group_id = $2
               OR group_id IN (SELECT group_id FROM service.group_members WHERE user_id = $1)
               OR api_key_id = $3
-              OR component = $4"#,
+              OR component = $4
+              OR component = $5"#,
         user,
         group,
         api_key,
         component,
+        class,
     )
     .fetch_all(conn)
     .await?;

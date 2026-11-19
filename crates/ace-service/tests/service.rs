@@ -53,7 +53,7 @@ use ace_core::bucket::{ALERT_FILES, Bucket, BucketSettings, Hold};
 use ace_core::eligibility::Catalog;
 use ace_core::modes::Modes;
 use ace_core::orchestrator::{Orchestrator, OrchestratorError};
-use ace_core::submit::{Submission, SubmittedFile};
+use ace_core::submit::{Origin, Submission, SubmittedFile};
 use ace_core::testing::TestDb;
 use ace_core::tree::{self, NewRoot};
 use ace_core::{Db, queue};
@@ -1054,14 +1054,16 @@ async fn an_actor_with_no_grants_is_refused_every_write() {
     let (rows,): (i64,) = sqlx::query_as(
         "SELECT count(*) FROM service.permissions
          WHERE component IS NULL
-            OR (component NOT IN ('bootstrap', 'hunter', 'alert_routing', 'search_indexer', 'ai_api')
+            OR (component NOT IN ('bootstrap', 'hunter', 'alert_routing', 'search_indexer', 'ai_api',
+                                  'collector')
                 AND component NOT LIKE 'scheduler:%')",
     )
     .fetch_one(db.pool())
     .await
     .expect("counts");
     // the migrations' grants are the bootstrap's, the hunter's, the scheduler's tasks', alert
-    // routing's, the search indexer's and the AI API's reads (0022, 0034, 0036, 0050, 0061, 0062)
+    // routing's, the search indexer's, the AI API's reads and every collector's (0022, 0034, 0036,
+    // 0050, 0061, 0062, 0074)
     assert_eq!(rows, 0, "nothing was granted, and no admin was seeded");
 }
 
@@ -1558,6 +1560,7 @@ async fn every_write_function_has_an_audit_test() {
         login_records_its_row(db).await,
         logout_records_its_row(db).await,
         submit_records_its_row(db).await,
+        submit_collected_records_its_row(db).await,
         download_file_records_its_row(db).await,
         download_crash_records_its_row(db).await,
         archived_email_records_its_row(db).await,
@@ -1734,6 +1737,95 @@ async fn submit_records_its_row(db: &Db) -> String {
         Err(ServiceError::InvalidRequest(why)) if why == "no analysis mode \"no_such_mode\""
     ));
     assert_eq!(root_count(db).await, roots);
+    row.action
+}
+
+/// Only a collector has a class (PLAN.md 6.1, `Component::class`): `collector:<name>`, with a name.
+#[test]
+fn a_collector_s_class_is_collector() {
+    let class = |name: &str| Component::new(name).expect("a name").class();
+    assert_eq!(class("collector:journal"), Some("collector"));
+    assert_eq!(class("collector:a:b"), Some("collector"));
+    for none in [
+        "collector",
+        "collector:",
+        "collectors:x",
+        "scheduler:x",
+        "hunter",
+    ] {
+        assert_eq!(class(none), None, "{none}");
+    }
+}
+
+/// A collector's submission (PLAN.md 6.1): its root's row, as `collector:<name>`, which holds
+/// `alert:create` through its class; a duplicate of its key writes nothing, not even an audit row.
+async fn submit_collected_records_its_row(db: &Db) -> String {
+    let (bucket, _cache) = bucket(db);
+    let actor = Actor::Internal {
+        id: Component::new("collector:journal").expect("valid"),
+    };
+    let (submission, files) = submission(&bucket, b"collected").await;
+    let lifetime = ace_service::DEFAULT_KEY_LIFETIME;
+    let collected = service(db)
+        .submit_collected(
+            &actor,
+            &bucket,
+            "journal",
+            Some("mail/a"),
+            lifetime,
+            &submission,
+            &Origin::default(),
+            &files,
+        )
+        .await
+        .expect("submits");
+    let ace_service::Collected::Submitted(submitted) = collected else {
+        panic!("{collected:?}");
+    };
+    let row = last_audit(db).await;
+    let after = row.after.clone().expect("an after");
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: json!({"kind": "internal", "id": "collector:journal"}),
+            action: "submit_collected".to_owned(),
+            target: ("root".to_owned(), submitted.uuid.to_string()),
+            before: None,
+            after: Some(json!({
+                "analysis_mode": "correlation",
+                "event_time": after["event_time"],
+                "observables": 1,
+                "files": 1,
+                "queued": submitted.queued.len(),
+            })),
+            details: json!({"title": "a submission"}),
+        }
+    );
+    let rows = audit_rows(db).await.len();
+    let again = service(db)
+        .submit_collected(
+            &actor,
+            &bucket,
+            "journal",
+            Some("mail/a"),
+            lifetime,
+            &submission,
+            &Origin::default(),
+            &files,
+        )
+        .await
+        .expect("answered");
+    assert_eq!(
+        again,
+        ace_service::Collected::Duplicate {
+            root: submitted.uuid
+        }
+    );
+    assert_eq!(
+        audit_rows(db).await.len(),
+        rows,
+        "a duplicate writes no row"
+    );
     row.action
 }
 
@@ -4043,6 +4135,25 @@ async fn every_write_fails_when_its_audit_fails() {
             "archived_email",
             service
                 .archived_email(&actor, &archive, "<audit-fails@example.com>")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "submit_collected",
+            service
+                .submit_collected(
+                    &Actor::Internal {
+                        id: Component::new("collector:audit").expect("valid"),
+                    },
+                    &hunt_bucket,
+                    "audit",
+                    Some("refused"),
+                    ace_service::DEFAULT_KEY_LIFETIME,
+                    &serde_json::from_value(json!({"description": "x"})).expect("a submission"),
+                    &Origin::default(),
+                    &[],
+                )
                 .await
                 .map(|_| ())
                 .expect_err("refused"),

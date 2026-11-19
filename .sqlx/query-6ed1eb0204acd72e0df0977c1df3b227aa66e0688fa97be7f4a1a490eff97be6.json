@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM collection.submitted_keys\n                         WHERE collector = $1 AND expires_at <= now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6ed1eb0204acd72e0df0977c1df3b227aa66e0688fa97be7f4a1a490eff97be6"
+}

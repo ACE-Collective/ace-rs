@@ -20,6 +20,17 @@
 //! it, has its ticket queue and ticket at the top of its page (`ExampleTicketSummary`), where ace3 has
 //! a template per alert type.
 //!
+//! Its list is ace4's own, `ace::app()`, with its modules added to two of its pools
+//! (`App::add_to_parser_pool`, `App::add_to_lookup_pool`), so it has every open-source module, hunt
+//! type and script command type without repeating them.
+//!
+//! Its collector (PLAN.md 6.1), `example`, stands in for a site's collector over a source of its own:
+//! `ace collect example` takes each `*.ticket` file in its `directory` setting as an item keyed by the
+//! file's name, submits it as a ticket alert, and deletes the file once the core has it (a new root or
+//! a duplicate of one), as the journal collector deletes a queue message. A file the core refuses moves
+//! to `rejected/`; one it couldn't take stays for the next pass. It declares one secret,
+//! `example_collector_token`, and needs it set, as a real source's credentials would be.
+//!
 //! Its alert router type (PLAN.md 7.13) is ace3's example integration's (`integrations.example`'s
 //! `ExampleTagRouter`): an overlay entry of type `example_tag` sends a new alert carrying one tag to one
 //! queue, and does nothing to any other, so the type changes nothing until an entry and that tag appear.
@@ -53,13 +64,16 @@ pub const TICKET_EXPORT: FileRole = FileRole::define("example.ticket_export");
 /// Every file role the site adds.
 pub const FILE_ROLES: &[FileRole] = &[TICKET_EXPORT];
 
-/// The site's binaries' list.
+/// The site's binaries' list: ace4's, with the site's own added.
 pub fn app() -> App {
-    App::new()
+    ace::app()
         .observable_types(OBSERVABLE_TYPES)
         .file_roles(FILE_ROLES)
-        .parser_pool(ace::parser_pool().module::<TicketFile>())
-        .lookup_pool(ace::lookup_pool().module::<TicketLookup>())
+        .add_to_parser_pool("parsers", |pool| pool.module::<TicketFile>())
+        .add_to_lookup_pool("lookups", |pool| pool.module::<TicketLookup>())
+        .collector(EXAMPLE_COLLECTOR, |setup| {
+            Ok(std::sync::Arc::new(DirectoryCollector::new(setup)?))
+        })
         .module_in_group("correlation", TicketLookup::NAME)
         .module_in_group("correlation", TicketFile::NAME)
         .analysis_view::<TicketAnalysis>()
@@ -367,5 +381,150 @@ impl Parser for TicketFile {
             result = result.with_observable(NewObservable::new(TICKET, ticket));
         }
         Ok(Outcome::Done(result))
+    }
+}
+
+/// The example collector (the crate's docs).
+pub const EXAMPLE_COLLECTOR: ace_app::collector::CollectorSpec =
+    ace_app::collector::CollectorSpec {
+        name: "example",
+        secrets: &[EXAMPLE_COLLECTOR_TOKEN],
+    };
+
+/// The secret the example collector reads, as a real one reads its source's credentials.
+pub const EXAMPLE_COLLECTOR_TOKEN: &str = "example_collector_token";
+
+/// The example collector's settings.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DirectoryCollectorSettings {
+    /// Where its `*.ticket` files arrive.
+    pub directory: std::path::PathBuf,
+    /// The analysis mode its roots run in.
+    #[serde(default = "default_collector_mode")]
+    pub analysis_mode: String,
+    /// The ticket system's queue, which the ticket alert's summary shows.
+    #[serde(default = "default_ticket_queue")]
+    pub ticket_queue: String,
+}
+
+fn default_collector_mode() -> String {
+    "analysis".to_owned()
+}
+
+fn default_ticket_queue() -> String {
+    "triage".to_owned()
+}
+
+/// A collector over a directory (the crate's docs).
+pub struct DirectoryCollector {
+    settings: DirectoryCollectorSettings,
+}
+
+impl DirectoryCollector {
+    pub fn new(setup: &ace_app::collector::CollectorSetup) -> Result<DirectoryCollector, String> {
+        let settings: DirectoryCollectorSettings = serde_json::from_value(
+            setup
+                .settings
+                .clone()
+                .ok_or("the example collector needs settings with its directory")?,
+        )
+        .map_err(|e| format!("the example collector's settings: {e}"))?;
+        if setup.secrets.get(EXAMPLE_COLLECTOR_TOKEN).is_none() {
+            return Err(format!(
+                "the example collector needs {EXAMPLE_COLLECTOR_TOKEN}"
+            ));
+        }
+        Ok(DirectoryCollector { settings })
+    }
+
+    /// The files waiting, oldest name first; dot files, such as Finder's `.DS_Store`, aren't items.
+    fn waiting(&self) -> Result<Vec<std::path::PathBuf>, String> {
+        let entries = std::fs::read_dir(&self.settings.directory)
+            .map_err(|e| format!("{}: {e}", self.settings.directory.display()))?;
+        let mut files: Vec<std::path::PathBuf> = entries
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .filter(|path| {
+                path.is_file()
+                    && path.extension().is_some_and(|e| e == "ticket")
+                    && !path
+                        .file_name()
+                        .is_some_and(|n| n.to_string_lossy().starts_with('.'))
+            })
+            .collect();
+        files.sort();
+        Ok(files)
+    }
+
+    async fn item(
+        &self,
+        submitter: &ace_app::collector::Submitter,
+        path: &std::path::Path,
+        name: &str,
+    ) -> Result<ace_app::collector::Item, String> {
+        use ace_app::collector::{Item, Origin, Submission, SubmittedFile};
+        let spooled = submitter
+            .spool_file(path)
+            .await
+            .map_err(|e| format!("{}: {e}", path.display()))?;
+        Ok(Item {
+            key: Some(name.to_owned()),
+            submission: Submission {
+                description: format!("Example ticket file {name}"),
+                analysis_mode: Some(self.settings.analysis_mode.clone()),
+                event_time: None,
+                observables: Vec::new(),
+                file_yara_meta: Default::default(),
+            },
+            origin: Origin {
+                details: Some(serde_json::json!({
+                    "alert_type": TICKET_ALERT_TYPE,
+                    "tool": "example collector",
+                    "details": {"ticket_queue": self.settings.ticket_queue},
+                })),
+                ..Origin::default()
+            },
+            files: vec![SubmittedFile {
+                path: ace_results::AlertPath::new(name).map_err(|e| e.to_string())?,
+                spooled,
+            }],
+        })
+    }
+}
+
+impl ace_app::collector::Collector for DirectoryCollector {
+    fn collect<'a>(
+        &'a self,
+        submitter: &'a ace_app::collector::Submitter,
+    ) -> ace_app::collector::PassFuture<'a> {
+        use ace_app::collector::{NotSubmitted, Pass};
+        Box::pin(async move {
+            for path in self.waiting()? {
+                if submitter.stopping() {
+                    break;
+                }
+                let name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default();
+                // a file that went or can't be read ends the pass; the next one tries again
+                let item = self.item(submitter, &path, &name).await?;
+                match submitter.submit(&item).await {
+                    // the core has it: the source can forget it
+                    Ok(_) => std::fs::remove_file(&path)
+                        .map_err(|e| format!("{}: {e}", path.display()))?,
+                    Err(NotSubmitted::Refused(_)) => {
+                        let rejected = self.settings.directory.join("rejected");
+                        std::fs::create_dir_all(&rejected)
+                            .and_then(|()| std::fs::rename(&path, rejected.join(&name)))
+                            .map_err(|e| format!("{}: {e}", path.display()))?;
+                    }
+                    // it stays where it is, for the next pass
+                    Err(NotSubmitted::GivenBack(_)) => break,
+                }
+            }
+            Ok(Pass::Drained)
+        })
     }
 }

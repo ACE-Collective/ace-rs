@@ -38,6 +38,12 @@ enum Command {
     /// Run the hunts in the signatures checkout on their schedules and submit what they find
     /// (`ACE4_HUNTER` names its configuration).
     Hunter,
+    /// Run the collector NAME, which the binary has, until a stop: it reads its source and submits
+    /// what it finds, each item once (the overlay's `collectors.NAME`).
+    Collect {
+        /// The collector, as the binary names it.
+        name: String,
+    },
     /// Tools for one task, such as replaying it.
     #[command(subcommand)]
     Task(crate::task::TaskCommand),
@@ -108,6 +114,10 @@ fn refusal(command: &Command) -> (&'static str, &'static str) {
         Command::Serve => ("serve", "it's the service itself, not a command"),
         Command::ServeAi => ("serve-ai", "it's a service of its own, not a command"),
         Command::Hunter => ("hunter", "it's a service of its own, not a command"),
+        Command::Collect { .. } => (
+            "collect",
+            "a collector is a service of its own, not a command",
+        ),
         Command::Task(_) => (
             "task",
             "a replay runs a module uncontained on purpose, so it runs from a shell",
@@ -148,6 +158,7 @@ pub fn main(app: &App) -> ExitCode {
         Command::Serve => crate::serve::run(app, &mut telemetry),
         Command::ServeAi => crate::serve_ai::run(app, &mut telemetry),
         Command::Hunter => crate::hunter::run(app, &mut telemetry),
+        Command::Collect { name } => crate::collector::run(app, &name, &mut telemetry),
         Command::Task(command) => crate::task::run(app, command),
         Command::Root(command) => crate::root::run(command),
         Command::User(command) => crate::user::run(app, command),
@@ -216,6 +227,71 @@ pub fn analysis_cache(
     Ok(cache)
 }
 
+/// The bucket a process that submits roots puts their files in, with its node cache in the temporary
+/// directory `cache` (the hunter's and each collector's own).
+pub(crate) fn submitting_bucket(
+    db: &ace_core::db::Db,
+    cache: &str,
+) -> anyhow::Result<ace_core::bucket::Bucket> {
+    use ace_store::{BucketConfig, DEFAULT_CACHE_MAX_BYTES, NodeCache, Store};
+    use anyhow::Context;
+    let cache_dir = std::env::temp_dir().join(cache);
+    let store = Store::new(
+        &BucketConfig::from_env()?,
+        NodeCache::new(&cache_dir, DEFAULT_CACHE_MAX_BYTES)
+            .with_context(|| format!("the cache in {}", cache_dir.display()))?,
+    );
+    Ok(ace_core::bucket::Bucket::new(
+        db.clone(),
+        store,
+        ace_core::bucket::BucketSettings::default(),
+    ))
+}
+
+/// The service a process outside `ace serve` submits roots through, `ace hunter` and `ace collect`:
+/// its roots queue what `ace serve`'s would, in the same modes, with the same hooks, declarations,
+/// exclusions and analysis cache, and SVS's and the dispositions' settings as `ace serve` has them.
+pub(crate) fn submitting_service(
+    app: &App,
+    overlay: &ace_sdk::Overlay,
+    db: ace_core::db::Db,
+) -> anyhow::Result<ace_service::Service> {
+    use ace_core::eligibility::Catalog;
+    use ace_core::orchestrator::Orchestrator;
+    use anyhow::Context;
+    let components = components(&app.registry(), overlay)?;
+    let modes = app.modes_with(&components);
+    // SVS's settings, as `ace serve` has them: a hunt run's record asks the core who owns each match
+    // (PLAN.md 7.10 batch 6)
+    let runs = ace_core::svs::runs::RunsConfig::from_section(&overlay.svs.runs)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's svs.runs section")?;
+    // a submitted root runs the pre rules as it's submitted; `ace serve` runs the rest, and the hooks a
+    // pass ends with are marked due here as there, so the two have the same hooks
+    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks)
+        .context("the overlay's hooks section")?
+        .with_svs(ace_core::svs::attribution::HookConfig {
+            attribution_extra: runs.windows.attribution_extra,
+        });
+    // as `ace serve` applies or audits the modules' declarations
+    let takes = ace_core::takes::TakesMode::from_env().map_err(anyhow::Error::msg)?;
+    // a submitted root looks results up and keeps them as `ace serve`'s roots do
+    let cache = analysis_cache(overlay, &components)?;
+    let orchestrator = Orchestrator::new(Catalog::of(components), modes)
+        .with_hooks(hooks)
+        .with_takes(takes)
+        .with_exclusions(exclusions(overlay)?)
+        .with_cache(cache);
+    // the site's dispositions, as `ace serve` has them, for whatever the process reads through the
+    // service
+    let dispositions = ace_service::Dispositions::configured(overlay)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's disposition sections")?;
+    Ok(ace_service::Service::new(db, orchestrator)
+        .with_dispositions(dispositions)
+        .with_runs(runs))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -255,6 +331,7 @@ mod tests {
         for line in [
             "serve",
             "serve-ai",
+            "collect example",
             "schema export /tmp/x",
             "yara scan --rules /x f",
             "signatures check /x",

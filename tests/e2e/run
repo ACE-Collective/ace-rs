@@ -142,12 +142,17 @@ A site repository runs the same scenario against its own images (PLAN.md 2.32) b
 - ACE4_E2E_WORK: where the signatures repository goes, in place of target/e2e;
 - ACE4_E2E_PORT: the host port, as for ace4;
 - ACE4_E2E_ACE_COMMAND: the ace service's binary, in place of ace;
-- ACE4_E2E_COMPARE: 1 to run the comparison with ace3 and its threshold as well.
+- ACE4_E2E_COMPARE: 1 to run the comparison with ace3 and its threshold as well;
+- ACE4_E2E_CACHE: 1 to run the analysis cache's two-run check as well, which needs
+  ACE4_E2E_COMPARE, since it runs in the world the comparison sets up.
 
 A site's own modules may differ from ace3's by design, so setting ACE4_E2E_SITE skips the
 comparison, unless ACE4_E2E_COMPARE is 1: a site whose binaries hold every module of ace4's, and
 whose own modules run on nothing in the sample set, has to make the same trees. Its overlay then
-needs what tests/e2e/site/overlay.yaml gives ace4. The library diff's self-test and the module
+needs what tests/e2e/site/overlay.yaml gives ace4. The cache's two-run check is skipped too, unless
+ACE4_E2E_CACHE is 1: a site whose binaries hold ace4's cacheable modules has to keep and reuse their
+results as ace4's do. Its overlay then turns the cache off and has a site_tagger section, as ace4's
+does, and the check fails for any of ace4's cacheable modules that took nothing from the cache. The library diff's self-test and the module
 inventory check this repository, not a stack, so a site's run never includes them.
 """
 
@@ -179,6 +184,7 @@ ACE_COMMAND = os.environ.get("ACE4_E2E_ACE_COMMAND", "ace")
 # A site's run: against another repository's Compose file and overlay.
 SITE_RUN = "ACE4_E2E_SITE" in os.environ
 COMPARE = not SITE_RUN or os.environ.get("ACE4_E2E_COMPARE") == "1"
+CACHE = not SITE_RUN or os.environ.get("ACE4_E2E_CACHE") == "1"
 LEASE_SECONDS = 15
 
 
@@ -2278,6 +2284,9 @@ def finish(failures):
 
 
 def main(argv):
+    if CACHE and not COMPARE:
+        raise SystemExit("e2e: ACE4_E2E_CACHE needs ACE4_E2E_COMPARE: the cache's check runs in the "
+                         "world the comparison sets up")
     keep = "--keep" in argv
     compare_only = "--compare" in argv
     jobs = jobs_of(argv) or POOL_SLOTS
@@ -2353,7 +2362,7 @@ def main(argv):
             else:
                 log("ok    the acceptance threshold is met: every difference from ace3 is listed "
                     "in differences.md, and every row matched one")
-        if not SITE_RUN:
+        if CACHE:
             check_cache(failures)
     finally:
         if failures or keep:

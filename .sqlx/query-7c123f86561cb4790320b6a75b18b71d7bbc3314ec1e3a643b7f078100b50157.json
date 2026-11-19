@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT major::text AS \"major!\", minor::text AS \"minor!\", effect AS \"effect: Effect\"\n           FROM service.permissions\n           WHERE user_id = $1\n              OR group_id = $2\n              OR group_id IN (SELECT group_id FROM service.group_members WHERE user_id = $1)\n              OR api_key_id = $3\n              OR component = $4",
+  "query": "SELECT major::text AS \"major!\", minor::text AS \"minor!\", effect AS \"effect: Effect\"\n           FROM service.permissions\n           WHERE user_id = $1\n              OR group_id = $2\n              OR group_id IN (SELECT group_id FROM service.group_members WHERE user_id = $1)\n              OR api_key_id = $3\n              OR component = $4\n              OR component = $5",
   "describe": {
     "columns": [
       {
@@ -42,6 +42,7 @@
         "Uuid",
         "Uuid",
         "Uuid",
+        "Text",
         "Text"
       ]
     },
@@ -51,5 +52,5 @@
       false
     ]
   },
-  "hash": "8ade5d157d27bd58393154e3a41eab477a078597cfee852a51c56ed827805c31"
+  "hash": "7c123f86561cb4790320b6a75b18b71d7bbc3314ec1e3a643b7f078100b50157"
 }

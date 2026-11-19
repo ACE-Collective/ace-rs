@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE collection.submitted_keys SET root = $3\n                             WHERE collector = $1 AND hash = sha256(convert_to($2, 'UTF8'))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4b13386b368c5118d22bf0f233c042fc3ed21a7ce3fb0b145a3a45f2909d9c97"
+}

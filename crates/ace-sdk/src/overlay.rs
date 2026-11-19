@@ -74,6 +74,13 @@
 //! any other value, and every binary refuses a cacheable module whose task reads what its key doesn't
 //! hold (`Manifest::cache_refusal`). The core reads the switch; a pool doesn't.
 //!
+//! `collectors:` holds each collector's section (PLAN.md 6.1, `ace_app::collector`), by its name: its
+//! `settings`, which its builder is given as a module's are, how long a key it submitted holds
+//! (`key_lifetime_seconds`), how long it waits between passes that found nothing (`poll_seconds`), how
+//! many times it tries a submission the core couldn't take (`submit_attempts`), and how long a stop
+//! waits for its pass (`stop_seconds`). `ace collect <name>` reads its own section and secrets and no
+//! other collector's.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -144,6 +151,30 @@ pub struct Overlay {
     /// and how long its rows' days are kept. Each module's time to live is its section's `cache_ttl`.
     /// The core reads it; a pool doesn't.
     pub analysis_cache: AnalysisCacheSection,
+    /// The collectors' sections (PLAN.md 6.1), by collector name. `ace collect <name>` reads its own;
+    /// nothing else does.
+    pub collectors: BTreeMap<String, CollectorSection>,
+}
+
+/// What the overlay says about one collector (PLAN.md 6.1). Each field left out keeps its default,
+/// which `ace_app::collector` gives.
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct CollectorSection {
+    /// What the collector's builder is given, as a module's settings are.
+    pub settings: Option<Value>,
+    /// How long a key the collector submitted keeps an item with the same key from being submitted
+    /// again, ace3's `persistence_unmodified_expiration_seconds`.
+    pub key_lifetime_seconds: Option<u64>,
+    /// How long the collector waits after a pass that had nothing more, ace3's
+    /// `collection_frequency`.
+    pub poll_seconds: Option<u64>,
+    /// How many times one item's submission is tried while the core can't take it, before the item is
+    /// given back to its source.
+    pub submit_attempts: Option<u32>,
+    /// How long a stop waits for the pass under way to end, after which what it holds goes back to its
+    /// source uncommitted.
+    pub stop_seconds: Option<u64>,
 }
 
 /// The analysis cache's settings (`Overlay::analysis_cache`).
@@ -1181,6 +1212,8 @@ impl Overlay {
             observable_exclusions: BTreeMap::new(),
             // the core looks results up and keeps them
             analysis_cache: AnalysisCacheSection::default(),
+            // a collector is a process of the `ace` binary, never a pool's
+            collectors: BTreeMap::new(),
         }
     }
 
@@ -1408,6 +1441,28 @@ mod tests {
         assert!(!overlay.analysis_cache.enabled);
         assert_eq!(overlay.analysis_cache.retention_days, 35);
         assert!(Overlay::from_yaml("analysis_cache: {enable: false}").is_err());
+    }
+
+    /// A collector's section (PLAN.md 6.1): its settings and its four numbers, each key refused when
+    /// unknown.
+    #[test]
+    fn a_collector_s_section_reads() {
+        let overlay = Overlay::from_yaml(
+            "collectors: {journal: {settings: {queue: q}, key_lifetime_seconds: 60, poll_seconds: 2, \
+             submit_attempts: 3, stop_seconds: 10}}",
+        )
+        .expect("loads");
+        assert_eq!(
+            overlay.collectors["journal"],
+            CollectorSection {
+                settings: Some(serde_json::json!({"queue": "q"})),
+                key_lifetime_seconds: Some(60),
+                poll_seconds: Some(2),
+                submit_attempts: Some(3),
+                stop_seconds: Some(10),
+            }
+        );
+        assert!(Overlay::from_yaml("collectors: {journal: {poll: 2}}").is_err());
     }
 
     #[test]
