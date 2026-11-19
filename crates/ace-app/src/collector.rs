@@ -533,7 +533,7 @@ async fn collect(app: &App, name: &str) -> Result<ExitCode> {
     let db = Db::connect(&DbConfig::from_env(format!("ace-collect-{name}"))?)
         .await
         .context("connecting to Postgres")?;
-    let bucket = crate::cli::submitting_bucket(&db, &format!("ace4-collect-{name}-cache"))?;
+    let bucket = crate::cli::submitting_bucket(&db, &format!("ace4-collect-{name}-cache")).await?;
     let service = crate::cli::submitting_service(app, &overlay, db)?;
     let stop = CancellationToken::new();
     let stopping = stop.clone();

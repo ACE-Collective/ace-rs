@@ -658,7 +658,8 @@ async fn path_stack() -> PathStack {
     let store = Store::new(
         &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
-    );
+    )
+    .await;
     let bucket = Bucket::new(test_db.db().clone(), store, BucketSettings::default());
     let modes = Modes::ace3().with_mode(AnalysisMode {
         name: "paths".to_owned(),

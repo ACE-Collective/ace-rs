@@ -15,7 +15,7 @@
 //! | `check_backend_credentials` | `crate::ai::surface`, whose error is a failure here | an enabled backend that can't be built, such as one without its credential |
 //! | `check_secret_literal_allowlist` | [`check_secret_allowlist`] | a secret of the overlay's `secrets:` that this process can read and no enabled backend lists |
 //! | `advisory_plaintext_sweep` (a warning) | [`advisory_sweep`] | nothing: it warns of a setting that looks like a credential written in the overlay |
-//! | none | [`check_no_bucket_credential`] | the bucket's access key or secret key: the API reads no file |
+//! | none | [`check_no_bucket_credential`] | the bucket's access key or secret key, or an AWS credential the bucket's chain would take from the environment: the API reads no file |
 //! | none | [`check_role`] | a database role that can do more than migration 0064 grants, or less |
 //!
 //! Where each differs from ace3's, and why:
@@ -55,8 +55,24 @@ pub const ENCRYPTION_KEY: &str = "ACE4_ENCRYPTION_KEY";
 /// ([`LEASE_TOKEN_PREFIX`]).
 pub const INFRA_SECRETS: &[&str] = &["ACE4_ADMIN_TOKEN", "ACE4_POOL_TOKEN", "ACE4_API_KEY"];
 pub const LEASE_TOKEN_PREFIX: &str = "ACE4_POOL_TOKEN_";
-/// The bucket's credential.
-pub const BUCKET_CREDENTIALS: &[&str] = &["ACE4_BUCKET_ACCESS_KEY", "ACE4_BUCKET_SECRET_KEY"];
+/// The bucket's credential: its static keys, and the variables through which the AWS credential
+/// chain, which the bucket signs with when it has no static keys, finds one (`ace_store::aws`).
+/// A profile in `~/.aws` and the instance metadata service aren't variables, so this can't see
+/// them; keeping the metadata service from this process is the deployment's.
+pub const BUCKET_CREDENTIALS: &[&str] = &[
+    ace_store::ACCESS_KEY_VARIABLE,
+    ace_store::SECRET_KEY_VARIABLE,
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_SESSION_TOKEN",
+    "AWS_PROFILE",
+    "AWS_SHARED_CREDENTIALS_FILE",
+    "AWS_WEB_IDENTITY_TOKEN_FILE",
+    "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI",
+    "AWS_CONTAINER_CREDENTIALS_FULL_URI",
+    "AWS_CONTAINER_AUTHORIZATION_TOKEN",
+    "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE",
+];
 /// The sections `ace serve-ai` reads: the API's own, where its backends' secrets come from, and the
 /// site's dispositions, which the export's `disposition_class` follows.
 pub const OWN_SECTIONS: &[&str] = &[

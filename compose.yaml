@@ -53,9 +53,12 @@ services:
       # Postgres through this (sqlx.toml names it). Builds don't read it: with no DATABASE_URL
       # set, sqlx checks queries against the offline data in .sqlx/.
       ACE4_DATABASE_URL: postgres://${ACE4_POSTGRES_USER:-ace4}:${ACE4_POSTGRES_PASSWORD:-ace4-dev-password}@postgres:5432/${ACE4_POSTGRES_DB:-ace4}
-      # The stack's bucket, for ace-store's and ace-core's tests.
+      # The stack's bucket, for ace-store's and ace-core's tests. Its static keys and region
+      # mean nothing reads the AWS credential or region chain (ace_store::aws), so nothing asks
+      # an instance metadata service that isn't there.
       ACE4_BUCKET_ENDPOINT: http://bucket:8333
       ACE4_BUCKET_NAME: ${ACE4_BUCKET_NAME:-ace4}
+      ACE4_BUCKET_REGION: ${ACE4_BUCKET_REGION:-us-east-1}
       ACE4_BUCKET_ACCESS_KEY: ${ACE4_BUCKET_ACCESS_KEY:-ace4-dev}
       ACE4_BUCKET_SECRET_KEY: ${ACE4_BUCKET_SECRET_KEY:-ace4-dev-secret}
       # A Docker client with proxies in its config.json gives every container ALL_PROXY and a
@@ -208,8 +211,12 @@ services:
         condition: service_healthy
     environment:
       ACE4_DATABASE_URL: postgres://${ACE4_POSTGRES_USER:-ace4}:${ACE4_POSTGRES_PASSWORD:-ace4-dev-password}@postgres:5432/${ACE4_POSTGRES_DB:-ace4}
+      # The stack's bucket with static keys. On AWS, leave both keys out and the core signs with
+      # the AWS credential chain, such as the EC2 instance role, and finds its region the same
+      # way unless ACE4_BUCKET_REGION is set (ace_store::aws).
       ACE4_BUCKET_ENDPOINT: http://bucket:8333
       ACE4_BUCKET_NAME: ${ACE4_BUCKET_NAME:-ace4}
+      ACE4_BUCKET_REGION: ${ACE4_BUCKET_REGION:-us-east-1}
       ACE4_BUCKET_ACCESS_KEY: ${ACE4_BUCKET_ACCESS_KEY:-ace4-dev}
       ACE4_BUCKET_SECRET_KEY: ${ACE4_BUCKET_SECRET_KEY:-ace4-dev-secret}
       ACE4_API_LISTEN: 0.0.0.0:8080

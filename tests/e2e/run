@@ -1743,13 +1743,17 @@ def check_ai(first, failures):
     # the process: what it holds, and that it checked
     held = compose("exec", "-T", "ai", "env", capture=True).splitlines()
     names = sorted(line.split("=", 1)[0] for line in held if line.startswith("ACE4_"))
-    forbidden = [name for name in names
-                 if name in ("ACE4_ENCRYPTION_KEY", "ACE4_ADMIN_TOKEN", "ACE4_POOL_TOKEN", "ACE4_API_KEY",
-                             "ACE4_BUCKET_ACCESS_KEY", "ACE4_BUCKET_SECRET_KEY")
-                 or name.startswith("ACE4_POOL_TOKEN_")]
+    # an AWS credential in the environment is one the bucket's credential chain would take
+    aws = sorted(line.split("=", 1)[0] for line in held
+                 if line.startswith(("AWS_ACCESS_KEY_ID=", "AWS_SECRET_ACCESS_KEY=", "AWS_SESSION_TOKEN=",
+                                     "AWS_WEB_IDENTITY_TOKEN_FILE=", "AWS_CONTAINER_")))
+    forbidden = aws + [name for name in names
+                       if name in ("ACE4_ENCRYPTION_KEY", "ACE4_ADMIN_TOKEN", "ACE4_POOL_TOKEN", "ACE4_API_KEY",
+                                   "ACE4_BUCKET_ACCESS_KEY", "ACE4_BUCKET_SECRET_KEY")
+                       or name.startswith("ACE4_POOL_TOKEN_")]
     expect(not forbidden and "ACE4_DATABASE_URL" in names and "ACE4_OVERLAY" in names,
            f"the ai service's environment holds the database and its overlay, and no key, token or "
-           f"bucket credential: {names}")
+           f"bucket credential: {names + aws}")
     logs = compose("logs", "ai", capture=True)
     expect("AI API custody checks passed" in logs and "the AI investigation API is on" in logs,
            "the ai service checked what it holds when it started, and turned the API on")

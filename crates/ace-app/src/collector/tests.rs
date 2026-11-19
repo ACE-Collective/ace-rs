@@ -26,7 +26,8 @@ impl Fixture {
         let store = Store::new(
             &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
             NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
-        );
+        )
+        .await;
         let orchestrator = ace_core::orchestrator::Orchestrator::new(
             ace_core::eligibility::Catalog::new(vec![]),
             ace_core::modes::Modes::ace3(),

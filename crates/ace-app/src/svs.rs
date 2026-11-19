@@ -909,7 +909,8 @@ pub fn run(_app: &crate::App, command: SvsCommand) -> Result<ExitCode> {
                 let store = Store::new(
                     &BucketConfig::from_env()?,
                     NodeCache::new(cache.path(), 1 << 30).context("the cache")?,
-                );
+                )
+                .await;
                 let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
                 let retired = ace_core::svs::validations::retired_pairs(&db).await?;
                 let replayer = Replayer {

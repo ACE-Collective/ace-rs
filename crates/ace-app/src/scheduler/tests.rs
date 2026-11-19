@@ -37,7 +37,8 @@ impl Fixture {
         let store = Store::new(
             &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
             NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
-        );
+        )
+        .await;
         let pool = format!("test-{}", uuid::Uuid::new_v4().simple());
         let settings = BucketSettings {
             orphan_grace: Duration::ZERO,

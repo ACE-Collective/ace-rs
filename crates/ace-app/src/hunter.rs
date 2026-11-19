@@ -890,7 +890,7 @@ async fn hunt(app: &App) -> Result<ExitCode> {
     let db = Db::connect(&DbConfig::from_env("ace-hunter")?)
         .await
         .context("connecting to Postgres")?;
-    let bucket = crate::cli::submitting_bucket(&db, "ace4-hunter-cache")?;
+    let bucket = crate::cli::submitting_bucket(&db, "ace4-hunter-cache").await?;
     let service = crate::cli::submitting_service(app, &overlay, db)?;
     let actor = ace_service::Actor::Internal {
         id: ace_service::Component::new("hunter")?,

@@ -229,7 +229,7 @@ pub fn analysis_cache(
 
 /// The bucket a process that submits roots puts their files in, with its node cache in the temporary
 /// directory `cache` (the hunter's and each collector's own).
-pub(crate) fn submitting_bucket(
+pub(crate) async fn submitting_bucket(
     db: &ace_core::db::Db,
     cache: &str,
 ) -> anyhow::Result<ace_core::bucket::Bucket> {
@@ -240,7 +240,8 @@ pub(crate) fn submitting_bucket(
         &BucketConfig::from_env()?,
         NodeCache::new(&cache_dir, DEFAULT_CACHE_MAX_BYTES)
             .with_context(|| format!("the cache in {}", cache_dir.display()))?,
-    );
+    )
+    .await;
     Ok(ace_core::bucket::Bucket::new(
         db.clone(),
         store,

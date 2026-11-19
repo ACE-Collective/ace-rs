@@ -57,7 +57,8 @@ async fn a_new_commit_gets_a_row_that_lists_the_files_left_out() {
     let store = Store::new(
         &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).unwrap(),
-    );
+    )
+    .await;
     let db = test_db.db();
     let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
 
@@ -403,7 +404,8 @@ async fn the_detections_are_rules_of_the_ruleset_and_follow_the_list() {
     let store = Store::new(
         &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).unwrap(),
-    );
+    )
+    .await;
     let db = test_db.db();
     let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
     let checkout = tempfile::tempdir().unwrap();

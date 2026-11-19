@@ -9,8 +9,12 @@ publish.workspace = true
 
 [dependencies]
 ace-results = { path = "../ace-results" }
-# Without aws-config, which reads credentials and regions from places other than the config
-# given here; without sigv4a and the legacy hyper 0.14 client.
+# The AWS credential and region chains only (`aws::Access`), at the release that needs no newer
+# runtime crates than aws-sdk-s3's: without SSO, the login provider and credential_process, so it adds
+# itself and aws-sdk-sts (web identity and a profile's assumed role) to the tree.
+aws-config = { version = "1.13.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
+aws-credential-types = "1.3.1"
+# Without sigv4a and the legacy hyper 0.14 client.
 aws-sdk-s3 = { version = "1.157.0", default-features = false, features = ["default-https-client", "http-1x", "rt-tokio"] }
 sha2 = "0.11.1"
 tempfile = "3.27.0"
@@ -19,7 +23,7 @@ tokio = { version = "1.54.1", features = ["fs", "io-util", "rt", "sync"] }
 tracing = "0.1.44"
 
 [dev-dependencies]
-tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.54.1", features = ["macros", "net", "process", "rt-multi-thread", "time"] }
 uuid = { version = "1.29.0", features = ["v4"] }
 
 [lints]

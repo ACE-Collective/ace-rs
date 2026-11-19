@@ -77,7 +77,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
         &BucketConfig::from_env()?,
         NodeCache::new(&cache_dir, DEFAULT_CACHE_MAX_BYTES)
             .with_context(|| format!("the cache in {}", cache_dir.display()))?,
-    );
+    )
+    .await;
     let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
     // the email archive's key stays in this process: workers ask the core to seal and open
     let archive_config = ace_core::email_archive::ArchiveConfig::from_env()

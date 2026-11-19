@@ -13631,7 +13631,8 @@ async fn the_samples_pages_need_signature_read_then_alert_write_and_svs_admin() 
     let store = ace_store::Store::new(
         &ace_store::BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
         ace_store::NodeCache::new(&cache, 1 << 30).expect("a cache"),
-    );
+    )
+    .await;
     let stack = stack_of_db(Catalog::new(vec![]), move |service, db| {
         let bucket = ace_core::bucket::Bucket::new(
             db.clone(),

@@ -12,7 +12,11 @@
 //! (PLAN.md decision 25), so no hostile bytes are parsed in the core's process. A get
 //! reads the node's cache first and fills it from the bucket otherwise, checking the bytes'
 //! sha256 before they reach the cache.
+//!
+//! The client signs with static keys or with the AWS credential chain, such as an EC2 instance
+//! role, and takes its region from the chain when none is set ([`aws`]).
 
+pub mod aws;
 mod cache;
 mod config;
 mod spool;
@@ -21,9 +25,7 @@ use std::path::Path;
 
 use ace_results::Sha256;
 use aws_sdk_s3::config::timeout::TimeoutConfig;
-use aws_sdk_s3::config::{
-    BehaviorVersion, Credentials, Region, RequestChecksumCalculation, ResponseChecksumValidation,
-};
+use aws_sdk_s3::config::{BehaviorVersion, RequestChecksumCalculation, ResponseChecksumValidation};
 use aws_sdk_s3::error::DisplayErrorContext;
 use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::ByteStream;
@@ -31,7 +33,7 @@ use sha2::Digest;
 use tokio::io::AsyncWriteExt;
 
 pub use cache::{CacheStats, CachedFile, NodeCache};
-pub use config::BucketConfig;
+pub use config::{ACCESS_KEY_VARIABLE, BucketConfig, SECRET_KEY_VARIABLE};
 pub use spool::Spooled;
 
 /// The key prefix of files a worker uploads before the core checks them (`Store::upload_key`).
@@ -83,17 +85,21 @@ pub struct Store {
 }
 
 impl Store {
-    pub fn new(config: &BucketConfig, cache: NodeCache) -> Store {
+    /// The client for `config`'s bucket. It waits only to find the region when none is given,
+    /// which may ask the instance metadata service; credentials from the chain are fetched on the
+    /// first request.
+    pub async fn new(config: &BucketConfig, cache: NodeCache) -> Store {
+        let region = config.access.region().await;
+        tracing::info!(
+            bucket = %config.bucket,
+            region = %region,
+            credentials = config.access.source(),
+            "the bucket's client"
+        );
         let mut s3 = aws_sdk_s3::Config::builder()
             .behavior_version(BehaviorVersion::latest())
-            .region(Region::new(config.region.clone()))
-            .credentials_provider(Credentials::new(
-                &config.access_key,
-                config.secret_key.expose(),
-                None,
-                None,
-                "ace4",
-            ))
+            .credentials_provider(config.access.credentials(Some(region.clone())))
+            .region(region)
             .force_path_style(config.path_style)
             // Checksums only where S3 requires them: not every S3-compatible server takes the
             // SDK's default CRC32 trailers, and gets are checked against the sha256 anyway.

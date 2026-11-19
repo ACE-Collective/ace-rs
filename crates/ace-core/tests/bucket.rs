@@ -16,12 +16,13 @@ struct Node {
     _cache: tempfile::TempDir,
 }
 
-fn node(test_db: &TestDb, settings: &BucketSettings) -> Node {
+async fn node(test_db: &TestDb, settings: &BucketSettings) -> Node {
     let cache = tempfile::tempdir().expect("a cache directory");
     let store = Store::new(
         &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
-    );
+    )
+    .await;
     Node {
         bucket: Bucket::new(test_db.db().clone(), store, settings.clone()),
         _cache: cache,
@@ -49,7 +50,10 @@ async fn two_puts_leave_one_object_and_a_get_on_another_node_fills_its_cache() {
     let (pool, settings) = test_pool(Retention::Held {
         grace: Duration::from_secs(3600),
     });
-    let (a, b) = (node(&test_db, &settings), node(&test_db, &settings));
+    let (a, b) = (
+        node(&test_db, &settings).await,
+        node(&test_db, &settings).await,
+    );
     let bytes = b"Received: from mail.example.com\nSubject: invoice\n\nplease see attached\n";
 
     let first = a
@@ -121,7 +125,7 @@ async fn gc_deletes_what_retention_no_longer_keeps() {
     let (pool, settings) = test_pool(Retention::Held {
         grace: Duration::ZERO,
     });
-    let node = node(&test_db, &settings);
+    let node = node(&test_db, &settings).await;
     let bucket = &node.bucket;
     let held = Hold::new("root", "kept");
     let kept = bucket
@@ -190,7 +194,7 @@ async fn an_expired_hold_beside_a_live_one_is_pruned_and_a_permanent_pool_keeps_
         );
         (name, settings)
     };
-    let node = node(&test_db, &settings);
+    let node = node(&test_db, &settings).await;
     let bucket = &node.bucket;
     let live = Hold::new("root", "live");
     let sha256 = bucket

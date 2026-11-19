@@ -458,7 +458,8 @@ async fn corpus(side: Side) -> Corpus {
     let store = Store::new(
         &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
-    );
+    )
+    .await;
     let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
     let pg = PgIndex::new(db.clone(), Some(bucket.clone()), model());
     let qdrant = match side {
@@ -1537,7 +1538,8 @@ async fn tree() -> Tree {
     let store = Store::new(
         &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
-    );
+    )
+    .await;
     let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
     let pg = PgIndex::new(db.clone(), Some(bucket.clone()), model());
     Tree {

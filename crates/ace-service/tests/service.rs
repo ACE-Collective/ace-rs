@@ -202,12 +202,13 @@ fn test_actions() -> ace_core::actions::ActionCatalog {
 }
 
 /// The stack's bucket, with a node cache of the test's own, which goes when the directory does.
-fn bucket(db: &Db) -> (Bucket, tempfile::TempDir) {
+async fn bucket(db: &Db) -> (Bucket, tempfile::TempDir) {
     let cache = tempfile::tempdir().expect("a cache directory");
     let store = Store::new(
         &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
-    );
+    )
+    .await;
     (
         Bucket::new(db.clone(), store, BucketSettings::default()),
         cache,
@@ -1681,7 +1682,7 @@ async fn every_write_function_has_an_audit_test() {
 }
 
 async fn submit_records_its_row(db: &Db) -> String {
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let actor = admin(db).await;
     let (submission, files) = submission(&bucket, b"hello").await;
     let source = "192.0.2.7".parse().expect("an address");
@@ -1760,7 +1761,7 @@ fn a_collector_s_class_is_collector() {
 /// A collector's submission (PLAN.md 6.1): its root's row, as `collector:<name>`, which holds
 /// `alert:create` through its class; a duplicate of its key writes nothing, not even an audit row.
 async fn submit_collected_records_its_row(db: &Db) -> String {
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let actor = Actor::Internal {
         id: Component::new("collector:journal").expect("valid"),
     };
@@ -1830,7 +1831,7 @@ async fn submit_collected_records_its_row(db: &Db) -> String {
 }
 
 async fn download_file_records_its_row(db: &Db) -> String {
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable) = file_alert(db, &bucket).await;
     let actor = admin(db).await;
     let download = service(db)
@@ -1896,7 +1897,7 @@ async fn failed_task(db: &Db, root: Uuid, observable: i64, module: &str, error: 
 }
 
 async fn download_crash_records_its_row(db: &Db) -> String {
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable) = file_alert(db, &bucket).await;
     let id = failed_task(db, root, observable, "crasher", "the module panicked: boom").await;
     let actor = admin(db).await;
@@ -1979,7 +1980,7 @@ async fn archived(
 }
 
 async fn archived_email_records_its_row(db: &Db) -> String {
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let archive = email_archive(&bucket, db);
     let email = b"From: a@example.com\r\nMessage-ID: <archived@example.com>\r\n\r\nhi\r\n";
     let id = archived(&archive, email, "<archived@example.com>").await;
@@ -2216,7 +2217,7 @@ async fn crashes_are_failed_tasks() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let service = service(db);
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let actor = admin(db).await;
     let (root, file) = file_alert(db, &bucket).await;
     let (other, other_file) = file_alert(db, &bucket).await;
@@ -2459,7 +2460,7 @@ async fn holds_on(db: &Db, sha256: &str) -> Vec<(String, String)> {
 }
 
 async fn download_qa_match_records_its_row(db: &Db) -> String {
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable) = file_alert(db, &bucket).await;
     let id = qa_match(db, &bucket, root, observable, QA_UUID, "v1").await;
     let actor = admin(db).await;
@@ -2525,7 +2526,7 @@ async fn download_qa_match_records_its_row(db: &Db) -> String {
 }
 
 async fn download_qa_matches_records_its_row(db: &Db) -> String {
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable) = file_alert(db, &bucket).await;
     let uuid = "download-these";
     let first = qa_match(db, &bucket, root, observable, uuid, "v1").await;
@@ -2584,7 +2585,7 @@ async fn download_qa_matches_records_its_row(db: &Db) -> String {
 }
 
 async fn purge_qa_matches_records_its_row(db: &Db) -> String {
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable) = file_alert(db, &bucket).await;
     let uuid = "purge-these";
     let first = qa_match(db, &bucket, root, observable, uuid, "v1").await;
@@ -2716,7 +2717,7 @@ async fn purge_qa_matches_records_its_row(db: &Db) -> String {
 /// live match and its hold stay, a prune that finds nothing has no row, and one without the grant is
 /// refused.
 async fn prune_qa_matches_records_its_row(db: &Db) -> String {
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable) = file_alert(db, &bucket).await;
     let uuid = "prune-these";
     let expired = qa_match(db, &bucket, root, observable, uuid, "v1").await;
@@ -2797,7 +2798,7 @@ async fn qa_rules_merge_the_ruleset_and_the_kept_matches() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let service = service(db);
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let actor = admin(db).await;
     let (root, file) = file_alert(db, &bucket).await;
     let empty = service
@@ -3116,7 +3117,7 @@ async fn a_purge_releases_only_its_own_holds() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let service = service(db);
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let actor = admin(db).await;
     let bytes = b"a file only the purge test holds";
     let (root, file) = file_alert_with(db, &bucket, bytes).await;
@@ -3375,7 +3376,7 @@ async fn every_write_fails_when_its_audit_fails() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let service = service(db);
-    let (hunt_bucket, _hunt_cache) = bucket(db);
+    let (hunt_bucket, _hunt_cache) = bucket(db).await;
     let root = alert(db).await;
     let actor = admin(db).await;
     let held = Holder::User(UserId(Uuid::from_u128(2)));
@@ -3418,7 +3419,7 @@ async fn every_write_fails_when_its_audit_fails() {
         .create_group(&actor, "other team")
         .await
         .expect("a group");
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (file_root, file) = file_alert(db, &bucket).await;
     let crash = failed_task(db, file_root, file, "crasher", "the module panicked").await;
     let qa = qa_match(db, &bucket, file_root, file, QA_UUID, "v1").await;
@@ -14583,7 +14584,7 @@ async fn sync_hunts_records_its_row(db: &Db) -> String {
 
 async fn record_hunt_run_records_its_row(db: &Db) -> String {
     let service = service(db);
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let recorded = service
         .record_hunt_run(
             &hunter(),
@@ -14630,7 +14631,7 @@ async fn a_hunt_run_commits_its_roots_with_its_state() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let service = service(db);
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let recorded = service
         .record_hunt_run(
             &hunter(),
@@ -14732,7 +14733,7 @@ async fn a_suppressed_hit_leaves_a_row() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let service = service(db);
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     service
         .sync_hunts(&hunter(), "splunk", &[loaded_hunt("a.yaml")])
         .await
@@ -19394,7 +19395,7 @@ fn clear(captured: &Captured) {
 }
 
 /// A bucket whose store can't be reached: a backend that's down.
-fn broken_bucket(db: &Db) -> (Bucket, tempfile::TempDir) {
+async fn broken_bucket(db: &Db) -> (Bucket, tempfile::TempDir) {
     let cache = tempfile::tempdir().expect("a cache directory");
     let mut config = BucketConfig::from_env().expect("the ACE4_BUCKET_* variables");
     config.endpoint = Some("http://127.0.0.1:9".to_owned());
@@ -19402,7 +19403,8 @@ fn broken_bucket(db: &Db) -> (Bucket, tempfile::TempDir) {
     let store = Store::new(
         &config,
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
-    );
+    )
+    .await;
     (
         Bucket::new(db.clone(), store, BucketSettings::default()),
         cache,
@@ -19419,7 +19421,7 @@ async fn monitoring_needs_its_permissions_and_keeps_what_each_check_last_found()
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let service = service(db);
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let denied = |error: ServiceError, wanted: &ace_service::PermissionName| {
         assert!(
             matches!(&error, ServiceError::PermissionDenied { permission, .. } if permission == wanted),
@@ -19657,7 +19659,7 @@ async fn monitoring_needs_its_permissions_and_keeps_what_each_check_last_found()
 async fn capture_stores_the_file_and_the_record() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable, sha256) = captured_file(db, &bucket).await;
     let (captured, _logs) = log_capture();
 
@@ -19708,7 +19710,7 @@ async fn capture_stores_the_file_and_the_record() {
 async fn capture_is_idempotent() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable, sha256) = captured_file(db, &bucket).await;
     let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
     let first = capture_one(db, &bucket, root, Some(observable), candidate.clone()).await;
@@ -19726,7 +19728,7 @@ async fn capture_is_idempotent() {
 async fn a_file_already_in_the_pool_is_captured_without_its_file() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable, sha256) = captured_file(db, &bucket).await;
     let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
     let first = capture_one(db, &bucket, root, Some(observable), candidate.clone()).await;
@@ -19739,7 +19741,7 @@ async fn a_file_already_in_the_pool_is_captured_without_its_file() {
         .expect("kept");
     // another alert names the same bytes, and the broken bucket shows nothing is read or put for it
     let (other, _) = alert_with_file(db, &sha256).await;
-    let (broken, _broken_cache) = broken_bucket(db);
+    let (broken, _broken_cache) = broken_bucket(db).await;
     let prepared = svs_samples::prepare(db, &bucket, other, None, vec![candidate])
         .await
         .expect("prepares");
@@ -19779,7 +19781,7 @@ async fn alert_with_file(db: &Db, sha256: &str) -> (Uuid, i64) {
 async fn a_missing_file_is_recorded_and_reported_once() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     // a file whose bytes the bucket never had
     let sha256 = sha256_hex(format!("never kept {}", Uuid::new_v4()).as_bytes());
     let (root, observable) = alert_with_file(db, &sha256).await;
@@ -19830,7 +19832,7 @@ async fn rewrite_root_copy(bucket: &Bucket, sha256: &str) {
 async fn a_file_that_no_longer_has_its_sha256_is_missing_and_reported_once() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable, sha256) = captured_file(db, &bucket).await;
     rewrite_root_copy(&bucket, &sha256).await;
     let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
@@ -19872,7 +19874,7 @@ async fn a_file_that_no_longer_has_its_sha256_is_missing_and_reported_once() {
 async fn a_file_that_no_longer_has_its_sha256_is_held_from_another_alert() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable, sha256) = captured_file(db, &bucket).await;
     let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
     assert_eq!(
@@ -19898,7 +19900,7 @@ async fn a_file_that_no_longer_has_its_sha256_is_held_from_another_alert() {
 async fn a_capture_without_its_record_keeps_the_file() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable, sha256) = captured_file(db, &bucket).await;
     let (captured, _logs) = log_capture();
 
@@ -19946,8 +19948,8 @@ async fn a_capture_without_its_record_keeps_the_file() {
 async fn a_storage_failure_releases_the_holds_and_is_retried() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
-    let (broken, _broken_cache) = broken_bucket(db);
+    let (bucket, _cache) = bucket(db).await;
+    let (broken, _broken_cache) = broken_bucket(db).await;
     let (root, observable, sha256) = captured_file(db, &bucket).await;
     let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
     let (captured, _logs) = log_capture();
@@ -19987,7 +19989,7 @@ async fn a_storage_failure_releases_the_holds_and_is_retried() {
 async fn an_unknown_signature_version_is_reported() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable, sha256) = captured_file(db, &bucket).await;
     let candidate = svs_candidate(&sha256, "mail/a.txt", true, "unknown");
     let (captured, _logs) = log_capture();
@@ -20585,7 +20587,7 @@ async fn delete_removes_the_file_from_svs() {
     let db = test_db.db();
     let actor = admin(db).await;
     let service = service(db);
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let content = format!("svs delete sample {}", Uuid::new_v4()).into_bytes();
     let sha256 = stored_sample(db, &bucket, &[RULE_UUID, OTHER_RULE_UUID], &content).await;
     service
@@ -20650,7 +20652,7 @@ async fn another_sample_keeps_its_record_and_its_hold() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let actor = admin(db).await;
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let one = format!("svs delete one {}", Uuid::new_v4()).into_bytes();
     let keep = format!("svs keep the other {}", Uuid::new_v4()).into_bytes();
     let sha256 = stored_sample(db, &bucket, &[RULE_UUID], &one).await;
@@ -20674,8 +20676,8 @@ async fn an_unfinished_purge_is_retried() {
     let db = test_db.db();
     let actor = admin(db).await;
     let service = service(db);
-    let (bucket, _cache) = bucket(db);
-    let (broken, _broken_cache) = broken_bucket(db);
+    let (bucket, _cache) = bucket(db).await;
+    let (broken, _broken_cache) = broken_bucket(db).await;
     let content = format!("svs purge fails {}", Uuid::new_v4()).into_bytes();
     let sha256 = stored_sample(db, &bucket, &[RULE_UUID], &content).await;
     let parsed: ace_results::Sha256 = sha256.parse().expect("a sha256");
@@ -20716,7 +20718,7 @@ async fn delete_needs_a_reason_and_a_sample() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let actor = admin(db).await;
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let sha256 = "ab".repeat(32);
     assert!(matches!(
         service(db)
@@ -20737,7 +20739,7 @@ async fn a_missing_capture_is_deleted_too() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let actor = admin(db).await;
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let sha256 = "cd".repeat(32);
     insert_capture(
         db,
@@ -20767,7 +20769,7 @@ async fn deletions_page() {
     let db = test_db.db();
     let actor = admin(db).await;
     let service = service(db);
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     for name in ["first deleted", "second deleted", "third deleted"] {
         let content = format!("{name} {}", Uuid::new_v4()).into_bytes();
         let (_, files) = graded_alert(
@@ -20829,7 +20831,7 @@ async fn a_deleted_file_is_not_captured_again() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let actor = admin(db).await;
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable, sha256) = captured_file(db, &bucket).await;
     let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
     assert_eq!(
@@ -20861,7 +20863,7 @@ async fn a_capture_that_raced_a_deletion_writes_nothing() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let actor = admin(db).await;
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (root, observable, sha256) = captured_file(db, &bucket).await;
     // another capture of the file, so there's a sample to delete
     insert_capture(
@@ -21060,7 +21062,7 @@ async fn unretire_svs_sample_records_its_row(db: &Db) -> String {
 
 async fn delete_svs_sample_records_its_row(db: &Db) -> String {
     let actor = admin(db).await;
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (_, sha256, _) = audited_sample(db).await;
     let ids: Vec<i64> = capture_rows(db, &sha256)
         .await
@@ -21185,7 +21187,7 @@ async fn sample_actions_follow_their_permissions() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let service = service(db);
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let (_, sha256, _) = audited_sample(db).await;
     let reader = holding(&service, db, "reader", &[("signature", "read")]).await;
     let writer = holding(&service, db, "writer", &[("alert", "write")]).await;
@@ -22280,7 +22282,7 @@ async fn prune_removes_old_finished_validations_with_their_results() {
 async fn deleting_a_sample_removes_it_from_every_report() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     let content = format!("svs validation delete {}", Uuid::new_v4()).into_bytes();
     let sha256 = sample_named(
@@ -22320,7 +22322,7 @@ async fn deleting_a_sample_removes_it_from_every_report() {
 async fn units_are_distinct_scans_and_samples_carry_labels() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let content = format!("replay me {}", Uuid::new_v4()).into_bytes();
     let sha256 = sample_named(
         db,
@@ -22419,7 +22421,7 @@ async fn units_are_copied_out_of_the_pool() {
     use std::os::unix::fs::MetadataExt;
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let content = format!("copy me {}", Uuid::new_v4()).into_bytes();
     let sha256 = sample_named(
         db,
@@ -22480,7 +22482,7 @@ async fn units_are_copied_out_of_the_pool() {
 async fn what_cannot_be_replayed_is_skipped() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let content = format!("unsafe {}", Uuid::new_v4()).into_bytes();
     let unsafe_sha = sample_named(db, &bucket, "DELIVERY", &content, &[RULE_UUID], "ok.bin").await;
     for file_path in ["../../escape.bin", "/etc/escape.bin"] {
@@ -22577,7 +22579,7 @@ async fn what_cannot_be_replayed_is_skipped() {
 async fn the_corpus_is_bounded() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     for name in ["one.bin", "two.bin"] {
         let content = format!("bounded {name} {}", Uuid::new_v4()).into_bytes();
         sample_named(db, &bucket, "DELIVERY", &content, &[RULE_UUID], name).await;
@@ -22654,7 +22656,7 @@ fn uuids(n: usize) -> Vec<String> {
 async fn a_branch_gone_from_the_remote_still_validates() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     let r1 = Uuid::new_v4().to_string();
     let a = sample_named(db, &bucket, "DELIVERY", b"alpha evil", &[&r1], "sample.bin").await;
@@ -22699,7 +22701,7 @@ async fn a_branch_gone_from_the_remote_still_validates() {
 async fn a_validation_reports_what_the_change_does() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     let ids = uuids(8);
     let (r1, r2, r3, r4, r5, r6, r7, broken) = (
@@ -22861,7 +22863,7 @@ async fn a_validation_reports_what_the_change_does() {
 async fn retired_samples_are_only_counted() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     let r1 = Uuid::new_v4().to_string();
     let a = sample_named(db, &bucket, "DELIVERY", b"alpha evil", &[&r1], "sample.bin").await;
@@ -22897,7 +22899,7 @@ async fn retired_samples_are_only_counted() {
 async fn a_head_that_would_not_load_is_not_compared() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     let (r1, r2) = (Uuid::new_v4().to_string(), Uuid::new_v4().to_string());
     sample_named(db, &bucket, "DELIVERY", b"alpha evil", &[&r1], "sample.bin").await;
@@ -22940,7 +22942,7 @@ async fn a_head_that_would_not_load_is_not_compared() {
 async fn the_working_directory_is_deleted_when_the_scan_fails() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     let r1 = Uuid::new_v4().to_string();
     sample_named(db, &bucket, "DELIVERY", b"alpha evil", &[&r1], "sample.bin").await;
@@ -22974,7 +22976,7 @@ async fn the_working_directory_is_deleted_when_the_scan_fails() {
 async fn an_unknown_commit_fails() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     let sha = repo.commit(
         &[(
@@ -23019,7 +23021,7 @@ async fn an_unknown_commit_fails() {
 async fn a_cancelled_replay_stops_and_leaves_nothing() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     let sha = repo.commit(
         &[(
@@ -23045,7 +23047,7 @@ async fn a_cancelled_replay_stops_and_leaves_nothing() {
 async fn a_replay_cancelled_during_the_scan_stops_it() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     sample_named(
         db,
@@ -23213,7 +23215,7 @@ fn yara_validation_defaults() {
 async fn the_workers_run_a_queued_validation() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
     let content = format!("svs service sample {}", Uuid::new_v4()).into_bytes();
@@ -23263,7 +23265,7 @@ async fn the_workers_run_a_queued_validation() {
 async fn a_replay_error_fails_the_validation_with_its_message() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     repo.commit(
         &[(
@@ -23429,7 +23431,7 @@ async fn the_workers_start_and_stop() {
 async fn a_whole_validation_through_the_workers() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     let rule_uuid = Uuid::new_v4().to_string();
     let sha256 = sample_named(
@@ -23902,7 +23904,7 @@ async fn validation_results_by_category_and_rule() {
 async fn a_report_s_selection_downloads() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     let actor = admin(db).await;
     let content = format!("svs validation download {}", Uuid::new_v4()).into_bytes();
@@ -24101,7 +24103,7 @@ async fn request_svs_validation_records_its_row(db: &Db) -> String {
 }
 
 async fn download_svs_validation_records_its_row(db: &Db) -> String {
-    let (bucket, _cache) = bucket(db);
+    let (bucket, _cache) = bucket(db).await;
     let repo = svs_repository();
     let content = format!("svs validation audit {}", Uuid::new_v4()).into_bytes();
     let sha256 = sample_named(
@@ -24940,7 +24942,7 @@ mod routing_tests {
         let test_db = TestDb::new().await;
         let db = test_db.db();
         let service = bare_service(db);
-        let (bucket, _cache) = bucket(db);
+        let (bucket, _cache) = bucket(db).await;
         let submission: Submission = serde_json::from_value(json!({
             "description": "hunt: routed",
             "analysis_mode": "correlation",
@@ -27056,7 +27058,7 @@ mod svs_runs_tests {
 
     /// test_runs.py's `setup`: four catalog tests, four test hosts, and a launcher's key.
     async fn fixture(db: &Db) -> Fixture {
-        let (bucket, cache) = bucket(db);
+        let (bucket, cache) = bucket(db).await;
         let service = service(db).with_bucket(bucket);
         let admin = admin(db).await;
         let key = Holder::ApiKey(ApiKeyId(Uuid::from_u128(LAUNCHER_KEY)));
@@ -29951,7 +29953,7 @@ mod svs_runs_tests {
 
     /// A database of the audit tests has other tests' hosts; these use their own.
     async fn audit_fixture(db: &Db, host: &str) -> (Service, Actor, tempfile::TempDir) {
-        let (bucket, cache) = bucket(db);
+        let (bucket, cache) = bucket(db).await;
         let service = service(db).with_bucket(bucket);
         let actor = admin(db).await;
         sqlx::query(
@@ -30494,7 +30496,7 @@ mod svs_results_tests {
     }
 
     pub(super) async fn fixture_named(db: &Db, prefix: &'static str) -> Fx {
-        let (bucket, cache) = bucket(db);
+        let (bucket, cache) = bucket(db).await;
         Fx {
             service: service(db)
                 .with_bucket(bucket)
@@ -38185,7 +38187,7 @@ mod svs_attribution_tests {
 
     /// The fixture, with these hooks.
     async fn fixture_with(db: &Db, hooks: Hooks) -> Fx {
-        let (bucket, cache) = bucket(db);
+        let (bucket, cache) = bucket(db).await;
         let orchestrator = orchestrator().with_hooks(hooks);
         let service = Service::new(db.clone(), orchestrator.clone())
             .with_actions(test_actions())
