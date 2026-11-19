@@ -2214,7 +2214,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### alert_added_to_event
 
 - **Section**: `analysis_module_alert_added_to_event`, class `AlertAddedToEventAnalyzer` in `saq/modules/event.py`, disabled by default.
-- **ace4**: not ported, by the owner's decision of 2026-11-19: it is disabled in ace3 and marked for removal there.
+- **ace4**: not yet. Left out by the owner's decision of 2026-11-19: it is disabled in ace3 and marked for removal there.
 - **Pool**: core. Moves a dispositioned alert to the event mode when it's in an event: a database read and a mode change, which is the core's. Disabled by default and marked `TODO trash this` in ace3 (`saq/modules/event.py:8`), and no step names it: the owner decides whether it ports.
 - **Step**: owner.
 - **Does**: In post-analysis of a dispositioned alert, switches the root's analysis mode to 'event' when the alert is mapped to an event in the database.
