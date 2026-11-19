@@ -45,8 +45,9 @@
 //! built over the hunter's network ([`net`]) with its settings in the configuration's `scripts`, and
 //! its `files:` are read from the signatures checkout. Any other executable fails its step.
 //!
-//! What waits: LogScale and Rapid7 hunts for their clients in 7.8 (their hunts load, and the
-//! hunter skips them, saying so), and their correlation sources with them; a file mapping's files
+//! What waits: LogScale hunts for their client in 7.8 (in a binary that adds the type their hunts
+//! load, and the hunter skips them, saying so), and their correlation source with them; a type the
+//! binary lacks, such as `rapid7`, has no hunts loaded, whatever `rule_dirs` names; a file mapping's files
 //! (three of the signatures' Splunk hunts have one), which are logged and dropped until the hunter
 //! spools files for submission.
 
@@ -868,7 +869,7 @@ async fn hunt(app: &App) -> Result<ExitCode> {
         .with_context(|| format!("{}", Path::new(&path).display()))?;
     let config: HunterConfig =
         serde_json::from_str(&text).context("reading the hunter's configuration")?;
-    let overlay = crate::cli::overlay()?;
+    let overlay = crate::cli::overlay(app)?;
     let names: Vec<String> = config.splunk.keys().flat_map(|n| secret_names(n)).collect();
     let names: Vec<&str> = names.iter().map(String::as_str).collect();
     let secrets = ace_pool::secrets::resolve_names(
@@ -877,7 +878,16 @@ async fn hunt(app: &App) -> Result<ExitCode> {
         &overlay,
         &ace_pool::secrets::process_env,
     );
-    let mut command_types = app.command_types();
+    // the command types run here, so the hunter holds their connections' secrets, and no others
+    let command_secrets = app.command_type_secret_names(&overlay);
+    let command_secrets: Vec<&str> = command_secrets.iter().map(String::as_str).collect();
+    let command_secrets = ace_pool::secrets::resolve_names(
+        "hunter",
+        &command_secrets,
+        &overlay,
+        &ace_pool::secrets::process_env,
+    );
+    let mut command_types = app.command_types_for(&overlay, &command_secrets);
     app.build_hunt_scripts(&mut command_types, &net::net()?, &config.scripts)
         .map_err(anyhow::Error::msg)?;
     // a script's `files:` are read from the signatures checkout, as ace3 stages them from its hunt

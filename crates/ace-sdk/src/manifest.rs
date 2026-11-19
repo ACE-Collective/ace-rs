@@ -84,6 +84,8 @@ pub struct Manifest {
     pub resources: Resources,
     pub sandbox: Sandbox,
     pub secrets: &'static [&'static str],
+    /// The shared connections it takes (`Module::CONNECTIONS`).
+    pub connections: &'static [crate::connections::ConnectionSlot],
     /// The module runs only as named instances (`Module::INSTANCES_ONLY`).
     pub instances_only: bool,
     /// The module runs without an overlay section (`Module::ENABLED_BY_DEFAULT`).
@@ -144,6 +146,10 @@ impl Manifest {
             M::WRITES.is_empty(),
             "a parser can't declare writes (Module::WRITES)"
         );
+        assert!(
+            M::CONNECTIONS.is_empty(),
+            "a parser can't take a connection (Module::CONNECTIONS)"
+        );
         Manifest::of::<M>(ModuleKind::Parser, Sandbox::Contained)
     }
 
@@ -185,6 +191,7 @@ impl Manifest {
             resources: M::RESOURCES,
             sandbox,
             secrets: M::SECRETS,
+            connections: M::CONNECTIONS,
             instances_only: M::INSTANCES_ONLY,
             enabled_by_default: M::ENABLED_BY_DEFAULT,
             reads_carrying_email: M::READS_CARRYING_EMAIL,
@@ -319,6 +326,11 @@ impl Manifest {
             },
             "sandbox": sandbox,
             "secrets": self.secrets,
+            "connections": self
+                .connections
+                .iter()
+                .map(|slot| json!({"slot": slot.name, "type": slot.kind.name, "secrets": slot.kind.secrets}))
+                .collect::<Vec<_>>(),
             "reads": self.reads.iter().map(|r| r.name).collect::<Vec<_>>(),
             "writes": self.writes.iter().map(|w| w.name).collect::<Vec<_>>(),
             "tools": self.tools,
@@ -356,6 +368,7 @@ impl fmt::Debug for Manifest {
             .field("resources", &self.resources)
             .field("sandbox", &self.sandbox)
             .field("secrets", &self.secrets)
+            .field("connections", &self.connections)
             .finish_non_exhaustive()
     }
 }

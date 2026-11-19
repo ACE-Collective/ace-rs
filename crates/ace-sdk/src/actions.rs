@@ -130,6 +130,9 @@ pub struct ActionSpec {
     pub tcp_ports: &'static [u16],
     /// The secrets it reads, which its pool resolves from the overlay's `secrets:`.
     pub secrets: &'static [&'static str],
+    /// The shared connections it takes (`crate::connections`), which its overlay entry binds with
+    /// `connections:`; its pool resolves their secrets too.
+    pub connections: &'static [crate::connections::ConnectionSlot],
     pub retry: Retry,
     /// A remediation check only: how long another source's confirmation of the same target has to be
     /// old before it ends this check as `SUPERSEDED` (ace3's `supersede_grace_seconds`, 12 hours), since a
@@ -621,6 +624,7 @@ pub static TEST_REMEDIATOR: ActionSpec = ActionSpec {
     observable_type: "test",
     tcp_ports: &[],
     secrets: &[],
+    connections: &[],
     retry: Retry::REMEDIATION,
     supersede_grace_seconds: 0,
 };

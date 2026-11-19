@@ -469,6 +469,7 @@ static TEST_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSp
     observable_type: "file_location",
     tcp_ports: &[],
     secrets: &[],
+    connections: &[],
     retry: ace_sdk::actions::Retry::FILE_COLLECTION,
     supersede_grace_seconds: 0,
 };

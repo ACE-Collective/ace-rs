@@ -26,6 +26,27 @@ pub fn resolve(
     resolve_names(pool, &declared, overlay, env)
 }
 
+/// Resolves the secrets `components` need: their modules' declared ones and the ones their shared
+/// connections name (`ace_sdk::connections`), and no others, as `resolve` does for manifests. A
+/// connection no component of the process binds has none of its secrets resolved here.
+pub fn resolve_components(
+    pool: &str,
+    components: &[ace_sdk::Component],
+    overlay: &Overlay,
+    env: &dyn Fn(&str) -> Option<String>,
+) -> Secrets {
+    let bindings: Vec<ace_sdk::Binding> = components
+        .iter()
+        .flat_map(|c| c.connections.iter().cloned())
+        .collect();
+    let declared: Vec<&str> = components
+        .iter()
+        .flat_map(|c| c.manifest.secrets.iter().copied())
+        .chain(ace_sdk::connections::secret_names(&bindings))
+        .collect();
+    resolve_names(pool, &declared, overlay, env)
+}
+
 /// Resolves the secrets named in `declared`, as `resolve` does for a pool's manifests. A process
 /// that isn't a pool, such as the hunter (PLAN.md 6.4), declares its own and is held to them the
 /// same way.

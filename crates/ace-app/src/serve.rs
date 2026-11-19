@@ -95,7 +95,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
         archive_config.clone(),
     );
     let signatures = SignatureRepo::from_env();
-    let overlay = crate::cli::overlay()?;
+    let overlay = crate::cli::overlay(app)?;
     let components = crate::cli::components(&app.registry(), &overlay)?;
     let scheduled = crate::scheduler::configure(&app.scheduled_tasks(), &overlay.scheduler)
         .map_err(anyhow::Error::msg)
@@ -305,7 +305,11 @@ async fn serve(app: &App) -> Result<ExitCode> {
             types: app.hunt_types().to_vec(),
             email: ace_mod_email::py::normalize_email_address,
             valid_type: |t| t.parse::<ace_results::ObservableKind>().is_ok(),
-            command_types: std::sync::Arc::new(app.command_types()),
+            // with their connections' settings and none of their secrets, which only `ace hunter`
+            // holds (PLAN.md 2.24)
+            command_types: std::sync::Arc::new(
+                app.command_types_for(&overlay, &ace_sdk::Secrets::new()),
+            ),
         });
     let hooks_orchestrator = orchestrator.clone();
     let api = Api::new(db.clone(), bucket.clone(), orchestrator, config).await?;

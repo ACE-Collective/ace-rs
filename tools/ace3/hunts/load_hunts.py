@@ -7,7 +7,7 @@ It runs inside ace3's dev container on ace3's Python, writing only under its wor
     docker exec -i -e PYTHONDONTWRITEBYTECODE=1 -e SAQ_SKIP_LOCAL_SAQ_YAML=1 ace-dev-1 \\
         /venv/bin/python3 - --work /tmp/ace4-dumps/hunts --root /opt/ace/signatures \\
         --rule-dir splunk=hunts/splunk --rule-dir logscale=hunts/logscale \\
-        --rule-dir rapid7=hunts/rapid7 < tools/ace3/hunts/load_hunts.py
+        < tools/ace3/hunts/load_hunts.py
 
 tools/ace3/hunts/make-hunts calls it. For each hunt type it does what HuntManager's
 load_hunts_from_config does (saq/collectors/hunter/manager.py), with the parts that reach

@@ -81,6 +81,13 @@
 //! waits for its pass (`stop_seconds`). `ace collect <name>` reads its own section and secrets and no
 //! other collector's.
 //!
+//! `connections:` holds the shared connections (`crate::connections`): each a named connection of a
+//! type an integration declares, with its settings and the secrets of `secrets:` it uses, which a
+//! module's, an instance's, an action handler's, a collector's or an AI backend's section, or a
+//! command type's entry in `command_types:`, binds to one of its slots with `connections:`. Every
+//! name a `connections:` binds must be a connection here, and every secret a connection names a
+//! secret in `secrets:`; the connection's type is checked by what reads it.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -100,6 +107,7 @@ use ace_results::ObservableKind;
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::connections::{Binding, ConnectionKind, ConnectionSlot};
 use crate::manifest::{Manifest, SettingsError};
 use crate::takes::Takes;
 
@@ -154,6 +162,19 @@ pub struct Overlay {
     /// The collectors' sections (PLAN.md 6.1), by collector name. `ace collect <name>` reads its own;
     /// nothing else does.
     pub collectors: BTreeMap<String, CollectorSection>,
+    /// The shared connections (`crate::connections`), by name.
+    pub connections: BTreeMap<String, crate::connections::ConnectionSection>,
+    /// The correlation command types' entries, by type name: the connections each binds. `ace
+    /// hunter` and `ace serve` read them; a pool doesn't.
+    pub command_types: BTreeMap<String, CommandTypeSection>,
+}
+
+/// What the overlay says about one correlation command type (`ace_app::App::command_type_with`).
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct CommandTypeSection {
+    /// The type's slots, each bound to a connection (`crate::connections`).
+    pub connections: BTreeMap<String, String>,
 }
 
 /// What the overlay says about one collector (PLAN.md 6.1). Each field left out keeps its default,
@@ -175,6 +196,8 @@ pub struct CollectorSection {
     /// How long a stop waits for the pass under way to end, after which what it holds goes back to its
     /// source uncommitted.
     pub stop_seconds: Option<u64>,
+    /// The collector's slots, each bound to a connection (`crate::connections`).
+    pub connections: BTreeMap<String, String>,
 }
 
 /// The analysis cache's settings (`Overlay::analysis_cache`).
@@ -266,6 +289,10 @@ pub struct AiBackendSection {
     /// What the type's builder takes; null when left out.
     #[serde(default)]
     pub settings: Option<Value>,
+    /// The type's slots, each bound to a connection (`crate::connections`), whose secrets it is
+    /// given too.
+    #[serde(default)]
+    pub connections: BTreeMap<String, String>,
 }
 
 /// ace3's `yara_export:` section, with its two neighbours `yara_export_string_modifiers:` and
@@ -827,6 +854,8 @@ pub struct DispositionSection {
 pub struct ActionSection {
     /// What the handler's builder is given, as a module's settings are.
     pub settings: Option<Value>,
+    /// The handler's slots, each bound to a connection (`crate::connections`).
+    pub connections: BTreeMap<String, String>,
 }
 
 /// ace3's `nrd:` section: the feeds the `nrd_refresh` task builds the newly registered domains list
@@ -924,6 +953,9 @@ pub struct ModuleSection {
     /// module that can't be cached (`Module::CACHE`) refuses any but 0. Without it, a cacheable
     /// module keeps its results for its own time to live (`Cache::ttl`).
     pub cache_ttl: Option<u64>,
+    /// The module's slots (`Module::CONNECTIONS`), each bound to a connection
+    /// (`crate::connections`), for the module and each of its instances.
+    pub connections: BTreeMap<String, String>,
 }
 
 /// One named instance of a module.
@@ -940,6 +972,9 @@ pub struct InstanceSection {
     pub groups: Vec<String>,
     /// The instance's own `cache_ttl`, over its module's (`ModuleSection::cache_ttl`).
     pub cache_ttl: Option<u64>,
+    /// The instance's own bindings, each over its module's for that slot
+    /// (`ModuleSection::connections`).
+    pub connections: BTreeMap<String, String>,
 }
 
 /// An overlay that doesn't load.
@@ -975,6 +1010,8 @@ pub enum OverlayError {
     Read { path: String, message: String },
     #[error("the overlay's {path}: {message}")]
     Cache { path: String, message: String },
+    #[error("the overlay's {path}: {message}")]
+    Connection { path: String, message: String },
 }
 
 /// What the core queues and a pool runs: a module as itself, or one named instance of it.
@@ -994,6 +1031,9 @@ pub struct Component {
     /// How long its results are kept in the analysis cache (`Module::CACHE`, `cache_ttl`), or None
     /// when they aren't.
     pub cache_ttl: Option<std::time::Duration>,
+    /// Its slots bound to the overlay's connections (`crate::connections`), whose settings are in
+    /// `settings` under each slot's name.
+    pub connections: Vec<Binding>,
 }
 
 impl Component {
@@ -1012,6 +1052,7 @@ impl Component {
                 .cache
                 .map(|cache| cache.ttl)
                 .filter(|ttl| !ttl.is_zero()),
+            connections: Vec::new(),
         }
     }
 
@@ -1036,6 +1077,7 @@ impl Component {
                 .cache
                 .map(|cache| cache.ttl)
                 .filter(|ttl| !ttl.is_zero()),
+            connections: Vec::new(),
         })
     }
 
@@ -1075,6 +1117,37 @@ impl Component {
     /// True when it takes observables of `kind`, directly or through a parent type.
     pub fn accepts(&self, kind: ObservableKind) -> bool {
         self.inputs.iter().any(|&input| kind.is_subtype_of(input))
+    }
+
+    /// Its own settings block, without its connections' settings: what of its settings a cached
+    /// result's key holds, beside each connection's identity (`crate::cache::KeyParts`).
+    pub fn own_settings(&self) -> Option<Value> {
+        if self.connections.is_empty() {
+            return self.settings.clone();
+        }
+        let mut block = self.settings.clone()?;
+        if let Some(object) = block.as_object_mut() {
+            for binding in &self.connections {
+                object.remove(&binding.slot);
+            }
+            if object.is_empty() {
+                return None;
+            }
+        }
+        Some(block)
+    }
+
+    /// Each bound slot's connection type and identity, by slot, for a cached result's key.
+    pub fn connection_identities(&self) -> BTreeMap<String, Value> {
+        self.connections
+            .iter()
+            .map(|binding| {
+                (
+                    binding.slot.clone(),
+                    serde_json::json!({"type": binding.kind, "identity": binding.identity}),
+                )
+            })
+            .collect()
     }
 
     /// The instance's name, when this is a named instance.
@@ -1153,7 +1226,143 @@ impl Overlay {
                 ));
             }
         }
+        overlay.check_connection_names()?;
         Ok(overlay)
+    }
+
+    /// Refuses a connection with a bad name or a secret `secrets:` hasn't, and a `connections:` that
+    /// binds a slot to a connection there isn't. What a connection's type is and whether a slot is
+    /// one its component has are checked by what reads them (`bind`, `check_connections`).
+    fn check_connection_names(&self) -> Result<(), OverlayError> {
+        let refuse = |path: String, message: String| OverlayError::Connection { path, message };
+        for (name, connection) in &self.connections {
+            if !crate::connections::is_connection_name(name) {
+                return Err(refuse(
+                    format!("connections.{name}"),
+                    "a connection's name is lowercase letters, digits and _".to_owned(),
+                ));
+            }
+            for (role, secret) in &connection.secrets {
+                if !self.secrets.contains_key(secret) {
+                    return Err(refuse(
+                        format!("connections.{name}.secrets.{role}"),
+                        format!("{secret:?} isn't a secret in secrets:"),
+                    ));
+                }
+            }
+        }
+        let mut uses: Vec<(String, &BTreeMap<String, String>)> = Vec::new();
+        for (module, section) in &self.modules {
+            uses.push((
+                format!("modules.{module}.connections"),
+                &section.connections,
+            ));
+            for (instance, entry) in &section.instances {
+                uses.push((
+                    format!("modules.{module}.instances.{instance}.connections"),
+                    &entry.connections,
+                ));
+            }
+        }
+        for (entry, section) in &self.actions {
+            uses.push((format!("actions.{entry}.connections"), &section.connections));
+        }
+        for (name, section) in &self.collectors {
+            uses.push((
+                format!("collectors.{name}.connections"),
+                &section.connections,
+            ));
+        }
+        for (name, section) in &self.ai_api.backends {
+            uses.push((
+                format!("ai_api.backends.{name}.connections"),
+                &section.connections,
+            ));
+        }
+        for (name, section) in &self.command_types {
+            uses.push((
+                format!("command_types.{name}.connections"),
+                &section.connections,
+            ));
+        }
+        for (path, bindings) in uses {
+            for (slot, connection) in bindings {
+                if !self.connections.contains_key(connection) {
+                    return Err(refuse(
+                        format!("{path}.{slot}"),
+                        format!("{connection:?} isn't a connection in connections:"),
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// The bindings of a component's `connections:` (`uses`, at `path`) to its `slots`, each
+    /// checked: a slot the component has, bound to a connection of the slot's type whose settings
+    /// and secrets that type takes.
+    pub fn bind(
+        &self,
+        path: &str,
+        slots: &[ConnectionSlot],
+        uses: &BTreeMap<String, String>,
+    ) -> Result<Vec<Binding>, OverlayError> {
+        let refuse = |path: String, message: String| OverlayError::Connection { path, message };
+        let mut bindings = Vec::new();
+        for (slot_name, name) in uses {
+            let Some(slot) = slots.iter().find(|slot| slot.name == slot_name) else {
+                let names: Vec<&str> = slots.iter().map(|slot| slot.name).collect();
+                return Err(refuse(
+                    format!("{path}.{slot_name}"),
+                    if names.is_empty() {
+                        "this takes no connection".to_owned()
+                    } else {
+                        format!("this has no slot {slot_name:?}; its slots are {names:?}")
+                    },
+                ));
+            };
+            let Some(section) = self.connections.get(name) else {
+                return Err(refuse(
+                    format!("{path}.{slot_name}"),
+                    format!("{name:?} isn't a connection in connections:"),
+                ));
+            };
+            let identity = crate::connections::check_section(name, section, &slot.kind).map_err(
+                |(at, message)| refuse(at, format!("{message} (bound at {path}.{slot_name})")),
+            )?;
+            bindings.push(Binding {
+                slot: slot.name.to_owned(),
+                connection: name.clone(),
+                kind: slot.kind.name,
+                settings: section.settings.clone(),
+                identity,
+                secrets: section.secrets.clone(),
+            });
+        }
+        Ok(bindings)
+    }
+
+    /// Checks every connection against its type among `kinds`, the types the binary's components
+    /// take: a connection of a type none of them takes, or whose settings or secrets its type
+    /// refuses, is an error. `ace` checks this before any command runs.
+    pub fn check_connections(&self, kinds: &[ConnectionKind]) -> Result<(), OverlayError> {
+        for (name, section) in &self.connections {
+            let Some(kind) = kinds.iter().find(|kind| kind.name == section.kind) else {
+                let mut names: Vec<&str> = kinds.iter().map(|kind| kind.name).collect();
+                names.sort_unstable();
+                names.dedup();
+                return Err(OverlayError::Connection {
+                    path: format!("connections.{name}.type"),
+                    message: format!(
+                        "no component of this binary takes a connection of type {:?} (the types are {names:?})",
+                        section.kind
+                    ),
+                });
+            };
+            crate::connections::check_section(name, section, kind)
+                .map_err(|(path, message)| OverlayError::Connection { path, message })?;
+        }
+        Ok(())
     }
 
     /// The sections `text` writes, by name, each as it is written. For a process that has to know
@@ -1214,6 +1423,10 @@ impl Overlay {
             analysis_cache: AnalysisCacheSection::default(),
             // a collector is a process of the `ace` binary, never a pool's
             collectors: BTreeMap::new(),
+            // what its modules and handlers bind is checked when it builds them
+            connections: self.connections.clone(),
+            // the hunter and `ace serve` build the command types
+            command_types: BTreeMap::new(),
         }
     }
 
@@ -1248,6 +1461,12 @@ impl Overlay {
                 continue;
             }
             let Some(section) = section else {
+                if manifest.enabled_by_default && !manifest.connections.is_empty() {
+                    tracing::warn!(
+                        module = manifest.name,
+                        "the overlay binds none of this module's connections, so it runs without them"
+                    );
+                }
                 if manifest.enabled_by_default {
                     components.push(
                         Component::with_settings(
@@ -1273,14 +1492,28 @@ impl Overlay {
             };
             if section.instances.is_empty() {
                 let path = format!("modules.{}.settings", manifest.name);
-                check(path.clone(), section.settings.as_ref())?;
+                let bindings = self.bind(
+                    &format!("modules.{}.connections", manifest.name),
+                    manifest.connections,
+                    &section.connections,
+                )?;
+                let settings = with_connections(
+                    &path,
+                    section.settings.clone(),
+                    manifest.connections,
+                    &bindings,
+                )?;
+                check(path.clone(), settings.as_ref())?;
                 components.push(
-                    Component::with_settings(
-                        manifest,
-                        manifest.name.to_owned(),
-                        section.settings.clone(),
-                        path,
-                    )?
+                    Component {
+                        connections: bindings,
+                        ..Component::with_settings(
+                            manifest,
+                            manifest.name.to_owned(),
+                            settings,
+                            path,
+                        )?
+                    }
                     .with_cache_ttl(
                         section.cache_ttl,
                         format!("modules.{}.cache_ttl", manifest.name),
@@ -1303,7 +1536,20 @@ impl Overlay {
                     return Err(OverlayError::BadName(name.clone()));
                 }
                 let path = format!("modules.{}.instances.{name}.settings", manifest.name);
-                check(path.clone(), instance.settings.as_ref())?;
+                let mut uses = section.connections.clone();
+                uses.extend(instance.connections.clone());
+                let bindings = self.bind(
+                    &format!("modules.{}.instances.{name}.connections", manifest.name),
+                    manifest.connections,
+                    &uses,
+                )?;
+                let settings = with_connections(
+                    &path,
+                    instance.settings.clone(),
+                    manifest.connections,
+                    &bindings,
+                )?;
+                check(path.clone(), settings.as_ref())?;
                 let inputs = match &instance.inputs {
                     None => manifest.inputs.to_vec(),
                     Some(inputs) => {
@@ -1321,12 +1567,8 @@ impl Overlay {
                     Component {
                         inputs,
                         groups: instance.groups.clone(),
-                        ..Component::with_settings(
-                            manifest,
-                            name.clone(),
-                            instance.settings.clone(),
-                            path,
-                        )?
+                        connections: bindings,
+                        ..Component::with_settings(manifest, name.clone(), settings, path)?
                     }
                     .with_cache_ttl(
                         instance.cache_ttl.or(section.cache_ttl),
@@ -1350,6 +1592,52 @@ impl Overlay {
         }
         Ok(components)
     }
+}
+
+/// A module's own settings block with each binding's settings under its slot's key. Its own block
+/// sets no slot's key, bound or not: a slot's settings come only from a connection.
+fn with_connections(
+    path: &str,
+    block: Option<Value>,
+    slots: &[ConnectionSlot],
+    bindings: &[Binding],
+) -> Result<Option<Value>, OverlayError> {
+    if let Some(Value::Object(object)) = &block
+        && let Some(slot) = slots.iter().find(|slot| object.contains_key(slot.name))
+    {
+        return Err(OverlayError::Connection {
+            path: format!("{path}.{}", slot.name),
+            message: format!(
+                "the settings of the slot {} come from the connection its connections: binds, not \
+                 from the module's settings",
+                slot.name
+            ),
+        });
+    }
+    if bindings.is_empty() {
+        return Ok(block);
+    }
+    let mut block = match block {
+        None | Some(Value::Null) => serde_json::Map::new(),
+        Some(Value::Object(object)) => object,
+        Some(_) => {
+            return Err(OverlayError::Connection {
+                path: path.to_owned(),
+                message: "a module that takes a connection has a mapping of settings".to_owned(),
+            });
+        }
+    };
+    for binding in bindings {
+        block.insert(
+            binding.slot.clone(),
+            binding
+                .settings
+                .clone()
+                .filter(|settings| !settings.is_null())
+                .unwrap_or_else(|| Value::Object(serde_json::Map::new())),
+        );
+    }
+    Ok(Some(Value::Object(block)))
 }
 
 #[cfg(test)]
@@ -1460,6 +1748,7 @@ mod tests {
                 poll_seconds: Some(2),
                 submit_attempts: Some(3),
                 stop_seconds: Some(10),
+                connections: BTreeMap::new(),
             }
         );
         assert!(Overlay::from_yaml("collectors: {journal: {poll: 2}}").is_err());

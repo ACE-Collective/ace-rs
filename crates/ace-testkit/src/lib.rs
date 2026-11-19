@@ -94,6 +94,7 @@ pub struct Harness<M: Module> {
     module: M,
     settings: Arc<M::Settings>,
     secrets: Secrets,
+    connections: ace_sdk::Connections,
     now: DateTime<Utc>,
     // the directory goes when the harness does
     _dir: tempfile::TempDir,
@@ -138,6 +139,7 @@ impl<M: Module> Harness<M> {
             module,
             settings: Arc::new(settings),
             secrets: Secrets::new(),
+            connections: ace_sdk::Connections::new(),
             now: fixed_now(),
             _dir: dir,
             store,
@@ -267,6 +269,14 @@ impl<M: Module> Harness<M> {
         self
     }
 
+    /// Binds the module's slot `slot` to `connection` (`Module::CONNECTIONS`), as its pool gives it
+    /// the connection the overlay binds there with its secrets. The connection's settings belong in
+    /// the harness's settings block too, under `slot`, as the overlay puts them there.
+    pub fn connection(mut self, slot: &str, connection: ace_sdk::Connection) -> Self {
+        self.connections = self.connections.with(slot, connection);
+        self
+    }
+
     /// Sets the time tasks treat as now.
     pub fn at(mut self, now: DateTime<Utc>) -> Self {
         self.now = now;
@@ -365,6 +375,7 @@ impl<M: Module> Harness<M> {
     ) -> TaskContext<M::Settings> {
         let ctx = TaskContext::new::<M>(ROOT, observable, self.settings.clone())
             .with_secrets(&self.secrets)
+            .with_connections(self.connections.clone())
             .with_now(self.now)
             .with_file_store(self.store.clone())
             .with_carrying_email(self.carrying_email.clone())

@@ -97,6 +97,9 @@ pub struct CollectorSpec {
     pub name: &'static str,
     /// The names in the overlay's `secrets:` this collector is given, and no other.
     pub secrets: &'static [&'static str],
+    /// The shared connections it takes (`ace_sdk::connections`), which its section binds with
+    /// `connections:`; it is given their secrets too.
+    pub connections: &'static [ace_sdk::ConnectionSlot],
 }
 
 /// What a collector's builder is given: its overlay section's `settings`, and the secrets its spec
@@ -105,6 +108,8 @@ pub struct CollectorSpec {
 pub struct CollectorSetup {
     pub settings: Option<Value>,
     pub secrets: Secrets,
+    /// The connections its section binds to its spec's slots, each with its own secrets.
+    pub connections: ace_sdk::Connections,
 }
 
 /// What builds a collector from its setup, or says why it can't, which stops `ace collect`.
@@ -511,21 +516,33 @@ async fn collect(app: &App, name: &str) -> Result<ExitCode> {
         let names: Vec<&str> = app.collectors.iter().map(|(s, _)| s.name).collect();
         anyhow::bail!("this binary has no collector {name:?}; it has {names:?}");
     };
-    let overlay = crate::cli::overlay()?;
+    let overlay = crate::cli::overlay(app)?;
     let section = overlay.collectors.get(name).cloned().unwrap_or_default();
     let settings = RunSettings::from_section(&section)
         .map_err(anyhow::Error::msg)
         .with_context(|| format!("the overlay's collectors.{name}"))?;
     let component = format!("collector:{name}");
-    let secrets = ace_pool::secrets::resolve_names(
+    let bindings = overlay.bind(
+        &format!("collectors.{name}.connections"),
+        spec.connections,
+        &section.connections,
+    )?;
+    let names: Vec<&str> = spec
+        .secrets
+        .iter()
+        .copied()
+        .chain(ace_sdk::connections::secret_names(&bindings))
+        .collect();
+    let resolved = ace_pool::secrets::resolve_names(
         &component,
-        spec.secrets,
+        &names,
         &overlay,
         &ace_pool::secrets::process_env,
     );
     let collector = build(&CollectorSetup {
         settings: section.settings.clone(),
-        secrets,
+        secrets: resolved.only(spec.secrets),
+        connections: ace_sdk::Connections::resolve(&bindings, &resolved),
     })
     .map_err(anyhow::Error::msg)
     .with_context(|| format!("building the collector {name}"))?;

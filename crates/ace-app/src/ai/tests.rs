@@ -74,6 +74,7 @@ fn setup(replay: &HttpReplay) -> AiBackendSetup {
             },
         })),
         secrets: Secrets::new().with("ai_splunk", ace_sdk::Secret::new("ace4-fake-password")),
+        connections: ace_sdk::Connections::new(),
     }
 }
 

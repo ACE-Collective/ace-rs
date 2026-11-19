@@ -349,7 +349,7 @@ impl std::fmt::Display for Difference {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{Logscale, Rapid7, Splunk};
+    use crate::types::{Logscale, Splunk};
 
     /// tools/ace3/hunts, beside this crate.
     fn hunts_dir() -> PathBuf {
@@ -381,10 +381,6 @@ mod tests {
             RuleDirs {
                 kind: &Logscale,
                 dirs: vec!["hunts/logscale".to_owned()],
-            },
-            RuleDirs {
-                kind: &Rapid7,
-                dirs: vec!["hunts/rapid7".to_owned()],
             },
         ];
         let ours = normal_form(&root, &types, &LoadOptions::default());

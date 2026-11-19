@@ -259,6 +259,12 @@ pub struct KeyParts<'a> {
     /// The extended version: each list's, tool's, file's, library's and read's, by `list:<name>`,
     /// `tool:<name>`, `file:<path>`, `library:<name>` and `read:<name>`.
     pub extended: &'a BTreeMap<String, String>,
+    /// Each bound slot's connection type and identity, by slot (`Component::connection_identities`,
+    /// `crate::connections`): what of a shared connection changes what the module finds, such as a
+    /// tenant, and not a timeout. `settings` is then the module's own block, without the
+    /// connections' settings. A module with no connection hashes nothing here, so its key is what it
+    /// was before connections existed.
+    pub connections: &'a BTreeMap<String, Value>,
 }
 
 /// The key: a sha256 over each part as `label:length:bytes`, so no two sets of parts run together,
@@ -284,6 +290,12 @@ pub fn key(kind: &str, value: &str, parts: &KeyParts<'_>) -> [u8; 32] {
     update("settings", &Sha256::digest(settings.as_bytes()));
     for (name, version) in parts.extended {
         update(&format!("ext:{name}"), version.as_bytes());
+    }
+    for (slot, identity) in parts.connections {
+        update(
+            &format!("connection:{slot}"),
+            &Sha256::digest(canonical(identity).as_bytes()),
+        );
     }
     hash.finalize().into()
 }
@@ -327,6 +339,9 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    static NO_CONNECTIONS: std::sync::LazyLock<BTreeMap<String, Value>> =
+        std::sync::LazyLock::new(BTreeMap::new);
+
     fn parts<'a>(
         extended: &'a BTreeMap<String, String>,
         settings: Option<&'a Value>,
@@ -338,7 +353,55 @@ mod tests {
             output: ("qrcode", 1),
             settings,
             extended,
+            connections: &NO_CONNECTIONS,
         }
+    }
+
+    /// A connection's identity is in the key, by slot; a module with none keys as it did before
+    /// connections (the same bytes are hashed).
+    #[test]
+    fn a_connection_s_identity_is_in_the_key() {
+        let none = BTreeMap::new();
+        let base = key("fqdn", "a.example", &parts(&none, None));
+        let tenant = |id: &str| {
+            BTreeMap::from([(
+                "mail_api".to_owned(),
+                json!({"type": "mail_api", "identity": {"tenant_id": id}}),
+            )])
+        };
+        let (one, two) = (tenant("one"), tenant("two"));
+        let with = |connections| KeyParts {
+            connections,
+            ..parts(&none, None)
+        };
+        assert_ne!(base, key("fqdn", "a.example", &with(&one)));
+        assert_ne!(
+            key("fqdn", "a.example", &with(&one)),
+            key("fqdn", "a.example", &with(&two))
+        );
+        assert_eq!(
+            key("fqdn", "a.example", &with(&one)),
+            key("fqdn", "a.example", &with(&tenant("one")))
+        );
+        let mut hasher = Sha256::new();
+        for (label, value) in [
+            ("format", KEY_FORMAT.as_bytes()),
+            ("type", b"fqdn".as_slice()),
+            ("value", b"a.example".as_slice()),
+            ("module", b"qrcode".as_slice()),
+            ("instance", b"qrcode".as_slice()),
+            ("version", b"1".as_slice()),
+            ("output", b"qrcode".as_slice()),
+            ("schema_version", b"1".as_slice()),
+        ] {
+            hasher.update(format!("{label}:{}:", value.len()).as_bytes());
+            hasher.update(value);
+        }
+        let settings = Sha256::digest(b"none");
+        hasher.update(format!("settings:{}:", settings.len()).as_bytes());
+        hasher.update(settings);
+        let before: [u8; 32] = hasher.finalize().into();
+        assert_eq!(base, before);
     }
 
     #[test]

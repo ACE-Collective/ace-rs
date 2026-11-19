@@ -20,6 +20,15 @@
 //! it, has its ticket queue and ticket at the top of its page (`ExampleTicketSummary`), where ace3 has
 //! a template per alert type.
 //!
+//! The ticket lookup reaches its ticket system through a shared connection (`ace_sdk::connections`)
+//! of the site's type `example_ticket_system`: the system's URL and timeout, and its API token as the
+//! secret in the role `token`. The overlay names the connection once in `connections:` and binds it to
+//! the lookup's slot `tickets`, as every component of a site that talks to the same system would, so
+//! the URL and the token aren't repeated in each one's settings. The lookup gets the connection's
+//! settings as its settings' `tickets`, and a real one would read the token with
+//! `TaskContext::connection_secret("tickets", "token")`; a cached result's key would hold the URL,
+//! which changes what the lookup finds, and not the timeout.
+//!
 //! The ticket lookup joins ace3's `correlation` module group, so it runs in every mode that runs the
 //! group (`analysis`, `cli` and `correlation`). The ticket file parser joins the `correlation` mode
 //! alone (`App::module_in_mode`, ace3's `analysis_mode_correlation: enabled_modules:`), as a site's
@@ -207,19 +216,59 @@ impl AnalysisView for TicketAnalysis {
 pub struct TicketSettings {
     /// What a ticket's name starts with.
     pub prefix: String,
+    /// The ticket system, from the connection the overlay binds to the slot `tickets`.
+    pub tickets: TicketSystemSettings,
 }
 
 impl Default for TicketSettings {
     fn default() -> Self {
         TicketSettings {
             prefix: "TICKET-".to_owned(),
+            tickets: TicketSystemSettings::default(),
         }
     }
 }
 
+/// The site's connection type: its ticket system, which the overlay names once in `connections:`.
+pub struct TicketSystem;
+
+/// A ticket system connection's settings.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, default)]
+pub struct TicketSystemSettings {
+    /// Where the system's API is.
+    pub url: String,
+    /// How long a request to it may take.
+    pub request_timeout_seconds: u64,
+}
+
+impl Default for TicketSystemSettings {
+    fn default() -> Self {
+        TicketSystemSettings {
+            url: "https://tickets.example.com".to_owned(),
+            request_timeout_seconds: 30,
+        }
+    }
+}
+
+impl ace_sdk::ConnectionType for TicketSystem {
+    const NAME: &'static str = "example_ticket_system";
+    const SECRETS: &'static [&'static str] = &["token"];
+    type Settings = TicketSystemSettings;
+
+    /// Which system is asked changes what is found; how long a request may take doesn't.
+    fn identity(settings: &TicketSystemSettings) -> serde_json::Value {
+        serde_json::json!({"url": settings.url})
+    }
+}
+
+/// The ticket lookup's one slot: the ticket system.
+pub const TICKETS: ace_sdk::ConnectionSlot = ace_sdk::ConnectionSlot::of::<TicketSystem>("tickets");
+
 impl Module for TicketLookup {
     const NAME: &'static str = "example_ticket_lookup";
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn, TICKET];
+    const CONNECTIONS: &'static [ace_sdk::ConnectionSlot] = &[TICKETS];
     type Output = TicketAnalysis;
     type Settings = TicketSettings;
 
@@ -395,6 +444,7 @@ pub const EXAMPLE_COLLECTOR: ace_app::collector::CollectorSpec =
     ace_app::collector::CollectorSpec {
         name: "example",
         secrets: &[EXAMPLE_COLLECTOR_TOKEN],
+        connections: &[],
     };
 
 /// The secret the example collector reads, as a real one reads its source's credentials.

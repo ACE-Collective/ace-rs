@@ -1180,7 +1180,7 @@ fn read_json(path: &Path) -> Result<Value> {
 }
 
 pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
-    let overlay = crate::cli::overlay()?;
+    let overlay = crate::cli::overlay(app)?;
     let components = crate::cli::components(&app.registry(), &overlay)?;
     // SVS's hook is on in every core (`ace serve`), whatever the overlay says
     let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks)

@@ -30,7 +30,7 @@ pub enum TaskCommand {
 pub fn run(app: &App, command: TaskCommand) -> Result<ExitCode> {
     let TaskCommand::Replay { id, keep } = command;
     let registry = app.registry();
-    let overlay = crate::cli::overlay()?;
+    let overlay = crate::cli::overlay(app)?;
     let components = crate::cli::components(&registry, &overlay)?;
     let base = std::env::var("ACE4_API_URL").context("ACE4_API_URL isn't set")?;
     let token = std::env::var("ACE4_ADMIN_TOKEN").context("ACE4_ADMIN_TOKEN isn't set")?;
@@ -45,10 +45,10 @@ pub fn run(app: &App, command: TaskCommand) -> Result<ExitCode> {
         let Some(component) = components.iter().find(|c| c.key == task.module) else {
             bail!("this binary has no module {}", task.module);
         };
-        // and only the secrets its module declares
-        let secrets = ace_pool::secrets::resolve(
+        // and only the secrets its module declares and its connections name
+        let secrets = ace_pool::secrets::resolve_components(
             "replay",
-            &[component.manifest],
+            std::slice::from_ref(component),
             &overlay,
             &ace_pool::secrets::process_env,
         );

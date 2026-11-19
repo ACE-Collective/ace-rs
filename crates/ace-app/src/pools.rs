@@ -106,8 +106,8 @@ fn components(
     Ok(components)
 }
 
-/// Builds the pool's modules: its components, with the secrets their manifests declare read
-/// through `env`.
+/// Builds the pool's modules: its components, with the secrets their manifests declare and their
+/// connections name, read through `env`.
 fn modules(
     pool: &str,
     registry: &Registry,
@@ -116,8 +116,7 @@ fn modules(
     env: &dyn Fn(&str) -> Option<String>,
 ) -> Result<Modules, StartError> {
     let components = components(registry, overlay, rulesets)?;
-    let manifests: Vec<_> = components.iter().map(|c| c.manifest).collect();
-    let secrets = ace_pool::secrets::resolve(pool, &manifests, overlay, env);
+    let secrets = ace_pool::secrets::resolve_components(pool, &components, overlay, env);
     Ok(registry.build(&components, &secrets)?)
 }
 
@@ -426,8 +425,8 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
     })
 }
 
-/// Builds a network pool's action handlers (PLAN.md 7.9): each with its overlay entry's settings and the
-/// secrets its spec declares, read through `env`.
+/// Builds a network pool's action handlers (PLAN.md 7.9): each with its overlay entry's settings, the
+/// secrets its spec declares, and the shared connections its entry binds with theirs, read through `env`.
 fn handlers(
     pool: &LookupPool,
     overlay: &Overlay,
@@ -436,10 +435,25 @@ fn handlers(
     let mut handlers = ace_pool::actions::Handlers::new();
     for (spec, build) in &pool.actions {
         let entry = format!("{}/{}", spec.kind, spec.name);
-        let secrets = ace_pool::secrets::resolve_names(&pool.name, spec.secrets, overlay, env);
+        let section = overlay.actions.get(&entry).cloned().unwrap_or_default();
+        let bindings = overlay
+            .bind(
+                &format!("actions.{entry}.connections"),
+                spec.connections,
+                &section.connections,
+            )
+            .map_err(|e| e.to_string())?;
+        let names: Vec<&str> = spec
+            .secrets
+            .iter()
+            .copied()
+            .chain(ace_sdk::connections::secret_names(&bindings))
+            .collect();
+        let resolved = ace_pool::secrets::resolve_names(&pool.name, &names, overlay, env);
         let setup = crate::ActionSetup {
-            settings: overlay.actions.get(&entry).and_then(|a| a.settings.clone()),
-            secrets,
+            settings: section.settings,
+            secrets: resolved.only(spec.secrets),
+            connections: ace_sdk::Connections::resolve(&bindings, &resolved),
         };
         let handler = build(&setup).map_err(|e| format!("{entry}: {e}"))?;
         let built = handler.spec();

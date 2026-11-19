@@ -23,7 +23,7 @@
 //! What it doesn't check: a Splunk hunt's `splunk_config` against the hunter's instances, which
 //! only `ace hunter`'s configuration names; a query against its source, which 6.4's `hunt` router
 //! does with a live client; hunt types the binary lacks, so the open-source `ace` checks the Splunk
-//! hunts and a site's binary adds LogScale and Rapid7; and the signatures repository's own
+//! hunts and a site's binary adds its own, such as LogScale; and the signatures repository's own
 //! pipelines (UUIDs, observable types, file extensions).
 //!
 //! The report lists every rule file, then every hunt, in a stable order: namespaces and files by

@@ -248,6 +248,11 @@ impl Modes {
         self
     }
 
+    /// The names of every module group.
+    pub fn group_names(&self) -> impl Iterator<Item = &str> {
+        self.groups.keys().map(String::as_str)
+    }
+
     /// The names of every mode.
     pub fn mode_names(&self) -> impl Iterator<Item = &str> {
         self.modes.keys().map(String::as_str)

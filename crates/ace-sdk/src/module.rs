@@ -52,6 +52,12 @@ pub trait Module: Sized + Send + Sync + 'static {
     const REQUIRED_DIRECTIVES_BY_KIND: &'static [(ObservableKind, &'static [&'static str])] = &[];
     /// The names of the secrets the module reads. The task context gives it these and no others.
     const SECRETS: &'static [&'static str] = &[];
+    /// The shared connections the module takes (`crate::connections`), each in a slot of its own
+    /// name, which its overlay section binds to a connection with `connections:`. The connection's
+    /// settings are its settings block's key of the slot's name, so `Settings` has a field of the
+    /// connection type's settings there, which the overlay can't set any other way; its secrets are
+    /// `TaskContext::connection_secret`'s. Only a lookup takes one: a parser reaches no service.
+    const CONNECTIONS: &'static [crate::connections::ConnectionSlot] = &[];
     const RESOURCES: Resources = Resources::DEFAULT;
     /// True for a module that does nothing until a site configures it, such as the Splunk
     /// module, which needs its query: it runs only as the site overlay's named instances

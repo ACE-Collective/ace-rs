@@ -58,7 +58,7 @@ pub fn run(app: &App, telemetry: &mut ace_pool::telemetry::Telemetry) -> Result<
 }
 
 /// The overlay's text and what it parses to: the file `ACE4_OVERLAY` names, or none.
-fn overlay() -> Result<(String, Overlay)> {
+fn overlay(app: &App) -> Result<(String, Overlay)> {
     let Some(path) = std::env::var_os("ACE4_OVERLAY").filter(|path| !path.is_empty()) else {
         return Ok((String::new(), Overlay::default()));
     };
@@ -67,6 +67,7 @@ fn overlay() -> Result<(String, Overlay)> {
         .with_context(|| format!("reading the overlay {}", path.display()))?;
     let overlay =
         Overlay::from_yaml(&text).with_context(|| format!("the overlay {}", path.display()))?;
+    app.check_overlay(&overlay).map_err(anyhow::Error::msg)?;
     Ok((text, overlay))
 }
 
@@ -108,7 +109,7 @@ pub fn service(
 
 async fn serve(app: &App) -> Result<ExitCode> {
     let env = Environment::of_process();
-    let (text, overlay) = overlay()?;
+    let (text, overlay) = overlay(app)?;
     let sections = Overlay::sections(&text).context("the overlay")?;
     let db = Db::connect(&DbConfig::from_env("ace-ai")?)
         .await

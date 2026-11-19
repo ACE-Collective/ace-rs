@@ -4246,6 +4246,7 @@ static FAKE_PROBE: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec {
     observable_type: "email_delivery",
     tcp_ports: &[],
     secrets: &[],
+    connections: &[],
     retry: ace_sdk::actions::Retry {
         initial_delay_seconds: 1,
         max_delay_seconds: 1,
@@ -4300,6 +4301,7 @@ static FAKE_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSp
     observable_type: "file_location",
     tcp_ports: &[],
     secrets: &[],
+    connections: &[],
     retry: ace_sdk::actions::Retry {
         initial_delay_seconds: 1,
         max_delay_seconds: 1,

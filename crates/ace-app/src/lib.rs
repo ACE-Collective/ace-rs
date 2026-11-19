@@ -85,12 +85,16 @@ pub struct App {
     actions: ace_gui::ObservableActions,
     summaries: ace_gui::AlertSummaries,
     hunt_types: Vec<Arc<dyn ace_hunt::HuntType>>,
-    command_types: Vec<(String, CommandTypeFactory)>,
+    command_types: Vec<(
+        String,
+        &'static [ace_sdk::ConnectionSlot],
+        CommandTypeFactory,
+    )>,
     hunt_scripts: Vec<(String, String, HuntScriptFactory)>,
     scheduled_tasks: Vec<scheduler::Task>,
     alert_routers: Vec<(String, i32, Arc<dyn ace_service::routing::Router>)>,
     router_types: ace_service::routing::RouterTypes,
-    ai_backend_types: Vec<(String, ai::AiBackendFactory)>,
+    ai_backend_types: Vec<(String, ai::AiBackendType)>,
     collectors: Vec<(collector::CollectorSpec, collector::CollectorFactory)>,
 }
 
@@ -105,10 +109,15 @@ pub type HuntScriptFactory = Arc<
         + Sync,
 >;
 
-/// What builds a correlation command type: the handler, or why it can't be built, in the words a
-/// hunt that uses it is told.
+/// What builds a correlation command type from the shared connections the overlay's
+/// `command_types.<name>.connections` binds to its slots: the handler, or why it can't be built, in
+/// the words a hunt that uses it is told.
 pub type CommandTypeFactory = Arc<
-    dyn Fn() -> Result<Arc<dyn ace_hunt::correlate::command::CommandType>, String> + Send + Sync,
+    dyn Fn(
+            &ace_sdk::Connections,
+        ) -> Result<Arc<dyn ace_hunt::correlate::command::CommandType>, String>
+        + Send
+        + Sync,
 >;
 
 /// A parser pool: modules that read files, one contained process per task (PLAN.md 2.17).
@@ -133,12 +142,14 @@ pub struct LookupPool {
 /// A built action handler: a remediator, a remediation probe or a file collector.
 pub use ace_pool::actions::Handler as ActionHandler;
 
-/// What a pool gives an action handler's builder: its overlay entry's settings and the secrets its
-/// spec declares.
+/// What a pool gives an action handler's builder: its overlay entry's settings, the secrets its
+/// spec declares, and the shared connections its entry binds to the spec's slots, each with its own
+/// secrets (`ace_sdk::connections`).
 #[derive(Debug, Clone, Default)]
 pub struct ActionSetup {
     pub settings: Option<serde_json::Value>,
     pub secrets: ace_sdk::Secrets,
+    pub connections: ace_sdk::Connections,
 }
 
 /// What builds an action handler in its pool, or says why it can't.
@@ -277,15 +288,35 @@ impl App {
     /// recorded with its error, which a hunt using it fails with, and the others still register.
     /// One with a name already added takes its place.
     pub fn command_type(
-        mut self,
+        self,
         name: &str,
         build: impl Fn() -> Result<Arc<dyn ace_hunt::correlate::command::CommandType>, String>
         + Send
         + Sync
         + 'static,
     ) -> App {
-        self.command_types.retain(|(n, _)| n != name);
-        self.command_types.push((name.to_owned(), Arc::new(build)));
+        self.command_type_with_connections(name, &[], move |_| build())
+    }
+
+    /// Adds a correlation command type that takes shared connections (`ace_sdk::connections`) in
+    /// `slots`, as `command_type` does: the overlay's `command_types.<name>.connections` binds each
+    /// slot, and `build` is given the connections. `ace hunter`, which runs the commands, holds their
+    /// secrets; `ace serve`, which validates hunts, builds the type with the connections' settings
+    /// and none of their secrets (PLAN.md 2.24).
+    pub fn command_type_with_connections(
+        mut self,
+        name: &str,
+        slots: &'static [ace_sdk::ConnectionSlot],
+        build: impl Fn(
+            &ace_sdk::Connections,
+        ) -> Result<Arc<dyn ace_hunt::correlate::command::CommandType>, String>
+        + Send
+        + Sync
+        + 'static,
+    ) -> App {
+        self.command_types.retain(|(n, _, _)| n != name);
+        self.command_types
+            .push((name.to_owned(), slots, Arc::new(build)));
         self
     }
 
@@ -395,24 +426,44 @@ impl App {
     /// an entry's settings and the secrets it lists, or says why it can't, which stops `ace serve-ai`. One
     /// with a type's name already there, a built-in's included, takes its place.
     pub fn ai_backend_type(
-        mut self,
+        self,
         kind: &str,
         build: impl Fn(&ai::AiBackendSetup) -> Result<Arc<dyn ace_service::ai::AiQueryBackend>, String>
         + Send
         + Sync
         + 'static,
     ) -> App {
+        self.ai_backend_type_with_connections(kind, &[], build)
+    }
+
+    /// Adds a backend type whose entries bind shared connections (`ace_sdk::connections`) to
+    /// `slots` with `connections:`, as `ai_backend_type` does: the builder is given each bound
+    /// connection with its secrets.
+    pub fn ai_backend_type_with_connections(
+        mut self,
+        kind: &str,
+        slots: &'static [ace_sdk::ConnectionSlot],
+        build: impl Fn(&ai::AiBackendSetup) -> Result<Arc<dyn ace_service::ai::AiQueryBackend>, String>
+        + Send
+        + Sync
+        + 'static,
+    ) -> App {
         self.ai_backend_types.retain(|(name, _)| name != kind);
-        self.ai_backend_types
-            .push((kind.to_owned(), Arc::new(build)));
+        self.ai_backend_types.push((
+            kind.to_owned(),
+            ai::AiBackendType {
+                connections: slots,
+                build: Arc::new(build),
+            },
+        ));
         self
     }
 
     /// The AI API's backend types: `splunk` and ace3's two testing backends, and the binary's own.
-    pub fn ai_backend_types(&self) -> std::collections::BTreeMap<String, ai::AiBackendFactory> {
+    pub fn ai_backend_types(&self) -> std::collections::BTreeMap<String, ai::AiBackendType> {
         let mut types = ai::builtin_types();
-        for (kind, build) in &self.ai_backend_types {
-            types.insert(kind.clone(), build.clone());
+        for (kind, backend) in &self.ai_backend_types {
+            types.insert(kind.clone(), backend.clone());
         }
         types
     }
@@ -595,9 +646,23 @@ impl App {
 
     /// The correlation command types, built: ace3's `load_command_types_from_config`.
     pub fn command_types(&self) -> ace_hunt::correlate::command::CommandTypes {
+        self.command_types_for(&ace_sdk::Overlay::default(), &ace_sdk::Secrets::new())
+    }
+
+    /// The correlation command types, each built with the connections `overlay` binds to its slots
+    /// and their secrets of `secrets`, the process's resolved ones. A binding the overlay can't make
+    /// fails the type, as a failed build does; `ace` refuses such an overlay when it starts.
+    pub fn command_types_for(
+        &self,
+        overlay: &ace_sdk::Overlay,
+        secrets: &ace_sdk::Secrets,
+    ) -> ace_hunt::correlate::command::CommandTypes {
         let mut types = ace_hunt::correlate::command::CommandTypes::new();
-        for (name, build) in &self.command_types {
-            let built = build().and_then(|handler| types.register(name, handler).map(|_| ()));
+        for (name, slots, build) in &self.command_types {
+            let built = self
+                .command_type_bindings(overlay, name, slots)
+                .and_then(|bindings| build(&ace_sdk::Connections::resolve(&bindings, secrets)))
+                .and_then(|handler| types.register(name, handler).map(|_| ()));
             if let Err(e) = built {
                 tracing::error!(name, "failed to load correlation command type {name}: {e}");
                 types.failed(name, &e);
@@ -782,16 +847,28 @@ impl App {
             })
     }
 
-    /// Every `module_in_mode` pair whose mode isn't one of ace3's or whose module no pool of the
-    /// list registers, one line each, or Ok when there's none.
+    /// Every `module_in_group` pair whose group isn't one of ace3's, and every `module_in_mode` pair
+    /// whose mode isn't one of ace3's or whose module no pool of the list registers, one line each,
+    /// or Ok when there's none. A `module_in_group` module no pool registers may be an overlay
+    /// instance's key, which only the overlay says: `check_overlay` checks it once it is read.
     fn check_modes(&self) -> Result<(), String> {
         let modes = Modes::ace3();
         let registry = self.registry();
         let manifests = registry.manifests();
-        let wrong: Vec<String> = self
-            .mode_modules
+        let groups = self
+            .groups
             .iter()
-            .flat_map(|(mode, module)| {
+            .filter(|(group, _)| modes.group(group).is_none())
+            .map(|(group, module)| {
+                let mut names: Vec<&str> = modes.group_names().collect();
+                names.sort_unstable();
+                format!(
+                    "module_in_group({group}, {module}): there's no module group {group} (the groups are {})",
+                    names.join(", ")
+                )
+            });
+        let wrong: Vec<String> = groups
+            .chain(self.mode_modules.iter().flat_map(|(mode, module)| {
                 let no_mode = modes.mode(mode).is_none().then(|| {
                     let names: Vec<&str> = modes.mode_names().collect();
                     format!(
@@ -805,6 +882,32 @@ impl App {
                     )
                 });
                 no_mode.into_iter().chain(no_module)
+            }))
+            .collect();
+        if wrong.is_empty() {
+            Ok(())
+        } else {
+            Err(wrong.join("; "))
+        }
+    }
+
+    /// Every `module_in_group` pair whose module is neither a module a pool of the list registers
+    /// nor the key of one of `components`, the overlay's: an instance the overlay doesn't name. One
+    /// line each, or Ok when there's none.
+    fn check_group_instances(&self, components: &[ace_sdk::Component]) -> Result<(), String> {
+        let manifests = self.registry().manifests();
+        let wrong: Vec<String> = self
+            .groups
+            .iter()
+            .filter(|(_, module)| {
+                !manifests.iter().any(|m| m.name == module)
+                    && !components.iter().any(|c| &c.key == module)
+            })
+            .map(|(group, module)| {
+                format!(
+                    "module_in_group({group}, {module}): no pool of the list registers a module {module}, \
+                     and the overlay names no instance {module}"
+                )
             })
             .collect();
         if wrong.is_empty() {
@@ -812,6 +915,143 @@ impl App {
         } else {
             Err(wrong.join("; "))
         }
+    }
+
+    /// Every connection type a component of the binary takes (`ace_sdk::connections`): its modules',
+    /// action handlers', collectors', AI backend types' and command types' slots.
+    pub fn connection_kinds(&self) -> Vec<ace_sdk::ConnectionKind> {
+        let modules = self
+            .registry()
+            .manifests()
+            .into_iter()
+            .flat_map(|m| m.connections.iter().copied());
+        let actions = self
+            .lookup_pools
+            .iter()
+            .flat_map(|p| &p.actions)
+            .flat_map(|(spec, _)| spec.connections.iter().copied());
+        let collectors = self
+            .collectors
+            .iter()
+            .flat_map(|(spec, _)| spec.connections.iter().copied());
+        let backends = self
+            .ai_backend_types
+            .iter()
+            .flat_map(|(_, kind)| kind.connections.iter().copied());
+        let commands = self
+            .command_types
+            .iter()
+            .flat_map(|(_, slots, _)| slots.iter().copied());
+        let mut kinds: Vec<ace_sdk::ConnectionKind> = Vec::new();
+        for slot in modules
+            .chain(actions)
+            .chain(collectors)
+            .chain(backends)
+            .chain(commands)
+        {
+            if !kinds.contains(&slot.kind) {
+                kinds.push(slot.kind);
+            }
+        }
+        kinds
+    }
+
+    /// The bindings `overlay` makes for the command type `name`'s `slots`.
+    fn command_type_bindings(
+        &self,
+        overlay: &ace_sdk::Overlay,
+        name: &str,
+        slots: &[ace_sdk::ConnectionSlot],
+    ) -> Result<Vec<ace_sdk::Binding>, String> {
+        let uses = overlay
+            .command_types
+            .get(name)
+            .map(|section| section.connections.clone())
+            .unwrap_or_default();
+        overlay
+            .bind(&format!("command_types.{name}.connections"), slots, &uses)
+            .map_err(|e| e.to_string())
+    }
+
+    /// The secrets of the connections `overlay` binds to the command types' slots: what `ace hunter`,
+    /// which runs the commands, resolves for them.
+    pub fn command_type_secret_names(&self, overlay: &ace_sdk::Overlay) -> Vec<String> {
+        let bindings: Vec<ace_sdk::Binding> = self
+            .command_types
+            .iter()
+            .filter_map(|(name, slots, _)| self.command_type_bindings(overlay, name, slots).ok())
+            .flatten()
+            .collect();
+        ace_sdk::connections::secret_names(&bindings)
+            .into_iter()
+            .map(str::to_owned)
+            .collect()
+    }
+
+    /// What an `ace` command checks of the overlay once it is read, before it uses it: every shared
+    /// connection against its type (one no component of the binary takes is refused), every
+    /// component's `connections:` against its slots (the modules', the action handlers', the
+    /// collectors', the AI backends' and the command types'), a `command_types:` entry for a type the
+    /// binary hasn't, and every `module_in_group` module that no pool registers against the
+    /// overlay's instances. Each error names the path.
+    pub fn check_overlay(&self, overlay: &ace_sdk::Overlay) -> Result<(), String> {
+        overlay
+            .check_connections(&self.connection_kinds())
+            .map_err(|e| e.to_string())?;
+        let components = overlay
+            .components(&self.registry().manifests())
+            .map_err(|e| e.to_string())?;
+        for pool in &self.lookup_pools {
+            for (spec, _) in &pool.actions {
+                let entry = format!("{}/{}", spec.kind, spec.name);
+                if let Some(section) = overlay.actions.get(&entry) {
+                    overlay
+                        .bind(
+                            &format!("actions.{entry}.connections"),
+                            spec.connections,
+                            &section.connections,
+                        )
+                        .map_err(|e| e.to_string())?;
+                }
+            }
+        }
+        for (spec, _) in &self.collectors {
+            if let Some(section) = overlay.collectors.get(spec.name) {
+                overlay
+                    .bind(
+                        &format!("collectors.{}.connections", spec.name),
+                        spec.connections,
+                        &section.connections,
+                    )
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+        let backend_types = self.ai_backend_types();
+        for (name, backend) in &overlay.ai_api.backends {
+            if let Some(kind) = backend_types.get(&backend.kind) {
+                overlay
+                    .bind(
+                        &format!("ai_api.backends.{name}.connections"),
+                        kind.connections,
+                        &backend.connections,
+                    )
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+        if let Some(unknown) = overlay
+            .command_types
+            .keys()
+            .find(|name| !self.command_types.iter().any(|(n, _, _)| n == *name))
+        {
+            return Err(format!(
+                "the overlay's command_types.{unknown}: this binary has no command type {unknown}"
+            ));
+        }
+        for (name, slots, _) in &self.command_types {
+            self.command_type_bindings(overlay, name, slots)?;
+        }
+        self.check_group_instances(&components)
+            .map_err(|wrong| format!("the binary's list and the overlay: {wrong}"))
     }
 
     /// The modes with the overlay's instances in the groups they join (`InstanceSection::groups`).
@@ -1065,6 +1305,7 @@ mod tests {
             collector::CollectorSpec {
                 name: "journal",
                 secrets: &[],
+                connections: &[],
             },
             |_| Ok(Arc::new(Nothing)),
         );
@@ -1073,6 +1314,7 @@ mod tests {
             collector::CollectorSpec {
                 name: "a:b",
                 secrets: &[],
+                connections: &[],
             },
             |_| Ok(Arc::new(Nothing)),
         );
@@ -1121,6 +1363,49 @@ mod tests {
              the list registers a module mail_api_email_extraction"
         );
         assert_eq!(app.ace_main(), ExitCode::from(2));
+    }
+
+    /// A group that isn't one of ace3's stops the binary before any command runs, with the pair
+    /// named. A module no pool registers may be an overlay instance's key: the binary starts, and
+    /// the overlay, once read, must name that instance.
+    #[test]
+    fn a_module_in_a_group_that_isn_t_or_an_instance_the_overlay_hasn_t_is_refused() {
+        let app = base()
+            .module_in_group("corelation", "email_analyzer")
+            .module_in_group("correlation", "email_analyzer");
+        let wrong = app.check_modes().expect_err("refused");
+        assert!(
+            wrong.starts_with(
+                "module_in_group(corelation, email_analyzer): there's no module group corelation \
+                 (the groups are "
+            ) && wrong.contains(" correlation, ")
+                && !wrong.contains(';'),
+            "{wrong}"
+        );
+        assert_eq!(app.ace_main(), ExitCode::from(2));
+
+        let app = base().module_in_group("correlation", "email_copy");
+        assert_eq!(
+            app.check_modes(),
+            Ok(()),
+            "an instance is known only to the overlay"
+        );
+        let wrong = app
+            .check_overlay(&ace_sdk::Overlay::default())
+            .expect_err("the overlay names no instance email_copy");
+        assert_eq!(
+            wrong,
+            "the binary's list and the overlay: module_in_group(correlation, email_copy): no pool of \
+             the list registers a module email_copy, and the overlay names no instance email_copy"
+        );
+        let overlay =
+            ace_sdk::Overlay::from_yaml("modules: {email_analyzer: {instances: {email_copy: {}}}}")
+                .expect("loads");
+        assert_eq!(app.check_overlay(&overlay), Ok(()));
+        // a registered module needs no overlay
+        let app = base().module_in_group("correlation", "email_analyzer");
+        assert_eq!(app.check_modes(), Ok(()));
+        assert_eq!(app.check_overlay(&ace_sdk::Overlay::default()), Ok(()));
     }
 
     #[test]

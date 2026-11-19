@@ -1460,3 +1460,238 @@ fn a_site_s_parser_is_built_alone_in_its_task_process() {
         "{stderr}"
     );
 }
+
+/// The site's overlay with its ticket system named once as a shared connection
+/// (`ace_sdk::connections`), bound to the ticket lookup's slot, and a secret no component uses.
+const TICKET_CONNECTION: &str = "\
+connections:
+  tickets:
+    type: example_ticket_system
+    settings:
+      url: https://tickets.site.example
+      request_timeout_seconds: 5
+    secrets:
+      token: ticket_token
+modules:
+  example_ticket_lookup:
+    connections:
+      tickets: tickets
+secrets:
+  ticket_token: env:ACE4_TEST_TICKET_TOKEN
+  other_token: env:ACE4_TEST_OTHER_TOKEN
+";
+
+/// A shared connection: the site's binary checks it against the site's connection type, the ticket
+/// lookup gets its settings under its slot's name and its secret by role and no other secret, and a
+/// cached result's key holds the connection's identity (its URL) and not its timeout.
+#[test]
+fn a_site_s_shared_connection_is_named_once_and_bound_by_its_lookup() {
+    let app = ace_site_example::app();
+    assert_eq!(app.check_overlay(&ace_sdk::Overlay::default()), Ok(()));
+    let overlay = ace_sdk::Overlay::from_yaml(TICKET_CONNECTION).expect("loads");
+    assert_eq!(app.check_overlay(&overlay), Ok(()));
+    assert!(
+        app.connection_kinds()
+            .iter()
+            .any(|kind| kind.name == "example_ticket_system")
+    );
+    let manifests = [ace_sdk::Manifest::lookup::<ace_site_example::TicketLookup>()];
+    let components = overlay.components(&manifests).expect("components");
+    let lookup = &components[0];
+    assert_eq!(
+        lookup.settings,
+        Some(
+            json!({"tickets": {"url": "https://tickets.site.example", "request_timeout_seconds": 5}})
+        )
+    );
+    assert_eq!(lookup.own_settings(), None);
+    let env = |name: &str| match name {
+        "ACE4_TEST_TICKET_TOKEN" => Some("ticket-value".to_owned()),
+        "ACE4_TEST_OTHER_TOKEN" => Some("other-value".to_owned()),
+        _ => None,
+    };
+    // the process resolves the connection's secret and not the one nothing names (PLAN.md 2.24)
+    let secrets = ace_pool::secrets::resolve_components("lookups", &components, &overlay, &env);
+    assert_eq!(secrets.names(), ["ticket_token"]);
+    let connections = ace_sdk::Connections::resolve(&lookup.connections, &secrets);
+    assert_eq!(
+        connections.secret("tickets", "token").map(|s| s.expose()),
+        Some("ticket-value")
+    );
+    let settings = connections
+        .settings::<ace_site_example::TicketSystem>("tickets")
+        .expect("its settings");
+    assert_eq!(settings.request_timeout_seconds, 5);
+    // a module built from the component reads them as its own settings' `tickets`
+    let built: ace_site_example::TicketSettings =
+        ace_sdk::load_settings(lookup.settings.as_ref()).expect("loads");
+    assert_eq!(built.tickets.url, "https://tickets.site.example");
+    assert_eq!(built.prefix, "TICKET-");
+
+    // an instance takes its module's bindings, and binds a slot of its own over one
+    let instances = TICKET_CONNECTION
+    .replace(
+        "    connections:\n      tickets: tickets\n",
+        "    connections:\n      tickets: tickets\n    instances:\n      site_a: {}\n      site_b:\n        connections:\n          tickets: tickets_b\n",
+    )
+    .replace(
+        "modules:\n",
+        "  tickets_b:\n    type: example_ticket_system\n    settings: {url: https://b.site.example}\nmodules:\n",
+    );
+    let overlay = ace_sdk::Overlay::from_yaml(&instances).expect("loads");
+    let urls: Vec<(String, String)> = overlay
+        .components(&manifests)
+        .expect("components")
+        .iter()
+        .map(|c| {
+            (
+                c.key.clone(),
+                c.settings.as_ref().expect("settings")["tickets"]["url"]
+                    .as_str()
+                    .expect("a url")
+                    .to_owned(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        urls,
+        [
+            (
+                "site_a".to_owned(),
+                "https://tickets.site.example".to_owned()
+            ),
+            ("site_b".to_owned(), "https://b.site.example".to_owned()),
+        ]
+    );
+
+    // the cache key: the URL is in it, the timeout isn't, and the module's own settings are
+    let mut cached = manifests[0];
+    cached.cache = Some(ace_sdk::cache::Cache::new(1, Duration::from_secs(3600)));
+    let key = |yaml: &str| {
+        let component = ace_sdk::Overlay::from_yaml(yaml)
+            .expect("loads")
+            .components(&[cached])
+            .expect("components")
+            .remove(0);
+        ace_core::cache::key(&component, "fqdn", "a.example", &Default::default()).expect("a key")
+    };
+    let base = key(TICKET_CONNECTION);
+    assert_eq!(
+        base,
+        key(&TICKET_CONNECTION.replace("request_timeout_seconds: 5", "request_timeout_seconds: 60")),
+        "a timeout doesn't change what is found"
+    );
+    assert_ne!(
+        base,
+        key(&TICKET_CONNECTION.replace("tickets.site.example", "other.site.example")),
+        "another ticket system may answer otherwise"
+    );
+    assert_ne!(
+        base,
+        key(&TICKET_CONNECTION.replace(
+            "    connections:\n      tickets: tickets\n",
+            "    connections:\n      tickets: tickets\n    settings:\n      prefix: CASE-\n",
+        )),
+        "the module's own settings are in it"
+    );
+}
+
+/// What the overlay may not say of a shared connection, each refused with its path: by any process
+/// that reads the overlay (a name no connection has, a secret `secrets:` hasn't), by the site's `ace`
+/// (a type no component takes), and by whatever binds it (a setting or a role its type hasn't, a slot
+/// its component hasn't, the slot's settings written in the module's own block).
+#[test]
+fn a_shared_connection_the_overlay_can_t_use_is_refused_with_its_path() {
+    let app = ace_site_example::app();
+    let manifests = [ace_sdk::Manifest::lookup::<ace_site_example::TicketLookup>()];
+    let refusal = |yaml: &str| -> String {
+        let overlay = match ace_sdk::Overlay::from_yaml(yaml) {
+            Ok(overlay) => overlay,
+            Err(e) => return e.to_string(),
+        };
+        if let Err(e) = overlay.components(&manifests) {
+            // a pool refuses it when it builds its modules, and the site's `ace` before that
+            let checked = app
+                .check_overlay(&overlay)
+                .expect_err("the binary refuses it too");
+            return format!("{e}\n{checked}");
+        }
+        app.check_overlay(&overlay).expect_err("refused")
+    };
+    let cases = [
+        (
+            TICKET_CONNECTION.replace("      tickets: tickets\n", "      tickets: ticket\n"),
+            "the overlay's modules.example_ticket_lookup.connections.tickets: \"ticket\" isn't a connection in connections:",
+        ),
+        (
+            TICKET_CONNECTION.replace("token: ticket_token", "token: tiket_token"),
+            "the overlay's connections.tickets.secrets.token: \"tiket_token\" isn't a secret in secrets:",
+        ),
+        (
+            TICKET_CONNECTION.replace("type: example_ticket_system", "type: example_tickets"),
+            "the overlay's connections.tickets.type: no component of this binary takes a connection of type \"example_tickets\"",
+        ),
+        (
+            TICKET_CONNECTION.replace("request_timeout_seconds: 5", "request_timeout: 5"),
+            "the overlay's connections.tickets.settings: unknown settings key request_timeout",
+        ),
+        (
+            TICKET_CONNECTION.replace("token: ticket_token", "password: ticket_token"),
+            "the overlay's connections.tickets.secrets.password: a connection of type example_ticket_system has no secret \"password\"",
+        ),
+        (
+            TICKET_CONNECTION.replace("      tickets: tickets\n", "      ticket_system: tickets\n"),
+            "the overlay's modules.example_ticket_lookup.connections.ticket_system: this has no slot \"ticket_system\"; its slots are [\"tickets\"]",
+        ),
+        (
+            TICKET_CONNECTION.replace(
+                "    connections:\n      tickets: tickets\n",
+                "    settings:\n      tickets:\n        url: https://elsewhere.example\n",
+            ),
+            "the overlay's modules.example_ticket_lookup.settings.tickets: the settings of the slot tickets come from the connection",
+        ),
+    ];
+    for (yaml, error) in cases {
+        let refused = refusal(&yaml);
+        assert!(refused.contains(error), "{yaml}\n{refused}");
+    }
+}
+
+/// PLAN.md 2.24 for a shared connection: the site's network pool binary resolves the secret of the
+/// connection its lookup binds, and not a secret no component of it names, and its startup log lists
+/// only the one; a connection the pool can't use stops it with the path.
+#[test]
+fn a_site_s_network_pool_holds_only_its_connections_secrets() {
+    let start = |overlay: &str| {
+        let dir = tempfile::tempdir().expect("a directory");
+        let overlay_at = dir.path().join("overlay.yaml");
+        std::fs::write(&overlay_at, overlay).expect("writes the overlay");
+        let output = Command::new(env!("CARGO_BIN_EXE_example-lookups"))
+            .env_clear()
+            .env("ACE4_OVERLAY", &overlay_at)
+            .env("ACE4_TEST_TICKET_TOKEN", "ticket-value")
+            .env("ACE4_TEST_OTHER_TOKEN", "other-value")
+            .output()
+            .expect("the pool runs");
+        (
+            output.status.code(),
+            String::from_utf8_lossy(&output.stderr).into_owned(),
+        )
+    };
+    let (code, stderr) = start(TICKET_CONNECTION);
+    assert_eq!(code, Some(2), "{stderr}");
+    // it got past its modules to the lease API it wasn't given
+    assert!(stderr.contains("ACE4_API_URL"), "{stderr}");
+    assert!(stderr.contains("ticket_token"), "{stderr}");
+    assert!(!stderr.contains("other_token"), "{stderr}");
+    assert!(!stderr.contains("ticket-value"), "{stderr}");
+    let (code, stderr) =
+        start(&TICKET_CONNECTION.replace("request_timeout_seconds: 5", "timeout: 5"));
+    assert_eq!(code, Some(2), "{stderr}");
+    assert!(
+        stderr.contains(
+            "setup failed: the overlay's connections.tickets.settings: unknown settings key timeout"
+        ),
+        "{stderr}"
+    );
+}

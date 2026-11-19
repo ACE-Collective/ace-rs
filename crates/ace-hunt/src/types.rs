@@ -3,22 +3,21 @@
 //! In ace3 a hunt type is a `hunt_type_<name>` config section naming a Python class
 //! (`saq/configuration/schema.py`, `HuntTypeConfig`), and an integration adds its own. Here a type
 //! is a [`HuntType`], and a site adds its own through `ace_app::App::hunt_type` (2.31). ace3's
-//! open-source configuration has one, Splunk (`etc/saq.splunk.default.yaml`); a site's integrations
-//! add LogScale (`ace_endpoint_vendor`), Rapid7 (`ace_rapid7`) and MailFilter (`site_ace`, not schedulable,
-//! so its hunts never load from a directory). The signatures repository has hunts for the first
-//! three, so their types are here, ported from a site's `logscale_hunter.py` and
-//! `rapid7_hunter.py`; they move to a site's workspace if 7.8 wants them there. MailFilter comes
-//! with a site's port.
+//! open-source configuration has one, Splunk (`etc/saq.splunk.default.yaml`). A site's integration
+//! adds LogScale, EndpointVendor's query language, whose validation is here beside Splunk's so the
+//! signatures' LogScale hunts can be checked; a site's binary adds it with `App::hunt_type`. A hunt
+//! of a type no binary adds isn't loaded: no rule directory is read for it, and one found in another
+//! type's directory fails as a hunt of the wrong type.
 //!
 //! What a type's class does at load beyond validating is the type's [`HuntType::on_load`]: Splunk
-//! looks up the Splunk instance a hunt names. What it needs a client or credentials for, such as
-//! Rapid7 resolving `log_names` to log ids, is 6.4's, with the query.
+//! looks up the Splunk instance a hunt names. What it needs a client or credentials for is 6.4's,
+//! with the query.
 
 use serde_json::{Map as JsonMap, Value as Json};
 
 use crate::HuntError;
 use crate::model::{HuntConfig, all};
-use crate::validate::{Errors, Obj, opt_string, string, string_list};
+use crate::validate::{Errors, Obj, opt_string, string};
 
 /// A hunt type.
 pub trait HuntType: Send + Sync {
@@ -121,7 +120,7 @@ impl HuntType for Splunk {
     }
 }
 
-/// LogScale hunts: a site's `LogscaleHuntConfig` (`ace_endpoint_vendor`).
+/// LogScale hunts: the `LogscaleHuntConfig` of the integration that adds them.
 #[derive(Debug, Clone, Default)]
 pub struct Logscale;
 
@@ -142,45 +141,5 @@ impl HuntType for Logscale {
         Ok(o.required(errs, "repository", string)?.map(|repository| {
             JsonMap::from_iter([("repository".to_owned(), Json::String(repository))])
         }))
-    }
-}
-
-/// Rapid7 hunts: a site's `Rapid7HuntConfig` (`ace_rapid7`).
-#[derive(Debug, Clone, Default)]
-pub struct Rapid7;
-
-impl HuntType for Rapid7 {
-    fn name(&self) -> &str {
-        "rapid7"
-    }
-
-    fn model(&self) -> &str {
-        "Rapid7HuntConfig"
-    }
-
-    fn settings(
-        &self,
-        o: &mut Obj<'_>,
-        errs: &mut Errors,
-    ) -> Result<Option<JsonMap<String, Json>>, HuntError> {
-        Ok(o.required(errs, "log_names", string_list)?.map(|names| {
-            JsonMap::from_iter([(
-                "log_names".to_owned(),
-                Json::Array(names.into_iter().map(Json::String).collect()),
-            )])
-        }))
-    }
-
-    fn check(&self, config: &HuntConfig) -> Result<(), String> {
-        if config.use_index_time {
-            Ok(())
-        } else {
-            Err(
-                "use_index_time must be True for Rapid7 hunts. The Rapid7 Log Search API's \
-                 from/to parameters filter by ingestion time, and LEQL does not support range \
-                 filtering on event timestamps."
-                    .to_owned(),
-            )
-        }
     }
 }

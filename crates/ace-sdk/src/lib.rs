@@ -25,6 +25,7 @@
 
 pub mod actions;
 pub mod cache;
+pub mod connections;
 pub mod context;
 pub mod domains;
 pub mod email_threads;
@@ -51,6 +52,10 @@ pub mod tree;
 pub mod wire;
 pub mod writes;
 
+pub use connections::{
+    Binding, Connection, ConnectionKind, ConnectionSection, ConnectionSlot, ConnectionType,
+    Connections,
+};
 pub use context::{
     CarryingEmail, DelayedRun, EmailBodyPart, InputFile, Observable, Secret, Secrets, TaskContext,
 };
@@ -64,9 +69,9 @@ pub use module::{
     Parser, Settings, run_lookup, run_parser,
 };
 pub use overlay::{
-    ACE3_DISPOSITION_CLASSES, ActionSection, AlertRouterSection, CollectorSection, Component,
-    DispositionClass, DispositionSection, NrdList, NrdSection, Overlay, OverlayError,
-    ScheduledTaskSection, SecretSource, SvsCatalogRepository, SvsCatalogSection,
-    SvsObservationWindow, SvsRepository, SvsRunsSection, SvsSection, SvsYaraSection,
-    is_attack_release_name,
+    ACE3_DISPOSITION_CLASSES, ActionSection, AlertRouterSection, CollectorSection,
+    CommandTypeSection, Component, DispositionClass, DispositionSection, NrdList, NrdSection,
+    Overlay, OverlayError, ScheduledTaskSection, SecretSource, SvsCatalogRepository,
+    SvsCatalogSection, SvsObservationWindow, SvsRepository, SvsRunsSection, SvsSection,
+    SvsYaraSection, is_attack_release_name,
 };

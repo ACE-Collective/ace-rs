@@ -795,8 +795,8 @@ pub async fn coverage_status(db: &Db) -> Result<String> {
     Ok(coverage_status_report(&status))
 }
 
-fn run_coverage(command: SvsCoverageCommand) -> Result<ExitCode> {
-    let overlay = crate::cli::overlay()?;
+fn run_coverage(app: &crate::App, command: SvsCoverageCommand) -> Result<ExitCode> {
+    let overlay = crate::cli::overlay(app)?;
     let catalog = ace_core::svs::attack::attack_catalog(&overlay.svs.attack_release)
         .map_err(anyhow::Error::msg)
         .context("the overlay's svs.attack_release")?;
@@ -826,8 +826,8 @@ fn run_coverage(command: SvsCoverageCommand) -> Result<ExitCode> {
     })
 }
 
-fn run_catalog(command: SvsCatalogCommand) -> Result<ExitCode> {
-    let overlay = crate::cli::overlay()?;
+fn run_catalog(app: &crate::App, command: SvsCatalogCommand) -> Result<ExitCode> {
+    let overlay = crate::cli::overlay(app)?;
     let config = ace_core::svs::catalog::CatalogConfig::from_section(&overlay.svs.catalog)
         .map_err(anyhow::Error::msg)
         .context("the overlay's svs.catalog section")?;
@@ -860,17 +860,17 @@ fn run_catalog(command: SvsCatalogCommand) -> Result<ExitCode> {
     })
 }
 
-pub fn run(_app: &crate::App, command: SvsCommand) -> Result<ExitCode> {
+pub fn run(app: &crate::App, command: SvsCommand) -> Result<ExitCode> {
     let command = match command {
         SvsCommand::Yara(command) => command,
-        SvsCommand::Catalog(command) => return run_catalog(command),
-        SvsCommand::Coverage(command) => return run_coverage(command),
+        SvsCommand::Catalog(command) => return run_catalog(app, command),
+        SvsCommand::Coverage(command) => return run_coverage(app, command),
         SvsCommand::Attack(SvsAttackCommand::Extract(args)) => {
             print!("{}", attack_extract(&args)?);
             return Ok(ExitCode::SUCCESS);
         }
     };
-    let overlay = crate::cli::overlay()?;
+    let overlay = crate::cli::overlay(app)?;
     let config = ValidationConfig::from_section(&overlay.svs.yara)
         .map_err(anyhow::Error::msg)
         .context("the overlay's svs.yara section")?;

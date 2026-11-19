@@ -8,9 +8,10 @@ load_hunts.py runs in ace3's dev container (ace-dev-1) for each set and writes o
 file, its normal form or its error. The sets:
 
 - `signatures`: the signatures checkout ace3's container has at /opt/ace/signatures, read where
-  it is, with the rule directories ace3's configuration gives the splunk, logscale and rapid7 hunt
-  types (etc/saq.yaml and the site_ace integrations' etc/saq.integration.yaml). ace3 has no other hunt
-  types with rule directories: mail_filter isn't schedulable, and hunts/sentinel holds only a README.
+  it is, with the rule directories ace3's configuration gives the splunk and logscale hunt types
+  (etc/saq.yaml and the integrations' etc/saq.integration.yaml). ace3 has no other hunt types with
+  rule directories ace4 compares: rapid7's was left out by the owner on 2026-11-19, mail_filter isn't
+  schedulable, and hunts/sentinel holds only a README.
 - `cases`: tools/ace3/hunts/cases, hunts written for this comparison, copied into the container
   under /tmp/ace4-dumps/hunts. They cover what the signatures don't: every kind of error ace3's
   loader gives, and the YAML and coercion rules a hunt can trip on.
@@ -33,7 +34,7 @@ REMOTE = "/tmp/ace4-dumps/hunts"
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "reference"
 
-RULE_DIRS = ["splunk=hunts/splunk", "logscale=hunts/logscale", "rapid7=hunts/rapid7"]
+RULE_DIRS = ["splunk=hunts/splunk", "logscale=hunts/logscale"]
 
 SETS = {
     "signatures": {"root": "/opt/ace/signatures", "copy": None},

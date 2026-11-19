@@ -181,7 +181,7 @@ impl Secrets {
     }
 
     /// Only the secrets named in `declared`.
-    fn only(&self, declared: &[&str]) -> Secrets {
+    pub fn only(&self, declared: &[&str]) -> Secrets {
         Secrets(
             self.0
                 .iter()
@@ -239,6 +239,8 @@ pub struct TaskContext<S> {
     settings: Arc<S>,
     secrets: Secrets,
     declared_secrets: &'static [&'static str],
+    /// The shared connections bound to the module's slots, with their secrets by role.
+    connections: crate::connections::Connections,
     cancel: CancellationToken,
     deadline: Instant,
     now: DateTime<Utc>,
@@ -286,6 +288,7 @@ impl<S> TaskContext<S> {
             settings,
             secrets: Secrets::new(),
             declared_secrets: M::SECRETS,
+            connections: crate::connections::Connections::new(),
             cancel: CancellationToken::new(),
             deadline: Instant::now() + M::RESOURCES.timeout,
             now: Utc::now(),
@@ -633,6 +636,13 @@ impl<S> TaskContext<S> {
         self
     }
 
+    /// The shared connections bound to the module's slots (`crate::connections`), each holding its
+    /// own secrets and no others.
+    pub fn with_connections(mut self, connections: crate::connections::Connections) -> Self {
+        self.connections = connections;
+        self
+    }
+
     pub fn with_cancel(mut self, cancel: CancellationToken) -> Self {
         self.cancel = cancel;
         self
@@ -722,6 +732,21 @@ impl<S> TaskContext<S> {
             .0
             .get(name)
             .ok_or_else(|| ModuleError::MissingSecret(name.to_owned()))
+    }
+
+    /// The connection bound to the module's slot `slot` (`Module::CONNECTIONS`), whose settings are
+    /// also its settings block's `slot` key.
+    pub fn connection(&self, slot: &str) -> Option<&crate::connections::Connection> {
+        self.connections.get(slot)
+    }
+
+    /// The secret that fills `role` of the connection bound to `slot`: `MissingSecret`, named
+    /// `<slot>.<role>`, when no connection is bound there, it names no secret for the role, or its
+    /// pool couldn't resolve it.
+    pub fn connection_secret(&self, slot: &str, role: &str) -> Result<&Secret, ModuleError> {
+        self.connections
+            .secret(slot, role)
+            .ok_or_else(|| ModuleError::MissingSecret(format!("{slot}.{role}")))
     }
 
     /// True once the task is cancelled. Blocking code polls this.

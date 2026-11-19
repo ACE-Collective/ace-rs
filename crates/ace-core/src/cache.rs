@@ -177,6 +177,10 @@ pub fn key(
     extended: &BTreeMap<String, String>,
 ) -> Option<[u8; 32]> {
     let cache = component.manifest.cache?;
+    // a shared connection's settings are keyed by its identity alone (a tenant, not a timeout), so
+    // the module's settings are keyed without them
+    let settings = component.own_settings();
+    let connections = component.connection_identities();
     Some(ace_sdk::cache::key(
         kind,
         value,
@@ -188,8 +192,9 @@ pub fn key(
                 component.manifest.output.name,
                 component.manifest.output.version,
             ),
-            settings: component.settings.as_ref(),
+            settings: settings.as_ref(),
             extended,
+            connections: &connections,
         },
     ))
 }

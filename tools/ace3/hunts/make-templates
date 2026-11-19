@@ -34,7 +34,7 @@ REMOTE = "/tmp/ace4-dumps/templates"
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "reference"
 
-RULE_DIRS = ["splunk=hunts/splunk", "logscale=hunts/logscale", "rapid7=hunts/rapid7"]
+RULE_DIRS = ["splunk=hunts/splunk", "logscale=hunts/logscale"]
 
 
 def docker(*args, stdin=None, check=True):

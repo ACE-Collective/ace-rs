@@ -58,6 +58,25 @@ pub struct AiBackendSetup {
     pub name: String,
     pub settings: Option<Value>,
     pub secrets: Secrets,
+    /// The shared connections its entry binds to its type's slots, each with its own secrets
+    /// (`ace_sdk::connections`).
+    pub connections: ace_sdk::Connections,
+}
+
+/// A backend type: the slots its entries may bind to shared connections, and what builds one.
+#[derive(Clone)]
+pub struct AiBackendType {
+    pub connections: &'static [ace_sdk::ConnectionSlot],
+    pub build: AiBackendFactory,
+}
+
+impl AiBackendType {
+    fn of(build: AiBackendFactory) -> AiBackendType {
+        AiBackendType {
+            connections: &[],
+            build,
+        }
+    }
 }
 
 /// What builds a backend of one type, or says why it can't, which stops `ace serve-ai`. The reason must
@@ -66,25 +85,27 @@ pub type AiBackendFactory =
     Arc<dyn Fn(&AiBackendSetup) -> Result<Arc<dyn AiQueryBackend>, String> + Send + Sync>;
 
 /// The backend types every binary has.
-pub(crate) fn builtin_types() -> BTreeMap<String, AiBackendFactory> {
-    let mut types: BTreeMap<String, AiBackendFactory> = BTreeMap::new();
+pub(crate) fn builtin_types() -> BTreeMap<String, AiBackendType> {
+    let mut types: BTreeMap<String, AiBackendType> = BTreeMap::new();
     types.insert(
         "splunk".to_owned(),
-        Arc::new(|setup| Ok(Arc::new(SplunkBackend::new(setup)?) as Arc<dyn AiQueryBackend>)),
+        AiBackendType::of(Arc::new(|setup| {
+            Ok(Arc::new(SplunkBackend::new(setup)?) as Arc<dyn AiQueryBackend>)
+        })),
     );
     types.insert(
         "fake".to_owned(),
-        Arc::new(|setup| {
+        AiBackendType::of(Arc::new(|setup| {
             no_settings(setup)?;
             Ok(Arc::new(FakeBackend::new()) as Arc<dyn AiQueryBackend>)
-        }),
+        })),
     );
     types.insert(
         "fake_unwindowed".to_owned(),
-        Arc::new(|setup| {
+        AiBackendType::of(Arc::new(|setup| {
             no_settings(setup)?;
             Ok(Arc::new(FakeBackend::unwindowed()) as Arc<dyn AiQueryBackend>)
-        }),
+        })),
     );
     types
 }
@@ -125,7 +146,7 @@ pub fn limits(section: &AiLimitsSection, defaults: AiLimits) -> Result<AiLimits,
 /// section doesn't turn the API on. An entry that can't be used is an error whether or not the API is
 /// on, but a backend is built, and its secrets read, only when both it and the API are enabled.
 pub fn surface(
-    types: &BTreeMap<String, AiBackendFactory>,
+    types: &BTreeMap<String, AiBackendType>,
     overlay: &Overlay,
     db: Db,
     env: &dyn Fn(&str) -> Option<String>,
@@ -142,23 +163,37 @@ pub fn surface(
     for (name, backend) in &section.backends {
         let entry_limits = limits(&backend.limits, AiLimits::default())
             .map_err(|e| format!("backends.{name}.limits: {e}"))?;
-        let Some(factory) = types.get(&backend.kind) else {
+        let Some(kind) = types.get(&backend.kind) else {
             return Err(format!(
                 "backends.{name}: this binary has no backend type {:?}; it has {}",
                 backend.kind,
                 types.keys().cloned().collect::<Vec<_>>().join(", ")
             ));
         };
+        let bindings = overlay
+            .bind(
+                &format!("ai_api.backends.{name}.connections"),
+                kind.connections,
+                &backend.connections,
+            )
+            .map_err(|e| e.to_string())?;
         if !(section.enabled && backend.enabled) {
             continue;
         }
         let declared: Vec<&str> = backend.secrets.iter().map(String::as_str).collect();
+        let named: Vec<&str> = declared
+            .iter()
+            .copied()
+            .chain(ace_sdk::connections::secret_names(&bindings))
+            .collect();
+        let resolved = ace_pool::secrets::resolve_names("ai_api", &named, overlay, env);
         let setup = AiBackendSetup {
             name: name.clone(),
             settings: backend.settings.clone(),
-            secrets: ace_pool::secrets::resolve_names("ai_api", &declared, overlay, env),
+            secrets: resolved.only(&declared),
+            connections: ace_sdk::Connections::resolve(&bindings, &resolved),
         };
-        let built = factory(&setup).map_err(|e| format!("backends.{name}: {e}"))?;
+        let built = (kind.build)(&setup).map_err(|e| format!("backends.{name}: {e}"))?;
         surface = surface.with_backend(name, built, entry_limits)?;
     }
     Ok(section.enabled.then_some(surface))

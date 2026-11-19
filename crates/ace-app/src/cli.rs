@@ -173,13 +173,15 @@ pub fn main(app: &App) -> ExitCode {
     }
 }
 
-/// The overlay at `ACE4_OVERLAY`, or none. With none, every module runs as itself on its
-/// defaults.
-pub fn overlay() -> anyhow::Result<ace_sdk::Overlay> {
-    match std::env::var_os("ACE4_OVERLAY").filter(|path| !path.is_empty()) {
-        Some(path) => Ok(ace_sdk::Overlay::read(path.as_ref())?),
-        None => Ok(ace_sdk::Overlay::default()),
-    }
+/// The overlay at `ACE4_OVERLAY`, or none, checked against the binary (`App::check_overlay`). With
+/// none, every module runs as itself on its defaults.
+pub fn overlay(app: &App) -> anyhow::Result<ace_sdk::Overlay> {
+    let overlay = match std::env::var_os("ACE4_OVERLAY").filter(|path| !path.is_empty()) {
+        Some(path) => ace_sdk::Overlay::read(path.as_ref())?,
+        None => ace_sdk::Overlay::default(),
+    };
+    app.check_overlay(&overlay).map_err(anyhow::Error::msg)?;
+    Ok(overlay)
 }
 
 /// The components the overlay makes of the binary's modules.

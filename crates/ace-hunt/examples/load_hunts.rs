@@ -7,7 +7,7 @@
 //!     [--reference FILE --differences FILE --set NAME]
 //! ```
 //!
-//! The types are splunk, logscale and rapid7. `--splunk-instance` names a Splunk instance a hunt
+//! The types are splunk and logscale. `--splunk-instance` names a Splunk instance a hunt
 //! may name, `default` when none is given, as make-hunts configures ace3. With `--reference`, it
 //! prints each difference from ace3's normal form that no row of the set's differences explains
 //! and each row that explains none, and exits 1 if there are any.
@@ -17,7 +17,7 @@ use std::process::ExitCode;
 
 use ace_hunt::LoadOptions;
 use ace_hunt::normal::{RuleDirs, classify, diff, normal_form, parse_rows};
-use ace_hunt::types::{HuntType, Logscale, Rapid7, Splunk};
+use ace_hunt::types::{HuntType, Logscale, Splunk};
 
 fn main() -> ExitCode {
     match run() {
@@ -64,12 +64,12 @@ fn run() -> Result<ExitCode, String> {
     let splunk = Splunk {
         instances: Some(instances),
     };
+    let given: Vec<String> = rule_dirs.iter().map(|(_, dir)| format!("{dir}/")).collect();
     let mut types: Vec<RuleDirs<'_>> = Vec::new();
     for (kind, dir) in rule_dirs {
         let kind: &dyn HuntType = match kind.as_str() {
             "splunk" => &splunk,
             "logscale" => &Logscale,
-            "rapid7" => &Rapid7,
             other => return Err(format!("no hunt type {other}")),
         };
         match types.iter_mut().find(|t| t.kind.name() == kind.name()) {
@@ -95,10 +95,26 @@ fn run() -> Result<ExitCode, String> {
     let Some(reference) = reference else {
         return Ok(ExitCode::SUCCESS);
     };
-    let reference: serde_json::Value = serde_json::from_slice(
+    let mut reference: serde_json::Value = serde_json::from_slice(
         &std::fs::read(&reference).map_err(|e| format!("{}: {e}", reference.display()))?,
     )
     .map_err(|e| e.to_string())?;
+    // ace3 may have loaded a type ace4 doesn't, such as Rapid7's, which the owner left out: only the
+    // hunts under the rule directories given here are compared
+    if let Some(hunts) = reference["hunts"].as_array_mut() {
+        let before = hunts.len();
+        hunts.retain(|h| {
+            h["path"]
+                .as_str()
+                .is_some_and(|path| given.iter().any(|dir| path.starts_with(dir.as_str())))
+        });
+        if hunts.len() < before {
+            println!(
+                "left out {} of the reference's hunts, outside the rule directories given",
+                before - hunts.len()
+            );
+        }
+    }
     let differences = differences.ok_or("--reference needs --differences")?;
     let set = set.ok_or("--reference needs --set")?;
     let rows = parse_rows(

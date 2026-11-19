@@ -45,7 +45,6 @@ def main():
         "dev", "cargo", "run", "--locked", "--quiet", "-p", "ace-hunt", "--example", "render_templates", "--",
         "--root", "/opt/ace/signatures",
         "--rule-dir", "splunk=hunts/splunk", "--rule-dir", "logscale=hunts/logscale",
-        "--rule-dir", "rapid7=hunts/rapid7",
         "--reference", "tools/ace3/hunts/reference/templates-signatures.json",
         "--differences", "tools/ace3/hunts/differences.md", "--set", "templates-signatures",
     ]

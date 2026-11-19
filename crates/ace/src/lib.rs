@@ -226,7 +226,17 @@ mod tests {
         );
     }
 
-    /// ace3's open-source hunt type; a site's add LogScale and Rapid7 in its own app.
+    /// The list's groups are ace3's and its modules registered, so `ace` starts with no overlay
+    /// (`App::check_overlay`, which every `ace` command runs on the overlay it reads).
+    #[test]
+    fn the_list_takes_an_empty_overlay() {
+        assert_eq!(
+            super::app().check_overlay(&ace_sdk::Overlay::default()),
+            Ok(())
+        );
+    }
+
+    /// ace3's open-source hunt type; a site's binary adds its own, such as LogScale, in its own list.
     #[test]
     fn the_open_source_hunt_type_is_splunk() {
         let app = super::app();

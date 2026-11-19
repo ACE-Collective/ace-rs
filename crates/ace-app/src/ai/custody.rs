@@ -78,6 +78,7 @@ pub const BUCKET_CREDENTIALS: &[&str] = &[
 pub const OWN_SECTIONS: &[&str] = &[
     "ai_api",
     "secrets",
+    "connections",
     "dispositions",
     "disposition_classification",
 ];
@@ -248,17 +249,21 @@ fn summary(items: &[String]) -> String {
     text
 }
 
-/// The secrets the enabled backends list: what the process may hold. None when the API is off.
+/// The secrets the enabled backends list, and those of the connections they bind: what the process
+/// may hold. None when the API is off.
 pub fn declared_secrets(overlay: &Overlay) -> Vec<String> {
     let section = &overlay.ai_api;
     if !section.enabled {
         return Vec::new();
     }
-    let declared: BTreeSet<&String> = section
-        .backends
-        .values()
-        .filter(|backend| backend.enabled)
+    let enabled = || section.backends.values().filter(|backend| backend.enabled);
+    let connections = enabled()
+        .flat_map(|backend| backend.connections.values())
+        .filter_map(|name| overlay.connections.get(name))
+        .flat_map(|connection| connection.secrets.values());
+    let declared: BTreeSet<&String> = enabled()
         .flat_map(|backend| &backend.secrets)
+        .chain(connections)
         .collect();
     declared.into_iter().cloned().collect()
 }

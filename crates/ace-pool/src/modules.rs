@@ -122,6 +122,8 @@ pub struct Entry<M: ace_sdk::Module> {
     /// The block `settings` was loaded from.
     block: Option<Value>,
     secrets: Secrets,
+    /// Its shared connections, each with its own secrets (`ace_sdk::connections`).
+    connections: ace_sdk::Connections,
     manifest: Manifest,
     key: String,
 }
@@ -147,6 +149,7 @@ impl<M: ace_sdk::Module> Entry<M> {
             settings: Arc::new(settings),
             block: block.cloned(),
             secrets: secrets.clone(),
+            connections: ace_sdk::Connections::new(),
             manifest,
             key: key.to_owned(),
         })
@@ -159,6 +162,7 @@ impl<M: ace_sdk::Module> Entry<M> {
             self.settings.clone(),
         )
         .with_secrets(&self.secrets)
+        .with_connections(self.connections.clone())
         .with_cancel(run.cancel.clone())
         .with_file_store(run.outputs.clone())
         .with_contained(run.contained)
@@ -382,12 +386,13 @@ fn build_lookup<M: Lookup>(
     secrets: &Secrets,
     modules: Modules,
 ) -> Result<Modules, SetupError> {
-    let entry = Entry::<M>::build(
+    let mut entry = Entry::<M>::build(
         component.manifest,
         &component.key,
         component.settings.as_ref(),
         secrets,
     )?;
+    entry.connections = ace_sdk::Connections::resolve(&component.connections, secrets);
     Ok(modules.with_lookup(entry))
 }
 
@@ -444,7 +449,7 @@ impl Registry {
     ) -> Result<Modules, StartError> {
         let manifests = self.manifests();
         let components = overlay.for_pool(&manifests).components(&manifests)?;
-        let secrets = crate::secrets::resolve(pool, &manifests, overlay, env);
+        let secrets = crate::secrets::resolve_components(pool, &components, overlay, env);
         Ok(self.build(&components, &secrets)?)
     }
 
