@@ -20,6 +20,12 @@
 //! it, has its ticket queue and ticket at the top of its page (`ExampleTicketSummary`), where ace3 has
 //! a template per alert type.
 //!
+//! The ticket lookup joins ace3's `correlation` module group, so it runs in every mode that runs the
+//! group (`analysis`, `cli` and `correlation`). The ticket file parser joins the `correlation` mode
+//! alone (`App::module_in_mode`, ace3's `analysis_mode_correlation: enabled_modules:`), as a site's
+//! module that only makes sense on an alert does: it runs on an alert's files and not on a file
+//! submitted for analysis.
+//!
 //! Its list is ace4's own, `ace::app()`, with its modules added to two of its pools
 //! (`App::add_to_parser_pool`, `App::add_to_lookup_pool`), so it has every open-source module, hunt
 //! type and script command type without repeating them.
@@ -75,7 +81,7 @@ pub fn app() -> App {
             Ok(std::sync::Arc::new(DirectoryCollector::new(setup)?))
         })
         .module_in_group("correlation", TicketLookup::NAME)
-        .module_in_group("correlation", TicketFile::NAME)
+        .module_in_mode("correlation", TicketFile::NAME)
         .analysis_view::<TicketAnalysis>()
         .analysis_view::<TicketFileAnalysis>()
         .observable_action(OPEN_TICKET)

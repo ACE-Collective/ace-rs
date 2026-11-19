@@ -432,6 +432,52 @@ fn the_site_s_list_is_ace4_s_with_its_own_added() {
     assert_eq!(site.modules_without_a_view(), []);
 }
 
+/// A site's module in one mode (`App::module_in_mode`) is eligible in that mode and in no other, and
+/// one in a group (`App::module_in_group`) in every mode that runs the group, as ace3 builds a mode
+/// from its groups' modules and its `enabled_modules`.
+#[test]
+fn a_site_s_module_in_a_mode_is_eligible_there_alone() {
+    use ace_core::eligibility::{Facts, Ineligible, check};
+    let modes = ace_site_example::app().modes();
+    let eligible_in = |manifest: ace_sdk::Manifest, kind: ace_results::ObservableKind| {
+        let component = ace_sdk::Component::of(manifest);
+        let facts = Facts {
+            kind,
+            directives: &[],
+            exclude_modules: &[],
+            limit_modules: &[],
+        };
+        let mut eligible = Vec::new();
+        for mode in modes.mode_names() {
+            match check(
+                &component,
+                facts,
+                &modes.modules_in(mode),
+                &Default::default(),
+            ) {
+                Ok(()) => eligible.push(mode.to_owned()),
+                Err(Ineligible::NotInMode) => {}
+                Err(other) => panic!("{} in {mode}: {other:?}", component.key),
+            }
+        }
+        eligible
+    };
+    assert_eq!(
+        eligible_in(
+            ace_sdk::Manifest::parser::<ace_site_example::TicketFile>(),
+            ace_results::ObservableKind::File
+        ),
+        ["correlation"]
+    );
+    assert_eq!(
+        eligible_in(
+            ace_sdk::Manifest::lookup::<ace_site_example::TicketLookup>(),
+            ace_results::ObservableKind::Fqdn
+        ),
+        ["analysis", "cli", "correlation"]
+    );
+}
+
 /// PLAN.md 6.1: `ace collect example` runs the site's collector as a process of the site's binary. It
 /// reads its own section and its one secret, submits each ticket file once as `collector:example`, which
 /// holds `alert:create` through the class `collector`, answers a file that comes back with the root it

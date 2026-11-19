@@ -234,6 +234,25 @@ impl Modes {
         self
     }
 
+    /// Adds `module` to the enabled modules of the mode `mode`, as a site's configuration appends to
+    /// ace3's `analysis_mode_*` `enabled_modules`, so it runs in that mode whatever its groups. A
+    /// module both here and in one of the mode's groups runs once, as ace3's mode is the union of
+    /// the two. Leaves the modes as they are when there's no mode `mode`; `ace_app::App` refuses
+    /// that before it builds the modes.
+    pub fn with_module_in_mode(mut self, mode: &str, module: &str) -> Modes {
+        if let Some(entry) = self.modes.get_mut(mode)
+            && !entry.enabled_modules.iter().any(|m| m == module)
+        {
+            entry.enabled_modules.push(module.to_owned());
+        }
+        self
+    }
+
+    /// The names of every mode.
+    pub fn mode_names(&self) -> impl Iterator<Item = &str> {
+        self.modes.keys().map(String::as_str)
+    }
+
     /// Adds a mode, or replaces the one with its name.
     pub fn with_mode(mut self, mode: AnalysisMode) -> Modes {
         self.modes.insert(mode.name.clone(), mode);
@@ -347,6 +366,32 @@ mod tests {
         );
         // a new group runs in no mode until one names it
         assert!(!modes.modules_in("analysis").contains("site_parser"));
+    }
+
+    /// ace3's `analysis_mode_<mode>: enabled_modules:` from a site: the module runs in that mode
+    /// and no other, and one both there and in a group runs where either puts it, once.
+    #[test]
+    fn a_sites_module_joins_one_mode() {
+        let modes = Modes::ace3()
+            .with_module_in_mode(CORRELATION, "site_lookup")
+            .with_module_in_mode(CORRELATION, "site_lookup")
+            .with_module_in_mode("no_such_mode", "site_lookup")
+            .with_module_in_group("correlation", "site_both")
+            .with_module_in_mode(CORRELATION, "site_both");
+        let running: Vec<&str> = modes
+            .mode_names()
+            .filter(|m| modes.modules_in(m).contains("site_lookup"))
+            .collect();
+        assert_eq!(running, [CORRELATION]);
+        let enabled = &modes.mode(CORRELATION).expect("the mode").enabled_modules;
+        assert_eq!(enabled, &["svs_alert_tagger", "site_lookup", "site_both"]);
+        // the union: every mode that runs the correlation group, and correlation once
+        let both: Vec<&str> = modes
+            .mode_names()
+            .filter(|m| modes.modules_in(m).contains("site_both"))
+            .collect();
+        assert_eq!(both, ["analysis", "cli", CORRELATION]);
+        assert!(modes.mode("no_such_mode").is_none());
     }
 
     #[test]

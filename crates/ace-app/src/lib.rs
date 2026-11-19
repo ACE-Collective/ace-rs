@@ -2,7 +2,7 @@
 //! repository can build its own from this workspace's crates and its own (decision 9).
 //!
 //! An `App` is that list: the pools and the modules each one runs, the site's observable types,
-//! the module groups its modules join, the analysis views that draw its modules' results, and the
+//! the module groups and analysis modes its modules join, the analysis views that draw its modules' results, and the
 //! observable actions its GUI offers. Each binary is a short `main` over one:
 //!
 //! ```text
@@ -71,7 +71,7 @@ use ace_results::ObservableKind;
 use ace_sdk::{Lookup, Manifest, Parser};
 
 /// What a binary is built from: its pools with their modules, the site's observable types, and
-/// the groups its modules join.
+/// the groups and modes its modules join.
 #[derive(Default)]
 pub struct App {
     observable_types: Vec<ObservableKind>,
@@ -80,6 +80,7 @@ pub struct App {
     lookup_pools: Vec<LookupPool>,
     scanner_pools: Vec<ScannerPool>,
     groups: Vec<(String, String)>,
+    mode_modules: Vec<(String, String)>,
     views: ace_gui::Views,
     actions: ace_gui::ObservableActions,
     summaries: ace_gui::AlertSummaries,
@@ -222,6 +223,17 @@ impl App {
     /// only ace3's own modules, so a site's module runs in no mode until it joins one.
     pub fn module_in_group(mut self, group: &str, module: &str) -> App {
         self.groups.push((group.to_owned(), module.to_owned()));
+        self
+    }
+
+    /// Puts `module` in the analysis mode `mode` alone (ace3's `analysis_mode_<mode>:
+    /// enabled_modules:`), so it runs in that mode and not in the others that run its groups. A
+    /// module both here and in a group runs in every mode either gives it, once, as ace3's mode is
+    /// the union of its groups' modules and its enabled ones. `mode` must be one of ace3's modes and
+    /// `module` a module one of the list's pools registers: `ace_main` refuses the list otherwise,
+    /// naming each wrong pair, before it runs any command.
+    pub fn module_in_mode(mut self, mode: &str, module: &str) -> App {
+        self.mode_modules.push((mode.to_owned(), module.to_owned()));
         self
     }
 
@@ -693,6 +705,10 @@ impl App {
         if let Err(code) = self.install_types() {
             return code;
         }
+        if let Err(wrong) = self.check_modes() {
+            eprintln!("the binary's list: {wrong}");
+            return ExitCode::from(2);
+        }
         cli::main(&self)
     }
 
@@ -750,13 +766,52 @@ impl App {
             .fold(Registry::new(), Registry::merge)
     }
 
-    /// ace3's modes and groups, with the site's modules in the groups they joined.
-    fn modes(&self) -> Modes {
-        self.groups
+    /// ace3's modes and groups, with the site's modules in the groups and the modes they joined
+    /// (`module_in_group`, `module_in_mode`).
+    pub fn modes(&self) -> Modes {
+        let modes = self
+            .groups
             .iter()
             .fold(Modes::ace3(), |modes, (group, module)| {
                 modes.with_module_in_group(group, module)
+            });
+        self.mode_modules
+            .iter()
+            .fold(modes, |modes, (mode, module)| {
+                modes.with_module_in_mode(mode, module)
             })
+    }
+
+    /// Every `module_in_mode` pair whose mode isn't one of ace3's or whose module no pool of the
+    /// list registers, one line each, or Ok when there's none.
+    fn check_modes(&self) -> Result<(), String> {
+        let modes = Modes::ace3();
+        let registry = self.registry();
+        let manifests = registry.manifests();
+        let wrong: Vec<String> = self
+            .mode_modules
+            .iter()
+            .flat_map(|(mode, module)| {
+                let no_mode = modes.mode(mode).is_none().then(|| {
+                    let names: Vec<&str> = modes.mode_names().collect();
+                    format!(
+                        "module_in_mode({mode}, {module}): there's no analysis mode {mode} (the modes are {})",
+                        names.join(", ")
+                    )
+                });
+                let no_module = (!manifests.iter().any(|m| m.name == module)).then(|| {
+                    format!(
+                        "module_in_mode({mode}, {module}): no pool of the list registers a module {module}"
+                    )
+                });
+                no_mode.into_iter().chain(no_module)
+            })
+            .collect();
+        if wrong.is_empty() {
+            Ok(())
+        } else {
+            Err(wrong.join("; "))
+        }
     }
 
     /// The modes with the overlay's instances in the groups they join (`InstanceSection::groups`).
@@ -1021,6 +1076,51 @@ mod tests {
             },
             |_| Ok(Arc::new(Nothing)),
         );
+    }
+
+    /// A module put in one mode (ace3's `analysis_mode_<mode>: enabled_modules:`) runs in that mode
+    /// and no other; one in a group as well runs wherever either puts it.
+    #[test]
+    fn a_module_in_a_mode_runs_in_that_mode_alone() {
+        let app = base()
+            .add_to_lookup_pool("lookups", |pool| pool.module::<ace_mod_dns::FqdnAnalyzer>())
+            .module_in_mode("dispositioned", "email_analyzer")
+            .module_in_mode("correlation", "fqdn_analyzer");
+        assert_eq!(app.check_modes(), Ok(()));
+        let modes = app.modes();
+        let running = |module: &str| -> Vec<String> {
+            modes
+                .mode_names()
+                .filter(|m| modes.modules_in(m).contains(module))
+                .map(str::to_owned)
+                .collect()
+        };
+        // fqdn_analyzer is in ace3's correlation group, so the mode adds nothing to where it runs
+        assert_eq!(running("fqdn_analyzer"), ["analysis", "cli", "correlation"]);
+        // email_analyzer's group, email, runs in four modes, and now dispositioned too
+        assert_eq!(
+            running("email_analyzer"),
+            ["analysis", "cli", "correlation", "dispositioned", "email"]
+        );
+    }
+
+    /// A mode that isn't one of ace3's, or a module no pool registers, stops the binary before any
+    /// command runs, with each wrong pair named.
+    #[test]
+    fn a_module_in_a_mode_that_isn_t_or_a_module_the_list_hasn_t_is_refused() {
+        let app = base()
+            .module_in_mode("corelation", "email_analyzer")
+            .module_in_mode("correlation", "email_analyzer")
+            .module_in_mode("correlation", "mail_api_email_extraction");
+        let wrong = app.check_modes().expect_err("refused");
+        assert_eq!(
+            wrong,
+            "module_in_mode(corelation, email_analyzer): there's no analysis mode corelation \
+             (the modes are analysis, binary, cli, correlation, dispositioned, email, event, file, \
+             suricata_ids, yara); module_in_mode(correlation, mail_api_email_extraction): no pool of \
+             the list registers a module mail_api_email_extraction"
+        );
+        assert_eq!(app.ace_main(), ExitCode::from(2));
     }
 
     #[test]
