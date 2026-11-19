@@ -648,11 +648,7 @@ mod tests {
                 observable,
                 std::sync::Arc::new(OlevbaSettings::default()),
             );
-            let none = std::collections::BTreeMap::new();
-            Olevba::takes(&OlevbaSettings::default())
-                .check(&ctx.facts(&none))
-                .err()
-                .map(str::to_owned)
+            ace_sdk::module::declined::<Olevba>(&ctx)
         };
         let rtf = typed(|t| t.is_rtf_file = true, "text/rtf");
         let text = typed(|_| {}, "text/plain");

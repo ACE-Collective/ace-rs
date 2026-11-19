@@ -20,14 +20,24 @@
 //!
 //! **The facts.** Only what the core holds when it decides, and what a leased task carries: the
 //! observable's own type, its directives and relationships and whether it redirects; which
-//! modules' results added it (a declaration that reads it needs `Module::READS_ADDED_BY`); the
-//! root's analysis mode (needs `Module::READS_TREE`); a file's analysis path (its name, its
+//! modules' results added it, and whether it came with its root's submission (`Condition::AtRoot`);
+//! the root's analysis mode; a file's analysis path (its name, its
 //! extension, the whole path), its size, its role and its `yara_meta` tags; a file's type, what the
 //! type step found in its bytes (`TypeFacts`, PLAN.md decision 25: libmagic's description and mime
 //! type and file_type's checks, as `Condition::Type` and `Condition::Mime`); and the details of the
 //! observable's results from the modules it depends on (needs the module in `Module::DEPENDS_ON`).
 //! `Manifest::declaration` refuses one that names a fact its module's lease wouldn't carry, so the
-//! pool can always check what the core checked. Nothing here reads a file's bytes: the type step
+//! pool can always check what the core checked.
+//!
+//! **Reads that only decide.** Which modules added the observable, whether it came with the
+//! submission and the root's mode are *gating* facts: the lease carries the ones a declaration
+//! reads in a part of its own (`wire::Gate`), which the pool checks the declaration on and
+//! `analyze` never sees. `analyze` sees which modules added the observable only with
+//! `Module::READS_ADDED_BY` and the mode only in its tree (`Module::READS_TREE`), whatever the
+//! declaration reads: `TaskContext` drops what its module doesn't declare it reads. Since the core
+//! checks a declaration before it looks a result up in the analysis cache, a fact only a
+//! declaration reads can't change a result, so it doesn't keep a module out of the cache
+//! (`crate::cache::refusal`), as ace3's `custom_requirement` gates its cache lookup. Nothing here reads a file's bytes: the type step
 //! read them, contained, before any other task on the file was queued, and a check the type doesn't
 //! state stays in `analyze`.
 //!
@@ -65,8 +75,7 @@
 //! calls it an email or it has `original_email`", or `binary_file_analyzer`'s RTF fact, `\rt` or
 //! `{\rt`, for its `{\rt`. The core types a file only where something reads its type, so a
 //! declaration that reads it (`Reads::file_type`) is what makes a file be typed in a mode without
-//! file_type. A rule that reads which modules added the observable needs
-//! `READS_ADDED_BY`, the mode `READS_TREE`, a dependency's result the dependency in `DEPENDS_ON`; a
+//! file_type. A rule that reads a dependency's result needs the dependency in `DEPENDS_ON`; a
 //! lookup's rules can read a file's path but not its size, type, role or `yara_meta`, which only a
 //! parser's lease carries. A pool refuses to start with a declaration that breaks these, and
 //! `ace_app::App::modules_with_unusable_declarations` lists them for a binary's test.
@@ -127,15 +136,23 @@ pub enum Condition {
     /// The observable's own type is one of these. A type that extends one isn't, as when a module
     /// compares the type's name.
     Kind(Vec<ObservableKind>),
+    /// The observable's type is one of these or extends one (`ObservableKind::is_subtype_of`), as
+    /// when a module asks ace3's type hierarchy.
+    Extends(Vec<ObservableKind>),
     /// The observable has this directive.
     Directive(String),
     /// The observable has a relationship of this kind.
     Relationship(RelationshipKind),
     /// The observable redirects to another (`redirection`).
     Redirected,
-    /// A result of this module added the observable (`Module::READS_ADDED_BY`).
+    /// A result of this module added the observable.
     AddedBy(String),
-    /// The root's analysis mode is this one (`Module::READS_TREE`).
+    /// A result of a module other than these added the observable: it isn't only theirs.
+    AddedByOtherThan(Vec<String>),
+    /// The observable came with its root's submission, as ace3's root analysis holds it among its
+    /// own observables (`root.observables`), whatever results also added it later.
+    AtRoot,
+    /// The root's analysis mode is this one.
     Mode(String),
     /// The file's name: the last part of its analysis path.
     Name(Text),
@@ -324,8 +341,11 @@ pub struct Facts<'a> {
     pub directives: &'a [String],
     pub relationships: &'a [Relationship],
     pub redirected: bool,
-    /// The modules whose results added the observable; read only by `Condition::AddedBy`.
+    /// The modules whose results added the observable; read only by `Condition::AddedBy` and
+    /// `Condition::AddedByOtherThan`.
     pub added_by: &'a [String],
+    /// The observable came with its root's submission (`Condition::AtRoot`).
+    pub at_root: bool,
     pub mode: Option<&'a str>,
     pub file: Option<FileFacts<'a>>,
     /// The details of the observable's results from the modules the module depends on, by module.
@@ -351,6 +371,8 @@ pub struct FileFacts<'a> {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Reads {
     pub added_by: bool,
+    /// Whether the observable came with its root's submission (`Condition::AtRoot`).
+    pub at_root: bool,
     pub mode: bool,
     /// A file's size, mime type or `yara_meta`, which only a parser's lease carries.
     pub file_record: bool,
@@ -419,6 +441,11 @@ impl Condition {
 
     pub fn added_by(module: &str) -> Condition {
         Condition::AddedBy(module.to_owned())
+    }
+
+    /// A result of a module other than `modules` added the observable.
+    pub fn added_by_other_than(modules: &[&str]) -> Condition {
+        Condition::AddedByOtherThan(modules.iter().map(|m| (*m).to_owned()).collect())
     }
 
     pub fn yara_meta(name: &str, value: &str) -> Condition {
@@ -515,10 +542,15 @@ impl Condition {
     fn known(&self, facts: &Facts<'_>) -> bool {
         match self {
             Condition::Kind(kinds) => kinds.contains(&facts.kind),
+            Condition::Extends(kinds) => kinds.iter().any(|k| facts.kind.is_subtype_of(*k)),
             Condition::Directive(name) => facts.directives.iter().any(|d| d == name),
             Condition::Relationship(kind) => facts.relationships.iter().any(|r| r.kind == *kind),
             Condition::Redirected => facts.redirected,
             Condition::AddedBy(module) => facts.added_by.iter().any(|m| m == module),
+            Condition::AddedByOtherThan(modules) => {
+                facts.added_by.iter().any(|m| !modules.contains(m))
+            }
+            Condition::AtRoot => facts.at_root,
             Condition::Mode(mode) => facts.mode == Some(mode.as_str()),
             Condition::Name(text) => facts.file.is_some_and(|f| text.matches(name(f.path))),
             Condition::Path(text) => facts.file.is_some_and(|f| text.matches(f.path)),
@@ -565,7 +597,8 @@ impl Condition {
                 all.iter().for_each(|c| c.collect_reads(reads));
             }
             Condition::Not(inner) => inner.collect_reads(reads),
-            Condition::AddedBy(_) => reads.added_by = true,
+            Condition::AddedBy(_) | Condition::AddedByOtherThan(_) => reads.added_by = true,
+            Condition::AtRoot => reads.at_root = true,
             Condition::Mode(_) => reads.mode = true,
             Condition::Mime(_) | Condition::Type(_) => {
                 reads.file_record = true;
@@ -692,6 +725,7 @@ mod tests {
             relationships: &[],
             redirected: false,
             added_by: &[],
+            at_root: false,
             mode: None,
             file: Some(FileFacts {
                 path,
@@ -771,6 +805,7 @@ mod tests {
             relationships: &[],
             redirected: false,
             added_by: &[],
+            at_root: false,
             mode: None,
             file: None,
             results: &none,
@@ -891,6 +926,46 @@ mod tests {
         assert_eq!(back, attachment);
     }
 
+    /// Where an observable came from: with its root's submission, from which modules' results, and
+    /// a type that extends another.
+    #[test]
+    fn lineage_and_type_conditions_read_their_facts() {
+        let none = BTreeMap::new();
+        let added = ["entra_device".to_owned()];
+        let mut facts = Facts {
+            kind: ObservableKind::EmailFrom,
+            directives: &[],
+            relationships: &[],
+            redirected: false,
+            added_by: &added,
+            at_root: false,
+            mode: None,
+            file: None,
+            results: &none,
+        };
+        let others = Condition::added_by_other_than(&["entra_device"]);
+        assert!(!Condition::AtRoot.holds(&facts));
+        assert!(!others.holds(&facts));
+        assert!(Condition::added_by("entra_device").holds(&facts));
+        let both = ["entra_device".to_owned(), "email_analyzer".to_owned()];
+        facts.added_by = &both;
+        assert!(others.holds(&facts));
+        facts.at_root = true;
+        assert!(Condition::AtRoot.holds(&facts));
+        // a subtype extends its parent, and isn't its parent's own type
+        assert!(Condition::Extends(vec![ObservableKind::EmailAddress]).holds(&facts));
+        assert!(!Condition::Kind(vec![ObservableKind::EmailAddress]).holds(&facts));
+        let reads = Takes::everything()
+            .and(Condition::AtRoot, "x")
+            .and(others, "y")
+            .reads();
+        assert!(reads.at_root && reads.added_by && !reads.mode);
+        let back: Condition =
+            serde_json::from_value(serde_json::to_value(Condition::AtRoot).expect("writes"))
+                .expect("reads");
+        assert_eq!(back, Condition::AtRoot);
+    }
+
     #[test]
     fn the_extension_is_python_s() {
         assert_eq!(splitext("a.tar.gz"), ("a.tar", ".gz"));
@@ -918,6 +993,7 @@ mod tests {
             takes.reads(),
             Reads {
                 added_by: true,
+                at_root: false,
                 mode: true,
                 file_record: false,
                 file_type: false,

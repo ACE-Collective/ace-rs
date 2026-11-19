@@ -116,8 +116,10 @@ impl Retry {
     }
 }
 
-/// What a handler is and does, as a module's manifest says what a module is.
+/// What a handler is and does, as a module's manifest says what a module is. A site builds one
+/// with `ActionSpec::new` and the methods after it, so a field added here doesn't break it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct ActionSpec {
     pub kind: ActionKind,
     /// ace3's configured name, such as `test` or `office365_email`: up to 64 of a-z, 0-9, `_` and `-`.
@@ -141,6 +143,70 @@ pub struct ActionSpec {
 }
 
 impl ActionSpec {
+    /// A handler of `kind` called `name`, which acts on observables of `observable_type`, with
+    /// ace3's retry for its kind, no ports, secrets or connections, and, for a remediation check,
+    /// ace3's 12 hours of `supersede_grace_seconds`.
+    pub const fn new(
+        kind: ActionKind,
+        name: &'static str,
+        display_name: &'static str,
+        description: &'static str,
+        observable_type: &'static str,
+    ) -> ActionSpec {
+        ActionSpec {
+            kind,
+            name,
+            display_name,
+            description,
+            observable_type,
+            tcp_ports: &[],
+            secrets: &[],
+            connections: &[],
+            retry: match kind {
+                ActionKind::Remediation => Retry::REMEDIATION,
+                ActionKind::RemediationCheck => Retry::REMEDIATION_CHECK,
+                ActionKind::FileCollection => Retry::FILE_COLLECTION,
+            },
+            supersede_grace_seconds: match kind {
+                ActionKind::RemediationCheck => 12 * 3600,
+                _ => 0,
+            },
+        }
+    }
+
+    /// The TCP ports it connects to.
+    pub const fn tcp_ports(mut self, tcp_ports: &'static [u16]) -> ActionSpec {
+        self.tcp_ports = tcp_ports;
+        self
+    }
+
+    /// The secrets it reads.
+    pub const fn secrets(mut self, secrets: &'static [&'static str]) -> ActionSpec {
+        self.secrets = secrets;
+        self
+    }
+
+    /// The shared connections it takes.
+    pub const fn connections(
+        mut self,
+        connections: &'static [crate::connections::ConnectionSlot],
+    ) -> ActionSpec {
+        self.connections = connections;
+        self
+    }
+
+    /// Its tries and backoff, in place of its kind's.
+    pub const fn retry(mut self, retry: Retry) -> ActionSpec {
+        self.retry = retry;
+        self
+    }
+
+    /// A remediation check's grace for another source's confirmation.
+    pub const fn supersede_grace_seconds(mut self, seconds: u32) -> ActionSpec {
+        self.supersede_grace_seconds = seconds;
+        self
+    }
+
     /// Its entry in a pool's list in `ACE4_POOLS`.
     pub fn pool_entry(&self) -> String {
         pool_entry(self.kind, self.name)

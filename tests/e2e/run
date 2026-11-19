@@ -111,7 +111,10 @@ form has to be the same both times wherever two runs with the cache off agree: a
 cache off, before, says where they don't (ExifTool's file times, Ghostscript's rewrite of a PDF, whose
 bytes and so sha256 change every run), and files are named by their paths for the comparison, since
 their sha256s are what changes. A kept result on such a file misses, since its bytes are new, and so
-does a value chosen by such a file's sha256, as a redirection to one of two files. Then the core goes back to the site's own overlay.
+does a value chosen by such a file's sha256, as a redirection to one of two files. With the cache still
+on, the scanner check's page is rendered twice: phishkit_analyzer's first result has to be kept under
+its scan's image id, and the second root has to take it from the cache, with the same files and no
+scan of its own (PLAN.md decision 27). Then the core goes back to the site's own overlay.
 
 Usage: tests/e2e/run [--keep] [--compare] [--jobs N]
   --keep      leaves the stack up
@@ -2136,8 +2139,48 @@ def check_cache(failures):
                    f"{path}'s normal form from the cache is the same as from a run, but for the "
                    f"{len(unstable)} values two runs without the cache differ in and what names a file "
                    f"whose bytes change every run ({len(changing)}): {moved[:5]}")
+        check_phishkit_cache(expect)
     finally:
         use_site(SITE)
+
+
+def check_phishkit_cache(expect):
+    """phishkit_analyzer's results are kept (PLAN.md decision 27): with the cache on, the scanner
+    check's page rendered twice gives the second root the first's result from the cache, with its
+    files at the same paths and no scan of its own."""
+    page = SCANNER_PAGE.read_bytes()
+    roots = []
+    for _ in range(2):
+        root = submit_file(page, "phishkit_page.htm", "correlation", ["type=email.attachment"])
+        wait_for(f"root {root} to finish", lambda: completed_after(root) is not None, within=240)
+        roots.append(root)
+    first, second = roots
+
+    def result(root):
+        return sql(f"""SELECT r.cached_at IS NOT NULL, coalesce(r.error, ''),
+                             jsonb_array_length(r.details->'output_files')
+                      FROM analysis.results r
+                      WHERE r.root_id = '{root}' AND r.module = 'phishkit_analyzer'""")
+
+    def scans(root):
+        return sql(f"SELECT count(*) FROM queue.scans WHERE root_id = '{root}' AND scanner = 'phishkit'")[0][0]
+
+    def files(root):
+        return sorted(row[0] for row in sql(
+            f"SELECT path FROM analysis.files WHERE root_id = '{root}' AND path LIKE 'phishkit/%'"))
+
+    kept = sql("SELECT count(*) FROM cache.results WHERE module = 'phishkit_analyzer'")[0][0]
+    image = sql("""SELECT probes->>'scanner:phishkit' FROM cache.probes
+                    WHERE module = 'phishkit_analyzer'""")
+    expect(result(first)[:1] and result(first)[0][:2] == ["f", ""] and scans(first) == "1"
+           and kept == "1" and image and (image[0][0] or "").startswith("sha256:"),
+           f"phishkit_analyzer's first render ran its scan and was kept under its image: "
+           f"{result(first)}, {scans(first)} scan, {kept} kept, image {image}")
+    expect(result(second)[:1] and result(second)[0][0] == "t" and scans(second) == "0"
+           and files(second) == files(first) and files(first),
+           f"phishkit_analyzer's second render came from the cache, with no scan and the same "
+           f"files: {result(second)}, {scans(second)} scans, {len(files(second))} of "
+           f"{len(files(first))} files")
 
 
 def jobs_of(argv):

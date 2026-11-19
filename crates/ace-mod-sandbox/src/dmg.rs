@@ -7,7 +7,7 @@
 //! ace3's CVE module reads the file list from the DMG's analysis, on the image's redirection. A
 //! module here reads no other observable's result, so it lists the image again with the same `7z l`
 //! on the same bytes, which gives the same list; and it runs only on an image dmg_analyzer added
-//! (`Module::READS_ADDED_BY`), as only dmg_analyzer adds a `.img` with its `macos` and `dmg` tags and
+//! (its declaration's `takes::Condition::AddedBy`), as only dmg_analyzer adds a `.img` with its `macos` and `dmg` tags and
 //! its redirection to the DMG. ace3 extracts each member with a run of its own; here a task has 64
 //! runs (`ace_sdk::tools::MAX_RUNS`), so when there are more members than runs left, the runs share
 //! them out in order, a few members each, rather than leave the last ones unchecked.
@@ -225,7 +225,6 @@ impl Module for Cve202130657Analyzer {
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
     const TOOLS: &'static [&'static str] = &["7z"];
     const RESOURCES: Resources = RESOURCES;
-    const READS_ADDED_BY: bool = true;
     type Output = Cve202130657Analysis;
     type Settings = ();
 

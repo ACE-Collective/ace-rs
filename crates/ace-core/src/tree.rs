@@ -41,6 +41,20 @@ pub enum EventTime {
 }
 
 impl EventTime {
+    /// The event time as a leased task carries it (`ace_sdk::wire::RootEventTime`).
+    pub fn wire(self) -> ace_sdk::wire::RootEventTime {
+        use ace_sdk::wire::EventTimeSource as Wire;
+        ace_sdk::wire::RootEventTime {
+            time: self.time(),
+            source: match self.source() {
+                EventTimeSource::Event => Wire::Event,
+                EventTimeSource::QueryTime => Wire::QueryTime,
+                EventTimeSource::Now => Wire::Now,
+                EventTimeSource::Unset => Wire::Unset,
+            },
+        }
+    }
+
     pub fn time(self) -> Option<DateTime<Utc>> {
         match self {
             EventTime::Event(t) | EventTime::QueryTime(t) | EventTime::Now(t) => Some(t),
@@ -945,6 +959,21 @@ pub async fn added_by(
     .fetch_all(pool)
     .await?;
     Ok(rows.into_iter().map(|row| row.module).collect())
+}
+
+/// Whether `observable` came with its root's submission: what ace3's root analysis holds among its
+/// own observables. A submission adds its observables at depth 0 and a result one deeper than
+/// what it analyzed, and an observable keeps its least depth (`upsert_observable_at`), so depth 0
+/// is exactly a submitted one, whatever results added it again.
+pub async fn at_root(pool: &PgPool, root: Uuid, observable: ObservableId) -> Result<bool, DbError> {
+    let depth = sqlx::query_scalar!(
+        "SELECT depth FROM analysis.observables WHERE root_id = $1 AND id = $2",
+        root,
+        observable as ObservableId,
+    )
+    .fetch_optional(pool)
+    .await?;
+    Ok(depth == Some(0))
 }
 
 /// The tags of each observable `observable` has a relationship to, in the order of its

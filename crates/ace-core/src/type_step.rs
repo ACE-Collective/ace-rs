@@ -27,7 +27,7 @@
 //! **Its end.** The step's output is the file's `TypeFacts`, kept once per sha256 in
 //! `store.file_types` (`store_facts`), not a result in the tree. However the step ends, with facts,
 //! failed in the module, at its deadline or with its lease run out on its last attempt
-//! (`queue::TypeStepEnded`), the file's other tasks are then queued in the same transaction. A file
+//! (`queue::TaskEnded::type_step`), the file's other tasks are then queued in the same transaction. A file
 //! whose step failed has no type, unless the same bytes were typed in another root: a declaration's
 //! condition on its type is unknown and holds (`ace_sdk::takes::Condition::value`), so a failure
 //! never keeps a module off a file it would have run on.

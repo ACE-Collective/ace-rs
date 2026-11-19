@@ -19,8 +19,22 @@
 //!   its image was built with, `/opt/app/phishkit_config.yaml`, which is the same file. An analyst's edit
 //!   to it reaches the scanner when the image is built again. `deny_crawl_url_patterns`, the one part
 //!   the module reads, is the module's setting.
-//! - Its metrics go to no fluent-bit (`fluent_bit_metrics_enabled`), and its results aren't cached:
-//!   ace4 has no analysis cache (6.7).
+//! - Its metrics go to no fluent-bit (`fluent_bit_metrics_enabled`).
+//! - Its results are kept in the analysis cache for ace3's 6 hours (`Module::CACHE`), keyed on the
+//!   observable's value, its settings (where ace3 keys the content of its scanner config, whose one
+//!   part the module reads is `deny_crawl_url_patterns`) and the id of the image its scan's
+//!   container ran (`Cache::scanners`, ace3's `scanner_image`). What it reads to decide whether it
+//!   runs (a file's render directive or role, the root's mode, its extension and its type's mime
+//!   type) is its declaration's, which a hit is checked against first. A failed scan is a result
+//!   with an error, which isn't kept; a partial scan is kept, as ace3 keeps one. As in ace3, a file's
+//!   result is keyed on its bytes alone, so a hit for a file in another alert names the first
+//!   file's path in `scan_result` and the scanner saw the first file's name, as ace3's replayed
+//!   result does. Its files are under `phishkit/<job id>/`, named after the observable
+//!   (`CachePaths::Under`), so a hit puts them where a run would.
+//! - It doesn't wait for `file_type` (ace3's declared dependency): its declaration reads the file's
+//!   type, which the core finds before any other task on a file (PLAN.md decision 25), so the
+//!   dependency added nothing for a file, and for a URL it kept the module from running at all,
+//!   where ace3 counts a dependency that doesn't take the observable as met.
 //! - `output_dir` is the scan's directory in the alert, `phishkit/<job id>`, where ace3 names a
 //!   temporary directory on its node; `job_id` is made from the module and the observable (`crate::job_id`).
 //! - ace3 walks the output directory in the order the filesystem lists it; here a directory's files
@@ -32,12 +46,12 @@ use std::time::Duration;
 
 use ace_pycompat::pystr;
 use ace_results::FileRole;
-use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::scanners::PhishkitAnalysis;
 use ace_results::{
     AlertPath, AnalysisType, NewObservable, ObservableKind, ObservableRef, Relationship,
     RelationshipKind, ResultEnvelope,
 };
+use ace_sdk::cache::{Cache, CachePaths};
 use ace_sdk::scanners::{PHISHKIT, ScanInput, ScanRequest, ScanState};
 use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
 use ace_sdk::{Delay, Module, ModuleError, Observable, Outcome, Parser, Resources, TaskContext};
@@ -125,15 +139,18 @@ pub struct PhishkitAnalyzer {
 impl Module for PhishkitAnalyzer {
     const NAME: &'static str = PhishkitAnalysis::MODULE;
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::Url, ObservableKind::File];
-    const DEPENDS_ON: &'static [&'static str] = &[FileTypeAnalysis::MODULE];
     /// `custom_requirement`: a URL needs `crawl`, which other modules add later, so the core queues
     /// the module when it lands. A file needs `render` or the `email.attachment` type, which it has
     /// from the start.
     const REQUIRED_DIRECTIVES_BY_KIND: &'static [(ObservableKind, &'static [&'static str])] =
         &[(ObservableKind::Url, &[CRAWL])];
     const SCANNERS: &'static [&'static str] = &[PHISHKIT.name];
-    /// For the root's analysis mode: files render only in correlation mode.
-    const READS_TREE: bool = true;
+    /// ace3's `cache_ttl` of 6 hours (the module's docs).
+    const CACHE: Option<Cache> = Some(Cache {
+        paths: CachePaths::Under(phishkit_dir),
+        scanners: &[PHISHKIT.name],
+        ..Cache::new(1, Duration::from_secs(6 * 3600))
+    });
     const RESOURCES: Resources = Resources {
         timeout: Duration::from_secs(300),
         memory_mb: 2048,
@@ -171,19 +188,15 @@ impl Module for PhishkitAnalyzer {
                 "files render only in correlation mode",
             )
             .and(for_a_file(Condition::not_empty()), "an empty file")
-            // `_file_scan_enabled`: the file's extension, lowered, or file_type's mime type is one
-            // the module renders
+            // `_file_scan_enabled`: the file's extension, lowered, or file_type's mime type, which
+            // is the type's, is one the module renders
             .and(
                 for_a_file(Condition::Any(vec![
                     Condition::Extension(Text::new(
                         strings(&settings.valid_file_extensions),
                         Case::Lower,
                     )),
-                    Condition::result_text(
-                        FileTypeAnalysis::MODULE,
-                        "mime",
-                        Text::exact(strings(&settings.valid_mime_types)),
-                    ),
+                    Condition::Mime(Text::exact(strings(&settings.valid_mime_types))),
                 ])),
                 "not a type phishkit renders",
             )
@@ -232,6 +245,15 @@ fn refusal(ctx: &TaskContext<PhishkitSettings>) -> Result<Option<String>, Module
     } else {
         Ok(Some("not a URL or a file".to_owned()))
     }
+}
+
+/// The directory the module puts an observable's files under, `phishkit/<job id>/`, which follows
+/// from the observable alone (`CachePaths::Under`).
+pub fn phishkit_dir(kind: ObservableKind, value: &str) -> String {
+    format!(
+        "phishkit/{}/",
+        crate::job_id_of(PhishkitAnalysis::MODULE, kind, value)
+    )
 }
 
 /// `os.path.splitext(name)`: the name and its last extension, with its dot; a leading dot isn't one.

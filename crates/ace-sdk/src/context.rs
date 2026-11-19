@@ -263,8 +263,19 @@ pub struct TaskContext<S> {
     dependency_errors: BTreeMap<String, String>,
     observables_below: Vec<ObservableRef>,
     added_by: Vec<String>,
+    /// The observable came with its root's submission, for a module that reads `added_by`.
+    at_root: bool,
     related_tags: Vec<RelatedTags>,
     tree: Option<TreeView>,
+    /// The root's event time, for a module that reads it (`Module::READS_EVENT_TIME`).
+    event_time: Option<crate::wire::RootEventTime>,
+    /// What the module's declaration reads that `analyze` may not see: only `facts` reads it.
+    gate: crate::wire::Gate,
+    /// What the module declares it reads, so a context never holds what it doesn't
+    /// (`crate::takes`, *Reads that only decide*).
+    reads_added_by: bool,
+    reads_tree: bool,
+    reads_event_time: bool,
     /// Where the pool put the tree's files the module reads, each named by its sha256.
     tree_files: Option<PathBuf>,
     declared_tools: &'static [&'static str],
@@ -310,8 +321,14 @@ impl<S> TaskContext<S> {
             dependency_errors: BTreeMap::new(),
             observables_below: Vec::new(),
             added_by: Vec::new(),
+            at_root: false,
             related_tags: Vec::new(),
             tree: None,
+            event_time: None,
+            gate: crate::wire::Gate::default(),
+            reads_added_by: M::READS_ADDED_BY,
+            reads_tree: M::READS_TREE,
+            reads_event_time: M::READS_EVENT_TIME,
             tree_files: None,
             declared_tools: M::TOOLS,
             tools: None,
@@ -452,8 +469,11 @@ impl<S> TaskContext<S> {
         &self.dependency_results
     }
 
-    /// The facts the task carries that a module's declaration reads (`crate::takes`).
-    pub fn facts<'a>(
+    /// The facts the task carries that a module's declaration reads (`crate::takes`): the gate's
+    /// for which modules added the observable, whether it came with the submission and the mode.
+    /// Only the pool's check of the declaration reads them (`crate::module::declined`), so
+    /// `analyze` can't.
+    pub(crate) fn facts<'a>(
         &'a self,
         results: &'a BTreeMap<String, serde_json::Value>,
     ) -> crate::takes::Facts<'a> {
@@ -463,8 +483,9 @@ impl<S> TaskContext<S> {
             directives: &observable.directives,
             relationships: &observable.relationships,
             redirected: observable.redirection.is_some(),
-            added_by: &self.added_by,
-            mode: self.tree.as_ref().and_then(|t| t.analysis_mode.as_deref()),
+            added_by: &self.gate.added_by,
+            at_root: self.gate.at_root,
+            mode: self.gate.mode.as_deref(),
             // a parser has the file's record with its bytes; a lookup has its path alone
             file: match (&observable.file, &observable.path) {
                 (Some(file), _) => Some(crate::takes::FileFacts {
@@ -508,16 +529,62 @@ impl<S> TaskContext<S> {
         &self.observables_below
     }
 
-    /// The modules whose results added the task's observable (`Module::READS_ADDED_BY`).
+    /// The modules whose results added the task's observable (`Module::READS_ADDED_BY`). Dropped
+    /// for a module that doesn't declare it reads them.
     pub fn with_added_by(mut self, modules: Vec<String>) -> Self {
-        self.added_by = modules;
+        if self.reads_added_by {
+            self.added_by = modules;
+        }
         self
     }
 
     /// The modules whose results added the task's observable, by name, for a module that reads
-    /// them: the analyses ace3's `iterate_all_references` finds holding it.
+    /// them: the analyses ace3's `iterate_all_references` finds holding it. Empty for any other,
+    /// whatever its declaration reads.
     pub fn added_by(&self) -> &[String] {
         &self.added_by
+    }
+
+    /// Whether the observable came with its root's submission (`Module::READS_ADDED_BY`). Dropped
+    /// for a module that doesn't declare it reads which modules added it.
+    pub fn with_at_root(mut self, at_root: bool) -> Self {
+        self.at_root = at_root && self.reads_added_by;
+        self
+    }
+
+    /// True when the observable came with its root's submission, as ace3's root analysis holds it
+    /// among its own observables (`root.observables`), for a module that reads which modules added
+    /// it. False for any other.
+    pub fn at_root(&self) -> bool {
+        self.at_root
+    }
+
+    /// The root's event time as the core sent it (`Module::READS_EVENT_TIME`). Dropped for a
+    /// module that doesn't declare it reads it.
+    pub fn with_event_time(mut self, event_time: Option<crate::wire::RootEventTime>) -> Self {
+        if self.reads_event_time {
+            self.event_time = event_time;
+        }
+        self
+    }
+
+    /// The root's event time, ace3's `get_root().event_time`, for a module that reads it
+    /// (`Module::READS_EVENT_TIME`): when the alert's event happened, or the time ACE gave the root
+    /// when its submitter gave none. None for a root with no time, and for any other module.
+    pub fn event_time(&self) -> Option<DateTime<Utc>> {
+        self.event_time.and_then(|e| e.time)
+    }
+
+    /// Where the root's event time came from, for a module that reads it.
+    pub fn event_time_source(&self) -> Option<crate::wire::EventTimeSource> {
+        self.event_time.map(|e| e.source)
+    }
+
+    /// What the module's declaration reads that `analyze` may not see (`wire::Gate`): the pool's
+    /// check of the declaration reads it, and nothing else can.
+    pub fn with_gate(mut self, gate: crate::wire::Gate) -> Self {
+        self.gate = gate;
+        self
     }
 
     /// The tags of the observables the task's observable is related to
@@ -536,9 +603,12 @@ impl<S> TaskContext<S> {
             .map(|r| r.tags.as_slice())
     }
 
-    /// The root's tree as the core sent it (`Module::READS_TREE`).
+    /// The root's tree as the core sent it (`Module::READS_TREE`). Dropped for a module that
+    /// doesn't declare it reads it.
     pub fn with_tree(mut self, tree: Option<TreeView>) -> Self {
-        self.tree = tree;
+        if self.reads_tree {
+            self.tree = tree;
+        }
         self
     }
 

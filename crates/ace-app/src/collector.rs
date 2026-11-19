@@ -91,8 +91,10 @@ use uuid::Uuid;
 use crate::App;
 
 /// What a collector is, for `App::collector`: its name, which `ace collect` and the overlay's
-/// `collectors:` call it and its component is named after, and the secrets it reads.
+/// `collectors:` call it and its component is named after, and the secrets it reads. A site builds
+/// one with `CollectorSpec::new` and the methods after it, so a field added here doesn't break it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct CollectorSpec {
     pub name: &'static str,
     /// The names in the overlay's `secrets:` this collector is given, and no other.
@@ -102,14 +104,62 @@ pub struct CollectorSpec {
     pub connections: &'static [ace_sdk::ConnectionSlot],
 }
 
+impl CollectorSpec {
+    /// A collector called `name`, which reads no secrets and takes no connections.
+    pub const fn new(name: &'static str) -> CollectorSpec {
+        CollectorSpec {
+            name,
+            secrets: &[],
+            connections: &[],
+        }
+    }
+
+    /// The secrets it reads.
+    pub const fn secrets(mut self, secrets: &'static [&'static str]) -> CollectorSpec {
+        self.secrets = secrets;
+        self
+    }
+
+    /// The shared connections it takes.
+    pub const fn connections(
+        mut self,
+        connections: &'static [ace_sdk::ConnectionSlot],
+    ) -> CollectorSpec {
+        self.connections = connections;
+        self
+    }
+}
+
 /// What a collector's builder is given: its overlay section's `settings`, and the secrets its spec
-/// names that the overlay could resolve.
+/// names that the overlay could resolve. A test builds one with `CollectorSetup::new` and the
+/// methods after it.
 #[derive(Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct CollectorSetup {
     pub settings: Option<Value>,
     pub secrets: Secrets,
     /// The connections its section binds to its spec's slots, each with its own secrets.
     pub connections: ace_sdk::Connections,
+}
+
+impl CollectorSetup {
+    /// A setup with `settings`, and no secrets or connections.
+    pub fn new(settings: Option<Value>) -> CollectorSetup {
+        CollectorSetup {
+            settings,
+            ..CollectorSetup::default()
+        }
+    }
+
+    pub fn with_secrets(mut self, secrets: Secrets) -> CollectorSetup {
+        self.secrets = secrets;
+        self
+    }
+
+    pub fn with_connections(mut self, connections: ace_sdk::Connections) -> CollectorSetup {
+        self.connections = connections;
+        self
+    }
 }
 
 /// What builds a collector from its setup, or says why it can't, which stops `ace collect`.

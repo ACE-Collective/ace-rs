@@ -3579,6 +3579,7 @@ async fn a_scan_runs_between_a_tasks_two_runs() {
                     sha256,
                     size: archive.len() as u64,
                 }),
+                image_id: None,
             },
         )
         .await
@@ -3661,6 +3662,7 @@ async fn a_scan_ends_at_a_cancellation_and_at_a_lost_lease() {
             &ace_sdk::scanners::ScanEnd {
                 outcome: ace_sdk::scanners::ScanOutcome::Cancelled,
                 output: None,
+                image_id: None,
             },
         )
         .await
@@ -3708,6 +3710,7 @@ async fn a_scan_ends_at_a_cancellation_and_at_a_lost_lease() {
             &ace_sdk::scanners::ScanEnd {
                 outcome: ace_sdk::scanners::ScanOutcome::Completed { exit_code: 0 },
                 output: None,
+                image_id: None,
             },
         )
         .await;
@@ -3833,6 +3836,7 @@ mod fake_docker {
                 "/containers/{id}/archive",
                 put(put_archive).get(get_archive),
             )
+            .route("/containers/{id}/json", get(inspect))
             .route("/containers/{id}/start", post(start))
             .route("/containers/{id}/wait", post(wait))
             .route("/containers/{id}/stop", post(stop))
@@ -4034,6 +4038,12 @@ mod fake_docker {
     async fn image() -> Json<Value> {
         Json(json!({"Id": "sha256:fake"}))
     }
+
+    /// A container's image is the one it was made from: `sha256:fake`, as `image` says.
+    async fn inspect(State(daemon): State<Shared>, Path(id): Path<String>) -> Json<Value> {
+        let known = daemon.lock().expect("a lock").containers.contains_key(&id);
+        Json(json!({"Id": id, "Image": known.then_some("sha256:fake")}))
+    }
 }
 
 /// A scanner pool on the fake daemon, for `scans_core`'s test pool.
@@ -4118,6 +4128,14 @@ async fn the_scanner_pool_stops_a_scanner_at_its_deadline() {
         .await
         .expect("reads");
     assert_eq!(scans[0].exit_code, Some(143));
+    // the image its container ran, which the analysis cache keys a scanning module's result on
+    let image: Option<String> =
+        sqlx::query_scalar("SELECT image_id FROM queue.scans WHERE root_id = $1")
+            .bind(root)
+            .fetch_one(core.test_db.db().pool())
+            .await
+            .expect("reads");
+    assert_eq!(image.as_deref(), Some("sha256:fake"));
     let calls = daemon.lock().expect("a lock").calls.clone();
     assert_eq!(
         calls,
@@ -4238,23 +4256,20 @@ async fn the_scanner_pool_kills_a_cancelled_scanner_and_reaps_what_a_crash_left(
 /// probes do for a vendor that acts minutes later.
 struct FakeProbe;
 
-static FAKE_PROBE: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec {
-    kind: ace_sdk::actions::ActionKind::RemediationCheck,
-    name: "fake_vendor",
-    display_name: "Fake Vendor",
-    description: "Answers pending, then confirms.",
-    observable_type: "email_delivery",
-    tcp_ports: &[],
-    secrets: &[],
-    connections: &[],
-    retry: ace_sdk::actions::Retry {
-        initial_delay_seconds: 1,
-        max_delay_seconds: 1,
-        max_attempts: Some(5),
-        deadline_seconds: Some(3600),
-    },
-    supersede_grace_seconds: 0,
-};
+static FAKE_PROBE: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec::new(
+    ace_sdk::actions::ActionKind::RemediationCheck,
+    "fake_vendor",
+    "Fake Vendor",
+    "Answers pending, then confirms.",
+    "email_delivery",
+)
+.retry(ace_sdk::actions::Retry {
+    initial_delay_seconds: 1,
+    max_delay_seconds: 1,
+    max_attempts: Some(5),
+    deadline_seconds: Some(3600),
+})
+.supersede_grace_seconds(0);
 
 impl ace_sdk::actions::RemediationProbe for FakeProbe {
     fn spec(&self) -> &'static ace_sdk::actions::ActionSpec {
@@ -4293,23 +4308,19 @@ impl ace_sdk::actions::RemediationProbe for FakeProbe {
 /// A file collector whose host is offline at the first try and gives the file at the second.
 struct FakeCollector;
 
-static FAKE_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec {
-    kind: ace_sdk::actions::ActionKind::FileCollection,
-    name: "fake_edr",
-    display_name: "Fake EDR",
-    description: "Offline, then collects.",
-    observable_type: "file_location",
-    tcp_ports: &[],
-    secrets: &[],
-    connections: &[],
-    retry: ace_sdk::actions::Retry {
-        initial_delay_seconds: 1,
-        max_delay_seconds: 1,
-        max_attempts: Some(3),
-        deadline_seconds: Some(3600),
-    },
-    supersede_grace_seconds: 0,
-};
+static FAKE_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec::new(
+    ace_sdk::actions::ActionKind::FileCollection,
+    "fake_edr",
+    "Fake EDR",
+    "Offline, then collects.",
+    "file_location",
+)
+.retry(ace_sdk::actions::Retry {
+    initial_delay_seconds: 1,
+    max_delay_seconds: 1,
+    max_attempts: Some(3),
+    deadline_seconds: Some(3600),
+});
 
 impl ace_sdk::actions::FileCollector for FakeCollector {
     fn spec(&self) -> &'static ace_sdk::actions::ActionSpec {
@@ -6130,4 +6141,125 @@ async fn a_type_step_on_bytes_typed_meanwhile_ends_in_the_core() {
     let (root, _) = common::root_with_bytes(&core, "analysis", b"some text", "b.js").await;
     let task = lease_one(&client, "file_type").await;
     assert_eq!(task.root, root);
+}
+
+/// Lookups that read the root's event time and where their observable came from, and one whose
+/// declaration alone reads that and the mode.
+mod lineage {
+    use ace_results::ObservableKind;
+    use ace_sdk::example::LineStats;
+    use ace_sdk::takes::{Condition, Takes};
+    use ace_sdk::{Lookup, Module, ModuleError, Outcome, TaskContext};
+
+    pub struct ReadsLineage;
+
+    impl Module for ReadsLineage {
+        const NAME: &'static str = "test_reads_lineage";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const READS_EVENT_TIME: bool = true;
+        const READS_ADDED_BY: bool = true;
+        type Output = LineStats;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(ReadsLineage)
+        }
+    }
+
+    impl Lookup for ReadsLineage {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<LineStats>, ModuleError> {
+            Ok(Outcome::Skipped(String::new()))
+        }
+    }
+
+    pub struct Gated;
+
+    impl Module for Gated {
+        const NAME: &'static str = "test_gated";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        type Output = LineStats;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(Gated)
+        }
+        fn takes(_: &()) -> Takes {
+            Takes::everything()
+                .and(Condition::AtRoot, "not at the root")
+                .and(Condition::Mode("analysis".to_owned()), "not analysis")
+        }
+    }
+
+    impl Lookup for Gated {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<LineStats>, ModuleError> {
+            Ok(Outcome::Skipped(String::new()))
+        }
+    }
+}
+
+/// A leased task carries the root's event time and where it came from to a module that reads it,
+/// whether its observable came with the submission to one that reads where it came from, and to a
+/// module whose declaration alone reads those and the mode, only the gate, which its `analyze`
+/// never sees.
+#[tokio::test]
+async fn a_lease_carries_the_event_time_and_the_gate_only_to_what_reads_them() {
+    use ace_sdk::wire::{EventTimeSource, Gate, RootEventTime};
+    let names = ["test_reads_lineage", "test_gated"];
+    let core = Core::start(
+        vec![
+            ace_sdk::Manifest::lookup::<lineage::ReadsLineage>(),
+            ace_sdk::Manifest::lookup::<lineage::Gated>(),
+        ],
+        &names,
+        Duration::from_secs(60),
+    )
+    .await;
+    let db = core.test_db.db();
+    let when = chrono::DateTime::parse_from_rfc3339("2026-11-18T09:30:00Z")
+        .expect("a time")
+        .to_utc();
+    let root = ace_core::tree::NewRoot {
+        event_time: ace_core::tree::EventTime::Event(when),
+        ..ace_core::tree::NewRoot::new("analysis")
+    };
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    let id = ace_core::tree::upsert_observable(
+        &mut tx,
+        root.id,
+        &ace_results::NewObservable::new(ace_results::ObservableKind::Fqdn, "a.example"),
+    )
+    .await
+    .expect("adds")
+    .id;
+    for module in names {
+        ace_core::queue::enqueue(&mut tx, root.id, id, module)
+            .await
+            .expect("queues");
+    }
+    tx.commit().await.expect("commits");
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let reads = lease_one(&client, "test_reads_lineage").await;
+    assert_eq!(
+        reads.event_time,
+        Some(RootEventTime {
+            time: Some(when),
+            source: EventTimeSource::Event,
+        })
+    );
+    assert!(reads.at_root, "a submitted observable is at the root");
+    assert!(reads.gate.is_empty(), "it declares nothing");
+    let gated = lease_one(&client, "test_gated").await;
+    assert_eq!(
+        gated.gate,
+        Gate {
+            mode: Some("analysis".to_owned()),
+            added_by: Vec::new(),
+            at_root: true,
+        }
+    );
+    assert!(!gated.at_root && gated.event_time.is_none() && gated.tree.is_none());
 }

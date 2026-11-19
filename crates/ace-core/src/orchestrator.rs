@@ -31,6 +31,7 @@ use crate::cache::{self, CacheSettings};
 use crate::db::{DbError, Retryable, Tx};
 use crate::eligibility::{Catalog, Facts, check};
 use crate::hooks::{self, Hooks};
+use crate::limits;
 use crate::modes::{CORRELATION, DISPOSITIONED, Modes};
 use crate::queue::{self, QueueError, Task, TaskId, TaskState, Worker};
 use crate::takes::{self as declared, TakesMode};
@@ -460,6 +461,8 @@ impl Orchestrator {
         // the tasks a kept result may stand in for, looked up once everything else is queued
         // (`crate::cache`)
         let mut cacheable = Vec::new();
+        // what each analysis type's automation limit counts (`crate::limits`)
+        let mut counts = limits::Counts::default();
         for (observable, (kind, components)) in observables.iter().zip(eligible) {
             let facts = held.get(&observable.id).unwrap_or(&nothing_held).facts(
                 kind,
@@ -479,9 +482,33 @@ impl Orchestrator {
                 if declined.is_some() && self.takes == TakesMode::Applied {
                     continue;
                 }
+                // ace3's automation limit, after every other rule and before the cache
+                // (`crate::limits`); a task the audit queues only to mark isn't held to it
+                let limit = declined
+                    .is_none()
+                    .then(|| self.limit_for(component, &observable.directives))
+                    .flatten();
                 if task.is_none() && declined.is_none() && cache::caches(&self.cache, component) {
-                    cacheable.push((observable.id, kind, observable.value.as_str(), component));
+                    // its limit is checked where its lookup is made, below
+                    cacheable.push((
+                        observable.id,
+                        kind,
+                        observable.value.as_str(),
+                        component,
+                        limit,
+                    ));
                     continue;
+                }
+                let requeued =
+                    matches!(task, Some((_, TaskState::Cancelled, _))) && requeue_cancelled;
+                if let Some(limit) = limit
+                    && (task.is_none() || requeued)
+                {
+                    let (analysis_type, modules) = self.same_type(component);
+                    if counts.get(tx, root, analysis_type, &modules).await? >= limit {
+                        limits::hold(tx, root, observable.id, key, limit).await?;
+                        continue;
+                    }
                 }
                 let added = match task {
                     None => queue::enqueue(tx, root, observable.id, key).await?,
@@ -490,6 +517,16 @@ impl Orchestrator {
                     }
                     Some(_) => None,
                 };
+                if added.is_some() {
+                    // every task of a type counts toward its limit, a task of a component with
+                    // none among them, but not one the audit queues only to mark
+                    if declined.is_none() {
+                        counts.add(component.manifest.output.name);
+                    }
+                    if limit.is_some() {
+                        limits::release(tx, root, observable.id, key).await?;
+                    }
+                }
                 if self.takes == TakesMode::Audit {
                     // a task queued now is marked if the declaration declines it; one queued
                     // earlier and marked is cleared once it takes it, which is when the core
@@ -509,7 +546,17 @@ impl Orchestrator {
                 queued.extend(added);
             }
         }
-        for (observable, kind, value, component) in cacheable {
+        for (observable, kind, value, component, limit) in cacheable {
+            // counted from the database: a hit before this one may have landed results and queued
+            // tasks of its own
+            if let Some(limit) = limit {
+                let (analysis_type, modules) = self.same_type(component);
+                if limits::count(tx, root, analysis_type, &modules).await? >= limit {
+                    limits::hold(tx, root, observable, &component.key, limit).await?;
+                    continue;
+                }
+                limits::release(tx, root, observable, &component.key).await?;
+            }
             // a hit's eligibility can reach what's left here, and its detection can change the
             // mode, which reruns all of it
             match self
@@ -529,6 +576,57 @@ impl Orchestrator {
             }
         }
         Ok(queued)
+    }
+
+    /// `component`'s automation limit on an observable with `directives`, unless the observable
+    /// lifts it (`crate::limits`).
+    fn limit_for(&self, component: &ace_sdk::Component, directives: &[String]) -> Option<u32> {
+        component.automation_limit.filter(|_| {
+            !directives
+                .iter()
+                .any(|d| d == limits::IGNORE_AUTOMATION_LIMITS)
+        })
+    }
+
+    /// `component`'s analysis type, and the keys of every component that writes it, which its limit
+    /// counts together, as ace3 counts a root's analyses of one type.
+    fn same_type<'c>(&'c self, component: &'c ace_sdk::Component) -> (&'c str, Vec<String>) {
+        let analysis_type = component.manifest.output.name;
+        let modules = self
+            .catalog
+            .iter()
+            .filter(|c| c.manifest.output.name == analysis_type)
+            .map(|c| c.key.clone())
+            .collect();
+        (analysis_type, modules)
+    }
+
+    /// What a task of `module` that ended with no result frees: when its type has an automation
+    /// limit, a place for the work the limit held back in the root, for which eligibility runs
+    /// again, oldest observable first (`crate::limits`).
+    pub async fn limit_freed(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+        module: &str,
+    ) -> Result<Vec<TaskId>, OrchestratorError> {
+        let Some(component) = self.catalog.component(module) else {
+            return Ok(Vec::new());
+        };
+        let (_, modules) = self.same_type(component);
+        if !self
+            .catalog
+            .iter()
+            .any(|c| modules.contains(&c.key) && c.automation_limit.is_some())
+        {
+            return Ok(Vec::new());
+        }
+        let held = limits::held(tx, root, &modules).await?;
+        if held.is_empty() {
+            return Ok(Vec::new());
+        }
+        self.queue_eligible(tx, root, Scope::Observables(&held), false)
+            .await
     }
 
     /// Writes the result kept for `component` on an observable, if there is one, as its task's end
@@ -567,8 +665,13 @@ impl Orchestrator {
             return missed(tx, root, &component.key, started).await;
         };
         // a result that adds files names them after its file's path, which is settled first, as a
-        // lease would settle it, or else the task waits for its lease to settle it
-        let analyzed = if kept.files.is_empty() {
+        // lease would settle it, or else the task waits for its lease to settle it; one that puts
+        // them under its observable's name doesn't need it
+        let named = matches!(
+            component.manifest.cache.map(|cache| cache.paths),
+            Some(ace_sdk::cache::CachePaths::Named(_))
+        );
+        let analyzed = if kept.files.is_empty() || !named {
             None
         } else {
             match settleable_path(tx, &self.catalog, root, observable).await? {
@@ -732,7 +835,7 @@ impl Orchestrator {
             .await
     }
 
-    /// What follows a file's type step, however it ended (`queue::TypeStepEnded`): the file shows
+    /// What follows a file's type step, however it ended (`queue::TaskEnded`): the file shows
     /// ace3's file_type result where that module would have run, the observable modifier's `pre`
     /// rules see what that added, as they see what a landing adds, and the file's other tasks are
     /// queued. Called in the transaction that ended the step, with its root locked.
@@ -1070,6 +1173,17 @@ impl Orchestrator {
         else {
             return Ok(());
         };
+        // the images its task's scans ran are versions as its tools' are (`Cache::scanners`)
+        let scanned;
+        let probes = match component.manifest.cache.map(|cache| cache.scanners) {
+            Some(scanners) if !scanners.is_empty() => {
+                let mut with = probes.clone();
+                with.extend(crate::scans::image_ids(tx, task.id, scanners).await?);
+                scanned = with;
+                &scanned
+            }
+            _ => probes,
+        };
         if !probes.is_empty() {
             cache::record_probes(tx, &component.key, probes).await?;
         }
@@ -1080,7 +1194,14 @@ impl Orchestrator {
         } else {
             None
         };
-        let (places, bytes) = match cache::refusal(component, result, writes, analyzed.as_deref()) {
+        let observable = (task.observable.kind, task.observable.value.as_str());
+        let (places, bytes) = match cache::refusal(
+            component,
+            result,
+            writes,
+            observable,
+            analyzed.as_deref(),
+        ) {
             Ok(kept) => kept,
             Err(why) => {
                 tracing::debug!(task = %task.id, module = %task.module, "the result isn't kept: {why}");
@@ -1091,7 +1212,8 @@ impl Orchestrator {
         let Some(extended) = cache::extended(tx, component, value, Some(probes)).await? else {
             tracing::warn!(
                 task = %task.id, module = %task.module,
-                "the result isn't kept: its pool sent none of the versions its key holds"
+                "the result isn't kept: its pool sent none of the versions its key holds, or its \
+                 scan ran in no container"
             );
             return Ok(());
         };
@@ -1307,23 +1429,43 @@ impl Orchestrator {
     }
 }
 
-impl queue::TypeStepEnded for Orchestrator {
-    fn ended<'a>(
+impl queue::TaskEnded for Orchestrator {
+    fn type_step<'a>(
         &'a self,
         tx: &'a mut Tx<'_>,
         root: Uuid,
         observable: ObservableId,
-    ) -> queue::TypeStepFuture<'a> {
+    ) -> queue::EndedFuture<'a> {
         Box::pin(async move {
-            match self.type_step_ended(tx, root, observable).await {
-                Ok(_) => Ok(()),
-                Err(OrchestratorError::Queue(e)) => Err(e),
-                Err(OrchestratorError::Db(e)) => Err(QueueError::Db(e)),
-                Err(OrchestratorError::NoRoot(root)) => {
-                    Err(QueueError::Db(DbError::Decode(format!("no root {root}"))))
-                }
-            }
+            self.type_step_ended(tx, root, observable)
+                .await
+                .map(drop)
+                .map_err(queue_error)
         })
+    }
+
+    fn without_result<'a>(
+        &'a self,
+        tx: &'a mut Tx<'_>,
+        root: Uuid,
+        module: &'a str,
+    ) -> queue::EndedFuture<'a> {
+        Box::pin(async move {
+            self.limit_freed(tx, root, module)
+                .await
+                .map(drop)
+                .map_err(queue_error)
+        })
+    }
+}
+
+fn queue_error(error: OrchestratorError) -> QueueError {
+    match error {
+        OrchestratorError::Queue(e) => e,
+        OrchestratorError::Db(e) => QueueError::Db(e),
+        OrchestratorError::NoRoot(root) => {
+            QueueError::Db(DbError::Decode(format!("no root {root}")))
+        }
     }
 }
 

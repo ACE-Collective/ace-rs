@@ -2470,18 +2470,14 @@ mod declaring {
         ByAdder,
         "test_takes_added_by",
         parser,
-        {
-            const READS_ADDED_BY: bool = true;
-        },
+        {},
         Takes::everything().and(Condition::added_by("test_carrier2"), "not test_carrier2's")
     );
     declaring!(
         ByMode,
         "test_takes_mode",
         parser,
-        {
-            const READS_TREE: bool = true;
-        },
+        {},
         Takes::everything().and(Condition::Mode("correlation".to_owned()), "not correlation")
     );
     declaring!(
@@ -2939,11 +2935,11 @@ async fn typed_root(
     (root, ids[0])
 }
 
-/// The type step's worker, which ends it as the lease API's does (`queue::TypeStepEnded`).
+/// The type step's worker, which ends it as the lease API's does (`queue::TaskEnded`).
 async fn type_worker(test_db: &TestDb, orchestrator: &Orchestrator) -> ace_core::queue::Worker {
     worker(test_db, "typer", &["file_type"], Duration::from_secs(60))
         .await
-        .with_type_step(std::sync::Arc::new(orchestrator.clone()))
+        .with_ended(std::sync::Arc::new(orchestrator.clone()))
 }
 
 fn modules(tasks: &[(String, String, String)]) -> Vec<&str> {
@@ -3844,4 +3840,172 @@ async fn a_keyed_read_s_answer_is_in_the_key() {
         "new.example".to_owned(),
         "queued".to_owned()
     )));
+}
+
+/// A lookup that does nothing, held to an automation limit in the tests below.
+mod limited {
+    use ace_results::ObservableKind;
+    use ace_sdk::{Lookup, Module, ModuleError, Outcome, TaskContext};
+
+    use super::common::stubs::StubOutput;
+
+    pub struct Limited;
+
+    impl Module for Limited {
+        const NAME: &'static str = "test_limited";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const AUTOMATION_LIMIT: Option<u32> = Some(2);
+        type Output = StubOutput;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(Limited)
+        }
+    }
+
+    impl Lookup for Limited {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<StubOutput>, ModuleError> {
+            Ok(Outcome::Skipped("a stub".to_owned()))
+        }
+    }
+}
+
+/// ace3's automation limit (`ace_core::limits`): a root holds at most the limit of a type's results
+/// and tasks, an observable with `ignore_automation_limits` isn't held to it but counts, the work
+/// over it is recorded, and a task that ends with no result frees a place, which the work held back
+/// takes, oldest first. The same with the module cacheable, whose limit is checked where its lookup
+/// is made, and with a second instance, which counts with the first.
+#[tokio::test]
+async fn the_automation_limit_holds_a_root_to_its_limit_and_a_skip_frees_a_place() {
+    use ace_core::limits::IGNORE_AUTOMATION_LIMITS;
+    use ace_sdk::Component;
+    for (cacheable, instance) in [(false, false), (true, false), (false, true)] {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let mut manifest = ace_sdk::Manifest::lookup::<limited::Limited>();
+        let mut component = Component::of(manifest);
+        if cacheable {
+            manifest.cache = Some(ace_sdk::cache::Cache::new(1, Duration::from_secs(600)));
+            component = Component {
+                cache_ttl: Some(Duration::from_secs(600)),
+                ..Component::of(manifest)
+            };
+        }
+        let mut components = vec![component.clone()];
+        if instance {
+            // a second instance of the same type, with no limit of its own, counts with the first
+            components.push(Component {
+                key: "test_limited_b".to_owned(),
+                automation_limit: None,
+                ..component.clone()
+            });
+        }
+        let modes = Modes::ace3().with_mode(AnalysisMode {
+            name: "limits".to_owned(),
+            module_groups: Vec::new(),
+            enabled_modules: components.iter().map(|c| c.key.clone()).collect(),
+            disabled_modules: Vec::new(),
+        });
+        let orchestrator = Orchestrator::new(Catalog::of(components), modes);
+        let mut tx = db.begin().await.expect("begins");
+        let root = tree::NewRoot::new("limits");
+        tree::create_root(&mut tx, &root).await.expect("creates");
+        for (value, lifted) in [
+            ("a.example", false),
+            ("b.example", false),
+            ("c.example", false),
+            ("d.example", true),
+        ] {
+            let mut observable = ace_results::NewObservable::new(ObservableKind::Fqdn, value);
+            if lifted {
+                observable.directives = vec![IGNORE_AUTOMATION_LIMITS.to_owned()];
+            }
+            tree::upsert_observable(&mut tx, root.id, &observable)
+                .await
+                .expect("adds");
+        }
+        orchestrator.start(&mut tx, root.id).await.expect("starts");
+        tx.commit().await.expect("commits");
+        let root = root.id;
+        let limited = |module: &'static str| async move {
+            sqlx::query_scalar::<_, String>(
+                "SELECT o.value FROM analysis.automation_limited l
+                 JOIN analysis.observables o ON o.root_id = l.root_id AND o.id = l.observable_id
+                 WHERE l.root_id = $1 AND l.module = $2 ORDER BY o.value",
+            )
+            .bind(root)
+            .bind(module)
+            .fetch_all(db.pool())
+            .await
+            .expect("reads")
+        };
+        let queued = |module: &'static str| async move {
+            tasks_of(db, root)
+                .await
+                .into_iter()
+                .filter(|(m, _, state)| m == module && state == "queued")
+                .map(|(_, value, _)| value)
+                .collect::<BTreeSet<String>>()
+        };
+        let set = |values: &[&str]| values.iter().map(|v| (*v).to_owned()).collect();
+        let what = format!("cacheable {cacheable}, an instance {instance}");
+        if instance {
+            // each instance's tasks count against the first's limit: two of eight places taken
+            // by the first two observables of either, the lifted one queued for both
+            let first = queued("test_limited").await;
+            let second = queued("test_limited_b").await;
+            assert_eq!(first, set(&["a.example", "d.example"]), "{what}");
+            assert_eq!(
+                second,
+                set(&["a.example", "b.example", "c.example", "d.example"]),
+                "{what}: the instance with no limit isn't held"
+            );
+            assert_eq!(
+                limited("test_limited").await,
+                ["b.example", "c.example"],
+                "{what}"
+            );
+            continue;
+        }
+        // two places, and the lifted observable queued over them
+        assert_eq!(
+            queued("test_limited").await,
+            set(&["a.example", "b.example", "d.example"]),
+            "{what}"
+        );
+        assert_eq!(limited("test_limited").await, ["c.example"], "{what}");
+        let worker = worker(&test_db, "w", &["test_limited"], Duration::from_secs(60))
+            .await
+            .with_ended(std::sync::Arc::new(orchestrator.clone()));
+        let end_one = |value: &'static str| {
+            let worker = worker.clone();
+            async move {
+                let id: i64 = sqlx::query_scalar(
+                    "SELECT t.id FROM queue.tasks t
+                     JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id
+                     WHERE t.root_id = $1 AND o.value = $2",
+                )
+                .bind(root)
+                .bind(value)
+                .fetch_one(db.pool())
+                .await
+                .expect("a task");
+                loop {
+                    let task = worker.claim().await.expect("claims").expect("a task");
+                    if task.id.0 == id {
+                        worker.complete(task.id).await.expect("skips");
+                        return;
+                    }
+                    worker.release(task.id).await.expect("releases");
+                }
+            }
+        };
+        // a's skip frees a place, but d's task still counts: c waits
+        end_one("a.example").await;
+        assert_eq!(limited("test_limited").await, ["c.example"], "{what}");
+        // b's frees another: c takes it, and its record goes
+        end_one("b.example").await;
+        assert!(queued("test_limited").await.contains("c.example"), "{what}");
+        assert!(limited("test_limited").await.is_empty(), "{what}");
+    }
 }

@@ -44,6 +44,8 @@ chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 # A database of the test's own, which the site's `ace serve` runs on.
 ace-core = { path = "../ace-core", features = ["testing"] }
 libc = "0.2.191"
+# A site module's run with the facts a lease carries (the event time test).
+ace-testkit = { path = "../ace-testkit" }
 reqwest = { version = "0.13.5", default-features = false, features = ["json"] }
 sqlx = { version = "0.9.0", default-features = false, features = ["json", "postgres", "runtime-tokio", "uuid"] }
 tempfile = "3.27.0"

@@ -229,6 +229,65 @@ pub struct LeasedTask {
     /// For a module that asked for a scan in its last delay, the scan (PLAN.md 7.7).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scan: Option<crate::scanners::WireScan>,
+    /// The facts the module's declaration reads (`Module::takes`) that its `analyze` may not see:
+    /// the pool checks the declaration on them, and `TaskContext` keeps them from `analyze`
+    /// (`crate::takes`, *Reads that only decide*). Empty for a module whose declaration reads none.
+    #[serde(default, skip_serializing_if = "Gate::is_empty")]
+    pub gate: Gate,
+    /// For a module that reads which modules added its observable (`Module::READS_ADDED_BY`):
+    /// whether the observable came with its root's submission, as ace3's root analysis holds it
+    /// among its own observables. False for any other.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub at_root: bool,
+    /// For a module that reads it (`Module::READS_EVENT_TIME`), the root's event time, ace3's
+    /// `get_root().event_time`, with where it came from. None for any other.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub event_time: Option<RootEventTime>,
+}
+
+/// What a declaration reads that `analyze` may not see (`LeasedTask::gate`): each part is sent only
+/// when the module's declaration reads it.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Gate {
+    /// The root's analysis mode (`takes::Condition::Mode`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    /// The modules whose results added the observable, in order (`takes::Condition::AddedBy`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub added_by: Vec<String>,
+    /// The observable came with its root's submission (`takes::Condition::AtRoot`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub at_root: bool,
+}
+
+impl Gate {
+    pub fn is_empty(&self) -> bool {
+        self.mode.is_none() && self.added_by.is_empty() && !self.at_root
+    }
+}
+
+/// A root's event time and where it came from (ace3 #850): `time` is what ace3's
+/// `RootAnalysis.event_time` holds, which is the time ACE gave the root when its submitter gave none.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RootEventTime {
+    pub time: Option<DateTime<Utc>>,
+    pub source: EventTimeSource,
+}
+
+/// Where a root's event time came from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EventTimeSource {
+    /// The event itself, as its submitter knew it.
+    Event,
+    /// A hunt's query time, for a result with no time of its own.
+    QueryTime,
+    /// The time ACE substituted because the submitter gave none.
+    Now,
+    /// No time.
+    Unset,
 }
 
 /// An observable the task's observable is related to, and its tags.

@@ -281,7 +281,12 @@ pub fn format_item_list_for_summary(items: &[String]) -> String {
 /// ace3's is random, so its scanner's output differs from run to run where it names the job.
 pub fn job_id<S>(ctx: &TaskContext<S>, module: &str) -> String {
     let observable = ctx.observable();
-    let name = format!("ace4/{module}/{}/{}", observable.kind, observable.value);
+    job_id_of(module, observable.kind, &observable.value)
+}
+
+/// `job_id` for an observable of `kind` and `value`: it follows from them and the module alone.
+pub fn job_id_of(module: &str, kind: ace_results::ObservableKind, value: &str) -> String {
+    let name = format!("ace4/{module}/{kind}/{value}");
     uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_URL, name.as_bytes()).to_string()
 }
 

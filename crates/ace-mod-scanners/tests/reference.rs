@@ -14,6 +14,7 @@ use std::time::Duration;
 
 use ace_mod_scanners::{JavaScriptDeobfuscationAnalyzer, PhishkitAnalyzer};
 use ace_results::ObservableKind;
+use ace_results::types::file_type::TypeFacts;
 use ace_sdk::scanners::{Scan, ScanState};
 use ace_sdk::tree::{TreeObservable, TreePath, TreeView};
 use ace_sdk::{Delay, Outcome};
@@ -366,7 +367,8 @@ fn phishkit_state(case: &str) -> ScanState {
     }
 }
 
-/// The tree a phishkit task sees: only its own observable, and the root's mode.
+/// The tree a phishkit task's lease would hold: only its own observable, and the root's mode, which
+/// the harness sends its declaration (the module doesn't read the tree).
 fn phishkit_tree(dump: &Dump, observable: &ace_sdk::Observable) -> TreeView {
     // make-dumps names the mode in the label of a file's run; a URL's runs in cli mode
     let label = dump.value["input"]["label"].as_str().unwrap_or_default();
@@ -420,7 +422,7 @@ fn phishkit_analyzer_matches_the_reference_dumps_or_lists_each_difference() {
     for dump in dumps {
         let work = tempfile::tempdir().expect("a directory");
         let input = &dump.value["input"];
-        let mut harness = Harness::<PhishkitAnalyzer>::new().expect("harness");
+        let harness = Harness::<PhishkitAnalyzer>::new().expect("harness");
         let observable = if input["observable"]["type"] == "file" {
             let meta: Vec<&str> = input["meta_tags"]
                 .as_array()
@@ -428,9 +430,6 @@ fn phishkit_analyzer_matches_the_reference_dumps_or_lists_each_difference() {
                 .flatten()
                 .filter_map(Value::as_str)
                 .collect();
-            if let Some(file_type) = dump.file_type() {
-                harness = harness.dependency_result("file_type", file_type.clone());
-            }
             let mut file = harness
                 .file(
                     input["observable"]["file_path"].as_str().expect("a path"),
@@ -438,8 +437,13 @@ fn phishkit_analyzer_matches_the_reference_dumps_or_lists_each_difference() {
                     &meta,
                 )
                 .expect("the page");
+            // the type the core's type step found, whose mime type the declaration reads
             if let Some(f) = file.file.as_mut() {
                 f.mime_type = dump.mime_type().map(str::to_owned);
+                f.facts = dump.mime_type().map(|mime| TypeFacts {
+                    mime: mime.to_owned(),
+                    ..TypeFacts::default()
+                });
             }
             file
         } else {

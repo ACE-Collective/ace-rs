@@ -1418,6 +1418,7 @@ fn a_site_s_parser_is_built_alone_in_its_task_process() {
         relationships: &[],
         redirected: false,
         added_by: &[],
+        at_root: false,
         mode: None,
         file: Some(ace_sdk::takes::FileFacts {
             path,
@@ -1693,5 +1694,73 @@ fn a_site_s_network_pool_holds_only_its_connections_secrets() {
             "setup failed: the overlay's connections.tickets.settings: unknown settings key timeout"
         ),
         "{stderr}"
+    );
+}
+
+/// A site's module that reads the root's event time (`Module::READS_EVENT_TIME`) and where its
+/// observable came from, as a search around the alert would, and says what it read.
+mod around_the_alert {
+    use ace_results::{AnalysisType, ObservableKind};
+    use ace_sdk::{Lookup, Module, ModuleError, Outcome, TaskContext};
+
+    #[derive(
+        Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
+    )]
+    pub struct LineStats {
+        pub note: String,
+    }
+
+    impl AnalysisType for LineStats {
+        const NAME: &'static str = "site_around_the_alert";
+        const VERSION: u32 = 1;
+        const MODULE: &'static str = "site_around_the_alert";
+    }
+
+    pub struct AroundTheAlert;
+
+    impl Module for AroundTheAlert {
+        const NAME: &'static str = "site_around_the_alert";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const READS_EVENT_TIME: bool = true;
+        const READS_ADDED_BY: bool = true;
+        type Output = LineStats;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(AroundTheAlert)
+        }
+    }
+
+    impl Lookup for AroundTheAlert {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<LineStats>, ModuleError> {
+            Ok(Outcome::Skipped(format!(
+                "{:?} {:?} at the root {}",
+                ctx.event_time().map(|t| t.to_rfc3339()),
+                ctx.event_time_source(),
+                ctx.at_root()
+            )))
+        }
+    }
+}
+
+/// A site's module reads the root's event time and whether its observable came with the
+/// submission, as the testkit gives them, which is as the lease does.
+#[tokio::test]
+async fn a_site_module_reads_the_root_s_event_time_through_the_testkit() {
+    use around_the_alert::AroundTheAlert;
+    let when = chrono::DateTime::parse_from_rfc3339("2026-11-18T09:30:00Z")
+        .expect("a time")
+        .to_utc();
+    let harness = ace_testkit::Harness::<AroundTheAlert>::new()
+        .expect("a harness")
+        .event_time(when)
+        .at_root(true);
+    let observable = harness.observable(ace_results::ObservableKind::Fqdn, "a.example");
+    let outcome = harness.run_lookup(observable).await.expect("runs");
+    assert_eq!(
+        outcome,
+        ace_sdk::Outcome::Skipped(
+            "Some(\"2026-11-18T09:30:00+00:00\") Some(Event) at the root true".to_owned()
+        )
     );
 }

@@ -461,18 +461,13 @@ async fn stack_built(
 }
 
 /// A file collector that collects nothing, for the file collections' routes (PLAN.md 7.9).
-static TEST_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec {
-    kind: ace_sdk::actions::ActionKind::FileCollection,
-    name: "edr",
-    display_name: "Test EDR",
-    description: "Collects files in tests.",
-    observable_type: "file_location",
-    tcp_ports: &[],
-    secrets: &[],
-    connections: &[],
-    retry: ace_sdk::actions::Retry::FILE_COLLECTION,
-    supersede_grace_seconds: 0,
-};
+static TEST_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec::new(
+    ace_sdk::actions::ActionKind::FileCollection,
+    "edr",
+    "Test EDR",
+    "Collects files in tests.",
+    "file_location",
+);
 
 /// ace3's test remediator and a test collector.
 fn test_actions() -> ace_core::actions::ActionCatalog {

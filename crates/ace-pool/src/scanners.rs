@@ -439,6 +439,7 @@ fn failed(error: impl std::fmt::Display) -> ScanEnd {
             error: error.to_string(),
         },
         output: None,
+        image_id: None,
     }
 }
 
@@ -495,6 +496,8 @@ async fn run_container(
     );
     let id = docker.create(&name, &body).await?;
     *container = Some(id.clone());
+    // what the analysis cache keys a scanning module's result on (`ace_sdk::cache::Cache::scanners`)
+    let image_id = docker.container_image(&id).await?;
     docker.put_archive(&id, archive).await?;
     docker.start(&id).await?;
     tracing::info!(container = %id, "started the scanner");
@@ -521,6 +524,7 @@ async fn run_container(
             return Ok(ScanEnd {
                 outcome: ScanOutcome::Cancelled,
                 output: None,
+                image_id,
             });
         }
         Stopped::Shutdown => {
@@ -568,6 +572,7 @@ async fn run_container(
     Ok(ScanEnd {
         outcome,
         output: Some(record),
+        image_id,
     })
 }
 

@@ -318,6 +318,16 @@ impl Docker {
             .map_err(|e| DockerError::Json("container list".to_owned(), e))
     }
 
+    /// The id of the image a container was created from, which is what it runs whatever its tag
+    /// names since.
+    pub async fn container_image(&self, id: &str) -> Result<Option<String>, DockerError> {
+        let path = format!("/containers/{}/json", encode(id));
+        let (_, bytes) = self.call(Method::GET, &path, None).await?;
+        let value: Value = serde_json::from_slice(&bytes)
+            .map_err(|e| DockerError::Json("container inspect".to_owned(), e))?;
+        Ok(value["Image"].as_str().map(str::to_owned))
+    }
+
     /// The image's id, or None when the daemon doesn't have it.
     pub async fn image_id(&self, image: &str) -> Result<Option<String>, DockerError> {
         let path = format!("/images/{}/json", encode(image));

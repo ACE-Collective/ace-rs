@@ -87,6 +87,19 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// tasks, which read them with `TaskContext::added_by`. A result that lands after the task is
     /// leased isn't among them, so such a module usually runs last too.
     const READS_ADDED_BY: bool = false;
+    /// True for a module that reads its root's event time, as ace3's modules read
+    /// `get_root().event_time`, such as a search over a window around the alert. The core adds it
+    /// to the module's tasks, with where it came from, which the module reads with
+    /// `TaskContext::event_time`. A result that depends on it isn't a function of the observable, so
+    /// the analysis cache refuses a module that reads it (`crate::cache::refusal`).
+    const READS_EVENT_TIME: bool = false;
+    /// The most results of the module's analysis type a root holds before the core stops queuing
+    /// the module there, ace3's `automation_limit`: a module that may fan out, such as a lookup
+    /// per recipient of a mass mail, stops at it. All the module's instances count together, as
+    /// ace3 counts a root's analyses of one type. An observable with the directive
+    /// `ignore_automation_limits` isn't held to it (`crate::limits`). None, the default, has no
+    /// limit; a site's overlay sets one with `automation_limit` beside `settings`, over this.
+    const AUTOMATION_LIMIT: Option<u32> = None;
     /// True for a module that reads the tags of the observables its observable is related to, as
     /// ace3's modules read the tags of the file one was `extracted_from`. The core adds them to its
     /// tasks, which read them with `TaskContext::related_tags`, as they are when it's leased.
@@ -338,6 +351,11 @@ pub fn task_span<S>(module: &'static str, ctx: &TaskContext<S>) -> tracing::Span
 
 /// The directive that keeps every module off an observable, as ace3's `exclude_all`.
 pub const EXCLUDE_ALL: &str = "exclude_all";
+
+/// The directive that lifts every module's automation limit for an observable
+/// (`Module::AUTOMATION_LIMIT`), as ace3's `ignore_automation_limits`, which an analyst adds to
+/// force an analysis.
+pub const IGNORE_AUTOMATION_LIMITS: &str = "ignore_automation_limits";
 
 /// The first of the observable's directives that keeps module `M` off it.
 fn skipping_directive<M: Module, S>(ctx: &TaskContext<S>) -> Option<&str> {

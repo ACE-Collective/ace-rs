@@ -441,11 +441,7 @@ impl Parser for TicketFile {
 
 /// The example collector (the crate's docs).
 pub const EXAMPLE_COLLECTOR: ace_app::collector::CollectorSpec =
-    ace_app::collector::CollectorSpec {
-        name: "example",
-        secrets: &[EXAMPLE_COLLECTOR_TOKEN],
-        connections: &[],
-    };
+    ace_app::collector::CollectorSpec::new("example").secrets(&[EXAMPLE_COLLECTOR_TOKEN]);
 
 /// The secret the example collector reads, as a real one reads its source's credentials.
 pub const EXAMPLE_COLLECTOR_TOKEN: &str = "example_collector_token";

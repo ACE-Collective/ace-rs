@@ -207,6 +207,8 @@ pub struct EndedScan<'a> {
     pub exit_code: Option<i32>,
     pub error: Option<&'a str>,
     pub output: Option<(Sha256, u64)>,
+    /// The id of the image its container ran (`ScanEnd::image_id`).
+    pub image_id: Option<&'a str>,
 }
 
 /// One scanner pool process's identity on the scans' queue.
@@ -320,7 +322,7 @@ impl ScanWorker {
                                              timeout_seconds))
                      WHEN 'cancelled'::queue.scan_state THEN coalesce($5, 'cancelled while it ran')
                      ELSE $5 END,
-                 output_sha256 = $6, output_size = $7, finished_at = now(),
+                 output_sha256 = $6, output_size = $7, image_id = $8, finished_at = now(),
                  lease_owner = NULL, lease_expires_at = NULL
              WHERE id = $1 AND lease_owner = $2 AND state = 'running'
              RETURNING task_id",
@@ -331,6 +333,7 @@ impl ScanWorker {
             error.as_deref(),
             sha256,
             size,
+            ended.image_id,
         )
         .fetch_optional(tx.conn())
         .await?
@@ -347,6 +350,31 @@ impl ScanWorker {
             })
             .await
     }
+}
+
+/// The id of the image each scanner of `scanners` ran for the task's latest scan of it that got as
+/// far as a container, by `scanner:<name>`, as the analysis cache keys a scanning module's result
+/// (`ace_sdk::cache::Cache::scanners`). A scanner with no such scan isn't there.
+pub async fn image_ids(
+    tx: &mut Tx<'_>,
+    task: TaskId,
+    scanners: &[&str],
+) -> Result<std::collections::BTreeMap<String, String>, DbError> {
+    let scanners: Vec<String> = scanners.iter().map(|s| (*s).to_owned()).collect();
+    let rows = sqlx::query!(
+        r#"SELECT DISTINCT ON (scanner) scanner, image_id AS "image_id!"
+           FROM queue.scans
+           WHERE task_id = $1 AND scanner = ANY($2) AND image_id IS NOT NULL
+           ORDER BY scanner, id DESC"#,
+        task as TaskId,
+        &scanners,
+    )
+    .fetch_all(tx.conn())
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|row| (format!("scanner:{}", row.scanner), row.image_id))
+        .collect())
 }
 
 /// `error` with NUL as U+FFFD, cut to `MAX_ERROR_CHARS`.

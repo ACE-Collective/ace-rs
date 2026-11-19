@@ -107,6 +107,9 @@ pub struct Harness<M: Module> {
     dependency_errors: Vec<(String, String)>,
     observables_below: Vec<ObservableRef>,
     added_by: Vec<String>,
+    at_root: bool,
+    mode: Option<String>,
+    event_time: Option<ace_sdk::wire::RootEventTime>,
     related_tags: Vec<RelatedTags>,
     tree: Option<ace_sdk::tree::TreeView>,
     scan: Option<ace_sdk::scanners::Scan>,
@@ -151,6 +154,9 @@ impl<M: Module> Harness<M> {
             dependency_errors: Vec::new(),
             observables_below: Vec::new(),
             added_by: Vec::new(),
+            at_root: false,
+            mode: None,
+            event_time: None,
             related_tags: Vec::new(),
             tree: None,
             scan: None,
@@ -225,10 +231,41 @@ impl<M: Module> Harness<M> {
         self
     }
 
-    /// The modules whose results added the observable, as the core sends them to a module that
-    /// reads them (`Module::READS_ADDED_BY`).
+    /// The modules whose results added the observable, as the core holds them: the lease sends
+    /// them to the module's declaration when it reads them, and to `analyze` only for a module that
+    /// reads them (`Module::READS_ADDED_BY`), as the harness does.
     pub fn added_by(mut self, modules: &[&str]) -> Self {
         self.added_by = modules.iter().map(|m| (*m).to_owned()).collect();
+        self
+    }
+
+    /// Whether the observable came with its root's submission (`takes::Condition::AtRoot`,
+    /// `TaskContext::at_root`), sent as `added_by` is.
+    pub fn at_root(mut self, at_root: bool) -> Self {
+        self.at_root = at_root;
+        self
+    }
+
+    /// The root's analysis mode, as the lease sends it to a declaration that reads it. A tree's
+    /// mode stands for it when this isn't set.
+    pub fn mode(mut self, mode: &str) -> Self {
+        self.mode = Some(mode.to_owned());
+        self
+    }
+
+    /// The root's event time, as the core sends it to a module that reads it
+    /// (`Module::READS_EVENT_TIME`), from the event itself.
+    pub fn event_time(mut self, time: DateTime<Utc>) -> Self {
+        self.event_time = Some(ace_sdk::wire::RootEventTime {
+            time: Some(time),
+            source: ace_sdk::wire::EventTimeSource::Event,
+        });
+        self
+    }
+
+    /// The root's event time with where it came from, or none.
+    pub fn root_event_time(mut self, event_time: ace_sdk::wire::RootEventTime) -> Self {
+        self.event_time = Some(event_time);
         self
     }
 
@@ -368,6 +405,29 @@ impl<M: Module> Harness<M> {
         }
     }
 
+    /// What the lease would send the module's declaration (`wire::Gate`): only what it reads.
+    fn gate(&self) -> ace_sdk::wire::Gate {
+        let reads = M::takes(&self.settings).reads();
+        ace_sdk::wire::Gate {
+            mode: reads
+                .mode
+                .then(|| {
+                    self.mode.clone().or_else(|| {
+                        self.tree
+                            .as_ref()
+                            .and_then(|tree| tree.analysis_mode.clone())
+                    })
+                })
+                .flatten(),
+            added_by: if reads.added_by {
+                self.added_by.clone()
+            } else {
+                Vec::new()
+            },
+            at_root: reads.at_root && self.at_root,
+        }
+    }
+
     fn context(
         &self,
         observable: Observable,
@@ -385,6 +445,9 @@ impl<M: Module> Harness<M> {
             .with_dependency_errors(self.dependency_errors.clone())
             .with_observables_below(self.observables_below.clone())
             .with_added_by(self.added_by.clone())
+            .with_at_root(self.at_root)
+            .with_event_time(self.event_time)
+            .with_gate(self.gate())
             .with_related_tags(self.related_tags.clone())
             .with_tree(self.tree.clone())
             .with_tree_files(Some(self._dir.path().join("tree_files")))

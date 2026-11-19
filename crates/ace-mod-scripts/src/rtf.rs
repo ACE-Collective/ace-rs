@@ -3,8 +3,8 @@
 //!
 //! `extracted_rtf_analyzer` looks at a file `rtfole` wrote out of an RTF's objects. ace3 knows one
 //! by the `extracted_rtf` tag, which only rtfole gives, as it adds the file; ace4's core tells the
-//! module which modules' results added its file (`Module::READS_ADDED_BY`), so it looks for
-//! rtfole's name there. Its file is first leased once nothing nearer the root is pending (PLAN.md
+//! module which modules' results added its file, for its declaration (`takes::Condition::AddedBy`),
+//! so it looks for rtfole's name there. Its file is first leased once nothing nearer the root is pending (PLAN.md
 //! decision 15), so rtfole's result, on the RTF above it, has landed by then. Each suspect
 //! extension, mime type or file type file_type found is a detection, and sends the file to the
 //! sandbox.
@@ -68,7 +68,6 @@ impl Module for ExtractedRtfAnalyzer {
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
     const DEPENDS_ON: &'static [&'static str] = &[FileTypeAnalysis::MODULE];
     const RESOURCES: Resources = crate::RESOURCES;
-    const READS_ADDED_BY: bool = true;
     type Output = ExtractedRtfAnalysis;
     type Settings = ExtractedRtfSettings;
 

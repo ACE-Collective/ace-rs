@@ -460,22 +460,33 @@ pub struct Task {
     pub delayed: Option<DelayedRun>,
 }
 
-/// The future `TypeStepEnded::ended` returns.
-pub type TypeStepFuture<'a> =
+/// The future `TaskEnded`'s methods return.
+pub type EndedFuture<'a> =
     std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), QueueError>> + Send + 'a>>;
 
-/// What follows the end of a file's type step, its first task (PLAN.md decision 25): no other task
-/// on the file is queued until it has ended, however it ended, so whatever ends it (a result, a
-/// failure, a lease that ran out on its last attempt) calls this in the same transaction, before
-/// the root's completion is checked. The orchestrator is the one implementation
-/// (`Orchestrator::type_step_ended`).
-pub trait TypeStepEnded: Send + Sync {
-    fn ended<'a>(
+/// What follows some tasks' ends, in the transaction that ends them, before the root's completion
+/// is checked. The orchestrator is the one implementation.
+pub trait TaskEnded: Send + Sync {
+    /// A file's type step, its first task, ended (PLAN.md decision 25): no other task on the file
+    /// is queued until it has ended, however it ended, so whatever ends it (a result, a failure, a
+    /// lease that ran out on its last attempt) calls this (`Orchestrator::type_step_ended`).
+    fn type_step<'a>(
         &'a self,
         tx: &'a mut Tx<'_>,
         root: Uuid,
         observable: ObservableId,
-    ) -> TypeStepFuture<'a>;
+    ) -> EndedFuture<'a>;
+
+    /// A task of `module` ended with no result: skipped, failed or cancelled, by its worker or
+    /// when its lease ran out. A module held to an automation limit then has a place for work the
+    /// limit held back (`Orchestrator::limit_freed`, `crate::limits`). A task whose result lands
+    /// doesn't call this: its result takes the place.
+    fn without_result<'a>(
+        &'a self,
+        tx: &'a mut Tx<'_>,
+        root: Uuid,
+        module: &'a str,
+    ) -> EndedFuture<'a>;
 }
 
 /// The module name of a file's type step, `file_type`.
@@ -488,8 +499,9 @@ pub struct Worker {
     name: String,
     modules: Vec<String>,
     lease: Duration,
-    /// What a type step's end does; None for a worker that never runs one.
-    type_step_ended: Option<std::sync::Arc<dyn TypeStepEnded>>,
+    /// What follows a task's end (`TaskEnded`); None for a worker whose ends need nothing, such
+    /// as a test's.
+    ended: Option<std::sync::Arc<dyn TaskEnded>>,
 }
 
 impl std::fmt::Debug for Worker {
@@ -511,13 +523,13 @@ impl Worker {
             name: name.into(),
             modules,
             lease,
-            type_step_ended: None,
+            ended: None,
         }
     }
 
-    /// This worker, calling `ended` when it ends a file's type step (`TypeStepEnded`).
-    pub fn with_type_step(mut self, ended: std::sync::Arc<dyn TypeStepEnded>) -> Self {
-        self.type_step_ended = Some(ended);
+    /// This worker, calling `ended` as its tasks end (`TaskEnded`).
+    pub fn with_ended(mut self, ended: std::sync::Arc<dyn TaskEnded>) -> Self {
+        self.ended = Some(ended);
         self
     }
 
@@ -971,11 +983,34 @@ impl Worker {
             .transaction(Isolation::ReadCommitted, |tx| {
                 Box::pin(async move {
                     let root = self.finish_in(tx, task, state, error).await?;
+                    // a task ended here leaves no result: a skip, a failure or a cancellation
+                    self.ended_without_result(tx, root, task).await?;
                     check_completion(tx, root).await?;
                     Ok::<_, QueueError>(())
                 })
             })
             .await
+    }
+
+    /// What follows the end of `task`, which ended in this transaction with no result
+    /// (`TaskEnded::without_result`). Whatever ends a task with no result in a transaction of its
+    /// own calls this after `finish_in`.
+    pub async fn ended_without_result(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+        task: TaskId,
+    ) -> Result<(), QueueError> {
+        let Some(ended) = &self.ended else {
+            return Ok(());
+        };
+        let module = sqlx::query_scalar!(
+            "SELECT module FROM queue.tasks WHERE id = $1",
+            task as TaskId
+        )
+        .fetch_one(tx.conn())
+        .await?;
+        ended.without_result(tx, root, &module).await
     }
 
     /// Ends a task the worker owns inside a transaction that also writes what the task found,
@@ -1020,10 +1055,10 @@ impl Worker {
         // a type step that ended lets the file's other tasks be queued, done or failed alike
         if finished.module == TYPE_STEP
             && matches!(state, TaskState::Done | TaskState::Failed)
-            && let Some(ended) = &self.type_step_ended
+            && let Some(ended) = &self.ended
         {
             ended
-                .ended(tx, root, ObservableId(finished.observable_id))
+                .type_step(tx, root, ObservableId(finished.observable_id))
                 .await?;
         }
         Ok(root)
@@ -1277,11 +1312,11 @@ pub struct Reaped {
 /// has used its attempts. One transaction per root, which locks the root first like every
 /// other change that can end its tasks.
 ///
-/// A file's type step that fails this way ends as any other end of it does (`TypeStepEnded`),
+/// A file's type step that fails this way ends as any other end of it does (`TaskEnded`),
 /// in the same transaction.
 pub async fn reap_expired_leases(
     db: &Db,
-    type_step_ended: Option<&dyn TypeStepEnded>,
+    ended: Option<&dyn TaskEnded>,
 ) -> Result<Reaped, QueueError> {
     let roots = sqlx::query_scalar!(
         "SELECT DISTINCT root_id FROM queue.tasks
@@ -1313,10 +1348,14 @@ pub async fn reap_expired_leases(
         )
         .fetch_all(tx.conn())
         .await?;
-        if let Some(ended) = type_step_ended {
+        if let Some(ended) = ended {
             for row in &rows {
                 if row.module == TYPE_STEP && row.state == TaskState::Failed {
-                    ended.ended(tx, root, row.observable_id).await?;
+                    ended.type_step(tx, root, row.observable_id).await?;
+                }
+                // a task that failed or was cancelled here left no result
+                if matches!(row.state, TaskState::Failed | TaskState::Cancelled) {
+                    ended.without_result(tx, root, &row.module).await?;
                 }
             }
         }
@@ -1461,10 +1500,10 @@ pub async fn run_reaper(
     db: Db,
     interval: Duration,
     stop: CancellationToken,
-    type_step_ended: Option<std::sync::Arc<dyn TypeStepEnded>>,
+    ended: Option<std::sync::Arc<dyn TaskEnded>>,
 ) {
     loop {
-        if let Err(e) = reap_expired_leases(&db, type_step_ended.as_deref()).await {
+        if let Err(e) = reap_expired_leases(&db, ended.as_deref()).await {
             tracing::error!("the reaper failed: {e}");
         }
         // GUI commands (PLAN.md 5.12) never run twice, so their lost leases end them

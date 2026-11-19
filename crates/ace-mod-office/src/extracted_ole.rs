@@ -80,7 +80,6 @@ impl Module for ExtractedOleAnalyzer {
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
     const DEPENDS_ON: &'static [&'static str] = &[FileTypeAnalysis::MODULE];
     const RUNS_LAST: bool = true;
-    const READS_ADDED_BY: bool = true;
     type Output = ExtractedOleAnalysis;
     type Settings = ExtractedOleSettings;
 

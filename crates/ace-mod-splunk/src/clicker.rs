@@ -27,8 +27,10 @@
 //! What isn't ported: urlfinderlib's child URLs. ace3 matches a URL and every child URL
 //! urlfinderlib finds in it (a URL in its query, a base64 one, a Proofpoint or Mandrill wrapper);
 //! here a URL matches itself alone, as a domain does in both. urlfinderlib's URL comes with 7.5's
-//! `url_extraction`. Nor are `<O_TIMESPEC>` (a time range around the observable's own time),
-//! `<O_VALUEn>` and `<observable.*>` tokens other than `<observable.value>` and `<observable.type>`:
+//! `url_extraction`. A search's time ranges are around the observable's time, else the root's event
+//! time (`Module::READS_EVENT_TIME`), else the first run's clock, as ace3's. Nor are `<O_TIMESPEC>`
+//! (a time range around the observable's own time), `<O_VALUEn>` and `<observable.*>` tokens other
+//! than `<observable.value>` and `<observable.type>`:
 //! a search using one fails the task. ace3 also clears a skipped Phishkit analysis when it crawls,
 //! which ace4 has no Phishkit for. `tests/clicker_differences.md` lists the rest.
 
@@ -137,6 +139,9 @@ pub struct ClickerDetection {
 impl Module for ClickerDetection {
     const NAME: &'static str = "clicker_detection_splunk";
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::Url, ObservableKind::Fqdn];
+    /// Its searches' time ranges are around the root's event time when the observable has no time
+    /// of its own.
+    const READS_EVENT_TIME: bool = true;
     const REQUIRED_DIRECTIVES: &'static [&'static str] = &[DIRECTIVE];
     const SECRETS: &'static [&'static str] = &[PASSWORD, TOKEN];
     /// ace3 ships it disabled, with no searches.
@@ -201,8 +206,9 @@ struct Progress {
     job: Option<Search>,
     /// Waiting out `correlation_delay`.
     waiting: bool,
-    /// What the time ranges are around: the observable's time, or the first run's (ace3: the
-    /// root's event time), so every run of every search has the same window.
+    /// What the time ranges are around: the observable's time, else the root's event time, else
+    /// the first run's, as ace3's `build_target_query` picks it, so every run of every search has
+    /// the same window.
     anchor: Option<DateTime<Utc>>,
 }
 
@@ -489,9 +495,19 @@ impl Lookup for ClickerDetection {
                         settings.source
                     )));
                 }
+                // ace3's `source_event_time or observable.time or get_root().event_time`, and its
+                // clock, with an error, when there is neither
+                let anchor = observable.time.or(ctx.event_time()).unwrap_or_else(|| {
+                    tracing::error!(
+                        root = %ctx.root(),
+                        observable = %observable,
+                        "event_time is None! Using current time for TIMESPEC tokens instead"
+                    );
+                    now
+                });
                 let progress = Progress {
                     plan,
-                    anchor: Some(observable.time.unwrap_or(now)),
+                    anchor: Some(anchor),
                     ..Progress::default()
                 };
                 if let Some(wait) = self.correlation_delay {

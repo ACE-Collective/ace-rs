@@ -47,7 +47,8 @@
 //!
 //! What waits: LogScale hunts for their client in 7.8 (in a binary that adds the type their hunts
 //! load, and the hunter skips them, saying so), and their correlation source with them; a type the
-//! binary lacks, such as `rapid7`, has no hunts loaded, whatever `rule_dirs` names; a file mapping's files
+//! binary lacks, such as `rapid7`, has no hunts loaded, whatever `rule_dirs` names, and the hunter
+//! warns of each such type when it starts (`unknown_types`); a file mapping's files
 //! (three of the signatures' Splunk hunts have one), which are logged and dropped until the hunter
 //! spools files for submission.
 
@@ -860,6 +861,18 @@ pub fn run(app: &App, telemetry: &mut ace_pool::telemetry::Telemetry) -> Result<
     code
 }
 
+/// The hunt types `config`'s `rule_dirs` names that `app` doesn't have, whose hunts the hunter never
+/// loads (`reload` takes only the binary's types), such as one a site's binary would add.
+pub fn unknown_types<'c>(app: &App, config: &'c HunterConfig) -> Vec<&'c str> {
+    let known: Vec<&str> = app.hunt_types().iter().map(|kind| kind.name()).collect();
+    config
+        .rule_dirs
+        .keys()
+        .map(String::as_str)
+        .filter(|kind| !known.contains(kind))
+        .collect()
+}
+
 async fn hunt(app: &App) -> Result<ExitCode> {
     use ace_core::db::{Db, DbConfig};
 
@@ -869,6 +882,12 @@ async fn hunt(app: &App) -> Result<ExitCode> {
         .with_context(|| format!("{}", Path::new(&path).display()))?;
     let config: HunterConfig =
         serde_json::from_str(&text).context("reading the hunter's configuration")?;
+    for kind in unknown_types(app, &config) {
+        tracing::warn!(
+            hunt_type = kind,
+            "rule_dirs names a hunt type this binary doesn't have, so none of its hunts load"
+        );
+    }
     let overlay = crate::cli::overlay(app)?;
     let names: Vec<String> = config.splunk.keys().flat_map(|n| secret_names(n)).collect();
     let names: Vec<&str> = names.iter().map(String::as_str).collect();

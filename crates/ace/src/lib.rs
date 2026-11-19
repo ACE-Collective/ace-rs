@@ -188,7 +188,7 @@ mod tests {
 
     /// Every open-source module that opts into the analysis cache reads only what its key holds, and
     /// its pool can read the version of every tool it keys on (PLAN.md decision 26). The modules that
-    /// opt in are ace3's at `fe6da632` but `phishkit_analyzer`, which ace4 can't cache as it is.
+    /// opt in are ace3's at `fe6da632`.
     #[test]
     fn every_cacheable_module_reads_only_what_its_key_holds() {
         let app = super::app();
@@ -198,6 +198,7 @@ mod tests {
             cached,
             [
                 "site_tagger",
+                "phishkit_analyzer",
                 "pdf_link_text",
                 "qrcode",
                 "ocr",

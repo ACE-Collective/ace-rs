@@ -175,6 +175,9 @@ impl<M: ace_sdk::Module> Entry<M> {
         .with_dependency_errors(run.task.dependency_errors.clone())
         .with_observables_below(run.task.observables_below.clone())
         .with_added_by(run.task.added_by.clone())
+        .with_at_root(run.task.at_root)
+        .with_event_time(run.task.event_time)
+        .with_gate(run.task.gate.clone())
         .with_related_tags(run.task.related_tags.clone())
         .with_tree(run.task.tree.clone())
         .with_tree_files(run.tree_files.map(Path::to_path_buf))
@@ -510,6 +513,9 @@ mod tests {
             related_tags: Vec::new(),
             tree: None,
             scan: None,
+            gate: Default::default(),
+            at_root: false,
+            event_time: None,
         }
     }
 

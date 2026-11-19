@@ -101,6 +101,10 @@ pub struct Manifest {
     pub reads_added_by: bool,
     /// The module reads its related observables' tags (`Module::READS_RELATED_TAGS`).
     pub reads_related_tags: bool,
+    /// The module reads its root's event time (`Module::READS_EVENT_TIME`).
+    pub reads_event_time: bool,
+    /// ace3's `automation_limit` on its defaults (`Module::AUTOMATION_LIMIT`).
+    pub automation_limit: Option<u32>,
     /// The module reads its root's tree (`Module::READS_TREE`).
     pub reads_tree: bool,
     /// The files of the tree whose bytes it reads (`Module::READS_TREE_FILES`).
@@ -199,6 +203,8 @@ impl Manifest {
             reads_below: M::READS_BELOW,
             reads_added_by: M::READS_ADDED_BY,
             reads_related_tags: M::READS_RELATED_TAGS,
+            reads_event_time: M::READS_EVENT_TIME,
+            automation_limit: M::AUTOMATION_LIMIT,
             reads_tree: M::READS_TREE,
             reads_tree_files: M::READS_TREE_FILES,
             reads_tree_details: M::READS_TREE_DETAILS,
@@ -229,21 +235,16 @@ impl Manifest {
     }
 
     /// What the module takes on a settings block (`Module::takes`, `crate::takes`), checked against
-    /// what its lease carries: a rule that reads which modules added the observable needs
-    /// `READS_ADDED_BY`, one on the root's mode needs `READS_TREE`, one on a dependency's result
-    /// needs the dependency in `DEPENDS_ON`, and a lookup's rules can read a file's path but not its
-    /// size, mime type or `yara_meta`, which only a parser's lease carries. Otherwise the pool would
-    /// decline on a fact its task lacks where the core took it.
+    /// what its lease carries: a rule on a dependency's result needs the dependency in
+    /// `DEPENDS_ON`, and a lookup's rules can read a file's path but not its size, mime type or
+    /// `yara_meta`, which only a parser's lease carries. Otherwise the pool would decline on a fact
+    /// its task lacks where the core took it. Which modules added the observable, whether it came
+    /// with the submission and the root's mode come in the lease's gate for the declaration alone
+    /// (`wire::Gate`), whatever the module's `analyze` reads.
     pub fn declaration(&self, block: Option<&Value>) -> Result<Takes, DeclarationError> {
         let takes = (self.takes)(block).map_err(DeclarationError::Settings)?;
         let reads = takes.reads();
         let refuse = |what: String| Err(DeclarationError::Unread(self.name, what));
-        if reads.added_by && !self.reads_added_by {
-            return refuse("which modules added the observable, without READS_ADDED_BY".into());
-        }
-        if reads.mode && !self.reads_tree {
-            return refuse("the root's mode, without READS_TREE".into());
-        }
         if let Some(module) = reads
             .results
             .iter()
@@ -597,6 +598,7 @@ mod tests {
             let condition = match settings.fact.as_str() {
                 "added_by" => Condition::added_by("archive"),
                 "mode" => Condition::Mode("correlation".to_owned()),
+                "at_root" => Condition::AtRoot,
                 "result" => Condition::HasResult("file_type".to_owned()),
                 "size" => Condition::not_empty(),
                 "type" => Condition::type_fact(crate::takes::TypeFact::IsPdfFile),
@@ -651,17 +653,17 @@ mod tests {
             assert!(parser.declaration(Some(&fact(which))).is_ok(), "{which}");
             assert!(refused(&lookup, which).contains("a lookup's lease lacks"));
         }
-        // the rest need the module to ask for what it reads
-        assert!(refused(&parser, "added_by").contains("READS_ADDED_BY"));
-        assert!(refused(&parser, "mode").contains("READS_TREE"));
+        // which modules added the observable, whether it came with the submission and the mode are
+        // in the lease's gate, whatever the module's analyze reads
+        for which in ["added_by", "at_root", "mode"] {
+            assert!(parser.declaration(Some(&fact(which))).is_ok(), "{which}");
+            assert!(lookup.declaration(Some(&fact(which))).is_ok(), "{which}");
+        }
+        // a dependency's result needs the module to ask for it
         assert!(refused(&parser, "result").contains("DEPENDS_ON"));
         let mut asks = parser;
-        asks.reads_added_by = true;
-        asks.reads_tree = true;
         asks.depends_on = &["file_type"];
-        for which in ["added_by", "mode", "result"] {
-            assert!(asks.declaration(Some(&fact(which))).is_ok(), "{which}");
-        }
+        assert!(asks.declaration(Some(&fact("result"))).is_ok());
         // a block that doesn't load is the settings' error
         assert!(matches!(
             parser.declaration(Some(&json!({"facts": 1}))),
@@ -696,6 +698,98 @@ mod tests {
         assert_eq!(run("a.y"), crate::Outcome::Skipped("no".to_owned()));
         // analyze ran, and said nothing
         assert_eq!(run("a.x"), crate::Outcome::Skipped(String::new()));
+    }
+
+    /// A cacheable lookup whose declaration reads which modules added its observable and whether it
+    /// came with the submission, and whose `analyze` says what it saw of them.
+    struct Gated;
+
+    impl Module for Gated {
+        const NAME: &'static str = "gated";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const CACHE: Option<crate::cache::Cache> = Some(crate::cache::Cache::new(
+            1,
+            std::time::Duration::from_secs(60),
+        ));
+        type Output = crate::example::LineStats;
+        type Settings = DeclaringSettings;
+        fn init(_: &DeclaringSettings) -> Result<Self, crate::ModuleError> {
+            Ok(Gated)
+        }
+        fn takes(_: &DeclaringSettings) -> Takes {
+            use crate::takes::Condition;
+            Takes::everything().and(
+                Condition::Any(vec![
+                    Condition::AtRoot,
+                    Condition::added_by_other_than(&["gated"]),
+                ]),
+                "only gated added it",
+            )
+        }
+    }
+
+    impl crate::Lookup for Gated {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(
+            &self,
+            ctx: &crate::TaskContext<DeclaringSettings>,
+        ) -> Result<crate::Outcome<crate::example::LineStats>, crate::ModuleError> {
+            Ok(crate::Outcome::Skipped(format!(
+                "saw {:?} {} {:?} {}",
+                ctx.added_by(),
+                ctx.at_root(),
+                ctx.tree().map(|t| t.analysis_mode.clone()),
+                ctx.event_time().is_some()
+            )))
+        }
+    }
+
+    /// A fact only a declaration reads reaches the declaration and never `analyze`, whatever the
+    /// lease sends, so a cacheable module can read it there and the cache doesn't refuse it.
+    #[tokio::test]
+    async fn a_fact_only_the_declaration_reads_reaches_it_and_never_analyze() {
+        use crate::wire::{EventTimeSource, Gate, RootEventTime};
+        assert_eq!(Manifest::lookup::<Gated>().cache_refusal(), None);
+        let run = |gate: Gate| async move {
+            // a lease that sends every fact to `analyze` as well, as no core does
+            let ctx = crate::TaskContext::new::<Gated>(
+                uuid::Uuid::nil(),
+                crate::Observable::new(ObservableKind::Fqdn, "a.example"),
+                std::sync::Arc::new(DeclaringSettings::default()),
+            )
+            .with_added_by(gate.added_by.clone())
+            .with_at_root(gate.at_root)
+            .with_tree(Some(crate::tree::TreeView {
+                analysis_mode: gate.mode.clone(),
+                ..crate::tree::TreeView::default()
+            }))
+            .with_event_time(Some(RootEventTime {
+                time: Some(chrono::Utc::now()),
+                source: EventTimeSource::Event,
+            }))
+            .with_gate(gate);
+            crate::run_lookup(&Gated, &ctx).await.expect("runs")
+        };
+        let seen = crate::Outcome::Skipped("saw [] false None false".to_owned());
+        let at_root = Gate {
+            at_root: true,
+            ..Gate::default()
+        };
+        assert_eq!(run(at_root).await, seen);
+        let added = Gate {
+            added_by: vec!["gated".to_owned(), "other".to_owned()],
+            ..Gate::default()
+        };
+        assert_eq!(run(added).await, seen);
+        let only_its_own = Gate {
+            added_by: vec!["gated".to_owned()],
+            mode: Some("correlation".to_owned()),
+            ..Gate::default()
+        };
+        assert_eq!(
+            run(only_its_own).await,
+            crate::Outcome::Skipped("only gated added it".to_owned())
+        );
     }
 
     #[test]

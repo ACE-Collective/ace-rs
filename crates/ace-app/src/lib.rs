@@ -145,11 +145,35 @@ pub use ace_pool::actions::Handler as ActionHandler;
 /// What a pool gives an action handler's builder: its overlay entry's settings, the secrets its
 /// spec declares, and the shared connections its entry binds to the spec's slots, each with its own
 /// secrets (`ace_sdk::connections`).
+///
+/// A test builds one with `ActionSetup::new` and the methods after it, so a field added here doesn't
+/// break it.
 #[derive(Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct ActionSetup {
     pub settings: Option<serde_json::Value>,
     pub secrets: ace_sdk::Secrets,
     pub connections: ace_sdk::Connections,
+}
+
+impl ActionSetup {
+    /// A setup with `settings`, and no secrets or connections.
+    pub fn new(settings: Option<serde_json::Value>) -> ActionSetup {
+        ActionSetup {
+            settings,
+            ..ActionSetup::default()
+        }
+    }
+
+    pub fn with_secrets(mut self, secrets: ace_sdk::Secrets) -> ActionSetup {
+        self.secrets = secrets;
+        self
+    }
+
+    pub fn with_connections(mut self, connections: ace_sdk::Connections) -> ActionSetup {
+        self.connections = connections;
+        self
+    }
 }
 
 /// What builds an action handler in its pool, or says why it can't.
@@ -1301,23 +1325,13 @@ mod tests {
                 Box::pin(async { Ok(collector::Pass::Drained) })
             }
         }
-        let app = App::new().collector(
-            collector::CollectorSpec {
-                name: "journal",
-                secrets: &[],
-                connections: &[],
-            },
-            |_| Ok(Arc::new(Nothing)),
-        );
+        let app = App::new().collector(collector::CollectorSpec::new("journal"), |_| {
+            Ok(Arc::new(Nothing))
+        });
         assert_eq!(app.collector_names(), ["journal"]);
-        let _ = app.collector(
-            collector::CollectorSpec {
-                name: "a:b",
-                secrets: &[],
-                connections: &[],
-            },
-            |_| Ok(Arc::new(Nothing)),
-        );
+        let _ = app.collector(collector::CollectorSpec::new("a:b"), |_| {
+            Ok(Arc::new(Nothing))
+        });
     }
 
     /// A module put in one mode (ace3's `analysis_mode_<mode>: enabled_modules:`) runs in that mode

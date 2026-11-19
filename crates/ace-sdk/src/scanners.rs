@@ -367,6 +367,11 @@ pub struct ScanEnd {
     pub outcome: ScanOutcome,
     #[serde(default)]
     pub output: Option<ScanOutputRecord>,
+    /// The id of the image its container ran, from Docker, for a scan that got as far as a
+    /// container: what the analysis cache keys a scanning module's result on, as ace3 keys
+    /// phishkit's on its running scanner image's id (`crate::cache::Cache::scanners`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image_id: Option<String>,
 }
 
 /// A scanner pool asking where to upload a scan's output archive.
@@ -436,6 +441,7 @@ mod tests {
                 exit_code: Some(143),
             },
             output: None,
+            image_id: None,
         };
         let json = serde_json::to_value(&end).expect("serializes");
         assert_eq!(

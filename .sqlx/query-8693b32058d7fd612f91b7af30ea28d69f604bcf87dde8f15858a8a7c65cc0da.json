@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT ON (scanner) scanner, image_id AS \"image_id!\"\n           FROM queue.scans\n           WHERE task_id = $1 AND scanner = ANY($2) AND image_id IS NOT NULL\n           ORDER BY scanner, id DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "scanner",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "scanner"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "image_id!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "image_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "8693b32058d7fd612f91b7af30ea28d69f604bcf87dde8f15858a8a7c65cc0da"
+}

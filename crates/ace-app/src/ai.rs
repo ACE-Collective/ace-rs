@@ -52,8 +52,11 @@ use crate::hunter::SplunkInstance;
 
 pub mod custody;
 
-/// What a backend's builder is given: its entry's name and settings, and the secrets it lists.
+/// What a backend's builder is given: its entry's name and settings, and the secrets it lists. A
+/// test builds one with `AiBackendSetup::new` and the methods after it, so a field added here
+/// doesn't break it.
 #[derive(Debug, Clone, Default)]
+#[non_exhaustive]
 pub struct AiBackendSetup {
     pub name: String,
     pub settings: Option<Value>,
@@ -61,6 +64,27 @@ pub struct AiBackendSetup {
     /// The shared connections its entry binds to its type's slots, each with its own secrets
     /// (`ace_sdk::connections`).
     pub connections: ace_sdk::Connections,
+}
+
+impl AiBackendSetup {
+    /// The setup of the entry `name`, with `settings`, and no secrets or connections.
+    pub fn new(name: impl Into<String>, settings: Option<Value>) -> AiBackendSetup {
+        AiBackendSetup {
+            name: name.into(),
+            settings,
+            ..AiBackendSetup::default()
+        }
+    }
+
+    pub fn with_secrets(mut self, secrets: Secrets) -> AiBackendSetup {
+        self.secrets = secrets;
+        self
+    }
+
+    pub fn with_connections(mut self, connections: ace_sdk::Connections) -> AiBackendSetup {
+        self.connections = connections;
+        self
+    }
 }
 
 /// A backend type: the slots its entries may bind to shared connections, and what builds one.

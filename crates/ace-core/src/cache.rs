@@ -19,9 +19,11 @@
 //! **The key** (`ace_sdk::cache::key`) holds the observable's type and value, the module's name,
 //! instance, `Cache::version` and analysis type, its settings block, and its extended version: the
 //! entries of each list it reads that haven't expired, as they are now, and the versions of its
-//! tools, files and libraries. Those are its pool's (`ace_pool::cache`): a task's end sends them, the
-//! result is kept under them, and they are kept here (`cache.probes`) for the next lookup. Until a
-//! task of the module has ended with them, a module with any has no key, and nothing is looked up.
+//! tools, files and libraries, and the ids of the images its scanners ran. Those are its pool's
+//! (`ace_pool::cache`): a task's end sends them, the result is kept under them, and they are kept
+//! here (`cache.probes`) for the next lookup; a scanner's image is the one its task's scan ran, as
+//! the scanner pool read it (`crate::scans::image_ids`). Until a task of the module has ended with
+//! them, a module with any has no key, and nothing is looked up.
 //! ace3's key is made the same way, with each node probing its own tools.
 //!
 //! **What is kept**, and what isn't (`refusal`): ace3's rules, on ace4's envelope. ace3 has to find
@@ -155,14 +157,23 @@ pub async fn extended(
         .tools
         .iter()
         .map(|tool| format!("tool:{tool}"))
-        .chain(cache.files.iter().map(|file| format!("file:{file}")));
+        .chain(cache.files.iter().map(|file| format!("file:{file}")))
+        .chain(
+            cache
+                .scanners
+                .iter()
+                .map(|scanner| format!("scanner:{scanner}")),
+        );
     for name in needed {
         if !probes.contains_key(&name) {
             return Ok(None);
         }
     }
     for (name, version) in probes {
-        if name.starts_with("tool:") || name.starts_with("file:") || name.starts_with("library:") {
+        if ["tool:", "file:", "library:", "scanner:"]
+            .iter()
+            .any(|prefix| name.starts_with(prefix))
+        {
             extended.insert(name.clone(), version.clone());
         }
     }
@@ -283,12 +294,14 @@ pub async fn find(tx: &mut Tx<'_>, key: &[u8; 32]) -> Result<Option<Kept>, DbErr
 }
 
 /// Why `result` can't be kept, or each of its files' places among the paths its module names files
-/// at for `analyzed`, the path its task analyzed (`CachePaths::Named`), and its size compressed. `writes` is whether the task
-/// made writes to ACE's data.
+/// at for `analyzed`, the path its task analyzed (`CachePaths::Named`), none for a module that puts
+/// them under a directory named after `observable` (`CachePaths::Under`), and its size compressed.
+/// `writes` is whether the task made writes to ACE's data.
 pub fn refusal(
     component: &Component,
     result: &ResultEnvelope<Value>,
     writes: bool,
+    observable: (ace_results::ObservableKind, &str),
     analyzed: Option<&str>,
 ) -> Result<(Vec<i32>, usize), String> {
     let Some(cache) = component.manifest.cache else {
@@ -311,10 +324,27 @@ pub fn refusal(
     }
     let mut places = Vec::with_capacity(result.files.len());
     if !result.files.is_empty() {
-        let CachePaths::Named(names) = cache.paths else {
-            return Err(
-                "it adds files, and doesn't name them after its input (CachePaths)".to_owned(),
-            );
+        let names = match cache.paths {
+            CachePaths::Named(names) => names,
+            CachePaths::Under(dir_of) => {
+                let dir = dir_of(observable.0, observable.1);
+                if let Some(file) = result
+                    .files
+                    .iter()
+                    .find(|file| !file.path.as_str().starts_with(&dir))
+                {
+                    return Err(format!(
+                        "it adds {:?}, which isn't under {dir:?}, where it puts its files",
+                        file.path.as_str()
+                    ));
+                }
+                return size_within(result).map(|size| (Vec::new(), size));
+            }
+            CachePaths::Unread => {
+                return Err(
+                    "it adds files, and doesn't name them after its input (CachePaths)".to_owned(),
+                );
+            }
         };
         let Some(analyzed) = analyzed else {
             return Err("it adds files, and analyzed no file".to_owned());
@@ -333,13 +363,18 @@ pub fn refusal(
             places.push(i32::try_from(place).map_err(|_| "too many paths".to_owned())?);
         }
     }
+    size_within(result).map(|size| (places, size))
+}
+
+/// The result's size compressed, or why it is past what is kept.
+fn size_within(result: &ResultEnvelope<Value>) -> Result<usize, String> {
     let size = compressed_size(result)?;
     if size > MAX_COMPRESSED_BYTES {
         return Err(format!(
             "it is {size} bytes compressed, past {MAX_COMPRESSED_BYTES}"
         ));
     }
-    Ok((places, size))
+    Ok(size)
 }
 
 /// The result's JSON, deflated, in bytes: what ace3's 1 MiB limit is of.
@@ -467,8 +502,11 @@ pub fn for_path(
     if envelope.files.is_empty() {
         return Some(envelope);
     }
-    let CachePaths::Named(names) = component.manifest.cache?.paths else {
-        return None;
+    let names = match component.manifest.cache?.paths {
+        CachePaths::Named(names) => names,
+        // named after the observable, which is the same in the new root
+        CachePaths::Under(_) => return Some(envelope),
+        CachePaths::Unread => return None,
     };
     let names = names(analyzed?);
     if kept.file_paths.len() != envelope.files.len() {

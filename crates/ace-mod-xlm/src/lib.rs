@@ -665,6 +665,7 @@ mod tests {
                 relationships: &[],
                 redirected: false,
                 added_by: &[],
+                at_root: false,
                 mode: None,
                 file: Some(ace_sdk::takes::FileFacts {
                     path,

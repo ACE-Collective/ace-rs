@@ -553,11 +553,11 @@ impl Api {
             modules,
             self.inner.config.lease,
         )
-        .with_type_step(self.inner.orchestrator.clone())
+        .with_ended(self.inner.orchestrator.clone())
     }
 
-    /// The orchestrator, as what follows a file's type step for the reaper (`queue::run_reaper`).
-    pub fn type_step_ended(&self) -> Arc<dyn crate::queue::TypeStepEnded> {
+    /// The orchestrator, as what follows a task's end for the reaper (`queue::run_reaper`).
+    pub fn task_ended(&self) -> Arc<dyn crate::queue::TaskEnded> {
         self.inner.orchestrator.clone()
     }
 
@@ -1210,15 +1210,14 @@ impl Api {
             Vec::new()
         };
         let (dependencies, observables_below) = self.tree_reads(&task, runs_last).await?;
-        let (added_by, related_tags) = self.lineage_reads(&task).await?;
+        let lineage = self.lineage_reads(&task).await?;
         let tree = self.tree_read(&task).await?;
         let scan = self.task_scan(&task).await?;
         // read after the claim, so an edit committed before it is in the task (`lists`' docs)
         let lists = self.lists_for(&task.module).await?;
         let mut leased = self.wire_task(task, file, redirection);
         leased.observable.relationships = relationships;
-        leased.added_by = added_by;
-        leased.related_tags = related_tags;
+        lineage.fill(&mut leased);
         leased.tree = tree;
         leased.carrying_email = carrying_email;
         leased.emails_pending = emails_pending;
@@ -1258,29 +1257,65 @@ impl Api {
         Ok((results, below))
     }
 
-    /// What a task reads of where its observable came from, for a module that reads it: the modules
-    /// whose results added it (`Module::READS_ADDED_BY`) and the tags of what it's related to
-    /// (`Module::READS_RELATED_TAGS`).
-    async fn lineage_reads(
-        &self,
-        task: &Task,
-    ) -> Result<(Vec<String>, Vec<ace_sdk::wire::RelatedTags>), Failure> {
+    /// What a task reads of where its observable came from and of its root, each only when its
+    /// module reads it: for `analyze`, the modules whose results added it and whether it came with
+    /// the submission (`Module::READS_ADDED_BY`), the tags of what it's related to
+    /// (`Module::READS_RELATED_TAGS`) and the root's event time (`Module::READS_EVENT_TIME`); and for
+    /// the module's declaration alone, the gate (`wire::Gate`): those of the modules that added it,
+    /// whether it came with the submission and the root's mode that the declaration reads.
+    async fn lineage_reads(&self, task: &Task) -> Result<Lineage, Failure> {
         let catalog = self.inner.orchestrator.catalog();
-        let Some(manifest) = catalog.get(&task.module) else {
-            return Ok(Default::default());
+        let Some(component) = catalog.component(&task.module) else {
+            return Ok(Lineage::default());
         };
+        let manifest = &component.manifest;
+        let reads = component.takes.reads();
         let pool = self.inner.db.pool();
-        let added_by = if manifest.reads_added_by {
-            tree::added_by(pool, task.root, task.observable.id).await?
+        let (root, observable) = (task.root, task.observable.id);
+        let added_by = if manifest.reads_added_by || reads.added_by {
+            tree::added_by(pool, root, observable).await?
         } else {
             Vec::new()
+        };
+        let at_root = if manifest.reads_added_by || reads.at_root {
+            tree::at_root(pool, root, observable).await?
+        } else {
+            false
+        };
+        let the_root = if reads.mode || manifest.reads_event_time {
+            tree::root(pool, root).await?
+        } else {
+            None
         };
         let related_tags = if manifest.reads_related_tags {
-            tree::related_tags(pool, task.root, task.observable.id).await?
+            tree::related_tags(pool, root, observable).await?
         } else {
             Vec::new()
         };
-        Ok((added_by, related_tags))
+        Ok(Lineage {
+            gate: ace_sdk::wire::Gate {
+                mode: the_root
+                    .as_ref()
+                    .filter(|_| reads.mode)
+                    .map(|r| r.analysis_mode.clone()),
+                added_by: if reads.added_by {
+                    added_by.clone()
+                } else {
+                    Vec::new()
+                },
+                at_root: reads.at_root && at_root,
+            },
+            added_by: if manifest.reads_added_by {
+                added_by
+            } else {
+                Vec::new()
+            },
+            at_root: manifest.reads_added_by && at_root,
+            related_tags,
+            event_time: the_root
+                .filter(|_| manifest.reads_event_time)
+                .map(|r| r.event_time.wire()),
+        })
     }
 
     /// The root's tree, for a module that walks it (`Module::READS_TREE`), with a download for each
@@ -1406,6 +1441,9 @@ impl Api {
             related_tags: Vec::new(),
             tree: None,
             scan: None,
+            gate: ace_sdk::wire::Gate::default(),
+            at_root: false,
+            event_time: None,
         }
     }
 
@@ -1669,7 +1707,7 @@ impl Api {
 
     /// Ends a file's type step whose bytes already have a type kept (`Api::leased`), as its landing
     /// would: the task is done, and its end queues the file's other tasks in the same transaction
-    /// (`queue::TypeStepEnded`).
+    /// (`queue::TaskEnded`).
     async fn end_kept_type(&self, worker: &Worker, task: &Task) -> Result<(), Failure> {
         self.inner
             .db
@@ -1689,7 +1727,7 @@ impl Api {
 
     /// Lands a file's type step (`crate::type_step`): keeps what it found in the file's bytes and
     /// ends the task, which queues the file's other tasks in the same transaction
-    /// (`queue::TypeStepEnded`). Its output is no result in the tree.
+    /// (`queue::TaskEnded`). Its output is no result in the tree.
     async fn land_type(&self, worker: &Worker, task: &Task, result: &Value) -> Result<(), Failure> {
         let facts: ace_results::types::file_type::TypeFacts =
             serde_json::from_value(result.get("details").cloned().unwrap_or_default())
@@ -1827,6 +1865,8 @@ impl Api {
                         .finish_in(tx, task, crate::queue::TaskState::Done, None)
                         .await?;
                     crate::writes::apply(tx, archive, bucket, owned, writes).await?;
+                    // a skip, which leaves no result
+                    worker.ended_without_result(tx, root, task).await?;
                     crate::queue::check_completion(tx, root).await?;
                     Ok::<_, QueueError>(())
                 })
@@ -2146,6 +2186,7 @@ async fn end_scan(
         exit_code,
         error,
         output: end.output.map(|o| (o.sha256, o.size)),
+        image_id: end.image_id.as_deref(),
     };
     let hold = Hold::root(root);
     let (worker, ended, spooled, hold) = (&worker, &ended, &spooled, &hold);
@@ -2445,6 +2486,26 @@ async fn end_in(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// What `Api::lineage_reads` read for a task.
+#[derive(Debug, Default)]
+struct Lineage {
+    gate: ace_sdk::wire::Gate,
+    added_by: Vec<String>,
+    at_root: bool,
+    related_tags: Vec<ace_sdk::wire::RelatedTags>,
+    event_time: Option<ace_sdk::wire::RootEventTime>,
+}
+
+impl Lineage {
+    fn fill(self, leased: &mut LeasedTask) {
+        leased.gate = self.gate;
+        leased.added_by = self.added_by;
+        leased.at_root = self.at_root;
+        leased.related_tags = self.related_tags;
+        leased.event_time = self.event_time;
+    }
+}
+
 /// A task's dependency results as the lease carries them: each one's details by module, and the
 /// reasons of those whose modules said they failed.
 fn by_module(
@@ -2548,14 +2609,13 @@ async fn replay(
         .get(&task.module)
         .is_some_and(|manifest| manifest.runs_last);
     let (dependencies, observables_below) = api.tree_reads(&task, runs_last).await?;
-    let (added_by, related_tags) = api.lineage_reads(&task).await?;
+    let lineage = api.lineage_reads(&task).await?;
     let tree = api.tree_read(&task).await?;
     let mut leased = api.wire_task(task, file, redirection);
     leased.tree = tree;
     (leased.dependency_results, leased.dependency_errors) = by_module(dependencies);
     leased.observables_below = observables_below;
-    leased.added_by = added_by;
-    leased.related_tags = related_tags;
+    lineage.fill(&mut leased);
     // what the task read when it ran, if its email has been parsed by now, as it usually has
     leased.carrying_email = carrying_email;
     // the lists as they are now, which may have changed since it ran

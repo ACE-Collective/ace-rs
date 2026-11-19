@@ -856,3 +856,19 @@ fn test_config_entry_rejects_unknown_keys() {
 fn test_default_config_declares_no_command_types() {
     assert!(App::new().command_types().names().is_empty());
 }
+
+/// `rule_dirs` naming a hunt type the binary lacks is a warning when the hunter starts, so a type a
+/// site's binary would add isn't silently never loaded.
+#[test]
+fn rule_dirs_naming_a_type_the_binary_lacks_is_found() {
+    let mut config = config("http://127.0.0.1:1", Path::new("/signatures"), "DEV");
+    let app = crate::App::new().hunt_type(ace_hunt::types::Splunk::default());
+    assert!(unknown_types(&app, &config).is_empty());
+    config
+        .rule_dirs
+        .insert("rapid7".to_owned(), vec![PathBuf::from("hunts/rapid7")]);
+    config
+        .rule_dirs
+        .insert("endpoint".to_owned(), vec![PathBuf::from("hunts/endpoint")]);
+    assert_eq!(unknown_types(&app, &config), ["endpoint", "rapid7"]);
+}

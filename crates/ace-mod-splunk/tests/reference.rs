@@ -157,10 +157,26 @@ async fn the_clicker_module_matches_the_reference_dumps_or_lists_each_difference
         if dump.name.ends_with(".never-done") {
             settings["query_timeout"] = json!(3);
         }
+        // the root's event time the searches were around, and ace3's clock when its first run
+        // began, some seconds later: the searches are around the event time, not the clock
+        let anchor = clicker_anchor(&http);
+        let started = dump
+            .analysis("SplunkClickerDetectionAnalysis")
+            .and_then(|a| a["details"]["query_start"].as_f64())
+            .and_then(|seconds| {
+                chrono::DateTime::from_timestamp_micros((seconds * 1e6).round() as i64)
+            })
+            .unwrap_or(anchor);
+        assert!(
+            started > anchor,
+            "{}: ace3's run began after its event time",
+            dump.name
+        );
         let harness = Harness::<ClickerDetection>::with_settings(settings)
             .expect("harness")
             .secret(PASSWORD, common::PASSWORD)
-            .at(clicker_anchor(&http));
+            .event_time(anchor)
+            .at(started);
         let kind: ObservableKind = input["observable"]["type"]
             .as_str()
             .expect("a type")

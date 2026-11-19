@@ -74,6 +74,11 @@
 //! any other value, and every binary refuses a cacheable module whose task reads what its key doesn't
 //! hold (`Manifest::cache_refusal`). The core reads the switch; a pool doesn't.
 //!
+//! A module's section, or an instance's, sets ace3's `automation_limit` beside its `settings`: the
+//! most results of the module's analysis type a root holds before the core stops queuing the module
+//! there (`Module::AUTOMATION_LIMIT`, which it replaces). Like `cache_ttl` it isn't a setting, so it
+//! isn't in a cached result's key, as ace3's config hash leaves it out.
+//!
 //! `collectors:` holds each collector's section (PLAN.md 6.1, `ace_app::collector`), by its name: its
 //! `settings`, which its builder is given as a module's are, how long a key it submitted holds
 //! (`key_lifetime_seconds`), how long it waits between passes that found nothing (`poll_seconds`), how
@@ -953,6 +958,10 @@ pub struct ModuleSection {
     /// module that can't be cached (`Module::CACHE`) refuses any but 0. Without it, a cacheable
     /// module keeps its results for its own time to live (`Cache::ttl`).
     pub cache_ttl: Option<u64>,
+    /// The most results of the module's analysis type a root holds before the core stops queuing
+    /// it there (ace3's `automation_limit`, `Module::AUTOMATION_LIMIT`), for the module and each
+    /// of its instances that doesn't say. Without it, the module's own.
+    pub automation_limit: Option<u32>,
     /// The module's slots (`Module::CONNECTIONS`), each bound to a connection
     /// (`crate::connections`), for the module and each of its instances.
     pub connections: BTreeMap<String, String>,
@@ -972,6 +981,9 @@ pub struct InstanceSection {
     pub groups: Vec<String>,
     /// The instance's own `cache_ttl`, over its module's (`ModuleSection::cache_ttl`).
     pub cache_ttl: Option<u64>,
+    /// The instance's own `automation_limit`, over its module's
+    /// (`ModuleSection::automation_limit`).
+    pub automation_limit: Option<u32>,
     /// The instance's own bindings, each over its module's for that slot
     /// (`ModuleSection::connections`).
     pub connections: BTreeMap<String, String>,
@@ -1031,6 +1043,9 @@ pub struct Component {
     /// How long its results are kept in the analysis cache (`Module::CACHE`, `cache_ttl`), or None
     /// when they aren't.
     pub cache_ttl: Option<std::time::Duration>,
+    /// ace3's `automation_limit` for it: the overlay's, or else its module's
+    /// (`Module::AUTOMATION_LIMIT`). None has no limit.
+    pub automation_limit: Option<u32>,
     /// Its slots bound to the overlay's connections (`crate::connections`), whose settings are in
     /// `settings` under each slot's name.
     pub connections: Vec<Binding>,
@@ -1052,6 +1067,7 @@ impl Component {
                 .cache
                 .map(|cache| cache.ttl)
                 .filter(|ttl| !ttl.is_zero()),
+            automation_limit: manifest.automation_limit,
             connections: Vec::new(),
         }
     }
@@ -1077,6 +1093,7 @@ impl Component {
                 .cache
                 .map(|cache| cache.ttl)
                 .filter(|ttl| !ttl.is_zero()),
+            automation_limit: manifest.automation_limit,
             connections: Vec::new(),
         })
     }
@@ -1112,6 +1129,14 @@ impl Component {
             return Err(refuse(why));
         }
         Ok(self)
+    }
+
+    /// The component with the overlay's `automation_limit` for it, if it gives one.
+    fn with_automation_limit(mut self, limit: Option<u32>) -> Component {
+        if limit.is_some() {
+            self.automation_limit = limit;
+        }
+        self
     }
 
     /// True when it takes observables of `kind`, directly or through a parent type.
@@ -1517,7 +1542,8 @@ impl Overlay {
                     .with_cache_ttl(
                         section.cache_ttl,
                         format!("modules.{}.cache_ttl", manifest.name),
-                    )?,
+                    )?
+                    .with_automation_limit(section.automation_limit),
                 );
                 continue;
             }
@@ -1573,7 +1599,8 @@ impl Overlay {
                     .with_cache_ttl(
                         instance.cache_ttl.or(section.cache_ttl),
                         format!("modules.{}.instances.{name}.cache_ttl", manifest.name),
-                    )?,
+                    )?
+                    .with_automation_limit(instance.automation_limit.or(section.automation_limit)),
                 );
             }
         }
@@ -1665,6 +1692,42 @@ mod tests {
     /// says another, or 0 for none; a module that doesn't opt in refuses one; and one whose task reads
     /// what the key doesn't hold is refused whatever its section says, but when it is 0 (PLAN.md
     /// decision 26).
+    #[test]
+    fn automation_limit_is_the_module_s_unless_the_overlay_says_otherwise() {
+        let mut limited = LINE_COUNTER;
+        limited.automation_limit = Some(15);
+        let limits = |yaml: &str| -> Vec<Option<u32>> {
+            Overlay::from_yaml(yaml)
+                .expect("parses")
+                .components(&[limited, RESOLVER])
+                .expect("loads")
+                .iter()
+                .map(|c| c.automation_limit)
+                .collect()
+        };
+        assert_eq!(limits(""), [Some(15), None]);
+        assert_eq!(
+            limits(
+                "modules: {example_line_counter: {automation_limit: 5}, example_resolver: {automation_limit: 1}}"
+            ),
+            [Some(5), Some(1)]
+        );
+        // an instance takes its module's unless it says its own
+        assert_eq!(
+            limits(
+                "modules: {example_line_counter: {automation_limit: 5, instances: {a: {}, b: {automation_limit: 2}}}}"
+            ),
+            [Some(5), Some(2), None]
+        );
+        // it's no setting, so a cached result's key doesn't hold it
+        let component =
+            &Overlay::from_yaml("modules: {example_line_counter: {automation_limit: 5}}")
+                .expect("parses")
+                .components(&[limited])
+                .expect("loads")[0];
+        assert_eq!(component.settings, None);
+    }
+
     #[test]
     fn cache_ttl_is_the_module_s_unless_the_overlay_says_otherwise() {
         use crate::cache::Cache;

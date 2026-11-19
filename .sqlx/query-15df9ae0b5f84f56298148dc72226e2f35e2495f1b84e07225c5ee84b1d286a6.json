@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT o.id AS \"id: ObservableId\", (o.redirection_type IS NOT NULL) AS \"redirected!\",\n                  o.value, f.path AS \"path?\", f.yara_meta AS \"yara_meta?\", f.role, s.size AS \"size?\"\n           FROM analysis.observables o\n           LEFT JOIN LATERAL (\n               SELECT path, yara_meta, role FROM analysis.files\n               WHERE root_id = o.root_id AND observable_id = o.id\n               ORDER BY analyzed DESC, depth, path COLLATE \"C\" LIMIT 1\n           ) f ON o.type = 'file'\n           LEFT JOIN store.objects s ON o.type = 'file' AND s.pool = $3 AND s.sha256 = o.value\n           WHERE o.root_id = $1 AND o.id = ANY($2)",
+  "query": "SELECT o.id AS \"id: ObservableId\", (o.redirection_type IS NOT NULL) AS \"redirected!\",\n                  (o.depth = 0) AS \"at_root!\", o.value, f.path AS \"path?\", f.yara_meta AS \"yara_meta?\", f.role, s.size AS \"size?\"\n           FROM analysis.observables o\n           LEFT JOIN LATERAL (\n               SELECT path, yara_meta, role FROM analysis.files\n               WHERE root_id = o.root_id AND observable_id = o.id\n               ORDER BY analyzed DESC, depth, path COLLATE \"C\" LIMIT 1\n           ) f ON o.type = 'file'\n           LEFT JOIN store.objects s ON o.type = 'file' AND s.pool = $3 AND s.sha256 = o.value\n           WHERE o.root_id = $1 AND o.id = ANY($2)",
   "describe": {
     "columns": [
       {
@@ -22,6 +22,12 @@
       },
       {
         "ordinal": 2,
+        "name": "at_root!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
         "name": "value",
         "type_info": "Text",
         "origin": {
@@ -32,7 +38,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "path?",
         "type_info": "Text",
         "origin": {
@@ -43,7 +49,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "yara_meta?",
         "type_info": "TextArray",
         "origin": {
@@ -54,7 +60,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "role",
         "type_info": "Text",
         "origin": {
@@ -65,7 +71,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "size?",
         "type_info": "Int8",
         "origin": {
@@ -86,6 +92,7 @@
     "nullable": [
       false,
       null,
+      null,
       false,
       true,
       true,
@@ -93,5 +100,5 @@
       true
     ]
   },
-  "hash": "0a7ae4e3815cf20fce783bca72d634611813c30371152ed6a1b6dc46ac48cf8a"
+  "hash": "15df9ae0b5f84f56298148dc72226e2f35e2495f1b84e07225c5ee84b1d286a6"
 }

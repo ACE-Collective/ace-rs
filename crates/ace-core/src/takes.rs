@@ -64,6 +64,8 @@ pub struct Held {
     pub relationships: Vec<Relationship>,
     pub redirected: bool,
     pub added_by: Vec<String>,
+    /// It came with its root's submission (`tree::at_root`).
+    pub at_root: bool,
     pub file: Option<HeldFile>,
     pub results: BTreeMap<String, Value>,
 }
@@ -92,6 +94,7 @@ impl Held {
             relationships: &self.relationships,
             redirected: self.redirected,
             added_by: &self.added_by,
+            at_root: self.at_root,
             mode: Some(mode),
             file: self.file.as_ref().map(|file| FileFacts {
                 path: &file.path,
@@ -140,7 +143,7 @@ pub async fn held(
         observables.iter().map(|o| (*o, Held::default())).collect();
     let rows = sqlx::query!(
         r#"SELECT o.id AS "id: ObservableId", (o.redirection_type IS NOT NULL) AS "redirected!",
-                  o.value, f.path AS "path?", f.yara_meta AS "yara_meta?", f.role, s.size AS "size?"
+                  (o.depth = 0) AS "at_root!", o.value, f.path AS "path?", f.yara_meta AS "yara_meta?", f.role, s.size AS "size?"
            FROM analysis.observables o
            LEFT JOIN LATERAL (
                SELECT path, yara_meta, role FROM analysis.files
@@ -164,6 +167,8 @@ pub async fn held(
     for row in rows {
         let entry = held.entry(row.id).or_default();
         entry.redirected = row.redirected;
+        // as `tree::at_root` reads it
+        entry.at_root = row.at_root;
         if let Some(path) = row.path {
             entry.file = Some(HeldFile {
                 path,

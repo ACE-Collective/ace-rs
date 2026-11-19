@@ -13,18 +13,23 @@
 //! `extended_version`). Whatever else its task can read makes a result from one root wrong in
 //! another, so `Manifest::cache_refusal` refuses a cacheable module that reads it: its dependencies'
 //! results, its tree, the modules that added its observable, its carrying email, the tags of its
-//! related observables, what is below it or the rules that matched there, ACE's own data, or a list
-//! its key doesn't hold. Every binary refuses such a module when it reads its overlay, so no pool
-//! starts with one (`Overlay::components`), and every manifest is checked on its defaults in the
-//! tests.
+//! related observables, its root's event time, what is below it or the rules that matched there,
+//! ACE's own data, or a list its key doesn't hold. Every binary refuses such a module when it reads
+//! its overlay, so no pool starts with one (`Overlay::components`), and every manifest is checked on
+//! its defaults in the tests.
 //!
 //! A parser's lease also carries its file's path, `yara_meta` and role, which no declaration names.
 //! A cacheable module's result may not depend on its `yara_meta` or role, and may depend on its path
 //! only through the paths it names the files it adds at, which it declares as a function of the path
-//! it analyzed (`CachePaths::Named`). The core checks what it can of that when it keeps a result:
-//! each file must be at one of those paths, or nothing is kept. What a module's declaration
+//! it analyzed (`CachePaths::Named`), or at paths under a directory named after its observable
+//! (`CachePaths::Under`). The core checks what it can of that when it keeps a result: each file
+//! must be at one of those paths, or nothing is kept. What a module's declaration
 //! (`Module::takes`) reads is no part of the key: the core applies it before it looks anything up,
 //! on the new root's facts, as ace3's executor checks a module's requirements before its cache.
+//! So a fact only the declaration reads (which modules added the observable, whether it came with
+//! the submission, the root's mode) is no refusal: the lease carries it for the declaration alone
+//! and `analyze` never sees it (`crate::takes`, *Reads that only decide*). The flags that give
+//! `analyze` the same facts (`READS_ADDED_BY`, `READS_TREE`) are still refused.
 //!
 //! **What is never kept**, as ace3: a result with `error` set, a task that failed, timed out or was
 //! cancelled, or that delayed (only its final run's result is), a result that adds to anything but
@@ -39,8 +44,10 @@
 //! every list it reads (`lists`), every program it runs (`tools`, each with `version_args` in its
 //! pool's `ToolSpec`), every file of its image its result depends on (`files`, such as a dictionary),
 //! the libraries linked into it whose versions matter (`libraries`), and the reads whose answers the
-//! core can key (`reads`, from `KEYED_READS`). A module that adds files names them with a function of
-//! the path it read and gives the same function as `CachePaths::Named`. Raise `version` whenever a
+//! core can key (`reads`, from `KEYED_READS`), and the scanners it runs (`scanners`), whose images'
+//! ids are keyed. A module that adds files names them with a function of the path it read and gives
+//! the same function as `CachePaths::Named`, or puts them under a directory named after its
+//! observable and gives that as `CachePaths::Under`. Raise `version` whenever a
 //! change to the module would answer differently for the same input. Make sure a failure the next
 //! alert should retry is a result with `error` or `Outcome::Skipped`, and a clean answer worth keeping
 //! is a result. A time to live of zero makes the module cacheable but kept only once a site's overlay
@@ -101,6 +108,13 @@ pub struct Cache {
     /// must be all of them, and each one `KEYED_READS` names: the core makes the read's answer for
     /// the observable when it makes the key, as the task would get it.
     pub reads: &'static [Read],
+    /// The scanners it sends its observable through (`Module::SCANNERS`) whose images' ids are in
+    /// its key, which must be all of them, as ace3 keys phishkit's result on its running scanner
+    /// image's id. The scanner pool reads each scan's container's image from Docker and sends it
+    /// with the scan's end (`crate::scanners::ScanEnd::image_id`); a result is kept under the image
+    /// its task's scan ran, and looked up under the one the scanner's latest kept result ran,
+    /// as a tool's version is.
+    pub scanners: &'static [&'static str],
 }
 
 /// The reads whose answer the core can put in a key: those that answer for the task's own
@@ -123,6 +137,7 @@ impl Cache {
             files: &[],
             libraries: no_libraries,
             reads: &[],
+            scanners: &[],
         }
     }
 }
@@ -141,6 +156,11 @@ pub enum CachePaths {
     /// and a hit puts it at the same place in the list for the new root's path. The module names its
     /// files with the same function.
     Named(fn(&str) -> Vec<String>),
+    /// Not at all, and every file it adds is under the directory this returns for its observable's
+    /// type and value (ending in `/`), whatever the files are called, as phishkit puts what its
+    /// scanner wrote under a directory named after the observable. A hit puts each file at the path
+    /// it had, which is what a run in the new root would name it.
+    Under(fn(ace_results::ObservableKind, &str) -> String),
 }
 
 /// Why a module can't be cached, or None when it can: what its task reads that its key doesn't
@@ -164,6 +184,10 @@ pub fn refusal(manifest: &Manifest) -> Option<String> {
         (
             manifest.reads_related_tags,
             "its related observables' tags (READS_RELATED_TAGS)",
+        ),
+        (
+            manifest.reads_event_time,
+            "its root's event time (READS_EVENT_TIME)",
         ),
         (
             manifest.runs_last,
@@ -194,8 +218,11 @@ pub fn refusal(manifest: &Manifest) -> Option<String> {
             "files another result stored in its root (ADDS_STORED_FILES)",
         ),
         (
-            !manifest.scanners.is_empty(),
-            "a scanner's output (SCANNERS)",
+            manifest
+                .scanners
+                .iter()
+                .any(|scanner| !cache.scanners.contains(scanner)),
+            "a scanner's output (SCANNERS) whose image its key doesn't hold (Cache::scanners)",
         ),
         (
             !manifest.stores_results,
@@ -231,7 +258,8 @@ pub fn refusal(manifest: &Manifest) -> Option<String> {
     if manifest.kind == ModuleKind::Lookup
         && (!cache.tools.is_empty()
             || !cache.files.is_empty()
-            || matches!(cache.paths, CachePaths::Named(_)))
+            || !cache.scanners.is_empty()
+            || !matches!(cache.paths, CachePaths::Unread))
     {
         return Some(format!(
             "{} is a cacheable lookup, which runs no tool, reads no file of an image and adds no file \
@@ -487,6 +515,7 @@ mod tests {
         assert!(refused(&|m| m.reads_added_by = true).contains("READS_ADDED_BY"));
         assert!(refused(&|m| m.reads_carrying_email = true).contains("READS_CARRYING_EMAIL"));
         assert!(refused(&|m| m.reads_related_tags = true).contains("READS_RELATED_TAGS"));
+        assert!(refused(&|m| m.reads_event_time = true).contains("READS_EVENT_TIME"));
         assert!(refused(&|m| m.runs_last = true).contains("RUNS_LAST"));
         assert!(refused(&|m| m.sets_root = true).contains("SETS_ROOT"));
         assert!(refused(&|m| m.adds_stored_files = true).contains("ADDS_STORED_FILES"));
@@ -498,6 +527,15 @@ mod tests {
         };
         assert!(refused(&|m| m.lists = &[LIST]).contains("a_list"));
         assert!(refused(&|m| m.tools = &["tesseract"]).contains("tesseract"));
+        // a scanner's output is keyed only on the scanner's image
+        assert!(refused(&|m| m.scanners = &["phishkit"]).contains("SCANNERS"));
+        let mut scanned = cached;
+        scanned.scanners = &["phishkit"];
+        scanned.cache = Some(Cache {
+            scanners: &["phishkit"],
+            ..Cache::new(1, Duration::from_secs(60))
+        });
+        assert_eq!(refusal(&scanned), None);
         // a read is keyed only when the module says so and the core can make its answer
         const NEWLY: Read = <crate::reads::NewlyRegistered as crate::reads::ReadKind>::READ;
         const SNORT: Read = <crate::reads::SnortSignature as crate::reads::ReadKind>::READ;

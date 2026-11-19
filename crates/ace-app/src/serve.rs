@@ -331,7 +331,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
         db.clone(),
         Duration::from_secs(5),
         stop.clone(),
-        Some(api.type_step_ended()),
+        Some(api.task_ended()),
     ));
     let recorder = tokio::spawn(ace_core::yara_qa::run_recorder(
         ace_core::yara_qa::recorder_worker(db.clone()),

@@ -12331,18 +12331,13 @@ async fn detections_are_added_expired_and_removed_through_the_admin_area() {
 
 // PLAN.md 7.9: the remediation and file_collection areas, and the event page's coverage.
 
-static TEST_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec {
-    kind: ace_sdk::actions::ActionKind::FileCollection,
-    name: "edr",
-    display_name: "Test EDR",
-    description: "Collects files in tests.",
-    observable_type: "file_location",
-    tcp_ports: &[],
-    secrets: &[],
-    connections: &[],
-    retry: ace_sdk::actions::Retry::FILE_COLLECTION,
-    supersede_grace_seconds: 0,
-};
+static TEST_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec::new(
+    ace_sdk::actions::ActionKind::FileCollection,
+    "edr",
+    "Test EDR",
+    "Collects files in tests.",
+    "file_location",
+);
 
 /// ace3's test remediator and a test collector.
 fn test_actions() -> ace_core::actions::ActionCatalog {
