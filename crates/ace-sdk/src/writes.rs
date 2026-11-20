@@ -169,10 +169,55 @@ pub struct SvsCaptureCandidate {
 /// The most captures one `svs-capture` write makes.
 pub const MAX_SVS_CAPTURES: usize = 1000;
 
+/// `remediation-check`: a remediation check of the task's own observable by one of the core's probes,
+/// for the task's root, and what the module found when it asked the same question itself (PLAN.md
+/// decision 32). ace3's module looks for a pending check of the probe, target and alert
+/// (`get_pending_external_check_by_observable`), queues one when there's none
+/// (`queue_external_check`), and records its own answer as a try (`persist_probe_outcome`); the
+/// core does the same in the end's transaction, so the module needs no read of the check. No module
+/// of ace4's makes it: a site's remediation modules do.
+pub struct RemediationCheck;
+
+impl WriteKind for RemediationCheck {
+    const WRITE: Write = Write {
+        name: "remediation-check",
+    };
+    type Body = CheckRequest;
+}
+
+/// A remediation check a module asks for.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CheckRequest {
+    /// The probe's name, such as ace3's `msmail_filter`: a remediation check handler the core's catalog
+    /// has (`crate::actions::ActionSpec`), which acts on the task's observable's type.
+    pub probe: String,
+    /// What the module knows that the probe's later tries need, such as the alert's event time,
+    /// frozen on the check when it's queued (ace3's `context_json`). A pending check keeps its own.
+    #[serde(default)]
+    pub context: Option<serde_json::Map<String, Value>>,
+    /// The module's own answer, recorded as one try of the check, as ace3's `persist_probe_outcome`
+    /// after the module ran the probe itself. None to queue the check only.
+    #[serde(default)]
+    pub outcome: Option<crate::actions::ProbeOutcome>,
+}
+
+/// The most bytes a check's context takes, as JSON.
+pub const MAX_CHECK_CONTEXT_BYTES: usize = 16 * 1024;
+
+/// Whether a write lands with a delay as well as with a result or a skip: only `remediation-check`,
+/// since ace3's module queues its check and records its answer before it waits, and the core reuses
+/// the pending check on the next run, as ace3's does. Every other write lands only with a result or
+/// a skip, so a task that delays writes nothing else.
+pub fn lands_on_delay(write: &str) -> bool {
+    write == RemediationCheck::WRITE.name
+}
+
 /// Every write a module can declare, by name.
 pub const ALL: &[Write] = &[
     SmtpLog::WRITE,
     EmailThread::WRITE,
     EmailArchive::WRITE,
     SvsCapture::WRITE,
+    RemediationCheck::WRITE,
 ];

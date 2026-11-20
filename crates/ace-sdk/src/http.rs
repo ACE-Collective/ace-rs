@@ -215,6 +215,15 @@ impl HttpError {
     pub fn peer(&self) -> Option<&str> {
         self.peer.as_deref()
     }
+
+    /// Whether the peer was reached and then didn't answer in time: a timeout that isn't a
+    /// connect's, httpx's `ReadTimeout`, which some callers take as a request that can't finish
+    /// rather than a peer that's down. It is `Unavailable` all the same.
+    pub fn is_read_timeout(&self) -> bool {
+        self.source
+            .as_ref()
+            .is_some_and(|e| e.is_timeout() && !e.is_connect())
+    }
 }
 
 impl fmt::Display for HttpError {

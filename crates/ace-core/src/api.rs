@@ -1642,7 +1642,7 @@ impl Api {
             }
         }
         let hold = Hold::root(task.root);
-        let archive = self.inner.stores.archive();
+        let stores = self.write_stores();
         let (task, files, hold) = (&task, &files, &hold);
         let result = &result;
         self.inner
@@ -1652,7 +1652,7 @@ impl Api {
                     for file in files {
                         bucket.put_in(tx, ALERT_FILES, file, Some(hold)).await?;
                     }
-                    let applied = crate::writes::apply(tx, archive, bucket, task, writes).await?;
+                    let applied = crate::writes::apply(tx, stores, task, writes).await?;
                     // the archive's id, which only the core knows, goes in the archiver's result
                     let mut result = std::borrow::Cow::Borrowed(result);
                     if let Some(archive_id) = applied.archive_id
@@ -1834,6 +1834,7 @@ impl Api {
         worker: &Worker,
         task: TaskId,
         writes: Vec<ace_sdk::writes::WireWrite>,
+        on_delay: bool,
     ) -> Result<Vec<crate::writes::Checked>, Failure> {
         if writes.is_empty() {
             return Ok(Vec::new());
@@ -1850,11 +1851,11 @@ impl Api {
             .collect();
         match crate::writes::check(
             &self.inner.db,
-            self.inner.stores.archive(),
-            &self.inner.bucket,
+            self.write_stores(),
             manifest,
             &owned,
             writes,
+            on_delay,
         )
         .await
         {
@@ -1877,6 +1878,42 @@ impl Api {
         }
     }
 
+    /// What a task's writes are checked against and land in.
+    fn write_stores(&self) -> crate::writes::Stores<'_> {
+        crate::writes::Stores {
+            archive: self.inner.stores.archive(),
+            bucket: &self.inner.bucket,
+            actions: &self.inner.config.actions,
+        }
+    }
+
+    /// Delays a task and lands the writes that come with a delay (`ace_sdk::writes::lands_on_delay`)
+    /// in one transaction. A root cancelled while the task ran ends it cancelled, and its writes
+    /// land all the same, as a skip's would.
+    async fn delay_with_writes(
+        &self,
+        worker: &Worker,
+        task: TaskId,
+        after: Duration,
+        state: &Value,
+        writes: &[crate::writes::Checked],
+    ) -> Result<(), Failure> {
+        let owned = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
+        let owned = &owned;
+        let stores = self.write_stores();
+        self.inner
+            .db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    worker.delay_in(tx, task, after, state).await?;
+                    crate::writes::apply(tx, stores, owned, writes).await?;
+                    Ok::<_, QueueError>(())
+                })
+            })
+            .await?;
+        Ok(())
+    }
+
     /// Ends a skipped task and lands its writes in one transaction.
     async fn complete_with_writes(
         &self,
@@ -1886,8 +1923,7 @@ impl Api {
     ) -> Result<(), Failure> {
         let owned = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
         let owned = &owned;
-        let archive = self.inner.stores.archive();
-        let bucket = &self.inner.bucket;
+        let stores = self.write_stores();
         self.inner
             .db
             .transaction(Isolation::ReadCommitted, |tx| {
@@ -1895,7 +1931,7 @@ impl Api {
                     let root = worker
                         .finish_in(tx, task, crate::queue::TaskState::Done, None)
                         .await?;
-                    crate::writes::apply(tx, archive, bucket, owned, writes).await?;
+                    crate::writes::apply(tx, stores, owned, writes).await?;
                     // a skip, which leaves no result
                     worker.ended_without_result(tx, root, task).await?;
                     crate::queue::check_completion(tx, root).await?;
@@ -2478,7 +2514,7 @@ async fn end_in(
             writes,
             probes,
         } => {
-            let writes = api.check_writes(&worker, task, writes).await?;
+            let writes = api.check_writes(&worker, task, writes, false).await?;
             // checked as JSON, so each field that fails is named
             let result = serde_json::to_value(result)
                 .map_err(|e| Failure::Internal(format!("re-encoding a result: {e}")))?;
@@ -2487,7 +2523,7 @@ async fn end_in(
         }
         TaskEnd::Skipped { reason, writes } => {
             tracing::info!(%task, "skipped: {reason}");
-            let writes = api.check_writes(&worker, task, writes).await?;
+            let writes = api.check_writes(&worker, task, writes, false).await?;
             if writes.is_empty() {
                 worker.complete(task).await?;
             } else {
@@ -2498,9 +2534,21 @@ async fn end_in(
             after_seconds,
             state,
             scan,
+            writes,
         } => {
             let after = Duration::try_from_secs_f64(after_seconds)
                 .map_err(|e| Failure::BadRequest(format!("after_seconds: {e}")))?;
+            if scan.is_some() && !writes.is_empty() {
+                return Err(Failure::BadRequest(
+                    "a delay for a scan carries no writes".to_owned(),
+                ));
+            }
+            let writes = api.check_writes(&worker, task, writes, true).await?;
+            if !writes.is_empty() {
+                api.delay_with_writes(&worker, task, after, &without_nul(state), &writes)
+                    .await?;
+                return Ok(StatusCode::NO_CONTENT);
+            }
             match scan {
                 Some(scan) => {
                     api.delay_for_scan(&worker, task, after, &without_nul(state), &scan)

@@ -3985,6 +3985,7 @@ async fn a_scan_request_outside_the_modules_declaration_fails_its_task() {
                 after_seconds: 10.0,
                 state: serde_json::Value::Null,
                 scan: Some(request),
+                writes: Vec::new(),
             },
         )
         .await;
@@ -5142,6 +5143,453 @@ async fn the_queue_retries_cancels_expires_and_supersedes_actions() {
             .map(|a| (a.id, a.attempts)),
         Some((lost, 0))
     );
+}
+
+// ---- a site module's remediation-check write (PLAN.md decision 32) ----
+
+/// Lookups that declare `remediation-check`, which no module of ace4's does: the first alone, the
+/// second with `smtp-log` too, so a test can send a write that may not come with a delay.
+mod checks {
+    use ace_results::ObservableKind;
+    use ace_sdk::example::LineStats;
+    use ace_sdk::writes::{RemediationCheck, SmtpLog, Write, WriteKind};
+    use ace_sdk::{Lookup, Module, ModuleError, Outcome, TaskContext};
+
+    pub struct AsksForACheck;
+
+    impl Module for AsksForACheck {
+        const NAME: &'static str = "test_remediation_check";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::EmailDelivery];
+        const WRITES: &'static [Write] = &[RemediationCheck::WRITE];
+        type Output = LineStats;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(AsksForACheck)
+        }
+    }
+
+    impl Lookup for AsksForACheck {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<LineStats>, ModuleError> {
+            Err(ModuleError::other("the tests end its tasks themselves"))
+        }
+    }
+
+    pub struct AlsoLogs;
+
+    impl Module for AlsoLogs {
+        const NAME: &'static str = "test_remediation_check_and_log";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::EmailDelivery];
+        const WRITES: &'static [Write] = &[RemediationCheck::WRITE, SmtpLog::WRITE];
+        type Output = LineStats;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(AlsoLogs)
+        }
+    }
+
+    impl Lookup for AlsoLogs {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<LineStats>, ModuleError> {
+            Err(ModuleError::other("the tests end its tasks themselves"))
+        }
+    }
+}
+
+/// A core whose catalog has the test modules that ask for a check and the fake probe.
+async fn check_core() -> Core {
+    let names = [
+        "test_remediation_check",
+        "test_remediation_check_and_log",
+        "archive",
+    ];
+    let mut entries: Vec<String> = names.iter().map(|n| (*n).to_owned()).collect();
+    entries.push(FAKE_PROBE.pool_entry());
+    let entries: Vec<&str> = entries.iter().map(String::as_str).collect();
+    let catalog =
+        ace_core::actions::ActionCatalog::new(&[&FAKE_PROBE, &ace_sdk::actions::TEST_REMEDIATOR])
+            .expect("a catalog");
+    Core::start_configured(
+        ace_core::eligibility::Catalog::new([
+            ace_sdk::Manifest::lookup::<checks::AsksForACheck>(),
+            ace_sdk::Manifest::lookup::<checks::AlsoLogs>(),
+            ace_mod_archive::MANIFEST,
+        ]),
+        ace_core::modes::Modes::ace3(),
+        &entries,
+        Duration::from_secs(30),
+        move |config| config.actions(catalog),
+    )
+    .await
+}
+
+/// The checks of a root: id, status, result, tries, context and events.
+async fn checks_of(
+    core: &Core,
+    root: uuid::Uuid,
+) -> Vec<(
+    i64,
+    String,
+    Option<String>,
+    i32,
+    Option<serde_json::Value>,
+    Option<serde_json::Value>,
+)> {
+    sqlx::query_as(
+        "SELECT a.id, a.status, a.result, a.attempts, a.context, a.events FROM queue.actions a
+         JOIN queue.action_roots r ON r.action_id = a.id
+         WHERE r.root_id = $1 AND a.kind = 'remediation_check' ORDER BY a.id",
+    )
+    .bind(root)
+    .fetch_all(core.test_db.db().pool())
+    .await
+    .expect("reads")
+}
+
+const DELIVERY: &str = "<m@example.com>|bob@example.com";
+
+fn check_write(body: serde_json::Value) -> ace_sdk::writes::WireWrite {
+    ace_sdk::writes::WireWrite {
+        write: "remediation-check".to_owned(),
+        body,
+    }
+}
+
+/// PLAN.md decision 32: a module's `remediation-check` queues a check of its own observable for its
+/// root, with its context, and records its answer as a try, with a delay as with a skip; the next run
+/// finds the pending check again rather than queueing a second, as ace3's module does, and its answer
+/// is the check's next try.
+#[tokio::test]
+async fn a_module_s_remediation_check_is_queued_once_and_its_answers_are_tries() {
+    let core = check_core().await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::EmailDelivery,
+        &[DELIVERY],
+        "test_remediation_check",
+    )
+    .await;
+    let task = lease_one(&client, "test_remediation_check").await;
+    let context = serde_json::json!({"event_time": "2026-11-20T10:00:00+00:00"});
+    client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Delay {
+                after_seconds: 0.0,
+                state: serde_json::json!({"attempts": 1}),
+                scan: None,
+                writes: vec![check_write(serde_json::json!({
+                    "probe": "fake_vendor",
+                    "context": context,
+                    "outcome": {"outcome": "pending", "message": "nothing yet"},
+                }))],
+            },
+        )
+        .await
+        .expect("the delay lands with its write");
+    assert_eq!(
+        common::task_of(&core, root, "test_remediation_check")
+            .await
+            .0,
+        "delayed"
+    );
+    let checks = checks_of(&core, root).await;
+    assert_eq!(checks.len(), 1);
+    let (check, status, result, attempts, kept, _) = checks[0].clone();
+    assert_eq!((status.as_str(), result, attempts), ("NEW", None, 1));
+    assert_eq!(kept, Some(context));
+    let (handler, value): (String, String) =
+        sqlx::query_as("SELECT handler, observable_value FROM queue.actions WHERE id = $1")
+            .bind(check)
+            .fetch_one(core.test_db.db().pool())
+            .await
+            .expect("reads");
+    assert_eq!(
+        (handler.as_str(), value.as_str()),
+        ("fake_vendor", DELIVERY)
+    );
+
+    // the next run finds the pending check and records its answer as the next try
+    let task = lease_one(&client, "test_remediation_check").await;
+    let event = serde_json::json!({
+        "source": "Fake Vendor", "event_type": "moved", "timestamp": "2026-11-20T10:05:00Z",
+        "description": "Moved", "target": "bob@example.com",
+    });
+    client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Skipped {
+                reason: "asked".to_owned(),
+                writes: vec![check_write(serde_json::json!({
+                    "probe": "fake_vendor",
+                    "context": {"event_time": "later"},
+                    "outcome": {"outcome": "found_events", "events": [event]},
+                }))],
+            },
+        )
+        .await
+        .expect("ends");
+    let checks = checks_of(&core, root).await;
+    assert_eq!(checks.len(), 1, "one check for the probe, target and alert");
+    let (again, status, result, attempts, kept, events) = checks[0].clone();
+    assert_eq!(again, check);
+    assert_eq!(
+        (status.as_str(), result.as_deref(), attempts),
+        ("COMPLETED", Some("CONFIRMED"), 2)
+    );
+    assert_eq!(
+        kept.expect("kept")["event_time"],
+        "2026-11-20T10:00:00+00:00",
+        "the pending check keeps its own"
+    );
+    assert_eq!(events.expect("events")[0]["event_type"], "moved");
+    let tries: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM queue.action_attempts WHERE action_id = $1")
+            .bind(check)
+            .fetch_one(core.test_db.db().pool())
+            .await
+            .expect("counts");
+    assert_eq!(tries, 2);
+
+    // with the check ended, another root's module queues one of its own, for that root alone
+    let other = root_of(
+        &core,
+        ace_results::ObservableKind::EmailDelivery,
+        &[DELIVERY],
+        "test_remediation_check",
+    )
+    .await;
+    let task = lease_one(&client, "test_remediation_check").await;
+    client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Skipped {
+                reason: "asked".to_owned(),
+                writes: vec![check_write(serde_json::json!({"probe": "fake_vendor"}))],
+            },
+        )
+        .await
+        .expect("ends");
+    let theirs = checks_of(&core, other).await;
+    assert_eq!(theirs.len(), 1);
+    assert_ne!(theirs[0].0, check);
+    assert_eq!(
+        (theirs[0].1.as_str(), theirs[0].3),
+        ("NEW", 0),
+        "queued, no answer recorded"
+    );
+    assert_eq!(checks_of(&core, root).await.len(), 1);
+}
+
+/// A pool holding the check decides its try: a module's answer then queues nothing new and records
+/// nothing.
+#[tokio::test]
+async fn a_module_s_answer_leaves_a_check_a_pool_holds() {
+    let core = check_core().await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::EmailDelivery,
+        &[DELIVERY],
+        "test_remediation_check",
+    )
+    .await;
+    let task = lease_one(&client, "test_remediation_check").await;
+    client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Delay {
+                after_seconds: 0.0,
+                state: serde_json::Value::Null,
+                scan: None,
+                writes: vec![check_write(serde_json::json!({"probe": "fake_vendor"}))],
+            },
+        )
+        .await
+        .expect("delays");
+    let probe = client.as_worker("probe");
+    let leased = probe
+        .lease_action(Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the check");
+    let task = lease_one(&client, "test_remediation_check").await;
+    client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Skipped {
+                reason: "asked".to_owned(),
+                writes: vec![check_write(serde_json::json!({
+                    "probe": "fake_vendor",
+                    "outcome": {"outcome": "not_found"},
+                }))],
+            },
+        )
+        .await
+        .expect("ends");
+    let checks = checks_of(&core, root).await;
+    assert_eq!(checks.len(), 1);
+    assert_eq!(
+        (checks[0].0, checks[0].1.as_str(), checks[0].3),
+        (leased.id, "NEW", 0)
+    );
+    probe
+        .end_action(
+            leased.id,
+            &ace_sdk::actions::ActionEnd::RemediationCheck {
+                outcome: ace_sdk::actions::ProbeOutcome::Pending { message: None },
+            },
+        )
+        .await
+        .expect("the pool's try ends");
+    assert_eq!(checks_of(&core, root).await[0].3, 1);
+}
+
+/// A `remediation-check` is refused, failing the task with nothing written, from a module that
+/// doesn't declare it (403), with a body that doesn't read (400), naming a probe the core hasn't or a
+/// handler that isn't a probe (403), with a context past its bound (403), asking twice for one probe
+/// (403), or beside a write that can't come with a delay (403).
+#[tokio::test]
+async fn a_remediation_check_is_refused_as_the_contract_says() {
+    let core = check_core().await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let big = "x".repeat(ace_sdk::writes::MAX_CHECK_CONTEXT_BYTES);
+    let probe = |body| check_write(body);
+    let skip = |writes| ace_sdk::wire::TaskEnd::Skipped {
+        reason: "asked".to_owned(),
+        writes,
+    };
+    let delay = |writes| ace_sdk::wire::TaskEnd::Delay {
+        after_seconds: 0.0,
+        state: serde_json::Value::Null,
+        scan: None,
+        writes,
+    };
+    let refusals = [
+        (
+            "archive",
+            skip(vec![probe(serde_json::json!({"probe": "fake_vendor"}))]),
+            403,
+        ),
+        (
+            "test_remediation_check",
+            skip(vec![probe(serde_json::json!({"probe": 5}))]),
+            400,
+        ),
+        (
+            "test_remediation_check",
+            skip(vec![probe(
+                serde_json::json!({"probe": "fake_vendor", "context": [1]}),
+            )]),
+            400,
+        ),
+        (
+            "test_remediation_check",
+            skip(vec![probe(serde_json::json!({"probe": "no_such_vendor"}))]),
+            403,
+        ),
+        (
+            "test_remediation_check",
+            skip(vec![probe(serde_json::json!({"probe": "test"}))]),
+            403,
+        ),
+        (
+            "test_remediation_check",
+            skip(vec![probe(
+                serde_json::json!({"probe": "fake_vendor", "context": {"big": big}}),
+            )]),
+            403,
+        ),
+        (
+            "test_remediation_check",
+            skip(vec![
+                probe(serde_json::json!({"probe": "fake_vendor"})),
+                probe(serde_json::json!({"probe": "fake_vendor"})),
+            ]),
+            403,
+        ),
+        (
+            "test_remediation_check_and_log",
+            delay(vec![
+                probe(serde_json::json!({"probe": "fake_vendor"})),
+                ace_sdk::writes::WireWrite {
+                    write: "smtp-log".to_owned(),
+                    body: serde_json::json!({"rows": []}),
+                },
+            ]),
+            403,
+        ),
+    ];
+    for (module, end, expected) in refusals {
+        let root = root_of(
+            &core,
+            ace_results::ObservableKind::EmailDelivery,
+            &[DELIVERY],
+            module,
+        )
+        .await;
+        let task = lease_one(&client, module).await;
+        let refused = client.end(task.id, &end).await;
+        assert!(
+            matches!(&refused, Err(ace_pool::client::ClientError::Api { status, .. }) if *status == expected),
+            "{module}: {refused:?}"
+        );
+        let (state, error) = common::task_of(&core, root, module).await;
+        assert_eq!(state, "failed", "{module}");
+        assert!(error.is_some(), "{module}");
+        assert!(
+            checks_of(&core, root).await.is_empty(),
+            "{module}: nothing written"
+        );
+    }
+    // a probe of another type than the task's observable's is refused too
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::Fqdn,
+        &["example.com"],
+        "test_remediation_check",
+    )
+    .await;
+    let task = lease_one(&client, "test_remediation_check").await;
+    let refused = client
+        .end(
+            task.id,
+            &skip(vec![probe(serde_json::json!({"probe": "fake_vendor"}))]),
+        )
+        .await;
+    assert!(
+        matches!(
+            &refused,
+            Err(ace_pool::client::ClientError::Api { status: 403, .. })
+        ),
+        "{refused:?}"
+    );
+    assert!(checks_of(&core, root).await.is_empty());
+    // a lease lost before the end writes nothing
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::EmailDelivery,
+        &[DELIVERY],
+        "test_remediation_check",
+    )
+    .await;
+    let task = lease_one(&client, "test_remediation_check").await;
+    let lost = client
+        .as_worker("w2")
+        .end(
+            task.id,
+            &skip(vec![probe(serde_json::json!({"probe": "fake_vendor"}))]),
+        )
+        .await;
+    assert!(
+        matches!(lost, Err(ace_pool::client::ClientError::LeaseLost(_))),
+        "{lost:?}"
+    );
+    assert!(checks_of(&core, root).await.is_empty());
 }
 
 // ---- svs_yara_sample_capture: the svs-capture-state read and the svs-capture write (PLAN.md 7.10

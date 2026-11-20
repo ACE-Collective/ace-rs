@@ -285,6 +285,44 @@ pub async fn request_check(
     Ok((id, true))
 }
 
+/// Records a module's own answer to a check as one of its tries, as ace3's module records the probe's
+/// outcome it got itself (`persist_probe_outcome`), with the same rules as a pool's try (`decide`):
+/// the tries before it count, the backoff starts from it, and the last one allowed ends the check.
+/// False, and nothing written, when the check has ended, or when a pool holds it now: that pool's
+/// try is asking the same question, and its end decides.
+pub async fn record_outcome(
+    tx: &mut Tx<'_>,
+    catalog: &ActionCatalog,
+    id: i64,
+    outcome: &ProbeOutcome,
+) -> Result<bool, ActionError> {
+    let row = sqlx::query!(
+        r#"SELECT handler, attempts, max_attempts, status,
+                  (lease_owner IS NOT NULL AND lease_expires_at > now()) AS "leased!"
+           FROM queue.actions WHERE id = $1 AND kind = 'remediation_check' FOR UPDATE"#,
+        id,
+    )
+    .fetch_optional(tx.conn())
+    .await?
+    .ok_or_else(|| ActionError::Invalid(format!("action {id} isn't a remediation check")))?;
+    if row.status == COMPLETED || row.leased {
+        return Ok(false);
+    }
+    let retry = catalog.retry(ActionKind::RemediationCheck, &row.handler);
+    let tried = u32::try_from(row.attempts)
+        .unwrap_or_default()
+        .saturating_add(1);
+    let exhausted = row
+        .max_attempts
+        .is_some_and(|max| i64::from(tried) >= i64::from(max));
+    let end = ActionEnd::RemediationCheck {
+        outcome: outcome.clone(),
+    };
+    let decided = decide(&end, tried, exhausted, &retry)?;
+    record(tx, id, &decided).await?;
+    Ok(true)
+}
+
 /// A file collection to ask for.
 #[derive(Debug, Clone)]
 pub struct NewCollection<'a> {
@@ -746,51 +784,7 @@ impl ActionWorker {
             .max_attempts
             .is_some_and(|max| i64::from(tried) >= i64::from(max));
         let decided = decide(end, tried, exhausted, &retry)?;
-        let message = decided.message.as_deref().map(bounded);
-        let last_error = decided.last_error.as_deref().map(bounded);
-        let (sha256, size, name) = match &decided.file {
-            Some(file) => (
-                Some(file.sha256.to_hex()),
-                Some(i64::try_from(file.size).unwrap_or(i64::MAX)),
-                Some(file.name.clone()),
-            ),
-            None => (None, None, None),
-        };
-        sqlx::query!(
-            "UPDATE queue.actions
-             SET status = $2, result = $3, result_message = $4,
-                 attempts = attempts + 1, updated_at = now(),
-                 run_after = now() + make_interval(secs => $5),
-                 lease_owner = NULL, lease_expires_at = NULL,
-                 restore_key = CASE WHEN kind = 'remediation' THEN $6 ELSE restore_key END,
-                 events = coalesce($7, events), last_error = coalesce($8, last_error),
-                 file_sha256 = coalesce($9, file_sha256), file_size = coalesce($10, file_size),
-                 file_name = coalesce($11, file_name)
-             WHERE id = $1",
-            id,
-            decided.status,
-            decided.result.as_deref(),
-            message.as_deref(),
-            delay_seconds(decided.retry_in),
-            decided.restore_key.as_deref(),
-            decided.events,
-            last_error.as_deref(),
-            sha256,
-            size,
-            name,
-        )
-        .execute(tx.conn())
-        .await?;
-        sqlx::query!(
-            "INSERT INTO queue.action_attempts (action_id, status, result, message)
-             VALUES ($1, $2, $3, $4)",
-            id,
-            decided.status,
-            decided.attempt_result,
-            message.as_deref().unwrap_or_default(),
-        )
-        .execute(tx.conn())
-        .await?;
+        record(tx, id, &decided).await?;
         Ok(if decided.file.is_some() {
             roots_in(tx, id).await?
         } else {
@@ -806,6 +800,57 @@ impl ActionWorker {
             })
             .await
     }
+}
+
+/// Writes a try's end, as `decide` made it, to the action's row and its history: ace3's
+/// `persist_probe_outcome` and its workers' writes. The lease goes with it.
+async fn record(tx: &mut Tx<'_>, id: i64, decided: &Decided) -> Result<(), ActionError> {
+    let message = decided.message.as_deref().map(bounded);
+    let last_error = decided.last_error.as_deref().map(bounded);
+    let (sha256, size, name) = match &decided.file {
+        Some(file) => (
+            Some(file.sha256.to_hex()),
+            Some(i64::try_from(file.size).unwrap_or(i64::MAX)),
+            Some(file.name.clone()),
+        ),
+        None => (None, None, None),
+    };
+    sqlx::query!(
+        "UPDATE queue.actions
+             SET status = $2, result = $3, result_message = $4,
+                 attempts = attempts + 1, updated_at = now(),
+                 run_after = now() + make_interval(secs => $5),
+                 lease_owner = NULL, lease_expires_at = NULL,
+                 restore_key = CASE WHEN kind = 'remediation' THEN $6 ELSE restore_key END,
+                 events = coalesce($7, events), last_error = coalesce($8, last_error),
+                 file_sha256 = coalesce($9, file_sha256), file_size = coalesce($10, file_size),
+                 file_name = coalesce($11, file_name)
+             WHERE id = $1",
+        id,
+        decided.status,
+        decided.result.as_deref(),
+        message.as_deref(),
+        delay_seconds(decided.retry_in),
+        decided.restore_key.as_deref(),
+        decided.events,
+        last_error.as_deref(),
+        sha256,
+        size,
+        name,
+    )
+    .execute(tx.conn())
+    .await?;
+    sqlx::query!(
+        "INSERT INTO queue.action_attempts (action_id, status, result, message)
+             VALUES ($1, $2, $3, $4)",
+        id,
+        decided.status,
+        decided.attempt_result,
+        message.as_deref().unwrap_or_default(),
+    )
+    .execute(tx.conn())
+    .await?;
+    Ok(())
 }
 
 enum Claim {

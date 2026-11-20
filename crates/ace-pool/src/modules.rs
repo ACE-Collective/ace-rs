@@ -240,8 +240,9 @@ impl<M: Lookup> PoolLookup for Entry<M> {
 }
 
 /// How a module's run ends, as the lease API takes it, with what it wrote (`Module::WRITES`) when
-/// it ends with a result or a skip. Any other end drops them: a task that fails, delays or is
-/// cancelled writes nothing.
+/// it ends with a result or a skip, and with a delay the writes that land with one
+/// (`ace_sdk::writes::lands_on_delay`, PLAN.md decision 32). Any other end drops them: a task that
+/// fails or is cancelled writes nothing, and one that delays nothing else.
 pub fn task_end<D: AnalysisType>(
     outcome: Result<Outcome<D>, ModuleError>,
     writes: Vec<WireWrite>,
@@ -261,6 +262,10 @@ pub fn task_end<D: AnalysisType>(
             after_seconds: delay.run_after.as_secs_f64(),
             state: delay.state,
             scan: delay.scan,
+            writes: writes
+                .into_iter()
+                .filter(|w| ace_sdk::writes::lands_on_delay(&w.write))
+                .collect(),
         },
         Ok(Outcome::Skipped(reason)) => TaskEnd::Skipped { reason, writes },
         Err(ModuleError::Cancelled) => TaskEnd::Cancelled,
@@ -519,15 +524,22 @@ mod tests {
         }
     }
 
-    /// PLAN.md 7.2: a task's writes go with a result or a skip, and with no other end.
+    /// PLAN.md 7.2: a task's writes go with a result or a skip, and with no other end, except a
+    /// `remediation-check`, which goes with a delay too (decision 32).
     #[test]
     fn writes_go_only_with_a_result_or_a_skip() {
         use ace_results::types::brocess::EmailLoggingAnalysis;
         let writes = || {
-            vec![WireWrite {
-                write: "smtp-log".to_owned(),
-                body: serde_json::json!({"rows": []}),
-            }]
+            vec![
+                WireWrite {
+                    write: "smtp-log".to_owned(),
+                    body: serde_json::json!({"rows": []}),
+                },
+                WireWrite {
+                    write: "remediation-check".to_owned(),
+                    body: serde_json::json!({"probe": "vendor"}),
+                },
+            ]
         };
         let result = ace_results::ResultEnvelope::new(EmailLoggingAnalysis {});
         let ends = [
@@ -546,11 +558,17 @@ mod tests {
         let carried: Vec<usize> = ends
             .iter()
             .map(|end| match end {
-                TaskEnd::Done { writes, .. } | TaskEnd::Skipped { writes, .. } => writes.len(),
+                TaskEnd::Done { writes, .. }
+                | TaskEnd::Skipped { writes, .. }
+                | TaskEnd::Delay { writes, .. } => writes.len(),
                 _ => 0,
             })
             .collect();
-        assert_eq!(carried, [1, 1, 0, 0, 0]);
+        assert_eq!(carried, [2, 2, 1, 0, 0]);
+        let TaskEnd::Delay { writes, .. } = &ends[2] else {
+            panic!("a delay")
+        };
+        assert_eq!(writes[0].write, "remediation-check");
     }
 
     #[test]

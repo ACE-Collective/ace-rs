@@ -8,18 +8,24 @@
 //! Built: `smtp-log` and `email-thread` (PLAN.md 7.4, `email_logger`), and `email-archive` (7.5 batch
 //! 9, `email_archiver`), which `email_archive` seals in `check` and lands in `apply`; and `svs-capture`
 //! (7.10 batch 2, `svs_yara_sample_capture`), whose bytes `svs::samples::prepare` reads in `check` and
-//! `svs::samples::land` puts in the `svs_samples` pool in `apply`.
+//! `svs::samples::land` puts in the `svs_samples` pool in `apply`; and `remediation-check` (PLAN.md
+//! decision 32, for a site's module), which queues a remediation check through `actions` and records
+//! the module's own answer as a try. It alone lands with a delay too
+//! (`ace_sdk::writes::lands_on_delay`).
 
 use ace_results::AnalysisType;
 use ace_results::types::email::{EmailAnalysis, EmailDetails};
 use ace_sdk::Manifest;
+use ace_sdk::actions::{ActionKind, ProbeOutcome};
 use ace_sdk::email_threads;
 use ace_sdk::writes::{
-    ArchivedEmailRecord, MAX_SVS_CAPTURES, SmtpLogRows, SvsCaptures, ThreadRecord, WireWrite,
+    ArchivedEmailRecord, CheckRequest, MAX_CHECK_CONTEXT_BYTES, MAX_SVS_CAPTURES, SmtpLogRows,
+    SvsCaptures, ThreadRecord, WireWrite,
 };
 use chrono::NaiveDateTime;
 use sha2::{Digest, Sha256};
 
+use crate::actions::ActionCatalog;
 use crate::bucket::Bucket;
 use crate::db::{Db, DbError, Tx};
 use crate::email_archive::{EmailArchive, PrepareFailure};
@@ -63,6 +69,22 @@ pub enum Checked {
     EmailArchive(Box<crate::email_archive::Prepared>),
     /// The file's captures for SVS, each with its bytes found (PLAN.md 7.10 batch 2).
     SvsCapture(Vec<crate::svs::samples::Prepared>),
+    /// A remediation check of the task's own observable by `probe`, a handler of the catalog's
+    /// (PLAN.md decision 32).
+    RemediationCheck {
+        probe: &'static str,
+        context: Option<serde_json::Value>,
+        outcome: Option<ProbeOutcome>,
+    },
+}
+
+/// What the core checks a task's writes against besides the task: its email archive, its bucket,
+/// the action handlers its catalog has, and whether the writes came with a delay.
+#[derive(Clone, Copy)]
+pub struct Stores<'a> {
+    pub archive: Option<&'a EmailArchive>,
+    pub bucket: &'a Bucket,
+    pub actions: &'a ActionCatalog,
 }
 
 /// What the writes gave the task's result: the archive's id for an `email-archive`, which its result
@@ -73,16 +95,19 @@ pub struct Applied {
 }
 
 /// Checks `writes` for `task`, whose module is `manifest`, before its end's transaction. An
-/// `email-archive` is sealed here, with `archive`'s key, and an `svs-capture`'s bytes are read from
-/// `bucket`.
+/// `email-archive` is sealed here, with the archive's key, and an `svs-capture`'s bytes are read
+/// from the bucket. With a delay (`on_delay`), only a write that lands with one may come.
 pub async fn check(
     db: &Db,
-    archive: Option<&EmailArchive>,
-    bucket: &Bucket,
+    stores: Stores<'_>,
     manifest: Option<&Manifest>,
     task: &Task,
     writes: Vec<WireWrite>,
+    on_delay: bool,
 ) -> Result<Vec<Checked>, WriteFailure> {
+    let Stores {
+        archive, bucket, ..
+    } = stores;
     let mut checked = Vec::new();
     for write in writes {
         let declared = manifest.is_some_and(|m| m.writes.iter().any(|w| w.name == write.write));
@@ -90,6 +115,12 @@ pub async fn check(
             return Err(WriteFailure::Forbidden(format!(
                 "{} doesn't declare the write {}",
                 task.module, write.write
+            )));
+        }
+        if on_delay && !ace_sdk::writes::lands_on_delay(&write.write) {
+            return Err(WriteFailure::Forbidden(format!(
+                "the write {} lands only with a result or a skip, not a delay",
+                write.write
             )));
         }
         match write.write.as_str() {
@@ -177,6 +208,23 @@ pub async fn check(
                 .await?;
                 checked.push(Checked::SvsCapture(prepared));
             }
+            "remediation-check" => {
+                let request: CheckRequest = parse(write.body)?;
+                let check = remediation_check(stores.actions, task, request)?;
+                let probe = match &check {
+                    Checked::RemediationCheck { probe, .. } => *probe,
+                    _ => unreachable!("remediation_check makes one"),
+                };
+                if checked
+                    .iter()
+                    .any(|c| matches!(c, Checked::RemediationCheck { probe: p, .. } if *p == probe))
+                {
+                    return Err(WriteFailure::Forbidden(format!(
+                        "a task asks for one remediation check by {probe}"
+                    )));
+                }
+                checked.push(check);
+            }
             other => {
                 return Err(WriteFailure::Forbidden(format!(
                     "write {other} isn't served by this core"
@@ -262,6 +310,56 @@ async fn svs_candidates(
     Ok(captures.captures)
 }
 
+/// A `remediation-check` write, once its probe is a remediation check handler of the core's catalog
+/// (so not one the overlay leaves off, PLAN.md decision 28) that acts on the task's observable's
+/// type, its context is within its bound, and its answer records no more events than a pool's try
+/// may. The check is always of the task's own observable, for the task's root.
+fn remediation_check(
+    actions: &ActionCatalog,
+    task: &Task,
+    request: CheckRequest,
+) -> Result<Checked, WriteFailure> {
+    let Some(spec) = actions.get(ActionKind::RemediationCheck, &request.probe) else {
+        return Err(WriteFailure::Forbidden(format!(
+            "remediation-check names the probe {:?}, which this core hasn't",
+            request.probe
+        )));
+    };
+    if spec.observable_type != task.observable.kind.as_str() {
+        return Err(WriteFailure::Forbidden(format!(
+            "remediation-check: {} checks a {}, and task {}'s observable is a {}",
+            spec.name,
+            spec.observable_type,
+            task.id,
+            task.observable.kind.as_str()
+        )));
+    }
+    let context = request.context.map(serde_json::Value::Object);
+    let size = context
+        .as_ref()
+        .map_or(0, |context| context.to_string().len());
+    if size > MAX_CHECK_CONTEXT_BYTES {
+        return Err(WriteFailure::Forbidden(format!(
+            "remediation-check's context is {size} bytes, past its bound of \
+             {MAX_CHECK_CONTEXT_BYTES}"
+        )));
+    }
+    if let Some(ProbeOutcome::FoundEvents { events, .. }) = &request.outcome
+        && events.len() > ace_sdk::actions::MAX_EVENTS
+    {
+        return Err(WriteFailure::Forbidden(format!(
+            "remediation-check records {} events, past its bound of {}",
+            events.len(),
+            ace_sdk::actions::MAX_EVENTS
+        )));
+    }
+    Ok(Checked::RemediationCheck {
+        probe: spec.name,
+        context,
+        outcome: request.outcome,
+    })
+}
+
 fn parse<T: serde::de::DeserializeOwned>(body: serde_json::Value) -> Result<T, WriteFailure> {
     serde_json::from_value(body).map_err(|e| WriteFailure::BadRequest(e.to_string()))
 }
@@ -306,14 +404,16 @@ fn smtp_address(address: &str) -> &[u8] {
     &bytes[..bytes.len().min(SMTP_ADDRESS_BYTES)]
 }
 
-/// Writes the checked writes in the transaction that ends `task`.
+/// Writes the checked writes in the transaction that ends `task`, or delays it.
 pub async fn apply(
     tx: &mut Tx<'_>,
-    archive: Option<&EmailArchive>,
-    bucket: &Bucket,
+    stores: Stores<'_>,
     task: &Task,
     writes: &[Checked],
 ) -> Result<Applied, DbError> {
+    let Stores {
+        archive, bucket, ..
+    } = stores;
     let mut applied = Applied::default();
     for write in writes {
         match write {
@@ -363,6 +463,50 @@ pub async fn apply(
                     root = %task.root,
                     write = "svs-capture",
                     captures = results.len(),
+                    "write"
+                );
+            }
+            Checked::RemediationCheck {
+                probe,
+                context,
+                outcome,
+            } => {
+                let failed = |e: crate::actions::ActionError| match e {
+                    crate::actions::ActionError::Db(e) => e,
+                    other => DbError::Decode(format!(
+                        "task {}'s remediation check by {probe}: {other}",
+                        task.id
+                    )),
+                };
+                let (check, new) = crate::actions::request_check(
+                    tx,
+                    stores.actions,
+                    &crate::actions::NewCheck {
+                        handler: probe,
+                        observable_type: task.observable.kind.as_str(),
+                        observable_value: &task.observable.value,
+                        root: task.root,
+                        context: context.as_ref(),
+                    },
+                )
+                .await
+                .map_err(failed)?;
+                let recorded = match outcome {
+                    Some(outcome) => {
+                        crate::actions::record_outcome(tx, stores.actions, check, outcome)
+                            .await
+                            .map_err(failed)?
+                    }
+                    None => false,
+                };
+                tracing::info!(
+                    task = task.id.0,
+                    root = %task.root,
+                    write = "remediation-check",
+                    probe,
+                    check,
+                    new,
+                    recorded,
                     "write"
                 );
             }

@@ -128,6 +128,7 @@ async fn a_refused_connection_is_unavailable() {
             .expect_err("nothing listens on the port");
         println!("{err}");
         assert_eq!(err.kind(), HttpErrorKind::Unavailable, "{err}");
+        assert!(!err.is_read_timeout(), "{err}");
         assert_eq!(err.peer(), Some(format!("127.0.0.1:{port}").as_str()));
         assert!(!err.to_string().contains("s3cret"), "{err}");
         assert!(matches!(
@@ -152,6 +153,8 @@ async fn every_request_has_a_timeout() {
     println!("{err}");
     assert!(started.elapsed() < Duration::from_secs(5));
     assert_eq!(err.kind(), HttpErrorKind::Unavailable);
+    // the server was reached and didn't answer: a read timeout, unlike a refused connection
+    assert!(err.is_read_timeout(), "{err}");
 }
 
 #[tokio::test]

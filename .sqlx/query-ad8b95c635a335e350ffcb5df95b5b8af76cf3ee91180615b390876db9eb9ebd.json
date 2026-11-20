@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT handler, attempts, max_attempts, status,\n                  (lease_owner IS NOT NULL AND lease_expires_at > now()) AS \"leased!\"\n           FROM queue.actions WHERE id = $1 AND kind = 'remediation_check' FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "handler",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "handler"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "max_attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "max_attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "leased!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "ad8b95c635a335e350ffcb5df95b5b8af76cf3ee91180615b390876db9eb9ebd"
+}

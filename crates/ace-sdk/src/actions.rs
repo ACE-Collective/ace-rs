@@ -452,8 +452,9 @@ impl CheckResult {
 }
 
 /// One thing another system did to a target, as a probe found it: ace3's `RemediationEvent`, which its
-/// alert page's remediation timeline shows.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// alert page's remediation timeline shows. A module that asks the same question at analysis time
+/// may keep the events in its result's details, so it has a schema.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RemediationEvent {
     /// Who did it, as the coverage badge names it, such as `Mail filter`.

@@ -368,13 +368,16 @@ pub enum TaskEnd {
     },
     /// Run the task again after `after_seconds`, with `state` for the next run, and the scan to run
     /// meanwhile, if the module asked for one (PLAN.md 7.7): its inputs the module wrote must have
-    /// been uploaded first, as a result's files are.
+    /// been uploaded first, as a result's files are. The writes that land with a delay
+    /// (`crate::writes::lands_on_delay`) land in the delay's transaction; no other may be here.
     Delay {
         after_seconds: f64,
         #[serde(default)]
         state: Value,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         scan: Option<crate::scanners::ScanRequest>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        writes: Vec<WireWrite>,
     },
     /// The module or its setup failed.
     Failed { error: String },
