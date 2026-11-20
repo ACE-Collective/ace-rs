@@ -4,7 +4,8 @@
 //! `api.rs` checks the caller, the lease and that the task's module declares the read. Each read
 //! here then finds its subject in the task's root and answers. Built so far: `snort-signature`,
 //! `smtp-counts`, `email-thread-domains`, `email-thread` and `newly-registered` (PLAN.md 7.4), the email
-//! archive's three (7.5 batch 9), `observable-tags` (7.6) and `svs-capture-state` (7.10 batch 2).
+//! archive's three (7.5 batch 9), `observable-tags` (7.6), `svs-capture-state` (7.10 batch 2) and
+//! `recorded-message-ids` (a site's batch D1, PLAN.md decision 29).
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
@@ -19,10 +20,11 @@ use ace_sdk::reads::{
     ArchivedEmailAnswer, ArchivedEmailRequest, ArchivedUrlCountAnswer, ArchivedUrlCountRequest,
     Conversation, ConversationMessage, DecryptedArchiveAnswer, DecryptedArchiveRequest,
     EmailThreadAnswer, EmailThreadDomainsAnswer, EmailThreadDomainsRequest, EmailThreadRequest,
-    EstablishedDomain, MAX_OBSERVABLE_TAGS, MAX_SVS_DETECTIONS, MessageParticipant,
-    NewlyRegisteredAnswer, NewlyRegisteredRequest, ObservableTagsAnswer, ObservableTagsRequest,
-    SmtpCountsAnswer, SmtpCountsRequest, SnortSignatureAnswer, SnortSignatureRequest,
-    SvsCaptureRow, SvsCaptureStateAnswer, SvsCaptureStateRequest, SvsDetection, SvsFilePath,
+    EstablishedDomain, MAX_OBSERVABLE_TAGS, MAX_RECORDED_MESSAGE_IDS, MAX_SVS_DETECTIONS,
+    MessageParticipant, NewlyRegisteredAnswer, NewlyRegisteredRequest, ObservableTagsAnswer,
+    ObservableTagsRequest, RecordedMessageIdsAnswer, RecordedMessageIdsRequest, SmtpCountsAnswer,
+    SmtpCountsRequest, SnortSignatureAnswer, SnortSignatureRequest, SvsCaptureRow,
+    SvsCaptureStateAnswer, SvsCaptureStateRequest, SvsDetection, SvsFilePath,
 };
 use regex::Regex;
 use serde_json::Value;
@@ -132,6 +134,10 @@ pub async fn answer(
             let mut answer = email_thread(db, task, request).await?;
             answer.recording = recording(db, catalog, task).await?;
             serde_json::to_value(answer)
+        }
+        "recorded-message-ids" => {
+            let request: RecordedMessageIdsRequest = parse(request)?;
+            serde_json::to_value(recorded_message_ids(db, task, request).await?)
         }
         "newly-registered" => {
             let request: NewlyRegisteredRequest = parse(request)?;
@@ -1016,6 +1022,66 @@ async fn email_thread(
             roles_truncated,
         }),
         recording: false,
+    })
+}
+
+/// `recorded-message-ids`, ace3's `get_recorded_message_ids`: which of the request's Message-IDs
+/// the thread store holds in any thread, matched on the normalized form the email logger records,
+/// and answered in that form. It answers whether each id is recorded and nothing else of the
+/// message: other emails' ids are what the module already has.
+async fn recorded_message_ids(
+    db: &Db,
+    task: &Task,
+    request: RecordedMessageIdsRequest,
+) -> Result<RecordedMessageIdsAnswer, ReadFailure> {
+    if task.observable.kind != ObservableKind::MessageId {
+        return Err(ReadFailure::Forbidden(format!(
+            "recorded-message-ids answers for a message_id task, and task {}'s observable is a {}",
+            task.id, task.observable.kind
+        )));
+    }
+    if request.message_ids.len() > MAX_RECORDED_MESSAGE_IDS {
+        return Err(ReadFailure::Forbidden(format!(
+            "recorded-message-ids takes at most {MAX_RECORDED_MESSAGE_IDS} ids, not {}",
+            request.message_ids.len()
+        )));
+    }
+    // ace3 drops an empty id before it normalizes the rest
+    let normalized: BTreeSet<String> = request
+        .message_ids
+        .iter()
+        .filter(|id| !id.is_empty())
+        .map(|id| email_threads::normalize_message_id(id))
+        .collect();
+    if normalized.is_empty() {
+        return Ok(RecordedMessageIdsAnswer::default());
+    }
+    let hashes: Vec<Vec<u8>> = normalized
+        .iter()
+        .map(|id| crate::writes::hash(id))
+        .collect();
+    let found = sqlx::query_scalar!(
+        "SELECT DISTINCT message_id FROM brocess.email_thread_message
+         WHERE message_id_hash = ANY($1)",
+        &hashes,
+    )
+    .fetch_all(db.pool())
+    .await?;
+    // a hash names one id; keep only what was asked, in the store's form
+    let recorded: BTreeSet<String> = found
+        .into_iter()
+        .filter(|id| normalized.contains(id))
+        .collect();
+    tracing::info!(
+        task = task.id.0,
+        root = %task.root,
+        read = "recorded-message-ids",
+        asked = normalized.len(),
+        recorded = recorded.len(),
+        "read"
+    );
+    Ok(RecordedMessageIdsAnswer {
+        recorded: recorded.into_iter().collect(),
     })
 }
 

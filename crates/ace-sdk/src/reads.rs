@@ -526,6 +526,41 @@ pub struct SvsCaptureRow {
 /// The most detections an `svs-capture-state` answer holds.
 pub const MAX_SVS_DETECTIONS: usize = 1000;
 
+/// `recorded-message-ids`: which of a set of Message-IDs the thread store holds, in any thread, as
+/// ace3's `get_recorded_message_ids` (`saq/modules/email/conversation.py`). A module that rebuilds a
+/// conversation from elsewhere, such as a site's `mail_filter_email_thread_recovery` from the mail
+/// provider, tells a message ACE never scanned from one it scanned but recorded in a thread of its
+/// own.
+pub struct RecordedMessageIds;
+
+impl ReadKind for RecordedMessageIds {
+    const READ: Read = Read {
+        name: "recorded-message-ids",
+    };
+    type Request = RecordedMessageIdsRequest;
+    type Answer = RecordedMessageIdsAnswer;
+}
+
+/// A `recorded-message-ids` read: the Message-IDs to look up, at most `MAX_RECORDED_MESSAGE_IDS`,
+/// each normalized as the email logger records them (`email_threads::normalize_message_id`). The
+/// task's own observable must be a `message_id`; the read names no other subject.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RecordedMessageIdsRequest {
+    pub message_ids: Vec<String>,
+}
+
+/// The answer to a `recorded-message-ids` read.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RecordedMessageIdsAnswer {
+    /// The requested ids the store holds, normalized as it stores them, sorted.
+    pub recorded: Vec<String>,
+}
+
+/// The most Message-IDs a `recorded-message-ids` read asks about.
+pub const MAX_RECORDED_MESSAGE_IDS: usize = 500;
+
 /// Every read a module can declare, by name.
 pub const ALL: &[Read] = &[
     SnortSignature::READ,
@@ -538,6 +573,7 @@ pub const ALL: &[Read] = &[
     ArchivedUrlCount::READ,
     ObservableTags::READ,
     SvsCaptureState::READ,
+    RecordedMessageIds::READ,
 ];
 
 /// The reads that put a file in the task's root, which a result may add without uploading it.

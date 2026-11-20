@@ -15,6 +15,11 @@
 //!   that read the frequency module's `new_sender` tags in the root's tree (PLAN.md 7.5 batch 8).
 //!
 //! `threads` finds an email's thread as ace3 does, and `similarity` is ace3's look-alike checks.
+//!
+//! `similarity` (ace3's `saq.domain_similarity`) and `thread::IgnoredDomainPairs` (the thread
+//! settings' `is_ignored_pair`) are for a site's modules too, as ace3's are for its integrations:
+//! a site's `mail_filter_email_thread_recovery` compares a recovered conversation's domains with
+//! them (PLAN.md decision 29).
 
 pub mod attachment;
 pub mod fluent;
@@ -29,4 +34,4 @@ pub use attachment::EmailConversationAttachmentAnalyzer;
 pub use frequency::EmailConversationFrequencyAnalyzer;
 pub use link::EmailConversationLinkAnalyzer;
 pub use logger::EmailLogger;
-pub use thread::EmailThreadAnalyzer;
+pub use thread::{EmailThreadAnalyzer, IgnoredDomainPairs};

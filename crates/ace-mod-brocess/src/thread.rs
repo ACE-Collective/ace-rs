@@ -76,7 +76,36 @@ impl Default for EmailThreadSettings {
 
 /// The email thread module.
 pub struct EmailThreadAnalyzer {
-    ignored: BTreeSet<(String, String)>,
+    ignored: IgnoredDomainPairs,
+}
+
+/// ace3's `EmailThreadSettings.is_ignored_pair`: the domain pairs never reported as look-alikes of
+/// each other, matched in either order on their registrable domains, the level `compare_domains`
+/// works at, so a pair covers the hosts beneath each side. The thread module and a site's module
+/// that honours the same pairs, such as a site's `mail_filter_email_thread_recovery`, build it from
+/// their `ignored_domain_pairs` setting.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct IgnoredDomainPairs {
+    pairs: BTreeSet<(String, String)>,
+}
+
+impl IgnoredDomainPairs {
+    pub fn new(pairs: &[[String; 2]]) -> IgnoredDomainPairs {
+        IgnoredDomainPairs {
+            pairs: pairs
+                .iter()
+                .map(|[a, b]| pair(&registrable_domain(a), &registrable_domain(b)))
+                .collect(),
+        }
+    }
+
+    /// Whether the pair is listed, in either order.
+    pub fn is_ignored(&self, first: &str, second: &str) -> bool {
+        self.pairs.contains(&pair(
+            &registrable_domain(first),
+            &registrable_domain(second),
+        ))
+    }
 }
 
 impl Module for EmailThreadAnalyzer {
@@ -99,12 +128,9 @@ impl Module for EmailThreadAnalyzer {
                 "max_messages and max_threads must be at least 1",
             ));
         }
-        let ignored = settings
-            .ignored_domain_pairs
-            .iter()
-            .map(|[a, b]| pair(&registrable_domain(a), &registrable_domain(b)))
-            .collect();
-        Ok(EmailThreadAnalyzer { ignored })
+        Ok(EmailThreadAnalyzer {
+            ignored: IgnoredDomainPairs::new(&settings.ignored_domain_pairs),
+        })
     }
 }
 
@@ -208,10 +234,7 @@ impl EmailThreadAnalyzer {
                 if !compared.is_similar {
                     continue;
                 }
-                if self.ignored.contains(&pair(
-                    &registrable_domain(suspect),
-                    &registrable_domain(reference),
-                )) {
+                if self.ignored.is_ignored(suspect, reference) {
                     tracing::debug!("ignoring look-alike pair {suspect} / {reference}");
                     continue;
                 }
@@ -636,5 +659,17 @@ mod tests {
     #[test]
     fn a_pair_is_the_same_either_way_round() {
         assert_eq!(pair("b.com", "a.com"), pair("a.com", "b.com"));
+    }
+
+    /// ace3's `is_ignored_pair`: either order, by registrable domain, so the hosts below each side
+    /// are covered, and nothing else.
+    #[test]
+    fn an_ignored_pair_matches_either_way_round_and_below_each_side() {
+        let ignored =
+            IgnoredDomainPairs::new(&[["Example.com".to_owned(), "example-group.com".to_owned()]]);
+        assert!(ignored.is_ignored("example.com", "example-group.com"));
+        assert!(ignored.is_ignored("example-group.com", "mail.example.com"));
+        assert!(!ignored.is_ignored("example.com", "exarnple.com"));
+        assert!(!IgnoredDomainPairs::default().is_ignored("example.com", "example-group.com"));
     }
 }

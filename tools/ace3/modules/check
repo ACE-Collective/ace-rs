@@ -16,7 +16,8 @@ there, and fails when the inventory's table of modules:
 And it finds the modules that read or write ACE's own data (PLAN.md 7.2) in ace3's code at the same
 commit, and fails when the inventory's "What 7.2 serves" table misses one or lists one it doesn't
 find, when a row names nothing to serve it, or a read crates/ace-core/src/reads.md doesn't have, or
-`core` for a module off the core's pool, and when reads.md lists a read no row names.
+`core` for a module off the core's pool, and when reads.md lists a read no row names (a read served
+for a site integration's module is named in SITE_READS instead).
 
 And it finds the modules that start a process (PLAN.md 7.3) the same way, and fails when the
 inventory's "Modules that start a process" table misses one, when a row has no decision or
@@ -276,6 +277,10 @@ DECISIONS = {"crate", "runner", "children", "scanner", "none"}
 # doesn't find the module: nrd_analyzer's list is a SQLite file on each node in ace3, and in ace4
 # the core's list, which a worker reads through the core (PLAN.md 7.4).
 ADDED_READS = {"newly-registered": "nrd_analyzer"}
+# Reads ace4 serves for a site integration's module, which isn't one of ace3's sections and so has no
+# row here: a site's mail_filter_email_thread_recovery asks the thread store which ids it holds, as
+# ace3's get_recorded_message_ids (PLAN.md decision 29).
+SITE_READS = {"recorded-message-ids": "mail_filter_email_thread_recovery"}
 SERVED = {"lease", "ruleset", "end", "core"}
 FUNCTION = (ast.FunctionDef, ast.AsyncFunctionDef)
 
@@ -537,6 +542,11 @@ def check_reads(doc, reads_doc, rows, found, failures):
             named.add(read)
         else:
             failures.append(f"7.2: ADDED_READS gives {read} to {module}, which reads.md doesn't")
+    for read, module in SITE_READS.items():
+        if reads.get(read) == module:
+            named.add(read)
+        else:
+            failures.append(f"7.2: SITE_READS gives {read} to {module}, which reads.md doesn't")
     for read in sorted(set(reads) - named):
         failures.append(f"7.2: reads.md has {read}, which no module's row names")
     return len(served), len(reads)

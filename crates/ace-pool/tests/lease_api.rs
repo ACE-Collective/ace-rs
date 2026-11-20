@@ -2165,6 +2165,232 @@ async fn the_thread_module_reads_its_conversation_through_the_lease_api() {
     }
 }
 
+/// A lookup that asks the thread store which of its own message id and two others it holds, and
+/// fails with the answer, so a test reads what reached it through the pool's client.
+mod recorded {
+    use ace_results::ObservableKind;
+    use ace_sdk::example::LineStats;
+    use ace_sdk::reads::{Read, ReadKind, RecordedMessageIds, RecordedMessageIdsRequest};
+    use ace_sdk::{Lookup, Module, ModuleError, Outcome, TaskContext};
+
+    pub struct AsksTheStore;
+
+    impl Module for AsksTheStore {
+        const NAME: &'static str = "test_recorded_message_ids";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::MessageId];
+        const READS: &'static [Read] = &[RecordedMessageIds::READ];
+        type Output = LineStats;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(AsksTheStore)
+        }
+    }
+
+    impl Lookup for AsksTheStore {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<LineStats>, ModuleError> {
+            let answer = ctx
+                .read::<RecordedMessageIds>(&RecordedMessageIdsRequest {
+                    message_ids: vec![
+                        ctx.observable().value.clone(),
+                        "never@example.com".to_owned(),
+                        String::new(),
+                    ],
+                })
+                .await?;
+            Err(ModuleError::other(format!(
+                "recorded: {}",
+                answer.recorded.join(" ")
+            )))
+        }
+    }
+}
+
+/// Two messages in the thread store, in threads of their own.
+async fn seed_recorded_messages(core: &Core) {
+    sqlx::query(
+        "INSERT INTO brocess.email_thread_message
+             (thread_id, thread_id_hash, message_id, message_id_hash)
+         SELECT id, sha256(convert_to(id, 'UTF8')), id, sha256(convert_to(id, 'UTF8'))
+         FROM unnest(ARRAY['<scanned@example.com>', '<other@example.org>']) AS id",
+    )
+    .execute(core.test_db.db().pool())
+    .await
+    .expect("seeds the store");
+    // the same message recorded in a second thread is one answer
+    sqlx::query(
+        "INSERT INTO brocess.email_thread_message
+             (thread_id, thread_id_hash, message_id, message_id_hash)
+         VALUES ('<parent@example.com>', sha256(convert_to('<parent@example.com>', 'UTF8')),
+                 '<scanned@example.com>', sha256(convert_to('<scanned@example.com>', 'UTF8')))",
+    )
+    .execute(core.test_db.db().pool())
+    .await
+    .expect("seeds the second thread");
+}
+
+/// `recorded-message-ids` (PLAN.md decision 29), ace3's `get_recorded_message_ids`: which of the
+/// ids the store holds in any thread, normalized as the logger records them, each once; an empty
+/// id is dropped; past 500 ids, or for a task whose observable isn't a message_id, it refuses
+/// (403); and the rest of the contract's refusals.
+#[tokio::test]
+async fn recorded_message_ids_answers_what_the_store_holds_and_refuses_the_rest() {
+    let modules = ["test_recorded_message_ids", "archive"];
+    let core = Core::start_configured(
+        ace_core::eligibility::Catalog::new([
+            ace_sdk::Manifest::lookup::<recorded::AsksTheStore>(),
+            ace_mod_archive::MANIFEST,
+        ]),
+        ace_core::modes::Modes::ace3(),
+        &modules,
+        Duration::from_secs(30),
+        |mut config| {
+            config.pools.push(ace_core::api::PoolAccess::new(
+                "other",
+                OTHER_TOKEN,
+                modules.iter().map(|m| (*m).to_owned()).collect(),
+            ));
+            config
+        },
+    )
+    .await;
+    seed_recorded_messages(&core).await;
+    let kind = ace_results::ObservableKind::MessageId;
+    root_of(
+        &core,
+        kind,
+        &["<anchor@example.com>"],
+        "test_recorded_message_ids",
+    )
+    .await;
+    root_of(&core, kind, &["<elsewhere@example.com>"], "archive").await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let task = lease_one(&client, "test_recorded_message_ids").await;
+    let archive_task = lease_one(&client, "archive").await;
+
+    let asked = serde_json::json!({"message_ids": [
+        "scanned@example.com", " <other@example.org> ", "<never@example.com>", "",
+        "<scanned@example.com>",
+    ]});
+    let answer = client
+        .read(task.id, "recorded-message-ids", &asked, false)
+        .await
+        .expect("answers");
+    assert_eq!(
+        answer,
+        serde_json::json!({"recorded": ["<other@example.org>", "<scanned@example.com>"]})
+    );
+    let none = client
+        .read(
+            task.id,
+            "recorded-message-ids",
+            &serde_json::json!({"message_ids": []}),
+            false,
+        )
+        .await
+        .expect("answers");
+    assert_eq!(none, serde_json::json!({"recorded": []}));
+    let at_the_bound: Vec<String> = (0..500).map(|n| format!("<{n}@example.com>")).collect();
+    assert!(
+        client
+            .read(
+                task.id,
+                "recorded-message-ids",
+                &serde_json::json!({"message_ids": at_the_bound}),
+                false,
+            )
+            .await
+            .is_ok()
+    );
+    let past_the_bound: Vec<String> = (0..501).map(|n| format!("<{n}@example.com>")).collect();
+    assert_refusals(
+        &core,
+        task.id,
+        "recorded-message-ids",
+        asked,
+        serde_json::json!({"message_ids": past_the_bound}),
+        archive_task.id,
+    )
+    .await;
+}
+
+/// The read refuses a task whose observable isn't a message_id, and the module that declares it
+/// gets its answer through the pool's client, as the lookups pool runs it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn recorded_message_ids_reaches_a_module_through_the_lease_api() {
+    let names = ["test_recorded_message_ids"];
+    let core = Core::start(
+        vec![ace_sdk::Manifest::lookup::<recorded::AsksTheStore>()],
+        &names,
+        Duration::from_secs(30),
+    )
+    .await;
+    seed_recorded_messages(&core).await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+    // a task of the module on what isn't a message_id, which only a hand-made queue holds
+    root_of(
+        &core,
+        ace_results::ObservableKind::Fqdn,
+        &["example.com"],
+        "test_recorded_message_ids",
+    )
+    .await;
+    let task = lease_one(&client, "test_recorded_message_ids").await;
+    assert_eq!(
+        status(
+            &client
+                .read(
+                    task.id,
+                    "recorded-message-ids",
+                    &serde_json::json!({"message_ids": ["<scanned@example.com>"]}),
+                    false,
+                )
+                .await
+        ),
+        Some(403)
+    );
+    let modules = std::sync::Arc::new(
+        ace_pool::modules::Modules::new().with_lookup(
+            ace_pool::modules::Entry::<recorded::AsksTheStore>::lookup(
+                None,
+                &ace_sdk::Secrets::new(),
+            )
+            .expect("the module"),
+        ),
+    );
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::MessageId,
+        &["scanned@example.com"],
+        "test_recorded_message_ids",
+    )
+    .await;
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    assert_eq!(task.root, root);
+    ace_pool::run::run_in_process(
+        &client,
+        &modules,
+        task,
+        &tokio_util::sync::CancellationToken::new(),
+    )
+    .await
+    .expect("runs");
+    let (state, error) = common::task_of(&core, root, "test_recorded_message_ids").await;
+    assert_eq!(state, "failed");
+    assert!(
+        error
+            .as_deref()
+            .is_some_and(|e| e.contains("recorded: <scanned@example.com>") && !e.contains("never")),
+        "{error:?}"
+    );
+}
+
 /// `email-thread` says the root's email is still to be recorded while a module that writes
 /// `email-thread` has a task in the root that hasn't finished, and not once it has.
 #[tokio::test]
