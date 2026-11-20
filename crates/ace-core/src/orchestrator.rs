@@ -29,7 +29,7 @@ use uuid::Uuid;
 
 use crate::cache::{self, CacheSettings};
 use crate::db::{DbError, Retryable, Tx};
-use crate::eligibility::{Catalog, Facts, check};
+use crate::eligibility::{self, Catalog, Facts, TaskSeen, check};
 use crate::hooks::{self, Hooks};
 use crate::limits;
 use crate::modes::{CORRELATION, DISPOSITIONED, Modes};
@@ -342,6 +342,19 @@ impl Orchestrator {
             );
         }
 
+        // each observable's tasks by component, as a dependency's settling reads them
+        let mut seen: BTreeMap<ObservableId, BTreeMap<&str, TaskSeen>> = BTreeMap::new();
+        for ((observable, key), (_, state, _)) in &tasks {
+            let state = match state {
+                TaskState::Done | TaskState::Failed => TaskSeen::Ended,
+                TaskState::Cancelled => TaskSeen::None,
+                _ => TaskSeen::Active,
+            };
+            seen.entry(*observable)
+                .or_default()
+                .insert(key.as_str(), state);
+        }
+        let no_tasks = BTreeMap::new();
         let none = BTreeSet::new();
         // a file's type step, queued first and alone where something reads the type
         // (`crate::type_step`)
@@ -373,7 +386,7 @@ impl Orchestrator {
         let mut queued = Vec::new();
         // each observable's eligible components first, then the facts their declarations read,
         // read once for every observable that has a declaring component (`crate::takes`)
-        let mut eligible: Vec<(ObservableKind, Vec<&ace_sdk::Component>)> = Vec::new();
+        let mut eligible: Vec<Eligible> = Vec::new();
         let mut declaring = Vec::new();
         for observable in &observables {
             let kind: ObservableKind = observable
@@ -385,7 +398,12 @@ impl Orchestrator {
                 .exclusions
                 .excludes(&observable.kind, &observable.value)
             {
-                eligible.push((kind, Vec::new()));
+                eligible.push(Eligible {
+                    kind,
+                    components: Vec::new(),
+                    settled: BTreeSet::new(),
+                    open: false,
+                });
                 continue;
             }
             let facts = Facts {
@@ -394,7 +412,9 @@ impl Orchestrator {
                 exclude_modules: &observable.exclude_modules,
                 limit_modules: &observable.limit_modules,
             };
-            let mut done: BTreeSet<&str> = results
+            // the components that won't store a result for it, which meets a dependency on them
+            // (`eligibility::settle`, PLAN.md decision 30)
+            let mut settled: BTreeSet<&str> = results
                 .get(&observable.id)
                 .unwrap_or(&none)
                 .iter()
@@ -402,20 +422,25 @@ impl Orchestrator {
                 .collect();
             // ace3's file_type result, built from the file's type, is the dependency's result
             if observable.type_result {
-                done.insert(TYPE_STEP);
+                settled.insert(TYPE_STEP);
             }
+            let tasks_on = seen.get(&observable.id).unwrap_or(&no_tasks);
+            eligibility::settle(&self.catalog, facts, &mode_modules, &mut settled, |key| {
+                tasks_on.get(key).copied().unwrap_or(TaskSeen::None)
+            });
             let mut components: Vec<&ace_sdk::Component> = self
                 .catalog
                 .iter()
                 .filter(|component| component.key != TYPE_STEP)
-                .filter(|component| check(component, facts, &mode_modules, &done).is_ok())
+                .filter(|component| check(component, facts, &mode_modules, &settled).is_ok())
                 .collect();
+            let mut gated = false;
             if kind == ObservableKind::File
                 && let Some(step) = type_step
             {
                 // typed where ace3's file_type would run, so its result shows where ace3's does,
                 // or where a module the mode runs on the file declares on the type
-                let shows = check(step, facts, &mode_modules, &done).is_ok();
+                let shows = check(step, facts, &mode_modules, &settled).is_ok();
                 let wanted = shows
                     || components
                         .iter()
@@ -444,17 +469,23 @@ impl Orchestrator {
                 // nothing else on the file until its type step has ended
                 if !ended {
                     components.clear();
+                    gated = true;
                 }
             }
             if components.iter().any(|c| !c.takes.is_everything()) {
                 declaring.push(observable.id);
             }
-            eligible.push((kind, components));
+            eligible.push(Eligible {
+                kind,
+                components,
+                settled,
+                open: !gated,
+            });
         }
-        let held = if declaring.is_empty() {
+        let needs = declared::Needs::of(self.catalog.iter());
+        let mut held = if declaring.is_empty() {
             BTreeMap::new()
         } else {
-            let needs = declared::Needs::of(self.catalog.iter());
             declared::held(tx, root, &declaring, &needs).await?
         };
         let nothing_held = declared::Held::default();
@@ -463,87 +494,132 @@ impl Orchestrator {
         let mut cacheable = Vec::new();
         // what each analysis type's automation limit counts (`crate::limits`)
         let mut counts = limits::Counts::default();
-        for (observable, (kind, components)) in observables.iter().zip(eligible) {
-            let facts = held.get(&observable.id).unwrap_or(&nothing_held).facts(
+        for (observable, eligible) in observables.iter().zip(eligible) {
+            let Eligible {
                 kind,
-                &observable.directives,
-                mode,
-            );
+                mut components,
+                mut settled,
+                open,
+            } = eligible;
+            let rules = Facts {
+                kind,
+                directives: &observable.directives,
+                exclude_modules: &observable.exclude_modules,
+                limit_modules: &observable.limit_modules,
+            };
             let has_result = results.get(&observable.id).unwrap_or(&none);
-            for component in components {
-                let key = component.key.as_str();
-                // a result with no task is one the cache wrote
-                if has_result.contains(key) {
-                    continue;
-                }
-                let task = tasks.get(&(observable.id, key.to_owned()));
-                // the module's declaration over what the core holds now (`crate::takes`)
-                let declined = component.takes.check(&facts).err();
-                if declined.is_some() && self.takes == TakesMode::Applied {
-                    continue;
-                }
-                // ace3's automation limit, after every other rule and before the cache
-                // (`crate::limits`); a task the audit queues only to mark isn't held to it
-                let limit = declined
-                    .is_none()
-                    .then(|| self.limit_for(component, &observable.directives))
-                    .flatten();
-                if task.is_none() && declined.is_none() && cache::caches(&self.cache, component) {
-                    // its limit is checked where its lookup is made, below
-                    cacheable.push((
-                        observable.id,
-                        kind,
-                        observable.value.as_str(),
-                        component,
-                        limit,
-                    ));
-                    continue;
-                }
-                let requeued =
-                    matches!(task, Some((_, TaskState::Cancelled, _))) && requeue_cancelled;
-                if let Some(limit) = limit
-                    && (task.is_none() || requeued)
+            let tasks_on = seen.get(&observable.id).unwrap_or(&no_tasks);
+            let mut looked: BTreeSet<&str> = components.iter().map(|c| c.key.as_str()).collect();
+            // a component its declaration declines or its limit holds gets no task, which meets a
+            // dependency on it, so what depends on it is looked at again (PLAN.md decision 30)
+            while !components.is_empty() {
+                if !held.contains_key(&observable.id)
+                    && components.iter().any(|c| !c.takes.is_everything())
                 {
-                    let (analysis_type, modules) = self.same_type(component);
-                    if counts.get(tx, root, analysis_type, &modules).await? >= limit {
-                        limits::hold(tx, root, observable.id, key, limit).await?;
+                    held.extend(declared::held(tx, root, &[observable.id], &needs).await?);
+                }
+                let facts = held.get(&observable.id).unwrap_or(&nothing_held).facts(
+                    kind,
+                    &observable.directives,
+                    mode,
+                );
+                let mut no_task = false;
+                for component in std::mem::take(&mut components) {
+                    let key = component.key.as_str();
+                    // a result with no task is one the cache wrote
+                    if has_result.contains(key) {
                         continue;
                     }
-                }
-                let added = match task {
-                    None => queue::enqueue(tx, root, observable.id, key).await?,
-                    Some((id, TaskState::Cancelled, _)) if requeue_cancelled => {
-                        queue::requeue_cancelled(tx, *id).await?.then_some(*id)
-                    }
-                    Some(_) => None,
-                };
-                if added.is_some() {
-                    // every task of a type counts toward its limit, a task of a component with
-                    // none among them, but not one the audit queues only to mark
-                    if declined.is_none() {
-                        counts.add(component.manifest.output.name);
-                    }
-                    if limit.is_some() {
-                        limits::release(tx, root, observable.id, key).await?;
-                    }
-                }
-                if self.takes == TakesMode::Audit {
-                    // a task queued now is marked if the declaration declines it; one queued
-                    // earlier and marked is cleared once it takes it, which is when the core
-                    // would have queued it without the setting
-                    let marked = matches!(task, Some((_, _, true)));
-                    match (added, task) {
-                        // a new task is unmarked; a requeued one may carry an old mark
-                        (Some(id), _) if declined.is_some() || marked => {
-                            declared::mark(tx, id, declined).await?;
+                    let task = tasks.get(&(observable.id, key.to_owned()));
+                    // the module's declaration over what the core holds now (`crate::takes`)
+                    let declined = component.takes.check(&facts).err();
+                    if declined.is_some() && self.takes == TakesMode::Applied {
+                        if task.is_none() {
+                            no_task |= settled.insert(key);
                         }
-                        (None, Some((id, _, true))) if declined.is_none() => {
-                            declared::mark(tx, *id, None).await?;
-                        }
-                        _ => {}
+                        continue;
                     }
+                    // ace3's automation limit, after every other rule and before the cache
+                    // (`crate::limits`); a task the audit queues only to mark isn't held to it
+                    let limit = declined
+                        .is_none()
+                        .then(|| self.limit_for(component, &observable.directives))
+                        .flatten();
+                    if task.is_none() && declined.is_none() && cache::caches(&self.cache, component)
+                    {
+                        // its limit is checked where its lookup is made, below
+                        cacheable.push((
+                            observable.id,
+                            kind,
+                            observable.value.as_str(),
+                            component,
+                            limit,
+                        ));
+                        continue;
+                    }
+                    let requeued =
+                        matches!(task, Some((_, TaskState::Cancelled, _))) && requeue_cancelled;
+                    if let Some(limit) = limit
+                        && (task.is_none() || requeued)
+                    {
+                        let (analysis_type, modules) = self.same_type(component);
+                        if counts.get(tx, root, analysis_type, &modules).await? >= limit {
+                            limits::hold(tx, root, observable.id, key, limit).await?;
+                            if task.is_none() {
+                                no_task |= settled.insert(key);
+                            }
+                            continue;
+                        }
+                    }
+                    let added = match task {
+                        None => queue::enqueue(tx, root, observable.id, key).await?,
+                        Some((id, TaskState::Cancelled, _)) if requeue_cancelled => {
+                            queue::requeue_cancelled(tx, *id).await?.then_some(*id)
+                        }
+                        Some(_) => None,
+                    };
+                    if added.is_some() {
+                        // every task of a type counts toward its limit, a task of a component with
+                        // none among them, but not one the audit queues only to mark
+                        if declined.is_none() {
+                            counts.add(component.manifest.output.name);
+                        }
+                        if limit.is_some() {
+                            limits::release(tx, root, observable.id, key).await?;
+                        }
+                    }
+                    if self.takes == TakesMode::Audit {
+                        // a task queued now is marked if the declaration declines it; one queued
+                        // earlier and marked is cleared once it takes it, which is when the core
+                        // would have queued it without the setting
+                        let marked = matches!(task, Some((_, _, true)));
+                        match (added, task) {
+                            // a new task is unmarked; a requeued one may carry an old mark
+                            (Some(id), _) if declined.is_some() || marked => {
+                                declared::mark(tx, id, declined).await?;
+                            }
+                            (None, Some((id, _, true))) if declined.is_none() => {
+                                declared::mark(tx, *id, None).await?;
+                            }
+                            _ => {}
+                        }
+                    }
+                    queued.extend(added);
                 }
-                queued.extend(added);
+                if !no_task || !open {
+                    break;
+                }
+                eligibility::settle(&self.catalog, rules, &mode_modules, &mut settled, |key| {
+                    tasks_on.get(key).copied().unwrap_or(TaskSeen::None)
+                });
+                components = self
+                    .catalog
+                    .iter()
+                    .filter(|component| component.key != TYPE_STEP)
+                    .filter(|component| !looked.contains(component.key.as_str()))
+                    .filter(|component| check(component, rules, &mode_modules, &settled).is_ok())
+                    .collect();
+                looked.extend(components.iter().map(|c| c.key.as_str()));
             }
         }
         for (observable, kind, value, component, limit) in cacheable {
@@ -626,6 +702,29 @@ impl Orchestrator {
             return Ok(Vec::new());
         }
         self.queue_eligible(tx, root, Scope::Observables(&held), false)
+            .await
+    }
+
+    /// What a task of `module` on `observable` that ended with no result frees: it is settled
+    /// there, so a module that depends on it may run on the observable now (PLAN.md decision 30),
+    /// for which eligibility runs again on the observable. A type step's end already ran it
+    /// (`type_step_ended`).
+    pub async fn dependency_ended(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+        observable: ObservableId,
+        module: &str,
+    ) -> Result<Vec<TaskId>, OrchestratorError> {
+        if module == TYPE_STEP
+            || !self
+                .catalog
+                .iter()
+                .any(|c| c.manifest.depends_on.contains(&module))
+        {
+            return Ok(Vec::new());
+        }
+        self.queue_eligible(tx, root, Scope::Observables(&[observable]), false)
             .await
     }
 
@@ -1448,10 +1547,14 @@ impl queue::TaskEnded for Orchestrator {
         &'a self,
         tx: &'a mut Tx<'_>,
         root: Uuid,
+        observable: ObservableId,
         module: &'a str,
     ) -> queue::EndedFuture<'a> {
         Box::pin(async move {
             self.limit_freed(tx, root, module)
+                .await
+                .map_err(queue_error)?;
+            self.dependency_ended(tx, root, observable, module)
                 .await
                 .map(drop)
                 .map_err(queue_error)
@@ -1467,6 +1570,18 @@ fn queue_error(error: OrchestratorError) -> QueueError {
             QueueError::Db(DbError::Decode(format!("no root {root}")))
         }
     }
+}
+
+/// An observable's components as eligibility's first look over it found them.
+struct Eligible<'a> {
+    kind: ObservableKind,
+    /// The components eligible for it now.
+    components: Vec<&'a ace_sdk::Component>,
+    /// The components that won't store a result for it (`eligibility::settle`).
+    settled: BTreeSet<&'a str>,
+    /// False when nothing more is queued on it now: a global exclusion names it, or its type step
+    /// hasn't ended.
+    open: bool,
 }
 
 /// What a lookup in place of a task found (`Orchestrator::try_hit`).

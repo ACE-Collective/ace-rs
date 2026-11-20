@@ -14,9 +14,10 @@
 //! up instead, once for all of its subdomains, as in ace3 since `7265bb53`. ace3 makes the RDAP
 //! module depend on the apex module and skips a subdomain whose apex result holds the apex
 //! observable (`e871441c`). Here the module computes that apex from the value, as the apex module
-//! does, with the same function (`ace_sdk::domains::apex_of`), and doesn't wait for it: a
-//! dependency in ace4 waits for a result (`ace_core::eligibility`), and the apex module stores none
-//! for a name that is its own apex, which RDAP still looks up. ace4 has no observable limit, so the
+//! does, with the same function (`ace_sdk::domains::apex_of`), and doesn't wait for it. It was built
+//! so when a dependency in ace4 waited for a result, before PLAN.md decision 30
+//! (`ace_core::eligibility`), and the apex module stores none for a name that is its own apex,
+//! which RDAP still looks up. ace4 has no observable limit, so the
 //! apex result always holds its observable. The one case that differs is an fqdn the apex module
 //! doesn't run on while RDAP does (a mode or an observable modifier rule leaving it out): ace3 looks
 //! that subdomain up, and ace4 still skips it.

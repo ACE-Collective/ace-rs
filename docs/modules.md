@@ -100,6 +100,14 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 
 7.4 ports, in this workspace, all done: `fqdn_analyzer`, `nrd_analyzer`, `snort_signature_analysis_v1`, `user_analyzer`, `email_conversation_frequency_analyzer`, `email_thread_analyzer`, `email_logger`, `clicker_detection_splunk`. The brocess modules (`email_logger` writes what `email_conversation_frequency_analyzer` and `email_thread_analyzer` read) go together, after 7.2's endpoints.
 
+## Dependencies
+
+A module names the modules it depends on in `Module::DEPENDS_ON`, as ace3's config names them in a module's `dependencies`. Since PLAN.md decision 30 ace4 counts one met as ace3's engine does (`_seed_declared_dependencies`, `executor.py` at `fe6da632`): once it won't store a result for the observable. That is when it stored one, when its task ended without one (skipped, which includes a pool declining it, or failed, a deadline and a lease that ran out on its last attempt among them), or when it gets no task because it doesn't take the observable (its type, a directive, an exclusion), its declaration declines it, or its automation limit holds it. The module then runs, and reads what its dependency stored, which may be nothing: `TaskContext::dependency_result` is None and `dependency_error` says nothing for a task that failed, since a failed task has no result. A dependency the root's mode doesn't run, or the binary doesn't have, holds nothing back either.
+
+A dependency still queued, running or delayed holds the module back, as does one waiting on a dependency of its own, and one whose task was cancelled and could run again (ace3 leaves a cancelled dependency unresolved; ace3 #846).
+
+Where they differ: ace3 runs a declared dependency that its engine has loaded even when the root's mode doesn't run it, or when an observable modifier rule limited the observable's analysis to other modules, since its `accepts` has no mode check and a dependency's work item skips the limit. ace4 doesn't run a module outside the mode or the limit, and counts such a dependency as met.
+
 ## Failed analyses
 
 A module fails in one of two ways, and ace4 keeps them apart.
@@ -112,7 +120,7 @@ A module fails in one of two ways, and ace4 keeps them apart.
 - The normal form holds it as the result's `error`, on a result that failed and on no other, so the comparison with ace3 checks it (`ace_core::normal`, `tools/ace3/dumps/run_module.py`'s `tree_form`). A reference dump holds it the same way.
 - A module that depends on the result reads it with `TaskContext::dependency_error`, and one that walks the tree with `TreeResult::error`, as ace3's modules check `analysis.error` before they trust another's analysis. The pcap category modules and `pcap_tls_decryption` do, for `pcap_analyzer`.
 
-**A task that failed.** The module didn't run to its end: it crashed, was killed at its deadline (PLAN.md 2.19), returned a `ModuleError`, or wrote a result the core refused. There is no result. The task's row is `failed` with its error and its inputs' hashes, `/api/crashes` lists it, and `ace task replay` runs it again (2.20). ace3 keeps these in `root.analysis_failures`. The alert tree lists each under its observable with the same badge, and the API's observables as `failed_modules`. The AI investigation API's observables leave `failed_modules` out: its database role holds nothing on the task queue (migration 0064).
+**A task that failed.** The module didn't run to its end: it crashed, was killed at its deadline (PLAN.md 2.19), returned a `ModuleError`, or wrote a result the core refused. There is no result, and a module that depends on it runs without one (*Dependencies*). The task's row is `failed` with its error and its inputs' hashes, `/api/crashes` lists it, and `ace task replay` runs it again (2.20). ace3 keeps these in `root.analysis_failures`. The alert tree lists each under its observable with the same badge, and the API's observables as `failed_modules`. The AI investigation API's observables leave `failed_modules` out: its database role holds nothing on the task queue (migration 0064).
 
 Where the two systems draw the line differently:
 
@@ -936,7 +944,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Does**: Looks up registration data for an fqdn (reduced to its eTLD+1) or a globally routable ip via RDAP, falling back to legacy WHOIS, recording registrar, dates/ages, nameservers, emails, network CIDR/country and raw responses.
 - **Input**: fqdn; ip (and subtypes, e.g. email_first_hop_ip; custom_requirement skips non-global IPs, and since `7265bb53` a subdomain fqdn that `apex_domain_analyzer` gave an apex observable, which RDAP looks up instead).
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
-- **Depends on**: `apex_domain_analyzer` in ace3. In ace4 none: the module computes the apex from the value as the apex module does and skips a subdomain that has one, since a dependency in ace4 waits for a result and the apex module stores none for a name that is its own apex (`ace-mod-rdap`'s docs). The two differ only for an fqdn the apex module doesn't run on.
+- **Depends on**: `apex_domain_analyzer` in ace3. In ace4 none: the module computes the apex from the value as the apex module does and skips a subdomain that has one, since a dependency in ace4 waited for a result before PLAN.md decision 30 and the apex module stores none for a name that is its own apex (`ace-mod-rdap`'s docs). The two differ only for an fqdn the apex module doesn't run on.
 - **Libraries**: whoisit 4.1.0 (RDAP bootstrap + domain/ip queries); python-whois 0.9.6 (whois.whois fallback); tldextract 5.4.0 (eTLD+1 reduction).
 - **Tools**: none.
 - **Writes**: none.

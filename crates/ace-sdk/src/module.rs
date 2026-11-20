@@ -34,7 +34,15 @@ pub trait Module: Sized + Send + Sync + 'static {
     const NAME: &'static str;
     /// The observable types the module takes. Types that extend these are taken too.
     const INPUTS: &'static [ObservableKind];
-    /// Modules whose results this one needs before it runs.
+    /// Modules that run on the observable before this one, whose results its task carries
+    /// (`TaskContext::dependency`). The core holds the module back until each of them won't store
+    /// a result for the observable, as ace3 counts a declared dependency met: it stored one, its
+    /// task ended without one (skipped, declined by its pool, or failed), or it gets no task
+    /// because it doesn't take the observable, its declaration declines it or its automation limit
+    /// holds it. So the module may run with no result from a dependency, and must handle that. A
+    /// dependency the root's mode doesn't run, or the binary doesn't have, doesn't hold it back. One
+    /// still to run, running, delayed, waiting on its own dependencies, or cancelled and able to run
+    /// again does (PLAN.md decision 30).
     const DEPENDS_ON: &'static [&'static str] = &[];
     /// Directives that keep the module off an observable, such as `no_scan` for YARA. The core
     /// doesn't queue the module for an observable that has one, and a run on an observable

@@ -4,18 +4,26 @@
 //! takes the observable's type (or a type that type extends), the root's analysis mode runs it (or,
 //! when an observable modifier rule limited the observable's analysis, the limit names it),
 //! none of the observable's directives keeps it off, the observable has every directive the module
-//! requires and doesn't exclude it, and every module it depends on has a result for the
-//! observable, if the root's mode runs that module and the binary has it. The inputs come from the
-//! component (the manifest's, or an instance's narrower list), the dependencies and skip directives
-//! from the module's manifest, and the mode's modules from `Modes`.
+//! requires and doesn't exclude it, and every module it depends on is settled for the observable.
+//! The inputs come from the component (the manifest's, or an instance's narrower list), the
+//! dependencies and skip directives from the module's manifest, and the mode's modules from `Modes`.
 //!
 //! Before any of that, an observable the site's global exclusions name (`ace_sdk::exclusions`,
 //! ace3's `observable_exclusions`) is eligible for nothing: the orchestrator asks
 //! `Exclusions::excludes` first and queues no task, not even the type step, as ace3's executor drops
 //! the work item before it picks a module (`_process_observable_exclusions`).
 //!
-//! A dependency without a result yet makes a module wait, never fail: if the dependency's task
-//! is cancelled and later runs, its result makes the module eligible then (ace3 #846).
+//! **Dependencies** (PLAN.md decision 30). A dependency is met once it won't store a result for
+//! the observable, as ace3's `_seed_declared_dependencies` counts it: it stored one; its task ended
+//! without one (skipped, which includes its pool declining it, or failed, a deadline and a lease
+//! that ran out on its last attempt among them); or it gets no task, because it doesn't take the
+//! observable by the rules above, its declaration declines it, or its automation limit holds it
+//! (`settle`, and the orchestrator for the last two). The root's mode not running it, or the binary
+//! not having it, meets it too, as before; ace3 runs such a dependency anyway. The module then
+//! runs and sees whatever its dependency stored, which may be nothing. A dependency still to run,
+//! running, delayed, or waiting on its own dependencies isn't met. Nor is one whose task was
+//! cancelled and that could still run: if it runs again its result makes the module eligible then
+//! (ace3 #846, and ace3's executor leaves a cancelled dependency unresolved).
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -109,18 +117,19 @@ pub enum Ineligible {
     MissingDirective(String),
     /// The observable excludes the module.
     Excluded,
-    /// A module this one depends on, which the root's mode runs, has no result for the observable
-    /// yet.
+    /// A module this one depends on, which the root's mode runs, may still store a result for the
+    /// observable: it isn't settled (`settle`).
     WaitingFor(String),
 }
 
 /// Whether `component` may run on an observable with `facts`, in a mode that runs
-/// `mode_modules` (those of the mode the catalog has), given the components that have results for the observable.
+/// `mode_modules` (those of the mode the catalog has), given the components that are settled for
+/// the observable: those that won't store a result for it (`settle`).
 pub fn check(
     component: &Component,
     facts: Facts<'_>,
     mode_modules: &BTreeSet<&str>,
-    results: &BTreeSet<&str>,
+    settled: &BTreeSet<&str>,
 ) -> Result<(), Ineligible> {
     let (key, manifest) = (component.key.as_str(), &component.manifest);
     if !component.accepts(facts.kind) {
@@ -147,11 +156,59 @@ pub fn check(
         .depends_on
         .iter()
         // a dependency the root's mode doesn't run, or the binary doesn't have, never has a
-        // result, and doesn't hold the module back, as ace3's YARA-only mode runs its module
-        // without file_type
-        .find(|dependency| mode_modules.contains(**dependency) && !results.contains(**dependency))
+        // result, and doesn't hold the module back
+        .find(|dependency| mode_modules.contains(**dependency) && !settled.contains(**dependency))
     {
         return Err(Ineligible::WaitingFor((*waiting).to_owned()));
     }
     Ok(())
+}
+
+/// A component's task on an observable, as `settle` reads it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TaskSeen {
+    /// No task, or one that was cancelled and may run again.
+    None,
+    /// Queued, delayed or running.
+    Active,
+    /// Ended done or failed: it stores nothing more.
+    Ended,
+}
+
+/// Adds to `settled` every component of `catalog` that won't store a result for an observable
+/// with `facts`, until nothing more is added: each one whose task ended (`task` says which have a
+/// task), and each one with no task that doesn't take the observable for a reason other than
+/// waiting on a dependency of its own. `settled` starts with the components that have a result. A
+/// component that waits on one that isn't settled isn't settled either.
+pub fn settle<'a>(
+    catalog: &'a Catalog,
+    facts: Facts<'_>,
+    mode_modules: &BTreeSet<&str>,
+    settled: &mut BTreeSet<&'a str>,
+    task: impl Fn(&str) -> TaskSeen,
+) {
+    loop {
+        let mut added = false;
+        for component in catalog.iter() {
+            let key = component.key.as_str();
+            if settled.contains(key) {
+                continue;
+            }
+            let now = match task(key) {
+                TaskSeen::Ended => true,
+                TaskSeen::Active => false,
+                TaskSeen::None => matches!(
+                    check(component, facts, mode_modules, settled),
+                    Err(why) if !matches!(why, Ineligible::WaitingFor(_))
+                ),
+            };
+            if now {
+                settled.insert(key);
+                added = true;
+            }
+        }
+        if !added {
+            return;
+        }
+    }
 }

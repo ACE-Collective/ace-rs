@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT module, observable_id AS \"observable_id: ObservableId\"\n               FROM queue.tasks WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "module",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "observable_id: ObservableId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "observable_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "5ea080425f19e8be5539f49c0fdfa1230ff82e2ca950beacdc8c359c678c96c6"
+}

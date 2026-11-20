@@ -477,14 +477,17 @@ pub trait TaskEnded: Send + Sync {
         observable: ObservableId,
     ) -> EndedFuture<'a>;
 
-    /// A task of `module` ended with no result: skipped, failed or cancelled, by its worker or
-    /// when its lease ran out. A module held to an automation limit then has a place for work the
-    /// limit held back (`Orchestrator::limit_freed`, `crate::limits`). A task whose result lands
-    /// doesn't call this: its result takes the place.
+    /// A task of `module` on `observable` ended with no result: skipped, failed or cancelled, by its
+    /// worker or when its lease ran out. A module held to an automation limit then has a place for
+    /// work the limit held back (`Orchestrator::limit_freed`, `crate::limits`), and a module that
+    /// depends on it may run on the observable (`Orchestrator::dependency_ended`). A task whose
+    /// result lands doesn't call this: its result takes the place, and its landing runs
+    /// eligibility.
     fn without_result<'a>(
         &'a self,
         tx: &'a mut Tx<'_>,
         root: Uuid,
+        observable: ObservableId,
         module: &'a str,
     ) -> EndedFuture<'a>;
 }
@@ -1004,13 +1007,16 @@ impl Worker {
         let Some(ended) = &self.ended else {
             return Ok(());
         };
-        let module = sqlx::query_scalar!(
-            "SELECT module FROM queue.tasks WHERE id = $1",
+        let row = sqlx::query!(
+            r#"SELECT module, observable_id AS "observable_id: ObservableId"
+               FROM queue.tasks WHERE id = $1"#,
             task as TaskId
         )
         .fetch_one(tx.conn())
         .await?;
-        ended.without_result(tx, root, &module).await
+        ended
+            .without_result(tx, root, row.observable_id, &row.module)
+            .await
     }
 
     /// Ends a task the worker owns inside a transaction that also writes what the task found,
@@ -1355,7 +1361,9 @@ pub async fn reap_expired_leases(
                 }
                 // a task that failed or was cancelled here left no result
                 if matches!(row.state, TaskState::Failed | TaskState::Cancelled) {
-                    ended.without_result(tx, root, &row.module).await?;
+                    ended
+                        .without_result(tx, root, row.observable_id, &row.module)
+                        .await?;
                 }
             }
         }

@@ -8,9 +8,9 @@
 //!
 //! The RDAP module skips a subdomain this module gives an apex (`7265bb53`, `e871441c`). ace3
 //! makes it wait for this module's result; ace4's RDAP module computes the same apex from the value
-//! itself, since this module's result is a function of the value alone and a dependency in ace4
-//! waits for a result this module doesn't store for a name that is its own apex
-//! (`ace_mod_rdap`'s docs).
+//! itself, since this module's result is a function of the value alone. It was built so when a
+//! dependency in ace4 waited for a result, which this module doesn't store for a name that is its
+//! own apex, before PLAN.md decision 30 (`ace_mod_rdap`'s docs).
 
 use ace_results::types::values::ApexDomainAnalysis;
 use ace_results::{AnalysisType, NewObservable, ObservableKind, ResultEnvelope};

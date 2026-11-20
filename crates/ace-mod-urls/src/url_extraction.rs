@@ -12,8 +12,9 @@
 //!   run to run. Here the set is sorted first, so the order is the same each time.
 //! - ace3 waits for `file_type` and `yara_scanner_v3_4`. ace4 waits for `file_type`, whose
 //!   `yara_meta` types it reads, and has no dependency on the YARA module, because a
-//!   dependency there waits for a result and the YARA module stores none when no rule matches. A
-//!   directive a rule adds still brings this module in, when the YARA result lands.
+//!   dependency waited for a result before PLAN.md decision 30 and the YARA module stores none
+//!   when no rule matches. A directive a rule adds still brings this module in, when the YARA
+//!   result lands.
 //! - ace3 adds the URLs as volatile observables. ace4 has no volatile flag; in ace3 only the GUI's
 //!   pruning and the analysis cache read it.
 

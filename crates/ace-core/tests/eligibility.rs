@@ -4009,3 +4009,444 @@ async fn the_automation_limit_holds_a_root_to_its_limit_and_a_skip_frees_a_place
         assert!(limited("test_limited").await.is_empty(), "{what}");
     }
 }
+
+/// Modules for the tests of a dependency that won't store a result (PLAN.md decision 30):
+/// `test_dep` takes an FQDN its declaration doesn't decline, `test_dependent` takes an FQDN or a file
+/// and depends on it, and `test_chained` depends on `test_dependent`.
+mod settles {
+    use ace_results::ObservableKind;
+    use ace_sdk::takes::{Condition, Takes};
+    use ace_sdk::{Lookup, Module, ModuleError, Outcome, TaskContext};
+
+    use super::common::stubs::StubOutput;
+
+    pub const DECLINE: &str = "test_decline";
+    pub const SKIP: &str = "test_skip";
+
+    macro_rules! stub {
+        ($ty:ident) => {
+            pub struct $ty;
+
+            impl Lookup for $ty {
+                const TCP_PORTS: &'static [u16] = &[];
+                async fn analyze(
+                    &self,
+                    _: &TaskContext<()>,
+                ) -> Result<Outcome<StubOutput>, ModuleError> {
+                    Ok(Outcome::Skipped("a stub".to_owned()))
+                }
+            }
+        };
+    }
+
+    stub!(Dep);
+    stub!(Dependent);
+    stub!(Chained);
+
+    impl Module for Dep {
+        const NAME: &'static str = "test_dep";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const SKIP_DIRECTIVES: &'static [&'static str] = &[SKIP];
+        type Output = StubOutput;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(Dep)
+        }
+        fn takes(_: &()) -> Takes {
+            Takes::everything().and(
+                Condition::Directive(DECLINE.to_owned()).negated(),
+                "the test's directive",
+            )
+        }
+    }
+
+    impl Module for Dependent {
+        const NAME: &'static str = "test_dependent";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn, ObservableKind::File];
+        const DEPENDS_ON: &'static [&'static str] = &["test_dep"];
+        type Output = StubOutput;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(Dependent)
+        }
+    }
+
+    impl Module for Chained {
+        const NAME: &'static str = "test_chained";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const DEPENDS_ON: &'static [&'static str] = &["test_dependent"];
+        type Output = StubOutput;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(Chained)
+        }
+    }
+
+    pub fn manifests() -> Vec<ace_sdk::Manifest> {
+        vec![
+            ace_sdk::Manifest::lookup::<Dep>(),
+            ace_sdk::Manifest::lookup::<Dependent>(),
+            ace_sdk::Manifest::lookup::<Chained>(),
+        ]
+    }
+}
+
+fn settles_modes() -> Modes {
+    Modes::ace3().with_mode(AnalysisMode {
+        name: "settles".to_owned(),
+        module_groups: Vec::new(),
+        enabled_modules: strings(&["test_dep", "test_dependent", "test_chained"]),
+        disabled_modules: Vec::new(),
+    })
+}
+
+/// What settles a dependency, as ace3's `_seed_declared_dependencies` counts one met: a result, a
+/// task that ended, or no task because the dependency doesn't take the observable; not a task still
+/// to end, and not one that waits on its own dependency.
+#[test]
+fn a_dependency_settles_when_it_wont_store_a_result() {
+    use ace_core::eligibility::{TaskSeen, settle};
+    fn settled<'a>(
+        catalog: &'a Catalog,
+        facts: Facts<'_>,
+        results: &[&'a str],
+        tasks: &[(&str, TaskSeen)],
+    ) -> BTreeSet<&'a str> {
+        let modes = settles_modes();
+        let mode_modules = modes.modules_in("settles");
+        let mut settled: BTreeSet<&str> = results.iter().copied().collect();
+        settle(catalog, facts, &mode_modules, &mut settled, |key| {
+            tasks
+                .iter()
+                .find(|(k, _)| *k == key)
+                .map_or(TaskSeen::None, |(_, seen)| *seen)
+        });
+        settled
+    }
+    let catalog = Catalog::new(settles::manifests());
+    let skip = strings(&[settles::SKIP]);
+    let facts = |kind, directives| Facts {
+        kind,
+        directives,
+        exclude_modules: &[],
+        limit_modules: &[],
+    };
+    let fqdn = facts(ObservableKind::Fqdn, &[]);
+    let kept_off = facts(ObservableKind::Fqdn, &skip);
+    let file = facts(ObservableKind::File, &[]);
+    let set = |keys: &[&'static str]| keys.iter().copied().collect::<BTreeSet<&str>>();
+    // nothing ran yet: the dependency will, and the rest wait on it
+    assert_eq!(settled(&catalog, fqdn, &[], &[]), set(&[]));
+    assert_eq!(
+        settled(&catalog, fqdn, &[], &[("test_dep", TaskSeen::Active)]),
+        set(&[]),
+        "a task still to end"
+    );
+    assert_eq!(
+        settled(
+            &catalog,
+            fqdn,
+            &["test_dep"],
+            &[("test_dep", TaskSeen::Ended)]
+        ),
+        set(&["test_dep"]),
+        "a result"
+    );
+    assert_eq!(
+        settled(&catalog, fqdn, &[], &[("test_dep", TaskSeen::Ended)]),
+        set(&["test_dep"]),
+        "a task that ended with no result: skipped or failed"
+    );
+    // a dependency that doesn't take the observable, and what doesn't take it either
+    assert_eq!(
+        settled(&catalog, file, &[], &[]),
+        set(&["test_dep", "test_chained"]),
+        "a type it doesn't take"
+    );
+    assert_eq!(
+        settled(&catalog, kept_off, &[], &[]),
+        set(&["test_dep"]),
+        "a directive that keeps it off"
+    );
+    assert_eq!(
+        settled(
+            &catalog,
+            kept_off,
+            &[],
+            &[("test_dependent", TaskSeen::Ended)]
+        ),
+        set(&["test_dep", "test_dependent"]),
+    );
+    // the rule over them
+    let modes = settles_modes();
+    let mode_modules = modes.modules_in("settles");
+    let component = catalog.component("test_dependent").expect("known");
+    assert_eq!(
+        check(component, fqdn, &mode_modules, &set(&[])),
+        Err(Ineligible::WaitingFor("test_dep".to_owned()))
+    );
+    assert_eq!(
+        check(
+            component,
+            kept_off,
+            &mode_modules,
+            &settled(&catalog, kept_off, &[], &[])
+        ),
+        Ok(())
+    );
+}
+
+/// A dependency that ended with no result, or that gets no task, lets what depends on it run, as
+/// ace3 counts a dependency that declined, was skipped, failed or doesn't take the observable as met
+/// (PLAN.md decision 30); one that was cancelled leaves it waiting (ace3 #846). In both of the
+/// declarations' modes: applied, where a declined dependency gets no task, and audited, where its
+/// task is queued and ends skipped.
+#[tokio::test]
+async fn a_dependency_that_stores_no_result_lets_its_dependents_run() {
+    use ace_core::takes::TakesMode;
+    for takes in [TakesMode::Applied, TakesMode::Audit] {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let orchestrator = Orchestrator::new(Catalog::new(settles::manifests()), settles_modes())
+            .with_takes(takes);
+        let mut tx = db.begin().await.expect("begins");
+        let new_root = tree::NewRoot::new("settles");
+        tree::create_root(&mut tx, &new_root)
+            .await
+            .expect("creates");
+        let root = new_root.id;
+        for (kind, value, directives) in [
+            (ObservableKind::Fqdn, "result.example", &[][..]),
+            (ObservableKind::Fqdn, "skipped.example", &[]),
+            (ObservableKind::Fqdn, "failed.example", &[]),
+            (ObservableKind::Fqdn, "expired.example", &[]),
+            (ObservableKind::Fqdn, "cancelled.example", &[]),
+            (
+                ObservableKind::Fqdn,
+                "declined.example",
+                &[settles::DECLINE],
+            ),
+            (ObservableKind::Fqdn, "kept-off.example", &[settles::SKIP]),
+            (ObservableKind::File, EMAIL_SHA256, &[]),
+        ] {
+            let mut observable = ace_results::NewObservable::new(kind, value);
+            observable.directives = strings(directives);
+            tree::upsert_observable(&mut tx, root, &observable)
+                .await
+                .expect("adds");
+        }
+        orchestrator.start(&mut tx, root).await.expect("starts");
+        tx.commit().await.expect("commits");
+        let state = |module: &'static str, value: &'static str| async move {
+            tasks_of(db, root)
+                .await
+                .into_iter()
+                .find(|(m, v, _)| m == module && v == value)
+                .map(|(_, _, state)| state)
+        };
+        let what = format!("{takes:?}");
+        let queued = Some("queued".to_owned());
+        // waiting on the dependency's task
+        assert_eq!(state("test_dep", "result.example").await, queued, "{what}");
+        assert_eq!(
+            state("test_dependent", "result.example").await,
+            None,
+            "{what}"
+        );
+        // no task for a dependency that doesn't take the observable: met at once
+        assert_eq!(state("test_dep", "kept-off.example").await, None, "{what}");
+        assert_eq!(
+            state("test_dependent", "kept-off.example").await,
+            queued,
+            "{what}: a directive keeps the dependency off"
+        );
+        assert_eq!(
+            state("test_dependent", EMAIL_SHA256).await,
+            queued,
+            "{what}: the dependency doesn't take files"
+        );
+        // its declaration declines it: no task when applied, a marked one when audited
+        if takes == TakesMode::Applied {
+            assert_eq!(state("test_dep", "declined.example").await, None, "{what}");
+            assert_eq!(
+                state("test_dependent", "declined.example").await,
+                queued,
+                "{what}: declined"
+            );
+        } else {
+            assert_eq!(
+                state("test_dep", "declined.example").await,
+                queued,
+                "{what}"
+            );
+            assert_eq!(
+                state("test_dependent", "declined.example").await,
+                None,
+                "{what}"
+            );
+        }
+
+        let worker = worker(&test_db, "w", &["test_dep"], Duration::from_secs(60))
+            .await
+            .with_ended(std::sync::Arc::new(orchestrator.clone()));
+        // every task of the dependency, claimed at once and ended one at a time below
+        let mut claimed = Vec::new();
+        while let Some(task) = worker.claim().await.expect("claims") {
+            claimed.push(task);
+        }
+        let task_on = |value: &'static str| {
+            let claimed = &claimed;
+            async move {
+                let id: i64 = sqlx::query_scalar(
+                    "SELECT t.id FROM queue.tasks t
+                     JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id
+                     WHERE t.root_id = $1 AND o.value = $2 AND t.module = 'test_dep'",
+                )
+                .bind(root)
+                .bind(value)
+                .fetch_one(db.pool())
+                .await
+                .expect("a task");
+                claimed
+                    .iter()
+                    .find(|task: &&ace_core::queue::Task| task.id.0 == id)
+                    .expect("claimed")
+                    .clone()
+            }
+        };
+
+        // a result
+        let task = task_on("result.example").await;
+        let mut tx = db.begin().await.expect("begins");
+        orchestrator
+            .land_result(
+                &mut tx,
+                &worker,
+                &task,
+                &result(json!({
+                    "analysis_type": "test_stub",
+                    "schema_version": 1,
+                    "details": {},
+                })),
+            )
+            .await
+            .expect("lands");
+        tx.commit().await.expect("commits");
+        assert_eq!(
+            state("test_dependent", "result.example").await,
+            queued,
+            "{what}"
+        );
+        assert_eq!(
+            state("test_chained", "result.example").await,
+            None,
+            "{what}: waits on test_dependent, which waited itself"
+        );
+
+        // skipped, which is how a declined task ends when audited
+        let task = task_on("skipped.example").await;
+        worker.complete(task.id).await.expect("skips");
+        assert_eq!(
+            state("test_dependent", "skipped.example").await,
+            queued,
+            "{what}"
+        );
+        if takes == TakesMode::Audit {
+            let task = task_on("declined.example").await;
+            worker.complete(task.id).await.expect("skips");
+            assert_eq!(
+                state("test_dependent", "declined.example").await,
+                queued,
+                "{what}: declined"
+            );
+        }
+
+        // failed
+        let task = task_on("failed.example").await;
+        worker.fail(task.id, "it broke").await.expect("fails");
+        assert_eq!(
+            state("test_dependent", "failed.example").await,
+            queued,
+            "{what}"
+        );
+
+        // its lease ran out on its last attempt, as when it passes its deadline
+        let task = task_on("expired.example").await;
+        sqlx::query(
+            "UPDATE queue.tasks SET attempts = max_attempts, lease_expires_at = now() - interval '1 second'
+             WHERE id = $1",
+        )
+        .bind(task.id.0)
+        .execute(db.pool())
+        .await
+        .expect("expires");
+        let reaped = ace_core::queue::reap_expired_leases(db, Some(&orchestrator))
+            .await
+            .expect("reaps");
+        assert_eq!(reaped.failed, [task.id], "{what}");
+        assert_eq!(
+            state("test_dependent", "expired.example").await,
+            queued,
+            "{what}"
+        );
+
+        // cancelled: it may run again, so what depends on it waits
+        let task = task_on("cancelled.example").await;
+        worker.cancelled(task.id).await.expect("cancels");
+        assert_eq!(
+            state("test_dep", "cancelled.example").await.as_deref(),
+            Some("cancelled"),
+            "{what}"
+        );
+        assert_eq!(
+            state("test_dependent", "cancelled.example").await,
+            None,
+            "{what}: a cancelled dependency"
+        );
+    }
+}
+
+/// A dependency its automation limit holds gets no task, which ace3 counts as met: its `accepts`
+/// is false over the limit (PLAN.md decision 30).
+#[tokio::test]
+async fn a_dependency_its_automation_limit_holds_lets_its_dependents_run() {
+    use ace_sdk::Component;
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let components = settles::manifests().into_iter().map(|manifest| {
+        let component = Component::of(manifest);
+        if component.key == "test_dep" {
+            Component {
+                automation_limit: Some(1),
+                ..component
+            }
+        } else {
+            component
+        }
+    });
+    let orchestrator = Orchestrator::new(Catalog::of(components), settles_modes());
+    let (root, _) = root_with(
+        db,
+        "settles",
+        &[
+            (ObservableKind::Fqdn, "a.example"),
+            (ObservableKind::Fqdn, "b.example"),
+        ],
+    )
+    .await;
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+    let tasks = tasks_of(db, root).await;
+    let state = |module: &str, value: &str| {
+        tasks
+            .iter()
+            .find(|(m, v, _)| m == module && v == value)
+            .map(|(_, _, state)| state.as_str())
+    };
+    // the first takes the one place and its dependent waits; the second is held, and its runs
+    assert_eq!(state("test_dep", "a.example"), Some("queued"));
+    assert_eq!(state("test_dependent", "a.example"), None);
+    assert_eq!(state("test_dep", "b.example"), None);
+    assert_eq!(state("test_dependent", "b.example"), Some("queued"));
+}
