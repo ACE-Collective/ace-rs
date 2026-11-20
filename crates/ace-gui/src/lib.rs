@@ -28,8 +28,9 @@
 //! - `analysis`: each analysis type's view, ace3's analysis templates, by type from the binary's list
 //!   (5.9), and `analysis::summary`, the alert page's summary by alert type, ace3's per-alert-type
 //!   templates, from the binary's list too.
-//! - `actions`: the observable actions the tree offers, from the binary's list, and the comment form
-//!   ace3's "Add Comment" opens (5.9, #1032).
+//! - `actions`: the observable actions the tree offers, from the binary's list, the comment form
+//!   ace3's "Add Comment" opens (5.9, #1032), and the form of the directives an analyst may add to an
+//!   observable (PLAN.md decision 31).
 //! - `list`: the alert list at `/` (5.10), ace3's manage page, with its filters, saved filters, columns,
 //!   sorts, bulk disposition and refresh, and taking and assigning ownership (7.17).
 //! - `saved_filters`: the saved filters' forms and their manage page (5.10, and 5.11's saved_filters
@@ -468,6 +469,12 @@ impl Gui {
                 get(actions::comment_page)
                     .post(actions::add_comment)
                     .layer(DefaultBodyLimit::max(actions::MAX_COMMENT_FORM_BYTES)),
+            )
+            .route(
+                "/alerts/{id}/observables/{observable}/directives",
+                get(actions::directive_page)
+                    .post(actions::add_directives)
+                    .layer(DefaultBodyLimit::max(actions::MAX_DIRECTIVE_FORM_BYTES)),
             )
             .route(
                 "/remediations",

@@ -9,6 +9,13 @@
 //! `PUT .../disposition` takes `take_from`, the same confirmation for one alert, which ace3's API has no
 //! route for: its GUI's forms carry it.
 //!
+//! `GET /api/alerts/v1/directives` and `POST .../alerts/{id}/observables/{observable}/directives` are the
+//! directives an analyst may add to an observable and their adding (PLAN.md decision 31). ace3 adds them
+//! through its GUI's Add Observable form and `POST /api/v2/alerts/observables` (several alerts at once),
+//! and one at a time through its observable actions (`.../observables/{uuid}/render` and the like); here
+//! one route takes any of the binary's list for one observable, under `observable:write` as ace3's
+//! observable actions are.
+//!
 //! `GET /api/alerts/v1/dispositions` has no ace3 route: ace3's clients read `dispositions:` from its
 //! config. It's the site's set in order with each disposition's metadata (the owner's decision of
 //! 2026-11-14), under `alert:read`.
@@ -1210,5 +1217,107 @@ pub(crate) async fn disposition(
         cancelled: done.cancelled.cancelled.len(),
         stopped: done.cancelled.signalled.len(),
         queued: done.queued.len(),
+    }))
+}
+
+/// A directive an analyst may add, and what it asks for.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct DirectiveBody {
+    name: String,
+    description: String,
+}
+
+/// The directives an analyst may add to an observable, in name order.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct DirectivesBody {
+    directives: Vec<DirectiveBody>,
+}
+
+/// The directives an analyst may add to an observable (PLAN.md decision 31): those of ace3's
+/// `GUI_DIRECTIVES` an ace4 module reads and the site's, in name order, with ace3's descriptions. ace3's `GET /api/v2/common/valid_directives` lists
+/// every directive under `system:read`; this lists the ones an analyst may add, under `alert:read`.
+#[utoipa::path(
+    get,
+    path = "/api/alerts/v1/directives",
+    tag = "alerts",
+    responses(
+        (status = 200, description = "The directives an analyst may add", body = DirectivesBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold alert:read", body = ErrorBody),
+    )
+)]
+pub(crate) async fn directives(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+) -> Result<Json<DirectivesBody>, ApiError> {
+    let list = web.service.directive_list(&actor).await?;
+    Ok(Json(DirectivesBody {
+        directives: list
+            .iter()
+            .map(|directive| DirectiveBody {
+                name: directive.name.to_owned(),
+                description: directive.description.to_owned(),
+            })
+            .collect(),
+    }))
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct AddDirectivesRequest {
+    /// One or more of `GET /api/alerts/v1/directives`' names.
+    directives: Vec<String>,
+}
+
+/// What adding directives did.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct DirectivesAddedBody {
+    /// The directives the observable didn't have, in the order asked for.
+    added: Vec<String>,
+    /// The observable's directives now.
+    directives: Vec<String>,
+    /// How many tasks the alert queued, anew or again.
+    queued: usize,
+}
+
+/// Adds directives to an observable of the alert and analyzes the alert again in correlation mode, as
+/// ace3's Add Observable form and its observable actions do (PLAN.md decision 31): a module that requires
+/// one of them is queued, and what a disposition cancelled runs again. A directive the observable has is
+/// left as it is, and the alert is analyzed again all the same. An alert whose disposition only ACE sets is
+/// refused. There's no way to remove a directive, as in ace3.
+#[utoipa::path(
+    post,
+    path = "/api/alerts/v1/alerts/{id}/observables/{observable}/directives",
+    tag = "alerts",
+    params(
+        ("id" = Uuid, Path, description = "The alert's id"),
+        ("observable" = i64, Path, description = "The observable's id in the alert"),
+    ),
+    request_body = AddDirectivesRequest,
+    responses(
+        (status = 200, description = "The directives are on the observable, and the alert is analyzed again", body = DirectivesAddedBody),
+        (status = 400, description = "No directive, one an analyst may not add, or a body that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold observable:write, or a session's request came from another site", body = ErrorBody),
+        (status = 404, description = "No such alert, or no such observable in it", body = ErrorBody),
+        (status = 409, description = "The alert's disposition is one only ACE sets, so it isn't analyzed again", body = ErrorBody),
+        (status = 413, description = "The body is too large", body = ErrorBody),
+    )
+)]
+pub(crate) async fn add_directives(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    path: Result<Path<(Uuid, i64)>, PathRejection>,
+    body: Result<Json<AddDirectivesRequest>, JsonRejection>,
+) -> Result<Json<DirectivesAddedBody>, ApiError> {
+    let (Path((id, observable)), Json(body)) = (path?, body?);
+    let done = web
+        .service
+        .add_directives(&actor, id, observable, &body.directives)
+        .await?;
+    Ok(Json(DirectivesAddedBody {
+        added: done.added,
+        directives: done.directives,
+        queued: done.queued,
     }))
 }

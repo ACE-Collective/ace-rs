@@ -115,6 +115,37 @@ fn the_site_binary_lists_its_file_roles() {
     assert!(serde_json::from_value::<ace_results::FileRole>(json!("example.nothing")).is_err());
 }
 
+/// PLAN.md decision 31: the site's binary lists its directive beside ace3's, so the service `ace serve`
+/// builds from it offers and takes it, while ace4's own binary doesn't; a directive with a built-in's name
+/// or a bad name is refused.
+#[test]
+fn the_site_binary_lists_its_directives() {
+    let site = ace_site_example::app()
+        .directive_list()
+        .expect("a valid list");
+    assert!(site.contains("example_ticket_history"));
+    assert_eq!(
+        site.get("example_ticket_history"),
+        Some(&ace_site_example::TICKET_HISTORY)
+    );
+    let ace4 = ace::app().directive_list().expect("a valid list");
+    assert!(!ace4.contains("example_ticket_history"));
+    assert_eq!(site.len(), ace4.len() + 1);
+    assert!(ace4.names().all(|name| site.contains(name)));
+    let names: Vec<&str> = site.names().collect();
+    let mut sorted = names.clone();
+    sorted.sort_unstable();
+    assert_eq!(names, sorted, "in name order");
+    let duplicate = ace_site_example::app().directives(&[ace_sdk::directives::Directive::new(
+        "crawl",
+        "crawl it again",
+    )]);
+    assert!(duplicate.directive_list().is_err());
+    let bad =
+        ace_site_example::app().directives(&[ace_sdk::directives::Directive::new("Bad Name", "x")]);
+    assert!(bad.directive_list().is_err());
+}
+
 /// PLAN.md 5.9: the site's binary list names its analysis view, so its GUI draws the ticket lookup's
 /// results with the site's template, beside the open-source views, and every module has one.
 #[test]
@@ -140,7 +171,12 @@ fn the_site_binary_draws_its_results_with_its_own_view() {
     let names: Vec<&str> = app.actions().names().collect();
     assert_eq!(
         names,
-        ["file_download_as_zip", "add_comment", "example_open_ticket"]
+        [
+            "file_download_as_zip",
+            "add_comment",
+            "add_directive",
+            "example_open_ticket"
+        ]
     );
     let ticket = |kind: &str| ace_service::AlertObservable {
         id: 7,
@@ -167,10 +203,11 @@ fn the_site_binary_draws_its_results_with_its_own_view() {
         hrefs,
         [
             "/alerts/00000000-0000-0000-0000-000000000000/observables/7/comment",
+            "/alerts/00000000-0000-0000-0000-000000000000/observables/7/directives",
             "https://tickets.example.com/ticket/TICKET-a%20b%2F%3Cc%3E",
         ]
     );
-    assert_eq!(app.actions().links(Uuid::nil(), &ticket("fqdn")).len(), 1);
+    assert_eq!(app.actions().links(Uuid::nil(), &ticket("fqdn")).len(), 2);
 }
 
 /// The owner's UI direction of 2026-11-15: the site's binary list names its alert summary, so its GUI

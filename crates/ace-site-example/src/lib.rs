@@ -16,6 +16,9 @@
 //! have a view of the site's own, its analysis template (5.9), and a ticket has an observable action
 //! of the site's own that opens it, both named by the binary's list.
 //!
+//! It adds a directive an analyst may add to an observable, `example_ticket_history`, which the alert
+//! page's Add Directive and the JSON API offer beside ace3's (PLAN.md decision 31).
+//!
 //! Its alert summary is the site's own too: an alert whose type is `example - ticket`, or starts with
 //! it, has its ticket queue and ticket at the top of its page (`ExampleTicketSummary`), where ace3 has
 //! a template per alert type.
@@ -79,11 +82,23 @@ pub const TICKET_EXPORT: FileRole = FileRole::define("example.ticket_export");
 /// Every file role the site adds.
 pub const FILE_ROLES: &[FileRole] = &[TICKET_EXPORT];
 
+/// The site's directive, which an analyst may add to an observable from the alert page's menu or the
+/// JSON API, beside ace3's (PLAN.md decision 31), as site_ace registers `locate_file`. A module of the site's
+/// that requires it (`Module::REQUIRED_DIRECTIVES`) runs on an observable only once someone adds it.
+pub const TICKET_HISTORY: ace_sdk::directives::Directive = ace_sdk::directives::Directive::new(
+    "example_ticket_history",
+    "look up every ticket that ever named this in the example site's ticket system",
+);
+
+/// Every directive the site adds.
+pub const DIRECTIVES: &[ace_sdk::directives::Directive] = &[TICKET_HISTORY];
+
 /// The site's binaries' list: ace4's, with the site's own added.
 pub fn app() -> App {
     ace::app()
         .observable_types(OBSERVABLE_TYPES)
         .file_roles(FILE_ROLES)
+        .directives(DIRECTIVES)
         .add_to_parser_pool("parsers", |pool| pool.module::<TicketFile>())
         .add_to_lookup_pool("lookups", |pool| pool.module::<TicketLookup>())
         .collector(EXAMPLE_COLLECTOR, |setup| {

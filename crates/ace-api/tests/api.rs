@@ -698,6 +698,8 @@ const GRAPH: &str = "/api/alerts/v1/alerts/{id}/graph";
 const FILE: &str = "/api/alerts/v1/alerts/{id}/observables/{observable}/file";
 const DISPOSITION: &str = "/api/alerts/v1/alerts/{id}/disposition";
 const DISPOSITIONS: &str = "/api/alerts/v1/dispositions";
+const DIRECTIVES: &str = "/api/alerts/v1/directives";
+const ADD_DIRECTIVES: &str = "/api/alerts/v1/alerts/{id}/observables/{observable}/directives";
 const OWNER: &str = "/api/alerts/v1/owner";
 const SUBMIT: &str = "/api/analysis/v1/submit";
 const LOOKUP: &str = "/api/observables/v1/lookup";
@@ -977,6 +979,7 @@ fn scope_body(name: &str, scope: &[(&str, &str)]) -> Value {
 fn good_body(route: &str) -> Send {
     match route {
         DISPOSITION => Send::Json(json!({"disposition": "FALSE_POSITIVE"})),
+        ADD_DIRECTIVES => Send::Json(json!({"directives": ["crawl"]})),
         OWNER => Send::Json(json!({"alerts": [Uuid::nil()], "owner": null})),
         VERDICT => Send::Json(json!({"verdict": "fp"})),
         SUBMIT => Send::Form(form(&json!({"description": "x"}), &[])),
@@ -1069,7 +1072,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 244, "{routes:?}");
+    assert_eq!(routes.len(), 246, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -2493,6 +2496,240 @@ async fn dispositions(client: &mut Client<'_>, token: &str) {
             StatusCode::PAYLOAD_TOO_LARGE,
         )
         .await;
+}
+
+/// PLAN.md decision 31: the directives an analyst may add, listed under `alert:read`, and added to an
+/// observable under `observable:write`, which refuses one the binary doesn't list, an alert only ACE
+/// dispositions, and an alert or observable that isn't there, with one audit row for each that's added.
+async fn directives(client: &mut Client<'_>, token: &str) {
+    let listed = client
+        .json(
+            Method::GET,
+            DIRECTIVES,
+            DIRECTIVES,
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    let listed = listed["directives"].as_array().expect("a list");
+    let names: Vec<&str> = listed
+        .iter()
+        .map(|d| d["name"].as_str().expect("a name"))
+        .collect();
+    assert_eq!(
+        names,
+        [
+            "collect_file",
+            "crawl",
+            "crawl_extracted_urls",
+            "extract_iocs",
+            "extract_urls",
+        ]
+    );
+    assert_eq!(
+        listed[1],
+        json!({"name": "crawl", "description": "crawl the URL"})
+    );
+    let writer = key(client.stack, &["observable:write"]).await;
+    let refused = client
+        .json(
+            Method::GET,
+            DIRECTIVES,
+            DIRECTIVES,
+            Some(&writer),
+            Send::Nothing,
+            StatusCode::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(refused["error"], "this needs alert:read");
+
+    let id = alert(
+        client.stack,
+        "to direct",
+        &[(ObservableKind::Url, "https://a.example/x")],
+    )
+    .await;
+    let observable: i64 = sqlx::query_scalar(
+        "SELECT id FROM analysis.observables WHERE root_id = $1 AND type = 'url'",
+    )
+    .bind(id)
+    .fetch_one(client.stack.test_db.db().pool())
+    .await
+    .expect("the observable");
+    let path = fill(ADD_DIRECTIVES, id, observable);
+    // alert:read and alert:write aren't observable:write: nothing is added and there's no row
+    let before = audit_count(client.stack).await;
+    let refused = client
+        .json(
+            Method::POST,
+            ADD_DIRECTIVES,
+            &path,
+            Some(token),
+            good_body_json(ADD_DIRECTIVES),
+            StatusCode::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(refused["error"], "this needs observable:write");
+    assert_eq!(audit_count(client.stack).await, before);
+    let done = client
+        .json(
+            Method::POST,
+            ADD_DIRECTIVES,
+            &path,
+            Some(&writer),
+            Send::Json(json!({"directives": ["crawl", "extract_iocs", "crawl"]})),
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(
+        done,
+        json!({"added": ["crawl", "extract_iocs"], "directives": ["crawl", "extract_iocs"],
+               "queued": 0})
+    );
+    assert_eq!(audit_count(client.stack).await, before + 1);
+    let (action, target, by): (String, String, Value) = sqlx::query_as(
+        "SELECT action, target_id, actor FROM service.audit ORDER BY id DESC LIMIT 1",
+    )
+    .fetch_one(client.stack.test_db.db().pool())
+    .await
+    .expect("the row");
+    assert_eq!(action, "add_directives");
+    assert_eq!(target, format!("{id}/{observable}"));
+    assert_eq!(by["kind"], "api_key");
+    // one it has already is left as it is, and the alert is analyzed again all the same
+    let again = client
+        .json(
+            Method::POST,
+            ADD_DIRECTIVES,
+            &path,
+            Some(&writer),
+            Send::Json(json!({"directives": ["crawl", "extract_urls"]})),
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(again["added"], json!(["extract_urls"]));
+    assert_eq!(
+        again["directives"],
+        json!(["crawl", "extract_iocs", "extract_urls"])
+    );
+
+    // a directive the binary doesn't list, only ACE's own, none, or a body that isn't one
+    let rows = audit_count(client.stack).await;
+    for bad in [
+        json!({"directives": ["exclude_all"]}),
+        json!({"directives": ["crawl", "locate_file"]}),
+        json!({"directives": []}),
+        json!({"directives": "crawl"}),
+        json!({"directive": ["crawl"]}),
+    ] {
+        client
+            .json(
+                Method::POST,
+                ADD_DIRECTIVES,
+                &path,
+                Some(&writer),
+                Send::Json(bad),
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+    }
+    let unlisted = client
+        .json(
+            Method::POST,
+            ADD_DIRECTIVES,
+            &path,
+            Some(&writer),
+            Send::Json(json!({"directives": ["<script>"]})),
+            StatusCode::BAD_REQUEST,
+        )
+        .await;
+    assert!(
+        unlisted["error"]
+            .as_str()
+            .is_some_and(|e| e.contains("not a directive an analyst may add: \"<script>\"")),
+        "{unlisted}"
+    );
+    // no alert, no observable in it, and a root that isn't an alert
+    client
+        .json(
+            Method::POST,
+            ADD_DIRECTIVES,
+            &fill(ADD_DIRECTIVES, Uuid::nil(), observable),
+            Some(&writer),
+            good_body_json(ADD_DIRECTIVES),
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            Method::POST,
+            ADD_DIRECTIVES,
+            &fill(ADD_DIRECTIVES, id, observable + 1_000_000),
+            Some(&writer),
+            good_body_json(ADD_DIRECTIVES),
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+    sqlx::query("UPDATE analysis.roots SET alerted_at = NULL WHERE id = $1")
+        .bind(id)
+        .execute(client.stack.test_db.db().pool())
+        .await
+        .expect("no longer an alert");
+    client
+        .json(
+            Method::POST,
+            ADD_DIRECTIVES,
+            &path,
+            Some(&writer),
+            good_body_json(ADD_DIRECTIVES),
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+    alerted(client.stack, id).await;
+    // an alert only ACE dispositions isn't analyzed again
+    sqlx::query(
+        "UPDATE analysis.roots SET disposition = 'SIMULATED', dispositioned_at = now(),
+                dispositioned_by = '{\"kind\": \"internal\", \"id\": \"svs\"}'
+         WHERE id = $1",
+    )
+    .bind(id)
+    .execute(client.stack.test_db.db().pool())
+    .await
+    .expect("sets it as ACE would");
+    let frozen = client
+        .json(
+            Method::POST,
+            ADD_DIRECTIVES,
+            &path,
+            Some(&writer),
+            Send::Json(json!({"directives": ["collect_file"]})),
+            StatusCode::CONFLICT,
+        )
+        .await;
+    assert!(frozen.to_string().contains("set only by ACE"), "{frozen}");
+    client
+        .json(
+            Method::POST,
+            ADD_DIRECTIVES,
+            &path,
+            Some(&writer),
+            too_large(),
+            StatusCode::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    assert_eq!(
+        audit_count(client.stack).await,
+        rows,
+        "no refusal has a row"
+    );
+    let kept: Vec<String> =
+        sqlx::query_scalar("SELECT directives FROM analysis.observables WHERE id = $1")
+            .bind(observable)
+            .fetch_one(client.stack.test_db.db().pool())
+            .await
+            .expect("the observable");
+    assert_eq!(kept, ["crawl", "extract_iocs", "extract_urls"]);
 }
 
 async fn set_owner(stack: &Stack, alert: Uuid, user: Uuid) {
@@ -5242,6 +5479,7 @@ async fn every_documented_status_is_tested() {
     verdicts(&mut client, &token).await;
     downloads(&mut client, &token, id, file, &bytes).await;
     dispositions(&mut client, &token).await;
+    directives(&mut client, &token).await;
     owners(&mut client).await;
     looks_up(&mut client, &token, id, &bytes).await;
     lists_types(&mut client, &token).await;
@@ -19182,7 +19420,7 @@ async fn a_key_scoped_to_the_ai_api_reaches_nothing_else() {
         );
         checked += 1;
     }
-    assert_eq!(checked, 240, "every other route was swept");
+    assert_eq!(checked, 242, "every other route was swept");
     assert_eq!(
         (audit_count(&stack).await, root_count(&stack).await),
         before,

@@ -54,6 +54,12 @@ The owner's direction, which every item here is measured against:
   a failure only on an observable it already draws, so an alert whose modules failed on a branch with
   no detection says nothing until the whole tree is opened; and the top of the page doesn't count
   failures.
+- [ ] **Add Directive is a page of its own** (PLAN.md decision 31), as Add Comment is: the observable's
+  Actions menu links to a form of every directive the binary lists, the five built in (those of ace3's `GUI_DIRECTIVES` an ace4 module reads) and the site's, as boxes
+  to tick, and the form goes back to the observable in the whole tree. ace3 takes them in its Add
+  Observable modal's multiselect. Check with analysts whether 16-plus boxes on a page read well, whether
+  the list should be filtered by the observable's type (ace3 offers every one on every type), and whether
+  the page should say which modules a directive lets in. It was looked at only in tests, not in a browser.
 
 ## Tables and lists
 

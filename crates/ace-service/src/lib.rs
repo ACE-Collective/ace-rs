@@ -57,6 +57,9 @@
 //! `alert_view` reads an alert's whole tree for 5.8's alert view, and watches an alert for results landing
 //! on it, so an open page can show them. `alert_graph` turns that tree into 5.13's relationship graph.
 //!
+//! `directives` adds the directives an analyst asks for to an observable of an alert and analyzes it
+//! again (PLAN.md decision 31), from the list the binary registers, ace3's `GUI_DIRECTIVES` and a site's.
+//!
 //! `preferences` keeps a user's GUI preferences, ace3's `user_preferences` router, for 5.7's GUI and its
 //! routes under `/api/users/v1/me/preferences`.
 //!
@@ -116,6 +119,7 @@ mod crashes;
 mod detection;
 mod detection_points;
 mod detection_verdicts;
+mod directives;
 mod dispositions;
 mod email_archive;
 mod events;
@@ -187,6 +191,7 @@ pub use ace_core::svs::worklist::{WorklistKind, WorklistResolution, WorklistStat
 pub use ace_core::svs::{AttributionConfidence, RunState, SvsStatus};
 pub use ace_core::tree::DEFAULT_QUEUE;
 pub use ace_sdk::actions::{ActionKind, RemediationAction};
+pub use ace_sdk::directives::{Directive, DirectiveList};
 pub use ace_sdk::lists::MatchKind;
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
 pub use alert_graph::{
@@ -224,6 +229,7 @@ pub use detection_verdicts::{
     BatchRules, DispositionClass, DispositionClasses, MAX_VERDICT_TARGETS, SkipCause,
     SkippedDetection, Verdict, VerdictBatch, VerdictSource, effective_verdict,
 };
+pub use directives::DirectivesAdded;
 pub use dispositions::{
     BADGE_STYLES, DEFAULT_BADGE, Disposition, Dispositions, MAX_BADGE_CLASS_CHARS,
     MAX_DISPOSITION_CHARS, MAX_RANK, is_badge_class, is_disposition_name,
@@ -601,6 +607,9 @@ pub struct Service {
     /// The AI investigation API (PLAN.md 7.15), `ai`'s docs. None unless the binary turns it on, and
     /// then its routes say it's off.
     ai: Option<std::sync::Arc<ai::AiSurface>>,
+    /// The directives an analyst may add to an observable (PLAN.md decision 31), `directives`' docs:
+    /// those of ace3's `GUI_DIRECTIVES` an ace4 module reads, unless the binary adds a site's.
+    directives: std::sync::Arc<ace_sdk::directives::DirectiveList>,
 }
 
 impl Service {
@@ -623,6 +632,7 @@ impl Service {
             search: None,
             search_config: std::sync::Arc::default(),
             ai: None,
+            directives: std::sync::Arc::default(),
         }
     }
 

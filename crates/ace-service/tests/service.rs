@@ -1566,6 +1566,7 @@ async fn every_write_function_has_an_audit_test() {
         purge_qa_matches_records_its_row(db).await,
         prune_qa_matches_records_its_row(db).await,
         add_observable_comment_records_its_row(db).await,
+        directive_tests::add_directives_records_its_row(db).await,
         edit_observable_comment_records_its_row(db).await,
         delete_observable_comment_records_its_row(db).await,
         update_user_records_its_row(db).await,
@@ -3578,6 +3579,10 @@ async fn every_write_fails_when_its_audit_fails() {
         event_rows(db).await,
     );
 
+    let directed = other_alert;
+    let directed_observable = observable_id(db, directed, "evil.example.com").await;
+    let directed_before = directive_state(db, directed, directed_observable).await;
+
     sqlx::raw_sql("ALTER TABLE service.audit ADD CONSTRAINT broken CHECK (false) NOT VALID")
         .execute(db.pool())
         .await
@@ -3757,6 +3762,14 @@ async fn every_write_fails_when_its_audit_fails() {
             "add_observable_comment",
             service
                 .add_observable_comment(&actor, "fqdn", "evil.example.com", "after")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "add_directives",
+            service
+                .add_directives(&actor, directed, directed_observable, &["crawl".to_owned()])
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -4559,6 +4572,11 @@ async fn every_write_fails_when_its_audit_fails() {
         queue::completions(db, root).await.expect("reads"),
         [],
         "nothing ended the pass"
+    );
+    assert_eq!(
+        directive_state(db, directed, directed_observable).await,
+        directed_before,
+        "no directive was added, and the alert's mode and tasks are as they were"
     );
 }
 
@@ -50553,4 +50571,351 @@ mod ai_tests {
             Err(ServiceError::PermissionDenied { .. })
         ));
     }
+}
+
+/// PLAN.md decision 31: the directives an analyst adds to an observable of an alert.
+mod directive_tests {
+    use super::*;
+
+    /// A site's directive, as site_ace registers `locate_file`.
+    const LOCATE_FILE: ace_service::Directive = ace_service::Directive::new(
+        "locate_file",
+        "locate the on-disk host(s) and path(s) of this file by its SHA256",
+    );
+
+    /// A module that requires the site's directive, as a site's `mail_filter_file_location_resolver` does.
+    struct Directed;
+
+    impl Module for Directed {
+        const NAME: &'static str = "test_directed";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const REQUIRED_DIRECTIVES: &'static [&'static str] = &["locate_file"];
+        type Output = StubOutput;
+        type Settings = ();
+
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(Directed)
+        }
+    }
+
+    impl Lookup for Directed {
+        const TCP_PORTS: &'static [u16] = &[];
+
+        async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<StubOutput>, ModuleError> {
+            Ok(Outcome::Skipped("a stub".to_owned()))
+        }
+    }
+
+    /// The tests' orchestrator, with `Directed` in correlation mode.
+    fn directed_orchestrator() -> Orchestrator {
+        let catalog = Catalog::new(vec![
+            Manifest::lookup::<CorrelationStub>(),
+            Manifest::lookup::<DispositionedStub>(),
+            Manifest::lookup::<Directed>(),
+        ]);
+        Orchestrator::new(
+            catalog,
+            Modes::ace3().with_module_in_mode("correlation", Directed::NAME),
+        )
+    }
+
+    /// A service that lists the site's directive beside ace3's.
+    fn site_service(db: &Db) -> Service {
+        Service::new(db.clone(), directed_orchestrator())
+            .with_actions(test_actions())
+            .with_directives(
+                ace_sdk::directives::directive_list(&[LOCATE_FILE]).expect("a valid list"),
+            )
+    }
+
+    /// An alert with one fqdn, started under `orchestrator`, and that fqdn's id.
+    async fn directed_alert(db: &Db, orchestrator: &Orchestrator) -> (Uuid, i64) {
+        let root = NewRoot::new("correlation");
+        let mut tx = db.begin().await.expect("begins");
+        tree::create_root(&mut tx, &root).await.expect("creates");
+        let added = tree::upsert_observable(
+            &mut tx,
+            root.id,
+            &NewObservable::new(ObservableKind::Fqdn, "located.example.com"),
+        )
+        .await
+        .expect("adds");
+        orchestrator.start(&mut tx, root.id).await.expect("starts");
+        tx.commit().await.expect("commits");
+        sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+            .bind(root.id)
+            .execute(db.pool())
+            .await
+            .expect("makes it an alert");
+        (root.id, added.id.0)
+    }
+
+    /// A module's task on the observable, by its state.
+    async fn task_state(db: &Db, root: Uuid, observable: i64, module: &str) -> Option<String> {
+        sqlx::query_scalar(
+            "SELECT state::text FROM queue.tasks
+             WHERE root_id = $1 AND observable_id = $2 AND module = $3",
+        )
+        .bind(root)
+        .bind(observable)
+        .bind(module)
+        .fetch_optional(db.pool())
+        .await
+        .expect("reads")
+    }
+
+    async fn mode_of(db: &Db, root: Uuid) -> String {
+        sqlx::query_scalar("SELECT analysis_mode FROM analysis.roots WHERE id = $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads")
+    }
+
+    /// ace3's `REQUIRED_DIRECTIVES`: a module that requires a directive gets no task until an analyst adds
+    /// it, then is queued in the same transaction, as ace3's engine runs it on the alert queued again.
+    #[tokio::test]
+    async fn an_added_directive_queues_the_module_that_requires_it() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = admin(db).await;
+        let service = site_service(db);
+        let (root, observable) = directed_alert(db, &directed_orchestrator()).await;
+        assert_eq!(task_state(db, root, observable, Directed::NAME).await, None);
+
+        let added = service
+            .add_directives(&actor, root, observable, &["locate_file".to_owned()])
+            .await
+            .expect("adds");
+        assert_eq!(added.added, ["locate_file"]);
+        assert_eq!(added.directives, ["locate_file"]);
+        assert_eq!(added.queued, 1);
+        assert_eq!(
+            task_state(db, root, observable, Directed::NAME)
+                .await
+                .as_deref(),
+            Some("queued")
+        );
+        // asking again adds nothing and queues nothing new: the task is there
+        let again = service
+            .add_directives(&actor, root, observable, &["locate_file".to_owned()])
+            .await
+            .expect("adds");
+        assert_eq!(again.added, Vec::<String>::new());
+        assert_eq!(again.queued, 0);
+    }
+
+    /// ace3's `request_analyst_analysis`: a dispositioned alert goes back to correlation mode, so the
+    /// module the directive lets in runs, and so does what the disposition cancelled. The disposition
+    /// stays.
+    #[tokio::test]
+    async fn a_dispositioned_alert_is_analyzed_again_in_correlation_mode() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = admin(db).await;
+        let service = site_service(db);
+        let (root, observable) = directed_alert(db, &directed_orchestrator()).await;
+        assert_eq!(
+            task_state(db, root, observable, CorrelationStub::NAME)
+                .await
+                .as_deref(),
+            Some("queued")
+        );
+        service
+            .disposition(&actor, root, "FALSE_POSITIVE", None)
+            .await
+            .expect("dispositions");
+        assert_eq!(mode_of(db, root).await, "dispositioned");
+        assert_eq!(
+            task_state(db, root, observable, CorrelationStub::NAME)
+                .await
+                .as_deref(),
+            Some("cancelled")
+        );
+
+        let added = service
+            .add_directives(&actor, root, observable, &["locate_file".to_owned()])
+            .await
+            .expect("adds");
+        assert_eq!(added.queued, 2, "the directed module and the cancelled one");
+        assert_eq!(mode_of(db, root).await, "correlation");
+        for module in [Directed::NAME, CorrelationStub::NAME] {
+            assert_eq!(
+                task_state(db, root, observable, module).await.as_deref(),
+                Some("queued"),
+                "{module}"
+            );
+        }
+        let disposition: Option<String> =
+            sqlx::query_scalar("SELECT disposition FROM analysis.roots WHERE id = $1")
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads");
+        assert_eq!(disposition.as_deref(), Some("FALSE_POSITIVE"));
+    }
+
+    /// What's refused changes nothing and has no row: a directive the binary doesn't list (the site's,
+    /// in a binary without it), none, an actor without `observable:write`, a root that isn't an alert, an
+    /// observable it doesn't have, and an alert only ACE dispositions.
+    #[tokio::test]
+    async fn a_refused_directive_changes_nothing() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = admin(db).await;
+        let (root, observable) = directed_alert(db, &directed_orchestrator()).await;
+        let builtin = Service::new(db.clone(), directed_orchestrator());
+        let site = site_service(db);
+        let reader = UserId(Uuid::from_u128(0xC1));
+        exists(db, &Holder::User(reader)).await;
+        for (major, minor) in [("alert", "read"), ("alert", "write")] {
+            grant(db, &Holder::User(reader), major, minor, Effect::Allow).await;
+        }
+        let rows = audit_rows(db).await.len();
+        let before = directive_state(db, root, observable).await;
+        let one = |name: &str| vec![name.to_owned()];
+
+        let unlisted = builtin
+            .add_directives(&actor, root, observable, &one("locate_file"))
+            .await;
+        assert!(
+            matches!(&unlisted, Err(ServiceError::InvalidRequest(why))
+                if why.starts_with("not a directive an analyst may add: \"locate_file\"")),
+            "{unlisted:?}"
+        );
+        for refused in [one("exclude_all"), one("Crawl"), Vec::new()] {
+            assert!(
+                matches!(
+                    site.add_directives(&actor, root, observable, &refused)
+                        .await,
+                    Err(ServiceError::InvalidRequest(_))
+                ),
+                "{refused:?}"
+            );
+        }
+        assert!(matches!(
+            site.add_directives(&user(reader), root, observable, &one("crawl"))
+                .await,
+            Err(ServiceError::PermissionDenied { ref permission, .. })
+                if permission.to_string() == "observable:write"
+        ));
+        assert!(matches!(
+            site.add_directives(&actor, Uuid::new_v4(), observable, &one("crawl"))
+                .await,
+            Err(ServiceError::NotFound(_))
+        ));
+        assert!(matches!(
+            site.add_directives(&actor, root, observable + 1_000_000, &one("crawl"))
+                .await,
+            Err(ServiceError::NotFound(_))
+        ));
+        let (not_alert, its_observable) = directed_alert(db, &directed_orchestrator()).await;
+        sqlx::query("UPDATE analysis.roots SET alerted_at = NULL WHERE id = $1")
+            .bind(not_alert)
+            .execute(db.pool())
+            .await
+            .expect("unmakes the alert");
+        assert!(matches!(
+            site.add_directives(&actor, not_alert, its_observable, &one("crawl"))
+                .await,
+            Err(ServiceError::NotFound(_))
+        ));
+        sqlx::query(
+            "UPDATE analysis.roots SET disposition = 'SIMULATED', dispositioned_at = now(),
+                    dispositioned_by = '{\"kind\": \"internal\", \"id\": \"svs\"}'
+             WHERE id = $1",
+        )
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("dispositions it as ACE would");
+        let frozen = site
+            .add_directives(&actor, root, observable, &one("locate_file"))
+            .await;
+        assert!(
+            matches!(&frozen, Err(ServiceError::Conflict(why)) if why.contains("set only by ACE")),
+            "{frozen:?}"
+        );
+        let (directives, mode, _) = directive_state(db, root, observable).await;
+        assert_eq!((directives, mode), (before.0, before.1));
+        assert_eq!(audit_rows(db).await.len(), rows, "no refusal has a row");
+    }
+
+    pub(super) async fn add_directives_records_its_row(db: &Db) -> String {
+        let actor = admin(db).await;
+        let (root, observable) = directed_alert(db, &orchestrator()).await;
+        let added = service(db)
+            .add_directives(
+                &actor,
+                root,
+                observable,
+                &[
+                    "crawl".to_owned(),
+                    "extract_urls".to_owned(),
+                    "crawl".to_owned(),
+                ],
+            )
+            .await
+            .expect("adds");
+        assert_eq!(added.added, ["crawl", "extract_urls"]);
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "add_directives".to_owned(),
+                target: ("observable".to_owned(), format!("{root}/{observable}")),
+                before: Some(json!({"directives": [], "analysis_mode": "correlation"})),
+                after: Some(json!({
+                    "directives": ["crawl", "extract_urls"],
+                    "analysis_mode": "correlation",
+                })),
+                details: json!({
+                    "type": "fqdn",
+                    "value": "located.example.com",
+                    "requested": ["crawl", "extract_urls"],
+                    "added": ["crawl", "extract_urls"],
+                    "queued": 0,
+                }),
+            }
+        );
+        row.action
+    }
+}
+
+/// An observable's id in a root, by its value.
+async fn observable_id(db: &Db, root: Uuid, value: &str) -> i64 {
+    sqlx::query_scalar("SELECT id FROM analysis.observables WHERE root_id = $1 AND value = $2")
+        .bind(root)
+        .bind(value)
+        .fetch_one(db.pool())
+        .await
+        .expect("the observable")
+}
+
+/// An observable's directives, its root's mode and the root's tasks, which adding a directive changes.
+async fn directive_state(
+    db: &Db,
+    root: Uuid,
+    observable: i64,
+) -> (Vec<String>, String, Vec<String>) {
+    let directives: Vec<String> =
+        sqlx::query_scalar("SELECT directives FROM analysis.observables WHERE id = $1")
+            .bind(observable)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    let tasks: Vec<String> = sqlx::query_scalar(
+        "SELECT module || ':' || state::text FROM queue.tasks WHERE root_id = $1 ORDER BY id",
+    )
+    .bind(root)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    let mode: String = sqlx::query_scalar("SELECT analysis_mode FROM analysis.roots WHERE id = $1")
+        .bind(root)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    (directives, mode, tasks)
 }

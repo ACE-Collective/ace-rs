@@ -962,6 +962,119 @@
         }
       }
     },
+    "/api/alerts/v1/alerts/{id}/observables/{observable}/directives": {
+      "post": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Adds directives to an observable of the alert and analyzes the alert again in correlation mode, as\nace3's Add Observable form and its observable actions do (PLAN.md decision 31): a module that requires\none of them is queued, and what a disposition cancelled runs again. A directive the observable has is\nleft as it is, and the alert is analyzed again all the same. An alert whose disposition only ACE sets is\nrefused. There's no way to remove a directive, as in ace3.",
+        "operationId": "add_directives",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "observable",
+            "in": "path",
+            "description": "The observable's id in the alert",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddDirectivesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The directives are on the observable, and the alert is analyzed again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectivesAddedBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No directive, one an analyst may not add, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold observable:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such alert, or no such observable in it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The alert's disposition is one only ACE sets, so it isn't analyzed again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/alerts/v1/alerts/{id}/observables/{observable}/file": {
       "get": {
         "tags": [
@@ -1649,6 +1762,47 @@
           },
           "413": {
             "description": "More detections than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/directives": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "The directives an analyst may add to an observable (PLAN.md decision 31): those of ace3's\n`GUI_DIRECTIVES` an ace4 module reads and the site's, in name order, with ace3's descriptions. ace3's `GET /api/v2/common/valid_directives` lists\nevery directive under `system:read`; this lists the ones an analyst may add, under `alert:read`.",
+        "operationId": "directives",
+        "responses": {
+          "200": {
+            "description": "The directives an analyst may add",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectivesBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
             "content": {
               "application/json": {
                 "schema": {
@@ -19900,6 +20054,22 @@
           }
         }
       },
+      "AddDirectivesRequest": {
+        "type": "object",
+        "required": [
+          "directives"
+        ],
+        "properties": {
+          "directives": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "One or more of `GET /api/alerts/v1/directives`' names."
+          }
+        },
+        "additionalProperties": false
+      },
       "AlertBody": {
         "type": "object",
         "description": "An alert: a root that a detection made worth an analyst's time.",
@@ -22401,6 +22571,67 @@
               "type": "string"
             },
             "description": "The types that have a detection."
+          }
+        }
+      },
+      "DirectiveBody": {
+        "type": "object",
+        "description": "A directive an analyst may add, and what it asks for.",
+        "required": [
+          "name",
+          "description"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "DirectivesAddedBody": {
+        "type": "object",
+        "description": "What adding directives did.",
+        "required": [
+          "added",
+          "directives",
+          "queued"
+        ],
+        "properties": {
+          "added": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The directives the observable didn't have, in the order asked for."
+          },
+          "directives": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The observable's directives now."
+          },
+          "queued": {
+            "type": "integer",
+            "description": "How many tasks the alert queued, anew or again.",
+            "minimum": 0
+          }
+        }
+      },
+      "DirectivesBody": {
+        "type": "object",
+        "description": "The directives an analyst may add to an observable, in name order.",
+        "required": [
+          "directives"
+        ],
+        "properties": {
+          "directives": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DirectiveBody"
+            }
           }
         }
       },

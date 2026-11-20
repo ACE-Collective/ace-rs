@@ -76,6 +76,7 @@ use ace_sdk::{Lookup, Manifest, Parser};
 pub struct App {
     observable_types: Vec<ObservableKind>,
     file_roles: Vec<ace_results::FileRole>,
+    directives: Vec<ace_sdk::directives::Directive>,
     parser_pools: Vec<ParserPool>,
     lookup_pools: Vec<LookupPool>,
     scanner_pools: Vec<ScannerPool>,
@@ -236,6 +237,24 @@ impl App {
     /// (`ace_results::role_list`).
     pub fn roles(&self) -> Result<Vec<ace_results::FileRole>, ace_results::RoleListError> {
         ace_results::role_list(&self.file_roles)
+    }
+
+    /// Adds a site's directives to those an analyst may add to an observable from the alert page's
+    /// menu or the JSON API, beside the open-source ones (`ace_sdk::directives::BUILTIN`, ace3's
+    /// `GUI_DIRECTIVES`), as an ace3 integration calls `register_directive(..., gui=True)` (PLAN.md
+    /// decision 31). A module of the site's that requires one (`Module::REQUIRED_DIRECTIVES`) then runs
+    /// on an observable an analyst gives it. `ace_main` refuses a list with a bad or repeated name.
+    pub fn directives(mut self, directives: &[ace_sdk::directives::Directive]) -> App {
+        self.directives.extend_from_slice(directives);
+        self
+    }
+
+    /// The directives an analyst may add: the built-in ones and the site's, checked
+    /// (`ace_sdk::directives::directive_list`).
+    pub fn directive_list(
+        &self,
+    ) -> Result<ace_sdk::directives::DirectiveList, ace_sdk::directives::DirectiveListError> {
+        ace_sdk::directives::directive_list(&self.directives)
     }
 
     pub fn parser_pool(mut self, pool: ParserPool) -> App {
@@ -814,6 +833,10 @@ impl App {
         }
         if let Err(wrong) = self.check_modes() {
             eprintln!("the binary's list: {wrong}");
+            return ExitCode::from(2);
+        }
+        if let Err(wrong) = self.directive_list() {
+            eprintln!("the binary's directives: {wrong}");
             return ExitCode::from(2);
         }
         cli::main(&self)

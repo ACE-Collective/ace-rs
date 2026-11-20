@@ -1,0 +1,30 @@
+{#- The observable menu's Add Directive (PLAN.md decision 31): the directives an analyst may add, ace3's
+    GUI_DIRECTIVES and the site's, as boxes to tick. The form posts back here, which adds them, analyzes the
+    alert again and goes back to the observable in the alert's tree. -#}
+{% extends "base.html" %}
+{% block title %}Add Directive · ACE{% endblock %}
+{% block content %}
+<section class="alert comment-page">
+  <p><a href="/alerts/{{ alert_id }}?tree=full#o{{ observable_id }}">Back to Alert</a></p>
+  <h1>{{ alert_title }}</h1>
+  <form method="post" action="/alerts/{{ alert_id }}/observables/{{ observable_id }}/directives" class="section">
+    <h2>Add Directive</h2>
+    <p><b class="type">{{ label }}</b> : <span class="value">{{ value }}</span></p>
+    <p class="muted">The alert is analyzed again, so a module that waits for a directive runs on this observable.</p>
+    <fieldset>
+      <legend>Directives</legend>
+      {%- for choice in choices %}
+      <label class="choice"><input type="checkbox" name="directive" value="{{ choice.name }}"{% if choice.set %} checked disabled{% endif %}> <code>{{ choice.name }}</code> <span class="muted">{{ choice.description }}{% if choice.set %} (already set){% endif %}</span></label>
+      {%- endfor %}
+    </fieldset>
+    {%- if !others.is_empty() %}
+    <p class="muted">Also set: {% for other in others %}<code>{{ other }}</code>{% if !loop.last %}, {% endif %}{% endfor %}</p>
+    {%- endif %}
+    {%- if any_to_add() %}
+    <button type="submit">Add Directive</button>
+    {%- else %}
+    <p class="muted">The observable has every directive this list offers.</p>
+    {%- endif %}
+  </form>
+</section>
+{% endblock %}

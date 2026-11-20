@@ -19,6 +19,9 @@
 //! `analyze` doesn't repeat them. `takes`' docs say how to write one and how to check it with the
 //! core's audit setting before relying on it.
 //!
+//! `directives` lists the directives an analyst may add to an observable, those of ace3's
+//! `GUI_DIRECTIVES` an ace4 module reads, to which a site adds its own (PLAN.md decision 31).
+//!
 //! A module whose result is worth keeping across roots, such as one that runs OCR or asks a vendor,
 //! opts into the analysis cache with `Module::CACHE` (PLAN.md decision 26): `cache`'s docs say what
 //! its key holds, what a cacheable module may read, and what is never kept.
@@ -27,6 +30,7 @@ pub mod actions;
 pub mod cache;
 pub mod connections;
 pub mod context;
+pub mod directives;
 pub mod domains;
 pub mod email_threads;
 #[cfg(any(test, feature = "example-modules"))]

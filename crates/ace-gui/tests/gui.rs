@@ -4655,6 +4655,242 @@ async fn add_comment_comments_on_the_observable() {
     assert_eq!(stack.audit_count().await, audits + 1);
 }
 
+/// A site's directive, as site_ace registers `locate_file` (PLAN.md decision 31).
+const LOCATE_FILE: ace_service::Directive = ace_service::Directive::new(
+    "locate_file",
+    "locate the on-disk host(s) and path(s) of this file by its SHA256",
+);
+
+/// Add Directive (PLAN.md decision 31): the menu's link on every observable, its form of the binary's
+/// directives (ace3's and the site's) under `alert:read`, and its post under `observable:write`, which adds
+/// the ticked ones, audits it, analyzes the alert again and goes back to the observable in the tree. A
+/// directive the binary doesn't list is refused.
+#[tokio::test]
+async fn add_directive_adds_the_ticked_directives() {
+    let stack = stack_from(|service| {
+        Gui::new(
+            service.with_directives(
+                ace_sdk::directives::directive_list(&[LOCATE_FILE]).expect("a valid list"),
+            ),
+            Transport::Plain,
+        )
+    })
+    .await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let carol = user(&stack, "carol").await;
+    grant_alert_read(&stack, &carol).await;
+    let _bob = user(&stack, "bob").await;
+    let (root, fqdn) = splunk_alert(&stack).await;
+    let alice_session = session_of(&stack, "alice").await;
+    let alert = stack
+        .get(&format!("/alerts/{root}"))
+        .header("cookie", cookie(&alice_session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    let path = format!("/alerts/{root}/observables/{}/directives", fqdn.0);
+    assert!(
+        alert.contains(&format!(r#"<a href="{path}">Add Directive</a>"#)),
+        "{alert}"
+    );
+
+    let form = stack
+        .get(&path)
+        .header("cookie", cookie(&alice_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(form.status(), StatusCode::OK);
+    let form = form.text().await.expect("a page");
+    assert!(inline_free(&form));
+    contains_all(
+        &form,
+        &[
+            &format!(r#"<form method="post" action="{path}" class="section">"#),
+            r#"<b class="type">fqdn</b> : <span class="value">www.example.com</span>"#,
+            r#"<input type="checkbox" name="directive" value="crawl"> <code>crawl</code> <span class="muted">crawl the URL</span>"#,
+            r#"<input type="checkbox" name="directive" value="locate_file"> <code>locate_file</code>"#,
+            r#"<button type="submit">Add Directive</button>"#,
+        ],
+    );
+    // the five built in and the site's one, and none that only ACE adds
+    assert_eq!(form.matches(r#"name="directive""#).count(), 6);
+    assert!(!form.contains("exclude_all"));
+
+    // alice can read the alert but not change its observables
+    let audits = stack.audit_count().await;
+    let refused = stack
+        .post(&path, &[("directive", "crawl")])
+        .header("cookie", cookie(&alice_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, audits);
+
+    let Actor::User { id, .. } = &carol else {
+        panic!("a user")
+    };
+    stack
+        .service
+        .grant(
+            &bootstrap(),
+            &Holder::User(*id),
+            &PermissionPattern::new("observable", "write").expect("a pattern"),
+            Effect::Allow,
+        )
+        .await
+        .expect("granted");
+    let carol_session = session_of(&stack, "carol").await;
+    let bob_session = session_of(&stack, "bob").await;
+    let audits = stack.audit_count().await;
+    let added = stack
+        .post(
+            &path,
+            &[("directive", "locate_file"), ("directive", "crawl")],
+        )
+        .header("cookie", cookie(&carol_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(added.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&added),
+        format!("/alerts/{root}?tree=full#o{}", fqdn.0)
+    );
+    assert_eq!(stack.audit_count().await, audits + 1);
+    let directives: Vec<String> =
+        sqlx::query_scalar("SELECT directives FROM analysis.observables WHERE id = $1")
+            .bind(fqdn.0)
+            .fetch_one(stack.test_db.db().pool())
+            .await
+            .expect("reads");
+    assert_eq!(directives, ["locate_file", "crawl"]);
+    // the form shows them set, and they can't be ticked off
+    let form = stack
+        .get(&path)
+        .header("cookie", cookie(&carol_session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        form.contains(r#"value="locate_file" checked disabled> <code>locate_file</code>"#),
+        "{form}"
+    );
+    assert!(form.contains("(already set)"));
+
+    // a directive the binary doesn't list, none, no such observable, another site, no alert:read and no
+    // session
+    for bad in [
+        vec![("directive", "exclude_all")],
+        vec![("directive", "<b>x</b>")],
+        vec![("other", "crawl")],
+        vec![],
+    ] {
+        let response = stack
+            .post(&path, &bad)
+            .header("cookie", cookie(&carol_session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{bad:?}");
+        let page = response.text().await.expect("a page");
+        assert!(!page.contains("<b>x</b>"), "{page}");
+    }
+    for missing in [
+        format!("/alerts/{root}/observables/999999/directives"),
+        format!("/alerts/{root}/observables/x/directives"),
+        format!(
+            "/alerts/{}/observables/{}/directives",
+            uuid::Uuid::nil(),
+            fqdn.0
+        ),
+    ] {
+        let response = stack
+            .post(&missing, &[("directive", "crawl")])
+            .header("cookie", cookie(&carol_session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(response.status(), StatusCode::NOT_FOUND, "{missing}");
+    }
+    let cross_site = stack
+        .post(&path, &[("directive", "crawl")])
+        .header("cookie", cookie(&carol_session))
+        .header("sec-fetch-site", "cross-site")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross_site.status(), StatusCode::FORBIDDEN);
+    let unreadable = stack
+        .get(&path)
+        .header("cookie", cookie(&bob_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(unreadable.status(), StatusCode::FORBIDDEN);
+    let anonymous = stack
+        .post(&path, &[("directive", "crawl")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(anonymous.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&anonymous), "/login");
+    assert_eq!(stack.audit_count().await, audits + 1);
+}
+
+/// The form drawn alone: every directive the observable has that the list doesn't offer is named, and a
+/// form with nothing left to tick has no button.
+#[test]
+fn the_directive_form_names_what_it_does_not_offer() {
+    let (tree, _) = fixture_tree();
+    let mut observable = tree.observables[0].clone();
+    observable.directives = vec!["crawl".to_owned(), "original_email".to_owned()];
+    let only = ace_service::DirectiveList::builtin();
+    let (choices, others) = ace_gui::actions::directive_choices(&only, &observable);
+    assert_eq!(others, ["original_email"]);
+    assert_eq!(choices.iter().filter(|c| c.set).count(), 1);
+    let page = |choices: Vec<ace_gui::actions::DirectiveChoice>| {
+        ace_gui::actions::DirectivePage {
+            layout: Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), "/"),
+            alert_id: tree.alert.summary.id,
+            alert_title: "<title>".to_owned(),
+            observable_id: observable.id,
+            label: observable.display_label(),
+            value: "<script>alert(1)</script>".to_owned(),
+            choices,
+            others: others.clone(),
+        }
+        .render()
+        .expect("renders")
+    };
+    let html = page(choices.clone());
+    assert!(inline_free(&html));
+    assert!(
+        html.contains("Also set: <code>original_email</code>"),
+        "{html}"
+    );
+    assert!(!html.contains("<script>alert(1)</script>"));
+    assert!(html.contains(r#"<button type="submit">Add Directive</button>"#));
+    let all_set = choices
+        .into_iter()
+        .map(|choice| ace_gui::actions::DirectiveChoice {
+            set: true,
+            ..choice
+        })
+        .collect();
+    let html = page(all_set);
+    assert!(!html.contains(">Add Directive</button>"));
+    assert!(html.contains("The observable has every directive this list offers."));
+}
+
 // PLAN.md 5.10: the alert list.
 
 use ace_gui::list::{AlertListFragment, alert_list};

@@ -688,6 +688,7 @@ impl Web {
             .route("/api/alerts/v1/alerts", get(alerts::list))
             .route("/api/alerts/v1/alerts/{id}", get(alerts::one))
             .route("/api/alerts/v1/dispositions", get(alerts::dispositions))
+            .route("/api/alerts/v1/directives", get(alerts::directives))
             .route("/api/alerts/v1/owner", put(alerts::owner).layer(json_limit))
             .route("/api/alerts/v1/alerts/export/csv", get(alerts::export_csv))
             .route(
@@ -735,6 +736,10 @@ impl Web {
             .route(
                 "/api/alerts/v1/alerts/{id}/observables/{observable}/file",
                 get(alerts::file),
+            )
+            .route(
+                "/api/alerts/v1/alerts/{id}/observables/{observable}/directives",
+                post(alerts::add_directives).layer(json_limit),
             )
             .route(
                 "/api/alerts/v1/alerts/{id}/disposition",
@@ -1374,6 +1379,8 @@ impl Web {
         alerts::file,
         alerts::disposition,
         alerts::dispositions,
+        alerts::directives,
+        alerts::add_directives,
         alerts::owner,
         alerts::export_csv,
         alerts::export_ndjson,

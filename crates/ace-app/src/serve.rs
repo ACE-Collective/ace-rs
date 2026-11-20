@@ -224,7 +224,12 @@ async fn serve(app: &App) -> Result<ExitCode> {
         // coverage is computed against the pinned ATT&CK release (PLAN.md 7.10 batch 8)
         .with_attack_catalog(attack)
         .with_runs(runs)
-        .with_routers(routers);
+        .with_routers(routers)
+        // what an analyst may add to an observable (PLAN.md decision 31)
+        .with_directives(
+            app.directive_list()
+                .map_err(|e| anyhow::anyhow!("the binary's directives: {e}"))?,
+        );
     // the AI investigation API (PLAN.md 7.15) is `ace serve-ai`'s, a process of its own
     crate::ai::custody::not_ace_serve_s(&overlay).map_err(anyhow::Error::msg)?;
     // search (PLAN.md 7.11): the index in Postgres, with the embedding model the image carries. The
