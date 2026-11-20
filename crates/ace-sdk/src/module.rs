@@ -130,6 +130,13 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// size with no upload; the core takes such a file only from a module that declares this, and
     /// only when the root holds it.
     const ADDS_STORED_FILES: bool = false;
+    /// True for a lookup that adds files it fetched, such as an email it downloads from a mailbox
+    /// (PLAN.md decision 28). Its pool's containment then lets it connect to the bucket's port, so it
+    /// can upload them to the core's presigned URLs; a network pool none of whose modules declares it
+    /// can't reach the bucket, and the core gives no upload URL to, and takes no uploaded file from,
+    /// a lookup that doesn't declare it. Only a lookup may declare it: a parser's files are its
+    /// supervisor's to upload.
+    const ADDS_FETCHED_FILES: bool = false;
     /// The analyst-edited lists the module reads (PLAN.md 5.14), such as `observable_detection`'s
     /// observables enabled for detection. The core adds each to the module's tasks as it is when the task is leased, and
     /// the module reads it with `TaskContext::list`. The lists a binary knows are its modules'.

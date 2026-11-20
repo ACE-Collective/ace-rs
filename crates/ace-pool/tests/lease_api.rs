@@ -6263,3 +6263,78 @@ async fn a_lease_carries_the_event_time_and_the_gate_only_to_what_reads_them() {
     );
     assert!(!gated.at_root && gated.event_time.is_none() && gated.tree.is_none());
 }
+
+/// PLAN.md decision 28: the core claims an action only for a handler its catalog has. A remediator
+/// the overlay leaves off isn't in `ace serve`'s catalog, so an action queued for it while it was on
+/// waits, even for a pool that still lists it; and a pool whose handlers are all off is refused.
+#[tokio::test]
+async fn an_action_of_a_handler_the_catalog_leaves_out_is_never_claimed() {
+    let catalog = ace_core::actions::ActionCatalog::new(&[&ace_sdk::actions::TEST_REMEDIATOR])
+        .expect("a catalog");
+    let configured = catalog.clone();
+    let core = Core::start_configured(
+        ace_core::eligibility::Catalog::new([]),
+        ace_core::modes::Modes::ace3(),
+        &["@remediation/test", "@remediation/off_mailbox"],
+        Duration::from_secs(30),
+        move |config| config.actions(configured),
+    )
+    .await;
+    let db = core.test_db.db();
+    let insert =
+        |handler: &'static str| {
+            sqlx::query_scalar::<_, i64>(
+            "INSERT INTO queue.actions (kind, handler, observable_type, observable_value, action)
+             VALUES ('remediation', $1, $2, 'SUCCESS', 'remove') RETURNING id",
+        )
+        .bind(handler)
+        .bind(if handler == "test" { "test" } else { "email_delivery" })
+        .fetch_one(db.pool())
+        };
+    let off = insert("off_mailbox").await.expect("inserts");
+    let test = insert("test").await.expect("inserts");
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "actions").expect("a client");
+    let leased = client
+        .lease_action(Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("an action");
+    assert_eq!(leased.id, test);
+    assert!(
+        client
+            .lease_action(Duration::ZERO)
+            .await
+            .expect("leases")
+            .is_none(),
+        "the off handler's action isn't claimed"
+    );
+    let (status,): (String,) = sqlx::query_as("SELECT status FROM queue.actions WHERE id = $1")
+        .bind(off)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    assert_eq!(status, "NEW");
+
+    // a pool whose every handler is off is refused
+    let core = Core::start_configured(
+        ace_core::eligibility::Catalog::new([]),
+        ace_core::modes::Modes::ace3(),
+        &["@remediation/off_mailbox"],
+        Duration::from_secs(30),
+        move |config| config.actions(catalog),
+    )
+    .await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "actions").expect("a client");
+    let refused = client
+        .lease_action(Duration::ZERO)
+        .await
+        .expect_err("refused");
+    assert!(
+        refused
+            .to_string()
+            .contains("no action handler this server has on"),
+        "{refused}"
+    );
+}

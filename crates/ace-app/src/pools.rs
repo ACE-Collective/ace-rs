@@ -34,8 +34,12 @@
 //! A network pool reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_OVERLAY`, the variables and
 //! files the overlay's `secrets:` names for its modules' and its action handlers' secrets,
 //! `ACE4_CONCURRENCY` (16), `ACE4_ACTION_CONCURRENCY` (4, the actions it runs at once, PLAN.md 7.9) and
-//! `ACE4_HEALTH_FILE`. It contains itself before its runtime starts a thread: it may connect only
-//! to its modules' and its handlers' TCP ports, the lease API's and the collector's.
+//! `ACE4_HEALTH_FILE`, and `ACE4_BUCKET_ENDPOINT` (the core's, for its port; without one, AWS S3's
+//! 443) when one of its modules adds files it fetched (`Module::ADDS_FETCHED_FILES`). It contains
+//! itself before its runtime starts a thread: it may connect only to its modules' and its
+//! handlers' TCP ports, the lease API's and the collector's, and the bucket's only when one of its
+//! modules adds files it fetched, which it uploads to the core's presigned URLs (PLAN.md decision
+//! 28).
 //!
 //! A scanner pool (PLAN.md 7.7) reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_STACK` (`ace4`), which
 //! its containers' labels and names carry, `ACE4_DOCKER_SOCKET` (`/var/run/docker.sock`),
@@ -434,7 +438,12 @@ fn handlers(
 ) -> Result<ace_pool::actions::Handlers, String> {
     let mut handlers = ace_pool::actions::Handlers::new();
     for (spec, build) in &pool.actions {
-        let entry = format!("{}/{}", spec.kind, spec.name);
+        let entry = spec.overlay_entry();
+        if !spec.is_enabled(overlay) {
+            // off by default, and the overlay has no entry for it: not built, so not run (decision 28)
+            tracing::info!(pool = %pool.name, "{entry} is off unless the overlay's actions: has an entry for it, and it has none");
+            continue;
+        }
         let section = overlay.actions.get(&entry).cloned().unwrap_or_default();
         let bindings = overlay
             .bind(
@@ -469,7 +478,7 @@ fn handlers(
         !pool
             .actions
             .iter()
-            .any(|(spec, _)| **key == format!("{}/{}", spec.kind, spec.name))
+            .any(|(spec, _)| **key == spec.overlay_entry())
     }) {
         tracing::warn!(pool = %pool.name, "the overlay has settings for {unknown}, which this pool doesn't host");
     }
@@ -511,7 +520,20 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
         eprintln!("no port in ACE4_API_URL");
         return ExitCode::from(2);
     };
-    let mut profile = PoolDefinition::lookup_sandbox(&modules, port, POOL_ADDRESS_SPACE);
+    let endpoint = std::env::var(ace_pool::pool::BUCKET_ENDPOINT_VAR).ok();
+    let mut profile = match PoolDefinition::lookup_sandbox(
+        &modules,
+        handlers.collects_files(),
+        port,
+        endpoint.as_deref(),
+        POOL_ADDRESS_SPACE,
+    ) {
+        Ok(profile) => profile,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(2);
+        }
+    };
     for spec in handlers.specs() {
         for &port in spec.tcp_ports {
             profile = profile.allow_port(port);
@@ -607,6 +629,82 @@ pub fn scanner_main(pool: &ScannerPool) -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A remediator off by default (PLAN.md decision 28), which writes to nothing.
+    struct OffRemediator;
+
+    static OFF: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec::new(
+        ace_sdk::actions::ActionKind::Remediation,
+        "off_mailbox",
+        "Off Mailbox",
+        "a remediator off by default",
+        "email_delivery",
+    )
+    .off_by_default();
+
+    impl ace_sdk::actions::Remediator for OffRemediator {
+        fn spec(&self) -> &'static ace_sdk::actions::ActionSpec {
+            &OFF
+        }
+
+        fn remove<'a>(
+            &'a self,
+            _: &'a ace_sdk::actions::LeasedAction,
+        ) -> ace_sdk::actions::ActionFuture<'a, ace_sdk::actions::RemediatorResult> {
+            unreachable!("never run")
+        }
+
+        fn restore<'a>(
+            &'a self,
+            _: &'a ace_sdk::actions::LeasedAction,
+        ) -> ace_sdk::actions::ActionFuture<'a, ace_sdk::actions::RemediatorResult> {
+            unreachable!("never run")
+        }
+    }
+
+    fn with_off_remediator() -> crate::App {
+        crate::App::new().lookup_pool(
+            LookupPool::new("lookups")
+                .action(&ace_sdk::actions::TEST_REMEDIATOR, |_| {
+                    Ok(crate::ActionHandler::Remediator(Arc::new(
+                        ace_sdk::actions::TestRemediator,
+                    )))
+                })
+                .action(&OFF, |_| {
+                    Ok(crate::ActionHandler::Remediator(Arc::new(OffRemediator)))
+                }),
+        )
+    }
+
+    /// PLAN.md decision 28: a remediator off by default is in `ace serve`'s catalog, and built by its
+    /// pool, only when the overlay's `actions:` has an entry for it, empty or not; one on by default,
+    /// such as ace4's test remediator, is in both either way.
+    #[test]
+    fn a_remediator_off_by_default_runs_only_with_an_overlay_entry() {
+        use ace_sdk::actions::ActionKind::Remediation;
+        let app = with_off_remediator();
+        let pool = &app.lookup_pools[0];
+        let env = |_: &str| None;
+        let none = Overlay::default();
+        let on = Overlay::from_yaml("actions:\n  remediation/off_mailbox: {}\n").expect("loads");
+
+        let catalog = app.action_catalog_for(&none).expect("a catalog");
+        assert!(catalog.get(Remediation, "test").is_some());
+        assert!(catalog.get(Remediation, "off_mailbox").is_none());
+        let built = handlers(pool, &none, &env).expect("handlers");
+        assert!(built.get(Remediation, "test").is_some());
+        assert!(built.get(Remediation, "off_mailbox").is_none());
+
+        let catalog = app.action_catalog_for(&on).expect("a catalog");
+        assert!(catalog.get(Remediation, "test").is_some());
+        assert!(catalog.get(Remediation, "off_mailbox").is_some());
+        let built = handlers(pool, &on, &env).expect("handlers");
+        assert!(built.get(Remediation, "off_mailbox").is_some());
+
+        // every handler the binary has, whatever an overlay says
+        let all = app.action_catalog().expect("a catalog");
+        assert!(all.get(Remediation, "off_mailbox").is_some());
+    }
 
     #[test]
     fn the_ruleset_module_gets_the_pools_ruleset_directory() {

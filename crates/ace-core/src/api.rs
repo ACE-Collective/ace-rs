@@ -650,6 +650,21 @@ impl Api {
         if name.is_empty() {
             return Err(Failure::BadRequest("no worker name".to_owned()));
         }
+        // only the handlers the catalog has: one the overlay leaves off (decision 28) is claimed by
+        // no pool, even one that lists it, so an action queued while it was on waits
+        let catalog = &self.inner.config.actions;
+        let handlers: Vec<(ace_sdk::actions::ActionKind, String)> = pool
+            .actions
+            .iter()
+            .filter(|(kind, name)| catalog.get(*kind, name).is_some())
+            .cloned()
+            .collect();
+        if handlers.is_empty() {
+            return Err(Failure::Forbidden(format!(
+                "pool {} runs no action handler this server has on",
+                pool.name
+            )));
+        }
         Ok((
             ActionWorker::new(
                 self.inner.db.clone(),
@@ -657,7 +672,7 @@ impl Api {
                 self.inner.config.lease,
                 self.inner.config.actions.clone(),
             ),
-            pool.actions.clone(),
+            handlers,
         ))
     }
 
@@ -1749,6 +1764,22 @@ impl Api {
         Ok(())
     }
 
+    /// Why a task's module may not upload a file, if it may not: a lookup that doesn't declare it adds
+    /// files it fetched (`Module::ADDS_FETCHED_FILES`, PLAN.md decision 28). Its pool's containment
+    /// keeps it off the bucket's port, so an upload from it is one its declaration doesn't say it
+    /// makes. A parser's files are its supervisor's, and a module the catalog doesn't know is the
+    /// result's check's to refuse.
+    fn upload_refusal(&self, module: &str) -> Option<String> {
+        let catalog = self.inner.orchestrator.catalog();
+        let manifest = catalog.get(module)?;
+        (manifest.kind == ace_sdk::ModuleKind::Lookup && !manifest.adds_fetched_files).then(|| {
+            format!(
+                "{module} uploads a file, and a lookup may add only files it declares it fetched \
+                 (Module::ADDS_FETCHED_FILES)"
+            )
+        })
+    }
+
     /// Whether a file a result adds with no upload is one a read put in the task's root, or one
     /// another result stored there: the module declares a read that does
     /// (`ace_sdk::reads::FILE_READS`) or that it adds stored files (`Module::ADDS_STORED_FILES`), and
@@ -2391,8 +2422,18 @@ async fn uploads(
     Json(request): Json<UploadRequest>,
 ) -> Result<Json<Presigned>, Failure> {
     let worker = api.worker(&headers)?;
-    if worker.owned(TaskId(id)).await?.is_none() {
+    let Some(owned) = worker.owned(TaskId(id)).await? else {
         return Err(Failure::LeaseLost(TaskId(id)));
+    };
+    // no upload URL for a lookup that doesn't declare fetched files (decision 28): it would write
+    // the same on another attempt, so the task fails now, with why
+    if let Some(error) = api.upload_refusal(&owned.module) {
+        worker.fail(TaskId(id), &error).await?;
+        tracing::warn!(task = id, module = %owned.module, "{error}");
+        return Err(Failure::Invalid(ApiError {
+            error,
+            fields: Vec::new(),
+        }));
     }
     let key = ace_store::Store::upload_key(id, &request.sha256);
     let presigned = api

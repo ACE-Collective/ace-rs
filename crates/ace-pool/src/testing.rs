@@ -65,6 +65,8 @@ pub fn registry() -> Registry {
         .lookup::<Counted>()
         .lookup::<Panicky>()
         .lookup::<Connect>()
+        .lookup::<Fetches>()
+        .lookup::<LookupWrites>()
         .parser::<Capabilities>()
         .parser::<PanickingParser>()
         .parser::<Spin>()
@@ -93,7 +95,8 @@ pub fn registry() -> Registry {
 
 /// The components `test-pool` runs, each with its block from `settings`, an object keyed by
 /// module name. The YARA module is there only when `settings` has a block for it, since it
-/// needs a signature directory. A key that names no test module is refused.
+/// needs a signature directory, and so is `test_fetches`, which gives a contained pool the
+/// bucket's port. A key that names no test module is refused.
 pub fn components(settings: &Value) -> Result<Vec<Component>, SetupError> {
     let registry = registry();
     if let Some(unknown) = settings
@@ -106,7 +109,9 @@ pub fn components(settings: &Value) -> Result<Vec<Component>, SetupError> {
         .manifests()
         .into_iter()
         .filter(|manifest| {
-            manifest.name != ace_mod_yara::YaraScanner::NAME
+            // the YARA module needs a signature directory, and test_fetches gives its pool the
+            // bucket's port (PLAN.md decision 28), so each is there only when asked for
+            ![ace_mod_yara::YaraScanner::NAME, Fetches::NAME].contains(&manifest.name)
                 || settings.get(manifest.name).is_some()
         })
         .map(|manifest| Component {
@@ -143,6 +148,8 @@ pub fn test_manifests() -> Vec<ace_sdk::Manifest> {
         ace_sdk::Manifest::lookup::<Counted>(),
         ace_sdk::Manifest::lookup::<Panicky>(),
         ace_sdk::Manifest::lookup::<Connect>(),
+        ace_sdk::Manifest::lookup::<Fetches>(),
+        ace_sdk::Manifest::lookup::<LookupWrites>(),
         ace_sdk::Manifest::parser::<Capabilities>(),
         ace_sdk::Manifest::parser::<PanickingParser>(),
         ace_sdk::Manifest::parser::<Spin>(),
@@ -182,6 +189,12 @@ note_type!(
 note_type!(HungNote, "test_hung_note", "test_hung");
 note_type!(RunsToolNote, "test_runs_tool_note", "test_runs_tool");
 note_type!(ConnectNote, "test_connect_note", "test_connect");
+note_type!(FetchesNote, "test_fetches_note", "test_fetches");
+note_type!(
+    LookupWritesNote,
+    "test_lookup_writes_note",
+    "test_lookup_writes"
+);
 note_type!(
     CapabilitiesNote,
     "test_capabilities_note",
@@ -286,9 +299,87 @@ impl Lookup for Connect {
             };
             notes.push(format!("{port}: {how}"));
         }
+        // and the bucket's, when the pool was told where it is (`pool::BUCKET_ENDPOINT_VAR`)
+        if let Ok(endpoint) = std::env::var(crate::pool::BUCKET_ENDPOINT_VAR)
+            && let Some(port) = crate::pool::url_port(&endpoint)
+        {
+            let host = endpoint
+                .split_once("://")
+                .and_then(|(_, rest)| rest.split(['/', ':']).next())
+                .unwrap_or("127.0.0.1");
+            let how = match tokio::net::TcpStream::connect((host, port)).await {
+                Ok(_) => "connected".to_owned(),
+                Err(e) => e.to_string(),
+            };
+            notes.push(format!("bucket: {how}"));
+        }
         Ok(Outcome::Done(ResultEnvelope::new(ConnectNote {
             note: notes.join("; "),
         })))
+    }
+}
+
+/// A lookup that adds a file it fetched (`Module::ADDS_FETCHED_FILES`): it writes the observable's
+/// value as a file, which its pool uploads to the bucket (PLAN.md decision 28).
+pub struct Fetches;
+
+impl Module for Fetches {
+    const NAME: &'static str = "test_fetches";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+    const ADDS_FETCHED_FILES: bool = true;
+    type Output = FetchesNote;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(Fetches)
+    }
+}
+
+impl Lookup for Fetches {
+    const TCP_PORTS: &'static [u16] = &[];
+
+    async fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<FetchesNote>, ModuleError> {
+        let value = &ctx.observable().value;
+        let file = ctx.write_file(&format!("{value}.fetched"), value.as_bytes(), None)?;
+        Ok(Outcome::Done(
+            ResultEnvelope::new(FetchesNote {
+                note: "fetched".to_owned(),
+            })
+            .with_file(file),
+        ))
+    }
+}
+
+/// A lookup that writes a file without declaring it fetched files, which the core refuses
+/// (PLAN.md decision 28).
+pub struct LookupWrites;
+
+impl Module for LookupWrites {
+    const NAME: &'static str = "test_lookup_writes";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+    type Output = LookupWritesNote;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(LookupWrites)
+    }
+}
+
+impl Lookup for LookupWrites {
+    const TCP_PORTS: &'static [u16] = &[];
+
+    async fn analyze(
+        &self,
+        ctx: &TaskContext<()>,
+    ) -> Result<Outcome<LookupWritesNote>, ModuleError> {
+        let value = &ctx.observable().value;
+        let file = ctx.write_file(&format!("{value}.written"), value.as_bytes(), None)?;
+        Ok(Outcome::Done(
+            ResultEnvelope::new(LookupWritesNote {
+                note: "wrote".to_owned(),
+            })
+            .with_file(file),
+        ))
     }
 }
 

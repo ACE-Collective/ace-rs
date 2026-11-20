@@ -95,16 +95,7 @@ impl LeaseClient {
     /// The TCP port the API listens on, from its URL: what a contained pool must be allowed
     /// to connect to.
     pub fn api_port(&self) -> Option<u16> {
-        let (scheme, rest) = self.base.split_once("://")?;
-        let authority = rest.split('/').next()?;
-        match authority.rsplit_once(':') {
-            Some((_, port)) => port.parse().ok(),
-            None => match scheme {
-                "http" => Some(80),
-                "https" => Some(443),
-                _ => None,
-            },
-        }
+        crate::pool::url_port(&self.base)
     }
 
     /// The same pool and API, as another worker.

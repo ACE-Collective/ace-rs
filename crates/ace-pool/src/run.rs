@@ -183,7 +183,8 @@ pub async fn fetch_scan_output(
 }
 
 /// Uploads each file a result adds from the task's output directory, then ends the task. A 422 is
-/// an end too: the core rejected the result and failed the task, and its row says why.
+/// an end too, to the end or to an upload's URL: the core rejected the result, or the upload, and
+/// failed the task, and its row says why.
 pub async fn send_end(
     client: &LeaseClient,
     task: &LeasedTask,
@@ -215,7 +216,19 @@ pub async fn send_end(
                 continue;
             }
             sent.push(sha256);
-            let url = client.upload_url(task.id, sha256, size).await?;
+            let url = match client.upload_url(task.id, sha256, size).await {
+                // the core refused the upload and failed the task, saying why: a lookup that
+                // doesn't declare fetched files (`Module::ADDS_FETCHED_FILES`, PLAN.md decision 28)
+                Err(ClientError::Api { status: 422, error }) => {
+                    tracing::error!(
+                        task = task.id,
+                        "the core refused the upload: {}",
+                        error.error
+                    );
+                    return Ok(());
+                }
+                url => url?,
+            };
             client.upload(&url, &path).await?;
         }
     }
@@ -260,7 +273,8 @@ pub async fn run_in_process(
     let keeper = LeaseKeeper::start(client, &task, shutdown);
     let dir = TaskDir::new()?;
     // a lookup parses nothing hostile, so it gets a file's record and not its bytes: its pool
-    // can't reach the bucket (`pool::lookup_sandbox`)
+    // can't reach the bucket (`pool::lookup_sandbox`), unless a module of it adds files it fetched,
+    // which it uploads and never downloads (PLAN.md decision 28)
     let parser = modules.parser(&task.module).is_some();
     let input = async {
         if parser {

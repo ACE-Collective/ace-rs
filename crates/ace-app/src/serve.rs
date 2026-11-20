@@ -198,9 +198,10 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .with_exclusions(exclusions)
         .with_cache(cache);
     // a pool that lists a module leases its overlay instances too
-    // the remediators, probes and collectors the pools host decide their actions' tries (PLAN.md 7.9)
+    // the remediators, probes and collectors the pools host decide their actions' tries (PLAN.md 7.9),
+    // those the overlay turns on (decision 28)
     let actions = app
-        .action_catalog()
+        .action_catalog_for(&overlay)
         .map_err(anyhow::Error::msg)
         .context("the action handlers")?;
     let config = ApiConfig::from_env(&app.pool_list())

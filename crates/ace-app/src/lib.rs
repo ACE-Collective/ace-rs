@@ -653,14 +653,32 @@ impl App {
         tasks
     }
 
-    /// Every pool's action handlers' specs (PLAN.md 7.9), which `ace serve`'s core and API decide by. A
+    /// Every pool's action handlers' specs (PLAN.md 7.9), whether or not an overlay turns them on. A
     /// handler two pools host is listed once.
     pub fn action_catalog(&self) -> Result<ace_core::actions::ActionCatalog, String> {
+        self.catalog_of(|_| true)
+    }
+
+    /// The action handlers' specs `overlay` turns on, which `ace serve`'s core and API decide by: every
+    /// handler but one off by default that the overlay has no `actions:` entry for (PLAN.md decision
+    /// 28), so nobody is offered it or can queue it.
+    pub fn action_catalog_for(
+        &self,
+        overlay: &ace_sdk::Overlay,
+    ) -> Result<ace_core::actions::ActionCatalog, String> {
+        self.catalog_of(|spec| spec.is_enabled(overlay))
+    }
+
+    fn catalog_of(
+        &self,
+        on: impl Fn(&ace_sdk::actions::ActionSpec) -> bool,
+    ) -> Result<ace_core::actions::ActionCatalog, String> {
         let mut specs: Vec<&'static ace_sdk::actions::ActionSpec> = Vec::new();
         for (spec, _) in self.lookup_pools.iter().flat_map(|p| &p.actions) {
-            if !specs
-                .iter()
-                .any(|s| s.kind == spec.kind && s.name == spec.name)
+            if on(spec)
+                && !specs
+                    .iter()
+                    .any(|s| s.kind == spec.kind && s.name == spec.name)
             {
                 specs.push(spec);
             }
@@ -1027,7 +1045,7 @@ impl App {
             .map_err(|e| e.to_string())?;
         for pool in &self.lookup_pools {
             for (spec, _) in &pool.actions {
-                let entry = format!("{}/{}", spec.kind, spec.name);
+                let entry = spec.overlay_entry();
                 if let Some(section) = overlay.actions.get(&entry) {
                     overlay
                         .bind(

@@ -91,6 +91,12 @@ impl Handlers {
     pub fn specs(&self) -> Vec<&'static ActionSpec> {
         self.0.iter().map(Handler::spec).collect()
     }
+
+    /// Whether one of them is a file collector, which uploads the file it fetched, so its pool
+    /// needs the bucket's port (`PoolDefinition::lookup_sandbox`, PLAN.md decision 28).
+    pub fn collects_files(&self) -> bool {
+        self.0.iter().any(|h| matches!(h, Handler::Collector(_)))
+    }
 }
 
 /// How an action pool's run went.
@@ -504,6 +510,47 @@ mod tests {
         std::os::unix::fs::symlink(outside.path(), &link).expect("links");
         assert!(collected_file(dir.path(), &link).is_err());
         assert!(collected_file(dir.path(), dir.path()).is_err());
+    }
+
+    struct TestCollector;
+
+    static TEST_COLLECTOR: ActionSpec = ActionSpec::new(
+        ActionKind::FileCollection,
+        "test",
+        "Test Collector",
+        "Collects nothing.",
+        "test",
+    );
+
+    impl FileCollector for TestCollector {
+        fn spec(&self) -> &'static ActionSpec {
+            &TEST_COLLECTOR
+        }
+
+        fn collect<'a>(
+            &'a self,
+            _: &'a LeasedAction,
+            _: &'a Path,
+        ) -> ace_sdk::actions::ActionFuture<'a, ace_sdk::actions::CollectorResult> {
+            unreachable!("never run")
+        }
+    }
+
+    /// PLAN.md decision 28: only a file collector uploads, so only a pool hosting one needs the
+    /// bucket's port.
+    #[test]
+    fn only_a_file_collector_collects_files() {
+        let remediator = Handlers::new()
+            .with(Handler::Remediator(Arc::new(
+                ace_sdk::actions::TestRemediator,
+            )))
+            .expect("added");
+        assert!(!remediator.collects_files());
+        assert!(!Handlers::new().collects_files());
+        let both = remediator
+            .with(Handler::Collector(Arc::new(TestCollector)))
+            .expect("added");
+        assert!(both.collects_files());
     }
 
     #[test]

@@ -17,7 +17,9 @@
 //!
 //! A handler is named by its kind and its name, such as `remediation/test`, which a pool's list in
 //! `ACE4_POOLS` carries as `@remediation/test` (`pool_entry`). Its spec says what observable type it
-//! acts on, the TCP ports it connects to and the secrets it reads, as a lookup module's manifest does.
+//! acts on, the TCP ports it connects to and the secrets it reads, as a lookup module's manifest does,
+//! and whether it runs without an entry in the overlay's `actions:` (`ActionSpec::off_by_default`,
+//! PLAN.md decision 28).
 
 use std::future::Future;
 use std::path::{Path, PathBuf};
@@ -140,6 +142,11 @@ pub struct ActionSpec {
     /// old before it ends this check as `SUPERSEDED` (ace3's `supersede_grace_seconds`, 12 hours), since a
     /// vendor's own events can come in late.
     pub supersede_grace_seconds: u32,
+    /// False for a handler that runs only when the overlay has an entry for it in `actions:`, empty
+    /// or not, as `Module::ENABLED_BY_DEFAULT` is for a module (PLAN.md decision 28): one that
+    /// writes to another system, such as a mailbox. Off, `ace serve`'s catalog leaves it out, so
+    /// nobody is offered it or can queue it, and no pool builds it.
+    pub enabled_by_default: bool,
 }
 
 impl ActionSpec {
@@ -171,7 +178,25 @@ impl ActionSpec {
                 ActionKind::RemediationCheck => 12 * 3600,
                 _ => 0,
             },
+            enabled_by_default: true,
         }
+    }
+
+    /// Off unless the overlay has an entry for it (`enabled_by_default`).
+    pub const fn off_by_default(mut self) -> ActionSpec {
+        self.enabled_by_default = false;
+        self
+    }
+
+    /// Its key in the overlay's `actions:`, `<kind>/<name>`.
+    pub fn overlay_entry(&self) -> String {
+        format!("{}/{}", self.kind, self.name)
+    }
+
+    /// Whether it runs with `overlay`: always, unless it is off by default and the overlay has no
+    /// entry for it.
+    pub fn is_enabled(&self, overlay: &crate::Overlay) -> bool {
+        self.enabled_by_default || overlay.actions.contains_key(&self.overlay_entry())
     }
 
     /// The TCP ports it connects to.
@@ -693,6 +718,7 @@ pub static TEST_REMEDIATOR: ActionSpec = ActionSpec {
     connections: &[],
     retry: Retry::REMEDIATION,
     supersede_grace_seconds: 0,
+    enabled_by_default: true,
 };
 
 impl TestRemediator {
@@ -753,6 +779,31 @@ mod tests {
             assert_eq!(parse_pool_entry(entry), None, "{entry}");
         }
         assert_eq!(TEST_REMEDIATOR.refusal(), None);
+    }
+
+    /// A handler is on unless its spec says it is off by default, and then only with an entry in the
+    /// overlay's `actions:`, empty or not (PLAN.md decision 28).
+    #[test]
+    fn a_handler_off_by_default_runs_only_with_an_overlay_entry() {
+        static OFF: ActionSpec = ActionSpec::new(
+            ActionKind::Remediation,
+            "mailbox",
+            "Mailbox",
+            "moves mail",
+            "email_delivery",
+        )
+        .off_by_default();
+        let none = crate::Overlay::default();
+        assert!(TEST_REMEDIATOR.is_enabled(&none));
+        assert!(!OFF.is_enabled(&none));
+        assert_eq!(OFF.overlay_entry(), "remediation/mailbox");
+        let entry = crate::Overlay::from_yaml("actions:\n  remediation/mailbox: {}\n")
+            .expect("the overlay");
+        assert!(OFF.is_enabled(&entry));
+        let other =
+            crate::Overlay::from_yaml("actions:\n  remediation/test: {}\n").expect("the overlay");
+        assert!(!OFF.is_enabled(&other));
+        assert!(TEST_REMEDIATOR.is_enabled(&other));
     }
 
     #[test]

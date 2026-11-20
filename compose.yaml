@@ -411,9 +411,12 @@ services:
       ACE4_OVERLAY: /etc/ace4/overlay.yaml
       ACE4_CONCURRENCY: ${ACE4_LOOKUPS_CONCURRENCY:-16}
       ACE4_SPLUNK_PASSWORD: ${ACE4_SPLUNK_PASSWORD:-}
+      # the core's bucket endpoint, whose port the pool's containment allows only when one of its
+      # modules adds files it fetched (PLAN.md decision 28); ace4's own modules add none
+      ACE4_BUCKET_ENDPOINT: http://bucket:8333
       ACE4_LOG: ${ACE4_LOG:-info}
-      NO_PROXY: localhost,127.0.0.1,ace,collector,responder
-      no_proxy: localhost,127.0.0.1,ace,collector,responder
+      NO_PROXY: localhost,127.0.0.1,ace,bucket,collector,responder
+      no_proxy: localhost,127.0.0.1,ace,bucket,collector,responder
     volumes:
       - ${ACE4_SITE:-./docker/site}:/etc/ace4:ro
     mem_limit: ${ACE4_LOOKUPS_MEM_LIMIT:-1g}

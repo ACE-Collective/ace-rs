@@ -49,15 +49,57 @@ const NETWORK_READ_PATHS: &[&str] = &[
 /// stack and glibc reserves an arena per thread, so this counts far more than the heap.
 pub const POOL_ADDRESS_SPACE: u64 = 4 << 30;
 
+/// The variable that names the bucket's endpoint, as the core's (`ace_store::BucketConfig`), which
+/// a network pool reads for its port when one of its modules adds files it fetched.
+pub const BUCKET_ENDPOINT_VAR: &str = "ACE4_BUCKET_ENDPOINT";
+
+/// The port a URL's scheme and authority name: its own, or 80 for `http` and 443 for `https`.
+pub fn url_port(url: &str) -> Option<u16> {
+    let (scheme, rest) = url.split_once("://")?;
+    let authority = rest.split('/').next()?;
+    let host_port = authority.rsplit('@').next()?;
+    match host_port.rsplit_once(':') {
+        // an IPv6 address without a port is all colons inside its brackets
+        Some((host, port)) if !port.contains(']') && !host.is_empty() => port.parse().ok(),
+        _ => match scheme {
+            "http" => Some(80),
+            "https" => Some(443),
+            _ => None,
+        },
+    }
+}
+
+/// The bucket's port, from its endpoint as the core has it (`ACE4_BUCKET_ENDPOINT`): with none,
+/// the core signs for AWS S3 over HTTPS, so 443. An endpoint whose port can't be read is refused.
+pub fn bucket_port(endpoint: Option<&str>) -> Result<u16, String> {
+    match endpoint.map(str::trim).filter(|e| !e.is_empty()) {
+        None => Ok(443),
+        Some(endpoint) => url_port(endpoint)
+            .ok_or_else(|| format!("{BUCKET_ENDPOINT_VAR} names no port: {endpoint:?}")),
+    }
+}
+
 impl PoolDefinition {
+    /// Whether one of `modules` adds files it fetched (`Module::ADDS_FETCHED_FILES`), so its pool
+    /// uploads them and needs the bucket's port.
+    pub fn adds_fetched_files(modules: &Modules) -> bool {
+        modules.manifests().iter().any(|m| m.adds_fetched_files)
+    }
+
     /// The sandbox of an async pool's process: connects to its modules' TCP ports and to the
-    /// lease API's, reads the files name resolution and TLS need, and maps at most
-    /// `address_space_bytes`.
+    /// lease API's, and to the bucket's, the port of `bucket_endpoint` (`bucket_port`), only when
+    /// one of its modules adds files it fetched or `collects_files`, the pool hosting a file
+    /// collector, which uploads the file it fetched (PLAN.md decision 28); reads the files name
+    /// resolution and TLS need, and maps at most `address_space_bytes`. An endpoint whose port
+    /// can't be read is refused only when the port is needed. The handlers' own ports are the
+    /// caller's to add.
     pub fn lookup_sandbox(
         modules: &Modules,
+        collects_files: bool,
         api_port: u16,
+        bucket_endpoint: Option<&str>,
         address_space_bytes: u64,
-    ) -> SandboxProfile {
+    ) -> Result<SandboxProfile, String> {
         let mut profile = SandboxProfile {
             read_paths: Vec::new(),
             write_paths: Vec::new(),
@@ -73,6 +115,9 @@ impl PoolDefinition {
             }
         }
         profile = profile.allow_port(api_port);
+        if collects_files || Self::adds_fetched_files(modules) {
+            profile = profile.allow_port(bucket_port(bucket_endpoint)?);
+        }
         if let Some(port) = crate::telemetry::otlp_port() {
             profile = profile.allow_port(port);
         }
@@ -80,7 +125,7 @@ impl PoolDefinition {
             profile = profile.allow_read_if_exists(Path::new(path));
         }
         // the task directories run_in_process makes
-        profile.allow_write(std::env::temp_dir())
+        Ok(profile.allow_write(std::env::temp_dir()))
     }
 }
 
@@ -321,5 +366,76 @@ impl AsyncPool {
             run,
         )
         .await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_url_s_port_is_its_own_or_its_scheme_s() {
+        assert_eq!(url_port("http://bucket:8333"), Some(8333));
+        assert_eq!(url_port("http://bucket:8333/path"), Some(8333));
+        assert_eq!(url_port("https://s3.us-east-1.amazonaws.com"), Some(443));
+        assert_eq!(url_port("http://ace"), Some(80));
+        assert_eq!(url_port("http://user:secret@bucket:9000"), Some(9000));
+        assert_eq!(url_port("http://[::1]:8333"), Some(8333));
+        assert_eq!(url_port("http://[::1]"), Some(80));
+        assert_eq!(url_port("bucket:8333"), None);
+        assert_eq!(url_port("ftp://bucket"), None);
+    }
+
+    /// With no endpoint the core signs for AWS S3 over HTTPS; one with no readable port is refused.
+    #[test]
+    fn the_bucket_s_port_comes_from_its_endpoint() {
+        assert_eq!(bucket_port(None), Ok(443));
+        assert_eq!(bucket_port(Some("")), Ok(443));
+        assert_eq!(bucket_port(Some("http://bucket:8333")), Ok(8333));
+        let refused = bucket_port(Some("bucket")).expect_err("no port");
+        assert!(refused.contains(BUCKET_ENDPOINT_VAR), "{refused}");
+    }
+
+    /// PLAN.md decision 28: a pool's sandbox allows the bucket's port only when one of its modules
+    /// adds files it fetched or it hosts a file collector, and reads the endpoint only then.
+    #[cfg(feature = "test-pools")]
+    #[test]
+    fn the_bucket_s_port_is_allowed_only_for_a_module_that_adds_fetched_files() {
+        use serde_json::json;
+        let without = crate::testing::modules(&json!({})).expect("the test modules");
+        let with =
+            crate::testing::modules(&json!({"test_fetches": null})).expect("the test modules");
+        assert!(!PoolDefinition::adds_fetched_files(&without));
+        assert!(PoolDefinition::adds_fetched_files(&with));
+        let endpoint = Some("http://bucket:8333");
+        let profile =
+            PoolDefinition::lookup_sandbox(&without, false, 8080, endpoint, POOL_ADDRESS_SPACE)
+                .expect("a profile");
+        assert!(profile.tcp_ports.contains(&8080));
+        assert!(!profile.tcp_ports.contains(&8333));
+        // a pool hosting a file collector uploads what it fetched
+        let profile =
+            PoolDefinition::lookup_sandbox(&without, true, 8080, endpoint, POOL_ADDRESS_SPACE)
+                .expect("a profile");
+        assert!(profile.tcp_ports.contains(&8333));
+        let profile =
+            PoolDefinition::lookup_sandbox(&with, false, 8080, endpoint, POOL_ADDRESS_SPACE)
+                .expect("a profile");
+        assert!(profile.tcp_ports.contains(&8333));
+        // an endpoint whose port can't be read fails only the pool that needs it
+        assert!(
+            PoolDefinition::lookup_sandbox(
+                &without,
+                false,
+                8080,
+                Some("bucket"),
+                POOL_ADDRESS_SPACE
+            )
+            .is_ok()
+        );
+        assert!(
+            PoolDefinition::lookup_sandbox(&with, false, 8080, Some("bucket"), POOL_ADDRESS_SPACE)
+                .is_err()
+        );
     }
 }

@@ -176,7 +176,20 @@ fn main() -> ExitCode {
                     eprintln!("no port in ACE4_API_URL");
                     return ExitCode::from(2);
                 };
-                let profile = PoolDefinition::lookup_sandbox(&modules, port, POOL_ADDRESS_SPACE);
+                let endpoint = std::env::var(ace_pool::pool::BUCKET_ENDPOINT_VAR).ok();
+                let profile = match PoolDefinition::lookup_sandbox(
+                    &modules,
+                    false,
+                    port,
+                    endpoint.as_deref(),
+                    POOL_ADDRESS_SPACE,
+                ) {
+                    Ok(profile) => profile,
+                    Err(e) => {
+                        eprintln!("{e}");
+                        return ExitCode::from(2);
+                    }
+                };
                 match ace_pool::contain_pool(&profile) {
                     Ok(contained) => {
                         eprintln!("contained: {contained:?}, ports {:?}", profile.tcp_ports)

@@ -118,6 +118,8 @@ pub struct Manifest {
     /// The module adds files a module it depends on stored for the root
     /// (`Module::ADDS_STORED_FILES`).
     pub adds_stored_files: bool,
+    /// The lookup adds files it fetched (`Module::ADDS_FETCHED_FILES`).
+    pub adds_fetched_files: bool,
     /// The analyst-edited lists the module reads (`Module::LISTS`).
     pub lists: &'static [ListSpec],
     /// The reads of ACE's own data the module makes (`Module::READS`).
@@ -153,6 +155,10 @@ impl Manifest {
         assert!(
             M::CONNECTIONS.is_empty(),
             "a parser can't take a connection (Module::CONNECTIONS)"
+        );
+        assert!(
+            !M::ADDS_FETCHED_FILES,
+            "a parser can't declare fetched files (Module::ADDS_FETCHED_FILES): its supervisor uploads its files"
         );
         Manifest::of::<M>(ModuleKind::Parser, Sandbox::Contained)
     }
@@ -211,6 +217,7 @@ impl Manifest {
             adds_to_others: M::ADDS_TO_OTHERS,
             sets_root: M::SETS_ROOT,
             adds_stored_files: M::ADDS_STORED_FILES,
+            adds_fetched_files: M::ADDS_FETCHED_FILES,
             lists: M::LISTS,
             reads: M::READS,
             writes: M::WRITES,

@@ -1,6 +1,8 @@
 //! PLAN.md 2.16's Done check: a pool with a limit of 4 never runs a fifth task while 50 are
 //! queued, a panicking task leaves a failed row while the others finish, and a lookup can't
-//! connect to a port its manifest doesn't allow.
+//! connect to a port its manifest doesn't allow. And decision 28's: a contained pool reaches the
+//! bucket only when one of its modules adds files it fetched, and the core refuses an upload from a
+//! lookup that doesn't declare it.
 
 mod common;
 
@@ -183,6 +185,140 @@ async fn a_contained_pools_lookup_cant_connect_to_a_port_its_manifest_doesnt_all
         note,
         format!("{ALLOWED_PORT}: connected; {OTHER_PORT}: Permission denied (os error 13)")
     );
+}
+
+/// Runs `module`'s tasks for `values` in a contained test pool told where the bucket is, with
+/// `settings`, until the root is idle, and returns the root.
+async fn run_contained(
+    core: &Core,
+    settings: serde_json::Value,
+    module: &str,
+    values: &[&str],
+) -> uuid::Uuid {
+    let endpoint = std::env::var(ace_pool::pool::BUCKET_ENDPOINT_VAR)
+        .expect("the dev container's ACE4_BUCKET_ENDPOINT");
+    let values: Vec<String> = values.iter().map(|v| (*v).to_owned()).collect();
+    let root = root_with_tasks(core, &values, module).await;
+    let mut pool = test_pool(
+        core,
+        &[
+            "lookups",
+            "--contained",
+            "--settings",
+            &settings.to_string(),
+        ],
+    )
+    .env(ace_pool::pool::BUCKET_ENDPOINT_VAR, &endpoint)
+    .stderr(std::process::Stdio::piped())
+    .spawn()
+    .expect("the pool starts");
+    // read while it runs, so its log never fills the pipe and stalls it
+    let mut pipe = pool.stderr.take().expect("its stderr");
+    let reader = std::thread::spawn(move || {
+        let mut text = String::new();
+        let _read = std::io::Read::read_to_string(&mut pipe, &mut text);
+        text
+    });
+    wait_until_idle(core, root, Duration::from_secs(60)).await;
+    pool.kill().expect("stops the pool");
+    pool.wait().expect("the pool exits");
+    let stderr = reader.join().expect("the reader");
+    assert!(stderr.contains("contained: Contained"), "{stderr}");
+    root
+}
+
+async fn connect_note(core: &Core, root: uuid::Uuid) -> String {
+    sqlx::query_scalar(
+        "SELECT details->>'note' FROM analysis.results WHERE root_id = $1 AND module = 'test_connect'",
+    )
+    .bind(root)
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("the lookup's result")
+}
+
+/// PLAN.md decision 28: a contained network pool may connect to the bucket's port, from
+/// `ACE4_BUCKET_ENDPOINT`, only when one of its modules declares it adds files it fetched; then such
+/// a module's file reaches the bucket and the tree. In the same pool, a lookup that writes a file
+/// without declaring it gets no upload URL: the core fails its task, saying why.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_pool_reaches_the_bucket_only_when_a_module_adds_files_it_fetched() {
+    let core = Core::start(
+        testing::test_manifests(),
+        &["test_connect", "test_fetches", "test_lookup_writes"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let db = core.test_db.db();
+
+    // without a module that adds fetched files, the bucket's port is refused
+    let root = run_contained(&core, json!({}), "test_connect", &["without.example.com"]).await;
+    let note = connect_note(&core, root).await;
+    assert!(
+        note.ends_with("; bucket: Permission denied (os error 13)"),
+        "{note}"
+    );
+
+    // with one, it connects, and its file lands
+    let settings = json!({"test_fetches": null});
+    let root = run_contained(
+        &core,
+        settings.clone(),
+        "test_connect",
+        &["with.example.com"],
+    )
+    .await;
+    let note = connect_note(&core, root).await;
+    assert!(note.ends_with("; bucket: connected"), "{note}");
+    assert!(
+        note.contains(&format!("{OTHER_PORT}: Permission denied")),
+        "other ports stay refused: {note}"
+    );
+    let root = run_contained(
+        &core,
+        settings.clone(),
+        "test_fetches",
+        &["mail.example.com"],
+    )
+    .await;
+    let files: Vec<(String, i64)> = sqlx::query_as(
+        "SELECT f.path, s.size FROM analysis.files f
+           JOIN analysis.observables o ON o.root_id = f.root_id AND o.id = f.observable_id
+           JOIN store.objects s ON s.sha256 = o.value AND s.pool = 'alert_files'
+         WHERE f.root_id = $1",
+    )
+    .bind(root)
+    .fetch_all(db.pool())
+    .await
+    .expect("the files");
+    assert_eq!(files, [("mail.example.com.fetched".to_owned(), 16)]);
+
+    // a lookup that doesn't declare it: no upload URL, and its task fails saying why, though its
+    // pool could reach the bucket
+    let root = run_contained(
+        &core,
+        settings,
+        "test_lookup_writes",
+        &["undeclared.example.com"],
+    )
+    .await;
+    let (state, error): (String, Option<String>) = sqlx::query_as(
+        "SELECT state::text, error FROM queue.tasks WHERE root_id = $1 AND module = 'test_lookup_writes'",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("the task");
+    assert_eq!(state, "failed");
+    let error = error.unwrap_or_default();
+    assert!(error.contains("ADDS_FETCHED_FILES"), "{error}");
+    let results: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM analysis.results WHERE root_id = $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("counts");
+    assert_eq!(results, 0);
 }
 
 fn signal(pool: &PoolProcess, signal: i32) {
