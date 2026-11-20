@@ -44,6 +44,13 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// still to run, running, delayed, waiting on its own dependencies, or cancelled and able to run
     /// again does (PLAN.md decision 30).
     const DEPENDS_ON: &'static [&'static str] = &[];
+    /// False for a module whose dependencies' results only its declaration reads
+    /// (`Module::takes`), as ace3's RDAP module reads the apex module's in its `custom_requirement`
+    /// alone. The task still carries them for the pool's check of the declaration, but `analyze`
+    /// sees none (`TaskContext::dependency_result` is None), so its result doesn't depend on them
+    /// and the analysis cache doesn't refuse it for them (`crate::takes`, *Reads that only
+    /// decide*). The dependencies still hold the module back as `DEPENDS_ON` says.
+    const READS_DEPENDENCIES: bool = true;
     /// Directives that keep the module off an observable, such as `no_scan` for YARA. The core
     /// doesn't queue the module for an observable that has one, and a run on an observable
     /// that gained one after its task was queued is skipped. `exclude_all` keeps every module
@@ -389,7 +396,7 @@ pub fn declined<M: Module>(ctx: &TaskContext<M::Settings>) -> Option<String> {
     if takes.is_everything() {
         return None;
     }
-    let results = ctx.dependency_details();
+    let results = ctx.declaration_results();
     takes.check(&ctx.facts(results)).err().map(str::to_owned)
 }
 

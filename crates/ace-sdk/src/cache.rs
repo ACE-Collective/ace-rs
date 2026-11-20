@@ -29,7 +29,9 @@
 //! So a fact only the declaration reads (which modules added the observable, whether it came with
 //! the submission, the root's mode) is no refusal: the lease carries it for the declaration alone
 //! and `analyze` never sees it (`crate::takes`, *Reads that only decide*). The flags that give
-//! `analyze` the same facts (`READS_ADDED_BY`, `READS_TREE`) are still refused.
+//! `analyze` the same facts (`READS_ADDED_BY`, `READS_TREE`) are still refused. So are a module's
+//! dependencies' results, unless only its declaration reads them (`Module::READS_DEPENDENCIES`
+//! false), as the RDAP module reads the apex module's.
 //!
 //! **What is never kept**, as ace3: a result with `error` set, a task that failed, timed out or was
 //! cancelled, or that delayed (only its final run's result is), a result that adds to anything but
@@ -169,8 +171,8 @@ pub fn refusal(manifest: &Manifest) -> Option<String> {
     let cache = manifest.cache.as_ref()?;
     let reads = [
         (
-            !manifest.depends_on.is_empty(),
-            "its dependencies' results (DEPENDS_ON)",
+            !manifest.depends_on.is_empty() && manifest.reads_dependencies,
+            "its dependencies' results (DEPENDS_ON, READS_DEPENDENCIES)",
         ),
         (manifest.reads_tree, "its root's tree (READS_TREE)"),
         (
@@ -511,6 +513,11 @@ mod tests {
             refusal(&m).expect("refused")
         };
         assert!(refused(&|m| m.depends_on = &["file_type"]).contains("DEPENDS_ON"));
+        // a dependency only the declaration reads is no refusal, as with the gate's facts
+        let mut deciding = cached;
+        deciding.depends_on = &["file_type"];
+        deciding.reads_dependencies = false;
+        assert_eq!(refusal(&deciding), None);
         assert!(refused(&|m| m.reads_tree = true).contains("READS_TREE"));
         assert!(refused(&|m| m.reads_added_by = true).contains("READS_ADDED_BY"));
         assert!(refused(&|m| m.reads_carrying_email = true).contains("READS_CARRYING_EMAIL"));

@@ -11,16 +11,18 @@
 //! its requests through `ace_sdk::http::HttpClient`, which verifies certificates with rustls.
 //!
 //! A subdomain is skipped when `apex_domain_analyzer` gives it an apex observable, which is looked
-//! up instead, once for all of its subdomains, as in ace3 since `7265bb53`. ace3 makes the RDAP
-//! module depend on the apex module and skips a subdomain whose apex result holds the apex
-//! observable (`e871441c`). Here the module computes that apex from the value, as the apex module
-//! does, with the same function (`ace_sdk::domains::apex_of`), and doesn't wait for it. It was built
-//! so when a dependency in ace4 waited for a result, before PLAN.md decision 30
-//! (`ace_core::eligibility`), and the apex module stores none for a name that is its own apex,
-//! which RDAP still looks up. ace4 has no observable limit, so the
-//! apex result always holds its observable. The one case that differs is an fqdn the apex module
-//! doesn't run on while RDAP does (a mode or an observable modifier rule leaving it out): ace3 looks
-//! that subdomain up, and ace4 still skips it.
+//! up instead, once for all of its subdomains, as in ace3 since `7265bb53`. As in ace3, the module
+//! depends on the apex module, and declines a subdomain whose apex result holds the apex observable
+//! (`custom_requirement`, `e871441c`): the declaration reads the result's `apex_domain` and asks
+//! whether an fqdn observable takes it, which is when the apex module adds it
+//! (`takes::Field::Fqdn`). A name that is its own apex gets no apex result, and one the apex module
+//! doesn't run on (a mode or an observable modifier rule leaving it out) none either, so both are
+//! looked up, as in ace3. ace4 has no observable limit, the one other thing that keeps ace3's apex
+//! result without its observable.
+//!
+//! Only the declaration reads the apex result (`Module::READS_DEPENDENCIES` is false), and the core
+//! checks a declaration before it looks the analysis cache up, as ace3 checks `custom_requirement`
+//! before its cache, so the module stays cacheable.
 //!
 //! ace3 falls back to WHOIS when RDAP can't answer. That isn't ported: the module records RDAP's
 //! error instead.
@@ -38,11 +40,14 @@ mod parse;
 use std::net::IpAddr;
 use std::time::Duration;
 
+use ace_results::AnalysisType;
 use ace_results::ObservableKind;
 use ace_results::ResultEnvelope;
 use ace_results::types::rdap::RdapAnalysis;
+use ace_results::types::values::ApexDomainAnalysis;
 use ace_sdk::cache::Cache;
 use ace_sdk::http::{HttpClient, HttpErrorKind, check_status};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -88,6 +93,9 @@ pub struct RdapAnalyzer {
 impl Module for RdapAnalyzer {
     const NAME: &'static str = "rdap_analyzer";
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn, ObservableKind::Ip];
+    /// ace3's `dependencies: [apex_domain_analyzer]`, read by the declaration alone.
+    const DEPENDS_ON: &'static [&'static str] = &[ApexDomainAnalysis::MODULE];
+    const READS_DEPENDENCIES: bool = false;
     const RESOURCES: Resources = Resources {
         timeout: Duration::from_secs(120),
         ..Resources::DEFAULT
@@ -110,6 +118,15 @@ impl Module for RdapAnalyzer {
             ),
         })
     }
+
+    /// A subdomain that `apex_domain_analyzer` gave an apex observable is looked up there, once for
+    /// all its subdomains (`custom_requirement`, `7265bb53` and `e871441c`).
+    fn takes(_: &RdapSettings) -> Takes {
+        Takes::everything().and(
+            Condition::result_fqdn(ApexDomainAnalysis::MODULE, "apex_domain").negated(),
+            "its apex domain is looked up instead",
+        )
+    }
 }
 
 impl Lookup for RdapAnalyzer {
@@ -130,17 +147,6 @@ impl Lookup for RdapAnalyzer {
             && !ace_sdk::ip::is_global(ip)
         {
             return Ok(Outcome::Skipped(format!("{ip} isn't globally routable")));
-        }
-        // a subdomain that apex_domain_analyzer gives an apex observable is looked up there, once
-        // for all its subdomains (custom_requirement, 7265bb53 and e871441c)
-        if !observable.kind.is_subtype_of(ObservableKind::Ip)
-            && let Some(apex) = ace_sdk::domains::apex_of(&observable.value)
-                .filter(|apex| apex.observable)
-                .map(|apex| apex.domain)
-        {
-            return Ok(Outcome::Skipped(format!(
-                "its apex domain {apex} is looked up instead"
-            )));
         }
 
         let now = ctx.now();

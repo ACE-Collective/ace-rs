@@ -1,5 +1,5 @@
 //! What the reference dumps don't show: a domain that doesn't exist, a TLD without RDAP, a
-//! subdomain left to its apex, an address with no public registration, and a registry that can't
+//! subdomain left to its apex or not, an address with no public registration, and a registry that can't
 //! be reached. The recordings
 //! beside the dumps serve the bootstrap registries; nothing reaches the internet.
 
@@ -102,23 +102,55 @@ async fn a_tld_without_rdap_records_the_rdap_error() {
 }
 
 #[tokio::test]
-async fn a_subdomain_is_left_to_its_apex() {
+async fn a_subdomain_is_left_to_its_apex_when_the_apex_module_added_it() {
     let replay = replay().await;
-    let harness = harness(&replay);
-    for subdomain in ["www.example.com", "a.b.example.co.uk."] {
-        let outcome = harness
-            .run_lookup(harness.observable(ObservableKind::Fqdn, subdomain))
+    // the apex module's result, which the task carries for the declaration alone
+    let apex = |module: Harness<RdapAnalyzer>, apex: &str| {
+        module.dependency_result("apex_domain_analyzer", json!({"apex_domain": apex}))
+    };
+    for (subdomain, its_apex) in [
+        ("www.example.com", "example.com"),
+        ("a.b.example.co.uk.", "example.co.uk"),
+    ] {
+        let module = apex(harness(&replay), its_apex);
+        let outcome = module
+            .run_lookup(module.observable(ObservableKind::Fqdn, subdomain))
             .await
             .expect("runs");
-        assert!(matches!(outcome, Outcome::Skipped(_)), "{outcome:?}");
+        let Outcome::Skipped(why) = outcome else {
+            panic!("{outcome:?}");
+        };
+        assert_eq!(why, "its apex domain is looked up instead");
     }
-    // a name with no public suffix has no apex, so it is looked up itself
-    let outcome = harness
-        .run_lookup(harness.observable(ObservableKind::Fqdn, "www.example.not-a-tld"))
+    assert!(replay.requested().is_empty());
+
+    // with no apex result, as when the apex module doesn't run on the name, the subdomain is
+    // looked up, as in ace3
+    let module = harness(&replay);
+    let outcome = module
+        .run_lookup(module.observable(ObservableKind::Fqdn, "www.example.com"))
+        .await
+        .expect("runs");
+    let Outcome::Done(result) = outcome else {
+        panic!("{outcome:?}");
+    };
+    assert_eq!(result.details.lookup_protocol.as_deref(), Some("rdap"));
+
+    // an apex the fqdn check refuses is recorded and not added, so the subdomain is looked up
+    let module = apex(harness(&replay), "-bad.com");
+    let outcome = module
+        .run_lookup(module.observable(ObservableKind::Fqdn, "www.-bad.com"))
         .await
         .expect("runs");
     assert!(matches!(outcome, Outcome::Done(_)), "{outcome:?}");
-    assert_eq!(replay.requested(), ["https://data.iana.org/rdap/dns.json"]);
+
+    // a name with no public suffix has no apex result, so it is looked up itself
+    let module = harness(&replay);
+    let outcome = module
+        .run_lookup(module.observable(ObservableKind::Fqdn, "www.example.not-a-tld"))
+        .await
+        .expect("runs");
+    assert!(matches!(outcome, Outcome::Done(_)), "{outcome:?}");
 }
 
 #[tokio::test]

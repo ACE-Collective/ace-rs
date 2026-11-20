@@ -5,16 +5,16 @@
 //! first, images last. All of them go in the details, and the first `max_extracted_urls` become
 //! URL observables, with `crawl` when the file has `crawl_extracted_urls`.
 //!
+//! As in ace3, it waits for `file_type`, whose result it reads, and for `yara_scanner_v3_4`, so the
+//! directives a rule adds (`extract_urls_domain_as_url`, `crawl_extracted_urls`) are on the file
+//! before it runs. A file no rule matched gets no YARA result, and the module runs once YARA won't
+//! store one (PLAN.md decision 30).
+//!
 //! Where ace4 departs:
 //!
 //! - urlfinderlib returns a set, and ace3 orders its URLs from that set's order, which changes with
 //!   each process's hash seed; where two domains have as many URLs, which comes first changes from
 //!   run to run. Here the set is sorted first, so the order is the same each time.
-//! - ace3 waits for `file_type` and `yara_scanner_v3_4`. ace4 waits for `file_type`, whose
-//!   `yara_meta` types it reads, and has no dependency on the YARA module, because a
-//!   dependency waited for a result before PLAN.md decision 30 and the YARA module stores none
-//!   when no rule matches. A directive a rule adds still brings this module in, when the YARA
-//!   result lands.
 //! - ace3 adds the URLs as volatile observables. ace4 has no volatile flag; in ace3 only the GUI's
 //!   pruning and the analysis cache read it.
 
@@ -25,6 +25,7 @@ use std::time::Duration;
 use ace_pycompat::pystr;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::url_extraction::UrlExtractionAnalysis;
+use ace_results::types::yara::YaraScanResults;
 use ace_results::{AnalysisType, NewObservable, ObservableKind, RelationshipKind, ResultEnvelope};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use ace_urlfinder::{Finder, Magic};
@@ -82,7 +83,8 @@ impl Module for UrlExtraction {
     const NAME: &'static str = UrlExtractionAnalysis::MODULE;
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
     const REQUIRED_DIRECTIVES: &'static [&'static str] = &[DIRECTIVE_EXTRACT_URLS];
-    const DEPENDS_ON: &'static [&'static str] = &[FileTypeAnalysis::MODULE];
+    const DEPENDS_ON: &'static [&'static str] =
+        &[FileTypeAnalysis::MODULE, YaraScanResults::MODULE];
     // ace3's maximum_analysis_time, 15 s. docs/measurements/url-extraction.md has what a crafted file
     // costs.
     const RESOURCES: Resources = Resources {

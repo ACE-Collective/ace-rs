@@ -84,7 +84,7 @@ No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and 
 
 In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 builds (*External tools*).
 
-1. **URLs and indicators in text**: done. `url_extraction` and `ioc_extraction`, in `ace-mod-urls`, on `ace-urlfinder`, a port of urlfinderlib 0.27.1 whose `Url` and child URLs other modules can use too, with `ace-pycompat` (Python's urllib.parse, html, base64, json, csv and unicodedata, and the idna, validators and tld packages) and `ace-lxml` (libxml2 2.14.6 as lxml 6.1.3 bundles it, with lxml's tree and BeautifulSoup's `get_text()` over it). `url_extraction` waits for `file_type`, ported in batch 2.
+1. **URLs and indicators in text**: done. `url_extraction` and `ioc_extraction`, in `ace-mod-urls`, on `ace-urlfinder`, a port of urlfinderlib 0.27.1 whose `Url` and child URLs other modules can use too, with `ace-pycompat` (Python's urllib.parse, html, base64, json, csv and unicodedata, and the idna, validators and tld packages) and `ace-lxml` (libxml2 2.14.6 as lxml 6.1.3 bundles it, with lxml's tree and BeautifulSoup's `get_text()` over it). `url_extraction` waits for `file_type`, ported in batch 2, and the YARA module.
 2. **File identity**: done. `file_type`, `file_hash_analyzer`, `lnk_parser`, `binary_file_analyzer`, `x509_analyzer` and `dhash`, in `ace-mod-files`. file_type first: many later modules read its result, its tags and its `yara_meta` types. `ssdeep` moved to batch 10: fuzzyhash doesn't give ssdeep's scores (`docs/measurements/ssdeep.md`); batch 10 ported ssdeep's comparison.
 3. **Observable values**: done. `command_line_analyzer`, `file_location_analysis`, `file_path_analysis`, `network_identifier`, `parse_url`, `idna_analyzer`, `email_address_fqdn_analyzer`, `protected_url_analyzer`, in `ace-mod-values`, on `ace-urlfinder` and `ace-pycompat`. Strings in, observables out; no files but command lines' payloads. `protected_url_analyzer`'s 1drv.ms links go to `protected_url_one_drive` on the lookup pool (its entry has the decision).
 4. **HTML**: done. `html_data_url_extraction`, `har_extraction`, `html_js_extraction`, `mhtml`, in `ace-mod-html`, on `ace-lxml`'s BeautifulSoup tree, `ace-mod-oletools`' port of Python's feed parser and `ace-pycompat`. HTML, MHTML and HAR files, with the DOM snapshots 7.7's js-deobfuscator reads, which ride in the results' `dom_snapshots` rather than in files beside the scripts.
@@ -902,7 +902,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Does**: Adds the registrable domain (eTLD+1) of a subdomain fqdn as an fqdn observable of its own, with the subdomain's time, so an analyst can pivot to every alert with that domain. A name that is its own apex, or has no public suffix, gets no analysis.
 - **Input**: fqdn.
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
-- **Depends on**: none. `rdap_analyzer` depends on it in ace3 and skips a subdomain it gave an apex observable (`7265bb53`, `e871441c`); in ace4 RDAP computes the same apex itself (its entry).
+- **Depends on**: none. `rdap_analyzer` depends on it, in ace3 and in ace4, and skips a subdomain it gave an apex observable (`7265bb53`, `e871441c`; its entry).
 - **Libraries**: tldextract 5.4.0 (`saq.domain_similarity.registrable_domain`, imported when the module first runs).
 - **Tools**: none.
 - **Writes**: none.
@@ -938,13 +938,13 @@ In the config's order. ace4 is the crate a ported module is in.
 ### rdap_analyzer
 
 - **Section**: `analysis_module_rdap_analyzer`, class `RdapAnalyzer` in `saq/modules/rdap.py`, enabled by default.
-- **ace4**: ported in `ace-mod-rdap`. Its results are kept in the analysis cache for 7 days, ace3's `cache_ttl` (PLAN.md decision 26); a lookup that failed is marked failed and isn't kept.
+- **ace4**: ported in `ace-mod-rdap`. Its results are kept in the analysis cache for 7 days, ace3's `cache_ttl` (PLAN.md decision 26); a lookup that failed is marked failed and isn't kept. Its skip of a subdomain is its declaration, which reads the apex module's result, so the core checks it before the cache, as ace3 checks `custom_requirement` before its cache; `analyze` doesn't see that result (`Module::READS_DEPENDENCIES`), so the cache doesn't refuse the module.
 - **Pool**: lookup. RDAP over HTTPS (1.x).
 - **Step**: done.
 - **Does**: Looks up registration data for an fqdn (reduced to its eTLD+1) or a globally routable ip via RDAP, falling back to legacy WHOIS, recording registrar, dates/ages, nameservers, emails, network CIDR/country and raw responses.
 - **Input**: fqdn; ip (and subtypes, e.g. email_first_hop_ip; custom_requirement skips non-global IPs, and since `7265bb53` a subdomain fqdn that `apex_domain_analyzer` gave an apex observable, which RDAP looks up instead).
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
-- **Depends on**: `apex_domain_analyzer` in ace3. In ace4 none: the module computes the apex from the value as the apex module does and skips a subdomain that has one, since a dependency in ace4 waited for a result before PLAN.md decision 30 and the apex module stores none for a name that is its own apex (`ace-mod-rdap`'s docs). The two differ only for an fqdn the apex module doesn't run on.
+- **Depends on**: `apex_domain_analyzer`, in ace3 and in ace4. A subdomain is skipped when the apex result's `apex_domain` is a value an fqdn observable takes, which is when the apex module added it (`takes::Field::Fqdn`, ace3's `get_observable_by_type(F_FQDN)`). A name with no apex result is looked up: one that is its own apex, has no public suffix, or that the apex module doesn't run on (a mode or an observable modifier rule leaving it out), as in ace3.
 - **Libraries**: whoisit 4.1.0 (RDAP bootstrap + domain/ip queries); python-whois 0.9.6 (whois.whois fallback); tldextract 5.4.0 (eTLD+1 reduction).
 - **Tools**: none.
 - **Writes**: none.
@@ -1882,7 +1882,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### url_extraction
 
 - **Section**: `analysis_module_url_extraction`, class `URLExtractionAnalyzer` in `saq/modules/file_analysis/url_extraction.py`, enabled by default.
-- **ace4**: ported in `ace-mod-urls`. urlfinderlib is `ace-urlfinder`'s port, which matches urlfinderlib on every sample and on hand-made and generated HTML, text, JSON, CSV, XML, iCalendar and PDF-like blobs in each of its modes. Its sets are sorted, so where ace3's order of URLs follows its hash seed, ace4's is the same each run. It depends on `file_type`, whose `yara_meta` types it reads; there's no dependency on the YARA module, whose skipped tasks store no result; an HTML file `downloaded_from` a URL has its relative URLs made absolute against it, as in ace3, since batch 4's `har_extraction` adds that relationship; observables aren't volatile, which ace4 doesn't have. `crates/ace-mod-urls/tests/differences.md` and `docs/measurements/url-extraction.md` have the rest.
+- **ace4**: ported in `ace-mod-urls`. urlfinderlib is `ace-urlfinder`'s port, which matches urlfinderlib on every sample and on hand-made and generated HTML, text, JSON, CSV, XML, iCalendar and PDF-like blobs in each of its modes. Its sets are sorted, so where ace3's order of URLs follows its hash seed, ace4's is the same each run. It depends on `file_type`, whose result it reads, and on the YARA module, so a rule's directives are on the file before it runs, as in ace3 (PLAN.md decision 30); an HTML file `downloaded_from` a URL has its relative URLs made absolute against it, as in ace3, since batch 4's `har_extraction` adds that relationship; observables aren't volatile, which ace4 doesn't have. `crates/ace-mod-urls/tests/differences.md` and `docs/measurements/url-extraction.md` have the rest.
 - **Pool**: parser. Parses an attacker's file for URLs in the task's process.
 - **Step**: done.
 - **Does**: For files with the extract_urls directive, extracts URLs with urlfinderlib, filters excluded domains, orders them by interest and adds up to max_extracted_urls as URL observables.

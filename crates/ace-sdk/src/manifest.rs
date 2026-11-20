@@ -73,8 +73,11 @@ pub struct Manifest {
     /// The observable types the module takes. A type that extends one of these is taken too.
     pub inputs: &'static [ObservableKind],
     pub output: AnalysisTypeInfo,
-    /// Modules whose results this one needs before it runs.
+    /// Modules that run on the observable before this one (`Module::DEPENDS_ON`).
     pub depends_on: &'static [&'static str],
+    /// `analyze` reads its dependencies' results, not only its declaration
+    /// (`Module::READS_DEPENDENCIES`).
+    pub reads_dependencies: bool,
     /// Directives that keep the module off an observable, besides `exclude_all`.
     pub skip_directives: &'static [&'static str],
     /// Directives an observable must have for the module to run on it.
@@ -195,6 +198,7 @@ impl Manifest {
             inputs: M::INPUTS,
             output: AnalysisTypeInfo::of::<M::Output>(),
             depends_on: M::DEPENDS_ON,
+            reads_dependencies: M::READS_DEPENDENCIES,
             skip_directives: M::SKIP_DIRECTIVES,
             required_directives: M::REQUIRED_DIRECTIVES,
             required_directives_by_kind: M::REQUIRED_DIRECTIVES_BY_KIND,
@@ -796,6 +800,80 @@ mod tests {
         assert_eq!(
             run(only_its_own).await,
             crate::Outcome::Skipped("only gated added it".to_owned())
+        );
+    }
+
+    /// A cacheable lookup that depends on a module whose result only its declaration reads, and
+    /// whose `analyze` says what it saw of it.
+    struct Deciding;
+
+    impl Module for Deciding {
+        const NAME: &'static str = "deciding";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const DEPENDS_ON: &'static [&'static str] = &["apex"];
+        const READS_DEPENDENCIES: bool = false;
+        const CACHE: Option<crate::cache::Cache> = Some(crate::cache::Cache::new(
+            1,
+            std::time::Duration::from_secs(60),
+        ));
+        type Output = crate::example::LineStats;
+        type Settings = DeclaringSettings;
+        fn init(_: &DeclaringSettings) -> Result<Self, crate::ModuleError> {
+            Ok(Deciding)
+        }
+        fn takes(_: &DeclaringSettings) -> Takes {
+            Takes::everything().and(
+                crate::takes::Condition::result_fqdn("apex", "apex_domain").negated(),
+                "its apex is looked up",
+            )
+        }
+    }
+
+    impl crate::Lookup for Deciding {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(
+            &self,
+            ctx: &crate::TaskContext<DeclaringSettings>,
+        ) -> Result<crate::Outcome<crate::example::LineStats>, crate::ModuleError> {
+            Ok(crate::Outcome::Skipped(format!(
+                "saw {:?} {:?}",
+                ctx.dependency_details(),
+                ctx.dependency_error::<ApexLike>()
+            )))
+        }
+    }
+
+    #[derive(Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+    struct ApexLike {}
+
+    impl ace_results::AnalysisType for ApexLike {
+        const NAME: &'static str = "apex_like";
+        const VERSION: u32 = 1;
+        const MODULE: &'static str = "apex";
+    }
+
+    /// A dependency's result that only the declaration reads reaches the declaration and never
+    /// `analyze`, so the cache doesn't refuse the module for it (`Module::READS_DEPENDENCIES`).
+    #[tokio::test]
+    async fn a_dependency_only_the_declaration_reads_reaches_it_and_never_analyze() {
+        assert_eq!(Manifest::lookup::<Deciding>().cache_refusal(), None);
+        let run = |apex: &'static str| async move {
+            let ctx = crate::TaskContext::new::<Deciding>(
+                uuid::Uuid::nil(),
+                crate::Observable::new(ObservableKind::Fqdn, "www.example.com"),
+                std::sync::Arc::new(DeclaringSettings::default()),
+            )
+            .with_dependency_results([("apex".to_owned(), json!({ "apex_domain": apex }))])
+            .with_dependency_errors([("apex".to_owned(), "a partial result".to_owned())]);
+            crate::run_lookup(&Deciding, &ctx).await.expect("runs")
+        };
+        assert_eq!(
+            run("example.com").await,
+            crate::Outcome::Skipped("its apex is looked up".to_owned())
+        );
+        assert_eq!(
+            run("-bad.com").await,
+            crate::Outcome::Skipped("saw {} None".to_owned())
         );
     }
 

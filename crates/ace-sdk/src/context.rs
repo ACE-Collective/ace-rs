@@ -276,6 +276,8 @@ pub struct TaskContext<S> {
     reads_added_by: bool,
     reads_tree: bool,
     reads_event_time: bool,
+    /// False when only the declaration reads `dependency_results` (`Module::READS_DEPENDENCIES`).
+    reads_dependencies: bool,
     /// Where the pool put the tree's files the module reads, each named by its sha256.
     tree_files: Option<PathBuf>,
     declared_tools: &'static [&'static str],
@@ -329,6 +331,7 @@ impl<S> TaskContext<S> {
             reads_added_by: M::READS_ADDED_BY,
             reads_tree: M::READS_TREE,
             reads_event_time: M::READS_EVENT_TIME,
+            reads_dependencies: M::READS_DEPENDENCIES,
             tree_files: None,
             declared_tools: M::TOOLS,
             tools: None,
@@ -442,9 +445,10 @@ impl<S> TaskContext<S> {
     }
 
     /// The details of the observable's result from the module that writes `D`, which this module
-    /// depends on. None when it has none.
+    /// depends on. None when it has none, or when only the module's declaration reads its
+    /// dependencies (`Module::READS_DEPENDENCIES`).
     pub fn dependency_result<D: AnalysisType>(&self) -> Result<Option<D>, ModuleError> {
-        self.dependency_results
+        self.dependency_details()
             .get(D::MODULE)
             .map(|details| {
                 serde_json::from_value(details.clone()).map_err(|e| {
@@ -465,7 +469,19 @@ impl<S> TaskContext<S> {
     }
 
     /// The details of the observable's results from the modules this one depends on, by module.
+    /// Empty when only the module's declaration reads them (`Module::READS_DEPENDENCIES`).
     pub fn dependency_details(&self) -> &BTreeMap<String, serde_json::Value> {
+        static NONE: BTreeMap<String, serde_json::Value> = BTreeMap::new();
+        if self.reads_dependencies {
+            &self.dependency_results
+        } else {
+            &NONE
+        }
+    }
+
+    /// The dependencies' results the module's declaration reads, whether or not `analyze` may
+    /// (`crate::module::declined`).
+    pub(crate) fn declaration_results(&self) -> &BTreeMap<String, serde_json::Value> {
         &self.dependency_results
     }
 
@@ -513,6 +529,9 @@ impl<S> TaskContext<S> {
     /// details are then a partial result, so a module that needs the whole of them checks this
     /// first, as ace3's modules check `analysis.error` before trusting another's analysis.
     pub fn dependency_error<D: AnalysisType>(&self) -> Option<&str> {
+        if !self.reads_dependencies {
+            return None;
+        }
         self.dependency_errors.get(D::MODULE).map(String::as_str)
     }
 
