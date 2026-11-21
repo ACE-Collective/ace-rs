@@ -19,10 +19,14 @@
 //! ace3's whitelisting is gone, as ace3 removed it (8617ba8e): a `whitelisted` tag or directive is an
 //! ordinary one, which keeps nothing off and doesn't stop a root from alerting.
 
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, OnceLock};
 
-use ace_results::{Detection, FieldError, NewObservable, ObservableKind, Registry, ResultEnvelope};
+use ace_results::{
+    Detection, FieldError, NewObservable, ObservableAdditions, ObservableKind, ObservableRef,
+    Registry, ResultEnvelope,
+};
 use ace_sdk::exclusions::Exclusions;
 use serde_json::Value;
 use uuid::Uuid;
@@ -107,6 +111,57 @@ pub struct Orchestrator {
     exclusions: Arc<Exclusions>,
     /// The analysis cache's settings (`crate::cache`).
     cache: CacheSettings,
+}
+
+/// The targets of the relationships `result` adds to observables already in the root that are
+/// neither in `root` nor added by `result` (PLAN.md decision 37), each once.
+async fn unlandable_targets<'e>(
+    executor: impl sqlx::PgExecutor<'e>,
+    root: Uuid,
+    result: &ResultEnvelope<Value>,
+) -> Result<Vec<ObservableRef>, DbError> {
+    let added: BTreeSet<ObservableRef> = result
+        .observables
+        .iter()
+        .map(|o| ObservableRef::new(o.kind, o.value.clone()))
+        .chain(
+            result
+                .files
+                .iter()
+                .map(|f| ObservableRef::new(ObservableKind::File, f.sha256.to_hex())),
+        )
+        .collect();
+    let mut targets: Vec<ObservableRef> = Vec::new();
+    for additions in [&result.analyzed, &result.redirected]
+        .into_iter()
+        .chain(result.others.iter().map(|o| &o.additions))
+    {
+        for relationship in &additions.relationships {
+            if !added.contains(&relationship.target) && !targets.contains(&relationship.target) {
+                targets.push(relationship.target.clone());
+            }
+        }
+    }
+    tree::missing_observables(executor, root, &targets).await
+}
+
+/// `additions` without its relationships to `unlandable`.
+fn landable<'a>(
+    additions: &'a ObservableAdditions,
+    unlandable: &[ObservableRef],
+) -> Cow<'a, ObservableAdditions> {
+    if unlandable.is_empty()
+        || !additions
+            .relationships
+            .iter()
+            .any(|r| unlandable.contains(&r.target))
+    {
+        return Cow::Borrowed(additions);
+    }
+    let mut kept = additions.clone();
+    kept.relationships
+        .retain(|r| !unlandable.contains(&r.target));
+    Cow::Owned(kept)
 }
 
 /// Why a result was refused before anything from it was written.
@@ -238,6 +293,28 @@ impl Orchestrator {
         registry.validate(result).map_err(|invalid| Rejected {
             error: invalid.to_string(),
             fields: invalid.fields().to_vec(),
+        })
+    }
+
+    /// Checks the relationships a result adds to observables already in the root (`analyzed`,
+    /// `redirected`, `others`; PLAN.md decision 37) before it lands: each target must be in the
+    /// root or added by the result, as ace3's `add_relationship` takes an observable of the tree.
+    pub async fn check_relationship_targets<'e>(
+        &self,
+        executor: impl sqlx::PgExecutor<'e>,
+        root: Uuid,
+        result: &ResultEnvelope<Value>,
+    ) -> Result<Result<(), Rejected>, DbError> {
+        let missing = unlandable_targets(executor, root, result).await?;
+        Ok(match missing.first() {
+            None => Ok(()),
+            Some(target) => Err(Rejected {
+                error: format!(
+                    "a relationship's target {}:{} is neither in the root nor added by the result",
+                    target.kind, target.value
+                ),
+                fields: Vec::new(),
+            }),
         })
     }
 
@@ -1447,10 +1524,22 @@ impl Orchestrator {
         complete: bool,
     ) -> Result<Landed, OrchestratorError> {
         let mode = locked.mode.clone();
+        // a task's end was refused for these (`check_relationship_targets`); a cache hit in another
+        // root, or a result landed without that check, drops them
+        let unlandable = unlandable_targets(tx.conn(), root, result).await?;
+        if !unlandable.is_empty() {
+            tracing::warn!(
+                %root,
+                %module,
+                "a result related observables to {} not in the root; those relationships are dropped",
+                unlandable.len()
+            );
+        }
         // a rerun of an incomplete task replaces its result, and keeps what it added once each
         let (result_id, replaced) =
             tree::store_result(tx, root, analyzed, module, result, cached_at).await?;
-        tree::add_to_observable(tx, root, analyzed, &result.analyzed).await?;
+        tree::add_to_observable(tx, root, analyzed, &landable(&result.analyzed, &unlandable))
+            .await?;
 
         // what the result adds is one deeper than what it analyzed (`tree::upsert_observable_at`)
         let depth = tree::depth(tx.conn(), root, analyzed)
@@ -1512,7 +1601,8 @@ impl Orchestrator {
                 None => None,
             };
             if let Some(id) = target {
-                tree::add_to_observable(tx, root, id, &result.redirected).await?;
+                tree::add_to_observable(tx, root, id, &landable(&result.redirected, &unlandable))
+                    .await?;
                 touched.push(id);
                 detections.extend(result.redirected.detections.iter().map(|d| (id, d)));
             } else {
@@ -1528,7 +1618,8 @@ impl Orchestrator {
         for other in &result.others {
             match tree::find_observable(tx.conn(), root, &other.observable).await? {
                 Some(id) => {
-                    tree::add_to_observable(tx, root, id, &other.additions).await?;
+                    tree::add_to_observable(tx, root, id, &landable(&other.additions, &unlandable))
+                        .await?;
                     touched.push(id);
                     detections.extend(other.additions.detections.iter().map(|d| (id, d)));
                 }

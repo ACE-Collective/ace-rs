@@ -14,7 +14,8 @@
 //!   "details": {...},                         the analysis details as written
 //!   "tags": {"single_file_zip": true},        tags on the result itself
 //!   "detections": {"<description>": details},
-//!   "analyzed": {"tags": {..}, "directives": {..}, "yara_meta": {..}, "detections": {..}},
+//!   "analyzed": {"tags": {..}, "directives": {..}, "yara_meta": {..}, "detections": {..},
+//!                "relationships": {..}},           relationships only when it gained some
 //!   "observables": {
 //!     "email_from:a@example.com": {...},      by type and value
 //!     "file:test.zip.extracted/a.js": {...}   files by their path inside the alert
@@ -271,7 +272,7 @@ impl Dump {
             .collect();
         // tags the run gave the input, as the module that added it would have
         let input_tags: BTreeSet<String> = strings(&input["tags"]).into_iter().collect();
-        let analyzed = json!({
+        let mut analyzed = json!({
             "tags": set(
                 strings(&after["tags"])
                     .into_iter()
@@ -289,6 +290,32 @@ impl Dump {
             ),
             "detections": ace3_detections(&after["detections"]),
         });
+        // relationships the run gave it beyond those it came with (`--relationship`, a file's to
+        // what it was extracted from, and all of a file another module added, `dump_file`, as its
+        // tags are): kept only when there are some, as no ace3 module of the dumps adds one
+        // (PLAN.md decision 37)
+        let dumped = input.get("dump_file").is_some();
+        let before_relationships: BTreeSet<String> = input["relationships"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(relationship_key)
+            .chain(
+                input["extracted_from"]["value"]
+                    .as_str()
+                    .map(|sha256| format!("extracted_from file:{sha256}")),
+            )
+            .collect();
+        let added_relationships: Vec<String> = after["relationships"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(relationship_key)
+            .filter(|r| !dumped && !before_relationships.contains(r))
+            .collect();
+        if !added_relationships.is_empty() {
+            analyzed["relationships"] = set(added_relationships);
+        }
         let mut observables = Map::new();
         for observable in analysis["observables"].as_array().into_iter().flatten() {
             let (key, normal) = ace3_observable(observable);
@@ -464,6 +491,16 @@ fn ace3_time(text: &str) -> Value {
         .unwrap_or_else(|_| json!(text))
 }
 
+/// An ace3 relationship as the normal form keys it: `"<kind> <type>:<value>"`.
+fn relationship_key(r: &Value) -> String {
+    format!(
+        "{} {}:{}",
+        r["type"].as_str().unwrap_or_default(),
+        r["target"]["type"].as_str().unwrap_or_default(),
+        r["target"]["value"].as_str().unwrap_or_default()
+    )
+}
+
 fn ace3_observable(o: &Value) -> (String, Value) {
     let kind = o["type"].as_str().unwrap_or_default();
     let key = if kind == "file" {
@@ -476,14 +513,7 @@ fn ace3_observable(o: &Value) -> (String, Value) {
         "directives": set(ace3_directives(&o["directives"])),
         "yara_meta": set(strings(&o["yara_meta"])),
         "detections": ace3_detections(&o["detections"]),
-        "relationships": set(o["relationships"].as_array().into_iter().flatten().map(|r| {
-            format!(
-                "{} {}:{}",
-                r["type"].as_str().unwrap_or_default(),
-                r["target"]["type"].as_str().unwrap_or_default(),
-                r["target"]["value"].as_str().unwrap_or_default()
-            )
-        })),
+        "relationships": set(o["relationships"].as_array().into_iter().flatten().map(relationship_key)),
         "excluded_analysis": set(
             strings(&o["excluded_analysis"])
                 .iter()
@@ -525,12 +555,27 @@ fn ace4_detections(detections: &[Detection]) -> Value {
 }
 
 fn ace4_additions(additions: &ObservableAdditions) -> Value {
-    json!({
+    let mut normal = json!({
         "tags": set(additions.tags.iter().cloned()),
         "directives": set(additions.directives.iter().cloned()),
         "yara_meta": set(additions.yara_meta.iter().map(|t| t.to_string())),
         "detections": ace4_detections(&additions.detections),
-    })
+    });
+    // as ace3's side keeps them: only when there are some
+    if !additions.relationships.is_empty() {
+        normal["relationships"] = ace4_relationships(&additions.relationships);
+    }
+    normal
+}
+
+fn ace4_relationships(relationships: &[ace_results::Relationship]) -> Value {
+    set(relationships.iter().map(|r| {
+        let kind = serde_json::to_value(r.kind)
+            .ok()
+            .and_then(|v| v.as_str().map(str::to_owned))
+            .unwrap_or_default();
+        format!("{kind} {}:{}", r.target.kind, r.target.value)
+    }))
 }
 
 fn ace4_links(
@@ -538,13 +583,7 @@ fn ace4_links(
     redirection: &Option<ace_results::ObservableRef>,
     normal: &mut Value,
 ) {
-    normal["relationships"] = set(relationships.iter().map(|r| {
-        let kind = serde_json::to_value(r.kind)
-            .ok()
-            .and_then(|v| v.as_str().map(str::to_owned))
-            .unwrap_or_default();
-        format!("{kind} {}:{}", r.target.kind, r.target.value)
-    }));
+    normal["relationships"] = ace4_relationships(relationships);
     if let Some(redirection) = redirection {
         normal["redirection"] = json!(format!("{}:{}", redirection.kind, redirection.value));
     }

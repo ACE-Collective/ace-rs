@@ -1,107 +1,22 @@
-//! The script command types (PLAN.md decision 16): what each of the 7 Python scripts the
-//! signatures' hunts run under `hunts/scripts/` computes, in Rust, with the network of [`Net`].
-//! Each reads its arguments as the script's `argparse` parser does ([`argparse`]), takes its input
-//! as the script does, and writes what the script prints: JSON as Python's `json.dumps` writes it,
-//! with the script's keys in the script's order.
+//! What a script command type (PLAN.md decision 16) is written with: Python's `argparse` as a
+//! script's parser reads its arguments ([`argparse`]), `json.loads` and `json.dumps` as a script
+//! reads and prints JSON, and Python's `str()`, `repr()` and `str.strip()` of a loaded value. A site
+//! writes its types with these and registers each with `ace_app::App::hunt_script` under its
+//! script's path; ace4 has no site's scripts (owner, 2026-11-21). [`example`] is ace4's own, a small
+//! type no hunt of ace4's runs, which `ace-site-example` registers and the tests of the mechanism
+//! use.
 //!
-//! Only each script's logic is here, never detection content (decision 16). A list a script holds
-//! is logic when it is how the script reads its input or decides what it reports, such as a
-//! provider's id format, the role mailboxes it probes or the score's thresholds, and content when
-//! it is a tuned lexicon or a site's own value. Content comes from the signatures checkout at run
-//! time, as the files a command stages (`removed_hunt_two.json`, `proxy_ip_ranges.json`), or
-//! from the hunter's configuration (`removed_hunt_three`'s settings). Each module says which of its
-//! lists is which.
-//!
-//! [`SCRIPTS`] is each script's path, as the hunts' predefined commands give it, and its type's
-//! name: an executable command whose path ends with that path runs the type ([`super::script`]).
+//! A type writes what its script prints: JSON as Python's `json.dumps` writes it, with the
+//! script's keys in the script's order. It holds only its script's logic, never detection content
+//! (decision 16): content comes from the signatures checkout at run time, as the files a command
+//! stages, or from the hunter's configuration (`scripts.<name>`).
 
 pub mod argparse;
-pub mod signature_name_12;
-pub mod removed_hunt_one;
-pub mod dns_lookup;
-pub mod signature_name_11;
-pub mod ip;
-pub mod is_proxy_ip;
-pub mod removed_hunt_three;
-pub mod signature_name_13;
+pub mod example;
 
-#[cfg(test)]
-pub(crate) mod cases;
-
-use std::sync::Arc;
-
-use super::net::Net;
 use super::pyjson;
-use super::script::{Script, ScriptExit};
+use super::script::ScriptExit;
 use crate::value::{Map, Value, py_repr};
-
-/// Each script's path under a signatures checkout and its type's name.
-pub const SCRIPTS: [(&str, &str); 7] = [
-    ("hunts/scripts/signature_name_12.py", "signature_name_12"),
-    ("hunts/scripts/removed_hunt_one.py", "removed_hunt_one"),
-    ("hunts/scripts/dns_lookup.py", "dns_lookup"),
-    ("hunts/scripts/signature_name_11.py", "signature_name_11"),
-    ("hunts/scripts/is_proxy_ip.py", "is_proxy_ip"),
-    ("hunts/scripts/removed_hunt_three.py", "removed_hunt_three"),
-    ("hunts/scripts/signature_name_13.py", "signature_name_13"),
-];
-
-/// Builds the type named `name` (one of [`SCRIPTS`]) over `net`, with its settings from the
-/// hunter's configuration (`Value::Null` for none), or why it can't be built.
-pub fn build(
-    name: &str,
-    net: &Net,
-    settings: &serde_json::Value,
-) -> Result<Arc<dyn Script>, String> {
-    let no_settings = |name: &str| -> Result<(), String> {
-        match settings {
-            serde_json::Value::Null => Ok(()),
-            serde_json::Value::Object(m) if m.is_empty() => Ok(()),
-            _ => Err(format!("{name} takes no settings")),
-        }
-    };
-    Ok(match name {
-        "signature_name_12" => {
-            no_settings(name)?;
-            Arc::new(signature_name_12::BeaconScore)
-        }
-        "removed_hunt_one" => {
-            no_settings(name)?;
-            Arc::new(removed_hunt_one::CertOwnership { net: net.clone() })
-        }
-        "dns_lookup" => {
-            no_settings(name)?;
-            Arc::new(dns_lookup::DnsLookup { net: net.clone() })
-        }
-        "signature_name_11" => {
-            no_settings(name)?;
-            Arc::new(signature_name_11::DomainOwnership { net: net.clone() })
-        }
-        "is_proxy_ip" => {
-            no_settings(name)?;
-            Arc::new(is_proxy_ip::IsproxyIp)
-        }
-        "removed_hunt_three" => {
-            if settings.is_null() {
-                return Err(format!(
-                    "{name} needs its settings in the hunter's configuration: scripts.{name}.home_tenant, the site's tenant"
-                ));
-            }
-            let settings: removed_hunt_three::Settings =
-                serde_json::from_value(settings.clone())
-                    .map_err(|e| format!("{name}'s settings: {e}"))?;
-            Arc::new(removed_hunt_three::M365TenantEnrich {
-                net: net.clone(),
-                settings,
-            })
-        }
-        "signature_name_13" => {
-            no_settings(name)?;
-            Arc::new(signature_name_13::RdapLookup { net: net.clone() })
-        }
-        other => return Err(format!("no script command type is named {other}")),
-    })
-}
 
 /// `print(json.dumps(value))`.
 pub fn print_json(value: &Value) -> String {

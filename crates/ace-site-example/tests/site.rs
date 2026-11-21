@@ -444,12 +444,14 @@ async fn an_operator_makes_the_first_admin_with_the_sites_binary() {
 
 /// The site builds on ace4's list (`ace::app()`) and adds to two of its pools, so it holds what ace4's
 /// does: its cacheable modules, hunt types, script command types and action handlers, and the site's
-/// collector besides.
+/// collector and its one script command type besides.
 #[test]
 fn the_site_s_list_is_ace4_s_with_its_own_added() {
     let (ace4, site) = (ace::app(), ace_site_example::app());
     assert_eq!(site.cacheable_modules(), ace4.cacheable_modules());
-    assert_eq!(site.hunt_script_names(), ace4.hunt_script_names());
+    let mut scripts = ace4.hunt_script_names();
+    scripts.push(("hunts/scripts/field_values.py", "field_values"));
+    assert_eq!(site.hunt_script_names(), scripts);
     let kinds = |app: &ace_app::App| -> Vec<String> {
         app.hunt_types()
             .iter()

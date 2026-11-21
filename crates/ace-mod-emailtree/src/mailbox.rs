@@ -35,6 +35,7 @@ impl Module for MailboxEmailAnalyzer {
         tags: &[],
         directives: &[TRACKED],
         detections: false,
+        relationships: false,
     });
     const SETS_ROOT: bool = true;
     type Output = MailboxEmailAnalysis;

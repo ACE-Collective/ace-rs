@@ -1746,6 +1746,11 @@ async fn a_task_walks_its_roots_tree_and_a_result_changes_others_and_its_root() 
         ),
         (json!({"detections": [{"description": "d"}]}), "a detection"),
         (json!({"yara_meta": ["type=x"]}), "a yara_meta tag"),
+        (
+            json!({"relationships": [{"type": "related_to",
+                                      "target": {"type": "url", "value": "https://lure.example/x"}}]}),
+            "a relationship",
+        ),
     ] {
         let refused = orchestrator
             .check_result("test_sets_root", &other(additions))
@@ -4737,6 +4742,132 @@ async fn an_incomplete_result_runs_again_on_each_change_and_on_the_next_pass() {
     .await
     .expect("reads");
     assert_eq!(summary, "done");
+}
+
+/// PLAN.md decision 37: a result relates an observable already in the root to others, as ace3's
+/// `add_relationship`. A new relationship is a change to the observable, as ace3's
+/// EVENT_RELATIONSHIP_ADDED puts it back on the work stack, so an incomplete task on it runs again
+/// (decision 34); the same one again is none. A target neither in the root nor added by the result
+/// is refused at a task's end (`check_relationship_targets`), and dropped by a landing that didn't
+/// check, such as a cache hit in another root.
+#[tokio::test]
+async fn a_relationship_a_result_adds_to_its_observable_is_a_change() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = rerun_orchestrator();
+    let (root, ids) = root_with(
+        db,
+        "rerun_test",
+        &[
+            (ObservableKind::Fqdn, "a.example"),
+            (ObservableKind::Ipv4, "192.0.2.1"),
+        ],
+    )
+    .await;
+    let fqdn = ids[0];
+    let changes = || async {
+        sqlx::query_scalar::<_, i64>("SELECT changes FROM analysis.observables WHERE id = $1")
+            .bind(fqdn.0)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads")
+    };
+    let related = |value: &str| {
+        ace_results::Relationship::new(
+            ace_results::RelationshipKind::DeliveredTo,
+            ObservableRef::new(ObservableKind::Ipv4, value),
+        )
+    };
+    let additions = ace_results::ObservableAdditions {
+        relationships: vec![related("192.0.2.1")],
+        ..ace_results::ObservableAdditions::default()
+    };
+    let before = changes().await;
+    for (time, counted) in [("first", 1), ("again, no change", 1)] {
+        let mut tx = db.begin().await.expect("begins");
+        tree::add_to_observable(&mut tx, root, fqdn, &additions)
+            .await
+            .expect("adds");
+        tx.commit().await.expect("commits");
+        assert_eq!(changes().await, before + counted, "{time}");
+    }
+
+    // an incomplete task on the fqdn runs again on a relationship it gains
+    start(db, &orchestrator, root).await;
+    land_as(
+        &test_db,
+        &orchestrator,
+        "test_unfinished",
+        qr("first"),
+        true,
+    )
+    .await;
+    land_as(
+        &test_db,
+        &orchestrator,
+        "test_unfinished",
+        qr("second"),
+        true,
+    )
+    .await;
+    assert_eq!(state_of(db, root, "test_unfinished").await.0, "done");
+    let mut tx = db.begin().await.expect("begins");
+    let mut more = additions.clone();
+    more.relationships = vec![ace_results::Relationship::new(
+        ace_results::RelationshipKind::RelatedTo,
+        ObservableRef::new(ObservableKind::Ipv4, "192.0.2.1"),
+    )];
+    tree::add_to_observable(&mut tx, root, fqdn, &more)
+        .await
+        .expect("adds");
+    tx.commit().await.expect("commits");
+    eligible_again(db, &orchestrator, root, fqdn).await;
+    assert_eq!(state_of(db, root, "test_unfinished").await.0, "queued");
+
+    // a target the root holds, one the result adds, and one neither: the check refuses the third,
+    // and a landing without the check drops it alone
+    let mut relating = qr("relating");
+    relating["observables"] = json!([{"type": "ipv4", "value": "192.0.2.2"}]);
+    relating["analyzed"] = json!({"relationships": [
+        {"type": "delivered_to", "target": {"type": "ipv4", "value": "192.0.2.1"}},
+        {"type": "delivered_to", "target": {"type": "ipv4", "value": "192.0.2.2"}},
+        {"type": "delivered_to", "target": {"type": "ipv4", "value": "192.0.2.3"}},
+    ]});
+    let refused = orchestrator
+        .check_relationship_targets(db.pool(), root, &result(relating.clone()))
+        .await
+        .expect("reads")
+        .expect_err("refused");
+    assert!(
+        refused.error.contains("ipv4:192.0.2.3") && !refused.error.contains("192.0.2.2"),
+        "{}",
+        refused.error
+    );
+    let mut fine = relating.clone();
+    fine["analyzed"]["relationships"]
+        .as_array_mut()
+        .expect("a list")
+        .pop();
+    orchestrator
+        .check_relationship_targets(db.pool(), root, &result(fine))
+        .await
+        .expect("reads")
+        .expect("takes a target in the root and one the result adds");
+    land_as(&test_db, &orchestrator, "test_other", relating, false).await;
+    let relationships = tree::relationships(db.pool(), root, fqdn)
+        .await
+        .expect("reads");
+    assert_eq!(
+        relationships,
+        [
+            related("192.0.2.1"),
+            related("192.0.2.2"),
+            ace_results::Relationship::new(
+                ace_results::RelationshipKind::RelatedTo,
+                ObservableRef::new(ObservableKind::Ipv4, "192.0.2.1"),
+            ),
+        ]
+    );
 }
 
 /// A root whose only task ended incomplete completes, as ace3's analysis ends with an incomplete

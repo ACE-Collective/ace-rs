@@ -1,6 +1,6 @@
-//! `type: executable` (PLAN.md decision 16): ace4 runs no hunt script. Each script the signatures'
-//! hunts run is a built-in *script command type*, Rust that computes what the script computes,
-//! registered with the script's path ([`CommandTypes::register_script`], as `ace_app::App::hunt_script`
+//! `type: executable` (PLAN.md decision 16): ace4 runs no hunt script. Each script a site's hunts
+//! run is a *script command type*, Rust that computes what the script computes, which the site's
+//! binary registers with the script's path ([`CommandTypes::register_script`], as `ace_app::App::hunt_script`
 //! does for the binary). An executable command whose path is a registered script's runs that type
 //! with what ace3 would have handed the script: the rendered arguments as its argv, the event or
 //! the stream on stdin, the command's rendered `env:`, and its `files:`, which it reads by the names
@@ -235,7 +235,7 @@ pub struct Scripts {
 
 impl Scripts {
     /// Registers `handler` as `name` for every executable whose path ends with `suffix`, such as
-    /// `hunts/scripts/dns_lookup.py`; one already registered for that suffix is replaced.
+    /// `hunts/scripts/field_values.py`; one already registered for that suffix is replaced.
     pub fn register(&mut self, suffix: &str, name: &str, handler: Arc<dyn Script>) {
         self.add(suffix, name, Ok(handler));
     }
@@ -468,21 +468,25 @@ mod tests {
             }
         }
         let mut scripts = Scripts::default();
-        scripts.register("hunts/scripts/dns_lookup.py", "dns_lookup", Arc::new(Echo));
+        scripts.register(
+            "hunts/scripts/field_values.py",
+            "field_values",
+            Arc::new(Echo),
+        );
         assert_eq!(
             scripts
-                .find("/opt/signatures/hunts/commands/../scripts/dns_lookup.py")
+                .find("/opt/signatures/hunts/commands/../scripts/field_values.py")
                 .map(|(n, _)| n),
-            Some("dns_lookup")
+            Some("field_values")
         );
         assert!(
             scripts
-                .find("/opt/signatures/other/dns_lookup.py")
+                .find("/opt/signatures/other/field_values.py")
                 .is_none()
         );
         assert!(
             scripts
-                .find("/opt/x/hunts/scripts/dns_lookup.py.bak")
+                .find("/opt/x/hunts/scripts/field_values.py.bak")
                 .is_none()
         );
         assert!(scripts.find("").is_none());

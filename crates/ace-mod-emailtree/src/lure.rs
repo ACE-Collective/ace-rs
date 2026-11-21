@@ -307,6 +307,7 @@ impl Module for LureUrlAnalyzer {
         tags: &[],
         directives: &[CRAWL],
         detections: false,
+        relationships: false,
     });
     const READS_TREE_FILES: Option<TreeFiles> = Some(TreeFiles {
         names_containing: &BODY_PART_MARKERS,

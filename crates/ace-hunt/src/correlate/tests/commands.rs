@@ -774,11 +774,41 @@ fn a_script_type_that_failed_to_build_fails_its_step() {
             "ValueError: script command type 'echo' failed to load: echo needs settings".to_owned()
         )
     );
-    // removed_hunt_three needs a home tenant
-    let built = crate::correlate::scripts::build(
-        "removed_hunt_three",
-        &crate::correlate::scripts::cases::Fake::new(json!({})).net(),
-        &Json::Null,
-    );
+    // the example type refuses settings it doesn't take
+    let built = crate::correlate::scripts::example::build(&json!({"limits": 3}));
     assert!(built.is_err());
+}
+
+/// ace4's example script command type (`scripts::example`), registered as a site registers one,
+/// runs for an executable whose path ends with its suffix, with the event on stdin.
+#[test]
+fn the_example_script_type_runs_for_its_path() {
+    use crate::correlate::scripts::example;
+    let dir = std::path::Path::new(&echo_path())
+        .parent()
+        .expect("the scripts directory")
+        .to_owned();
+    let path = dir.join("field_values.py");
+    std::fs::write(&path, "").expect("written");
+    let mut f = Fixture::default();
+    f.types.register_script(
+        example::SUFFIX,
+        example::NAME,
+        example::build(&Json::Null).expect("builds"),
+    );
+    let cmd = command(json!({
+        "type": "executable", "path": path.to_string_lossy(),
+        "args": ["--field", "{{ _event.key }}"], "stdin": true,
+    }));
+    let result = exec(
+        &f,
+        &cmd,
+        json!({"key": "user", "user": "admin"}),
+        "event",
+        &[],
+    );
+    assert_eq!(
+        result.as_deref(),
+        Ok("{\"field\": \"user\", \"count\": 1, \"values\": [\"admin\"]}\n")
+    );
 }

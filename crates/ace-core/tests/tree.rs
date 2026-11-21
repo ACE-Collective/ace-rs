@@ -466,8 +466,14 @@ async fn sample_root(db: &ace_core::Db, reversed: bool) -> uuid::Uuid {
     tree::add_file(&mut tx, root.id, part, "a.zip.extracted/b", &[])
         .await
         .expect("adds");
+    // a relationship from an observable already in the root, as a result's additions make one
+    // (PLAN.md decision 37): it is in the normal form as a new observable's is
     let additions = ObservableAdditions {
         yara_meta: vec![YaraMeta::new("type", "archive").expect("a tag")],
+        relationships: vec![Relationship::new(
+            RelationshipKind::RelatedTo,
+            ObservableRef::new(ObservableKind::File, PART),
+        )],
         ..ObservableAdditions::default()
     };
     tree::add_to_observable(&mut tx, root.id, zip, &additions)
@@ -518,7 +524,7 @@ async fn the_normal_form_holds_the_tree_in_a_fixed_order() {
                     "tags": {},
                     "directives": {},
                     "excluded_analysis": {},
-                    "relationships": {},
+                    "relationships": {format!("related_to file:{PART}"): true},
                     "detections": {"a rule matched": [{"n": 1}, {"n": 2}]},
                     "paths": {"a.zip": {"type=archive": true}},
                     "results": {

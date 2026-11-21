@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.ordinality AS \"ordinality!\"\n           FROM unnest($2::text[], $3::text[]) WITH ORDINALITY AS t(type, value, ordinality)\n           WHERE NOT EXISTS (\n               SELECT 1 FROM analysis.observables o\n               WHERE o.root_id = $1 AND o.type = t.type\n                 AND o.value_hash = analysis.value_hash(t.value))\n           ORDER BY t.ordinality",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ordinality!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "54451914f07d738d05305143c5d1736b6c4e436cd0905c0a610772521dfc69d2"
+}

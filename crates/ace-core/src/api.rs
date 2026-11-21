@@ -1609,8 +1609,15 @@ impl Api {
             }
             return self.land_type(worker, &task, &result).await;
         }
-        let mut result: ResultEnvelope<Value> = serde_json::from_value(result)
+        let raw = result;
+        let mut result = <ResultEnvelope<Value> as serde::Deserialize>::deserialize(&raw)
             .map_err(|e| Failure::BadRequest(format!("the result doesn't read: {e}")))?;
+        if let Err(rejected) = orchestrator
+            .check_relationship_targets(self.inner.db.pool(), task.root, &result)
+            .await?
+        {
+            return Err(self.reject(worker, &task, &raw, rejected).await);
+        }
         if let Some(error) = &result.error {
             // at INFO, as ace3 logs a failure a module reports itself: the module expected it, so
             // it is no failed task and leaves no crash to replay

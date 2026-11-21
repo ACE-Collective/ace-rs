@@ -396,7 +396,7 @@ impl App {
     }
 
     /// Adds a script command type (PLAN.md decision 16): an executable correlation command whose
-    /// path ends with `suffix`, such as `hunts/scripts/dns_lookup.py`, runs the type `build` makes,
+    /// path ends with `suffix`, such as `hunts/scripts/field_values.py`, runs the type `build` makes,
     /// named `name`, rather than the script. Only `ace hunter` builds them, with its network; `ace
     /// serve` validates a hunt that runs one but has none to run. One with a suffix already added
     /// takes its place.
@@ -1298,8 +1298,6 @@ impl LookupPool {
 mod tests {
     use super::*;
 
-    /// A script type is built with its settings; one that can't be is recorded and fails the
-    /// steps that run it, and settings for a type the binary hasn't are refused (decision 16).
     /// PLAN.md decision 32 part (b): a site registers a pivot link icon by name, a PNG, which the
     /// GUI then serves; ace4 registers none.
     #[test]
@@ -1314,39 +1312,50 @@ mod tests {
         assert!(bad.is_err(), "a name with a space isn't taken");
     }
 
+    /// A script type is built with its settings; one that can't be is recorded and fails the
+    /// steps that run it, and settings for a type the binary hasn't are refused (decision 16).
+    /// ace4's example type stands for a site's.
     #[test]
     fn hunt_scripts_are_built_with_their_settings() {
-        let mut app = App::new();
-        for (suffix, name) in ace_hunt::correlate::scripts::SCRIPTS {
-            app = app.hunt_script(suffix, name, move |net, settings| {
-                ace_hunt::correlate::scripts::build(name, net, settings)
-            });
-        }
+        use ace_hunt::correlate::scripts::example;
+        let app = App::new().hunt_script(example::SUFFIX, example::NAME, |_, settings| {
+            example::build(settings)
+        });
+        assert_eq!(
+            app.hunt_script_names(),
+            [("hunts/scripts/field_values.py", "field_values")]
+        );
         let net = hunter::net::net().expect("a network");
-        let mut types = ace_hunt::correlate::command::CommandTypes::new();
-        app.build_hunt_scripts(&mut types, &net, &std::collections::BTreeMap::new())
-            .expect("built");
-        let path = |name: &str| format!("/signatures/hunts/commands/../scripts/{name}.py");
+        let path = "/signatures/hunts/commands/../scripts/field_values.py";
+        let built = |settings: &std::collections::BTreeMap<String, serde_json::Value>| {
+            let mut types = ace_hunt::correlate::command::CommandTypes::new();
+            app.build_hunt_scripts(&mut types, &net, settings)
+                .expect("built");
+            types.scripts().find(path).map(|(name, built)| {
+                (
+                    name.to_owned(),
+                    built.as_ref().map(|_| ()).map_err(Clone::clone),
+                )
+            })
+        };
+        assert_eq!(
+            built(&std::collections::BTreeMap::new()),
+            Some(("field_values".to_owned(), Ok(())))
+        );
+        let settings = |value: serde_json::Value| {
+            std::collections::BTreeMap::from([("field_values".to_owned(), value)])
+        };
+        assert_eq!(
+            built(&settings(serde_json::json!({"limit": 3}))),
+            Some(("field_values".to_owned(), Ok(())))
+        );
         assert!(matches!(
-            types.scripts().find(&path("removed_hunt_three")),
-            Some(("removed_hunt_three", Err(e))) if e.contains("home_tenant")
-        ));
-        assert!(matches!(
-            types.scripts().find(&path("dns_lookup")),
-            Some(("dns_lookup", Ok(_)))
-        ));
-        let settings = std::collections::BTreeMap::from([(
-            "removed_hunt_three".to_owned(),
-            serde_json::json!({"home_tenant": "Example.onmicrosoft.com"}),
-        )]);
-        app.build_hunt_scripts(&mut types, &net, &settings)
-            .expect("built");
-        assert!(matches!(
-            types.scripts().find(&path("removed_hunt_three")),
-            Some((_, Ok(_)))
+            built(&settings(serde_json::json!({"lmit": 3}))),
+            Some((_, Err(e))) if e.contains("field_values's settings")
         ));
         let unknown =
             std::collections::BTreeMap::from([("nope".to_owned(), serde_json::json!({}))]);
+        let mut types = ace_hunt::correlate::command::CommandTypes::new();
         assert!(app.build_hunt_scripts(&mut types, &net, &unknown).is_err());
     }
 

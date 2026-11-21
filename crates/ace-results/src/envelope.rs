@@ -366,9 +366,11 @@ impl NewObservable {
     }
 }
 
-/// What a result adds to an observable already in the alert: tags, directives, `yara_meta` tags
-/// and detection points. ace3's modules change the observable they analyze this way, such as the
-/// email module tagging a message `authentication_failed` or the YARA module adding `sandbox`.
+/// What a result adds to an observable already in the alert: tags, directives, `yara_meta` tags,
+/// detection points and relationships. ace3's modules change the observable they analyze this way,
+/// such as the email module tagging a message `authentication_failed`, the YARA module adding
+/// `sandbox`, or a module relating an email delivery to the mailboxes its mail went to
+/// (`add_relationship`).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ObservableAdditions {
@@ -380,6 +382,11 @@ pub struct ObservableAdditions {
     pub yara_meta: Vec<YaraMeta>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub detections: Vec<Detection>,
+    /// Relationships from the observable, as ace3's `Observable.add_relationship` makes them on one
+    /// already in the tree (PLAN.md decision 37). Each target must be in the root, or added by the
+    /// same result; the core refuses a result with one that is neither.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub relationships: Vec<Relationship>,
 }
 
 impl ObservableAdditions {
@@ -388,6 +395,13 @@ impl ObservableAdditions {
             && self.directives.is_empty()
             && self.yara_meta.is_empty()
             && self.detections.is_empty()
+            && self.relationships.is_empty()
+    }
+
+    /// Adds a relationship unless the same one is already there, as ace3's `add_relationship`
+    /// returns the one it has.
+    pub fn add_relationship(&mut self, relationship: Relationship) {
+        push_unique(&mut self.relationships, relationship);
     }
 
     /// Adds a tag unless it is already there, as ace3's `add_tag` does.
@@ -607,6 +621,38 @@ mod tests {
         // a result without links says nothing about them
         let plain = serde_json::to_value(sample()).expect("json");
         assert!(plain.get("pivot_links").is_none());
+    }
+
+    /// PLAN.md decision 37: what a result adds to an observable already in the alert takes
+    /// relationships, once each, as ace3's `add_relationship` returns the one it has; the schema
+    /// takes only ace3's relationship types.
+    #[test]
+    fn additions_carry_relationships_once_each() {
+        let mut additions = ObservableAdditions::default();
+        assert!(additions.is_empty());
+        let delivered = Relationship::new(
+            RelationshipKind::DeliveredTo,
+            ObservableRef::new(
+                ObservableKind::EmailDelivery,
+                "<m@example.com>|b@example.com",
+            ),
+        );
+        additions.add_relationship(delivered.clone());
+        additions.add_relationship(delivered);
+        assert!(!additions.is_empty());
+        let mut result = sample();
+        result.analyzed = additions;
+        let value = serde_json::to_value(&result).expect("serializes");
+        assert_eq!(
+            value["analyzed"],
+            json!({"relationships": [{"type": "delivered_to", "target": {
+                "type": "email_delivery", "value": "<m@example.com>|b@example.com"}}]})
+        );
+        let validator = crate::validate::ResultValidator::of::<HeaderDump>().expect("a schema");
+        assert!(validator.validate(&value).is_ok());
+        let mut unknown = value.clone();
+        unknown["analyzed"]["relationships"][0]["type"] = json!("forwarded_to");
+        assert!(validator.validate(&unknown).is_err());
     }
 
     #[test]

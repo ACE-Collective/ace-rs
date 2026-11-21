@@ -263,7 +263,23 @@ pub async fn upsert_observable_at(
     )
     .fetch_one(tx.conn())
     .await?;
-    for relationship in &observable.relationships {
+    add_relationships(tx, root, row.id, &observable.relationships).await?;
+    Ok(Upserted {
+        id: row.id,
+        inserted: row.inserted,
+    })
+}
+
+/// Relationships from `observable` that it doesn't have yet. A new one counts as a change to the
+/// observable, which runs again a task of it that ended incomplete (PLAN.md decision 34, migration
+/// 0078's trigger); one it already has doesn't.
+async fn add_relationships(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    observable: ObservableId,
+    relationships: &[Relationship],
+) -> Result<(), DbError> {
+    for relationship in relationships {
         let kind = serde_json::to_value(relationship.kind)
             .ok()
             .and_then(|kind| kind.as_str().map(str::to_owned))
@@ -274,7 +290,7 @@ pub async fn upsert_observable_at(
              VALUES ($1, $2, $3, $4, $5)
              ON CONFLICT DO NOTHING",
             root,
-            row.id as ObservableId,
+            observable as ObservableId,
             kind,
             relationship.target.kind.as_str(),
             relationship.target.value,
@@ -282,10 +298,7 @@ pub async fn upsert_observable_at(
         .execute(tx.conn())
         .await?;
     }
-    Ok(Upserted {
-        id: row.id,
-        inserted: row.inserted,
-    })
+    Ok(())
 }
 
 /// The root's observables, in the order they were added.
@@ -445,8 +458,9 @@ pub async fn has_detection(
     .await?)
 }
 
-/// What a result adds to an observable already in the root: tags and directives it doesn't have
-/// yet, and `yara_meta` tags on each path it has if it is a file. Detections are recorded apart,
+/// What a result adds to an observable already in the root: tags, directives and relationships it
+/// doesn't have yet, and `yara_meta` tags on each path it has if it is a file, as a new
+/// observable's land in `upsert_observable` (PLAN.md decision 37). Detections are recorded apart,
 /// with the result that raised them.
 pub async fn add_to_observable(
     tx: &mut Tx<'_>,
@@ -479,6 +493,7 @@ pub async fn add_to_observable(
     )
     .execute(tx.conn())
     .await?;
+    add_relationships(tx, root, observable, &additions.relationships).await?;
     Ok(())
 }
 
@@ -554,6 +569,38 @@ pub async fn find_observable<'e>(
     )
     .fetch_optional(executor)
     .await?)
+}
+
+/// Of `targets`, those the root doesn't hold, in their order.
+pub async fn missing_observables<'e>(
+    executor: impl PgExecutor<'e>,
+    root: Uuid,
+    targets: &[ObservableRef],
+) -> Result<Vec<ObservableRef>, DbError> {
+    if targets.is_empty() {
+        return Ok(Vec::new());
+    }
+    let kinds: Vec<String> = targets.iter().map(|t| t.kind.as_str().to_owned()).collect();
+    let values: Vec<String> = targets.iter().map(|t| t.value.clone()).collect();
+    let rows = sqlx::query!(
+        r#"SELECT t.ordinality AS "ordinality!"
+           FROM unnest($2::text[], $3::text[]) WITH ORDINALITY AS t(type, value, ordinality)
+           WHERE NOT EXISTS (
+               SELECT 1 FROM analysis.observables o
+               WHERE o.root_id = $1 AND o.type = t.type
+                 AND o.value_hash = analysis.value_hash(t.value))
+           ORDER BY t.ordinality"#,
+        root,
+        &kinds,
+        &values,
+    )
+    .fetch_all(executor)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .filter_map(|row| usize::try_from(row.ordinality - 1).ok())
+        .filter_map(|i| targets.get(i).cloned())
+        .collect())
 }
 
 /// Records a detection on an observable, raised by `result`.

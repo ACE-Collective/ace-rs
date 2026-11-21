@@ -145,24 +145,18 @@ pub fn lookup_pool() -> LookupPool {
 }
 
 /// The open-source binaries' list: the four pools, no observable types beyond ace3's, ace3's
-/// one open-source hunt type, Splunk (PLAN.md 6.2), and the script command types that stand in for
-/// the signatures' hunt scripts (decision 16). `ace hunter` checks the Splunk instance a hunt
-/// names against its configuration's (6.4); elsewhere a hunt's `splunk_config` isn't checked.
+/// one open-source hunt type, Splunk (PLAN.md 6.2), and no hunt script command types, which a
+/// site's binary adds for its own scripts (decision 16). `ace hunter` checks the Splunk instance a
+/// hunt names against its configuration's (6.4); elsewhere a hunt's `splunk_config` isn't checked.
 pub fn app() -> App {
-    let mut app = App::new()
+    App::new()
         .parser_pool(parser_pool())
         .parser_pool(sandbox_pool())
         .lookup_pool(lookup_pool())
         .scanner_pool(scanner_pool())
         // ace3's protected_url_analyzer is in its common group, and this does its network half
         .module_in_group("common", "protected_url_one_drive")
-        .hunt_type(ace_hunt::types::Splunk::default());
-    for (suffix, name) in ace_hunt::correlate::scripts::SCRIPTS {
-        app = app.hunt_script(suffix, name, move |net, settings| {
-            ace_hunt::correlate::scripts::build(name, net, settings)
-        });
-    }
-    app
+        .hunt_type(ace_hunt::types::Splunk::default())
 }
 
 #[cfg(test)]
@@ -205,23 +199,11 @@ mod tests {
         );
     }
 
-    /// Each of the signatures' 7 hunt scripts is a script command type (PLAN.md decision 16).
+    /// The open-source binary has no hunt script command types: a site's binary registers its own
+    /// (PLAN.md decision 16, `App::hunt_script`).
     #[test]
-    fn the_hunt_scripts_are_script_command_types() {
-        let app = super::app();
-        let names: Vec<&str> = app.hunt_script_names().iter().map(|(_, n)| *n).collect();
-        assert_eq!(
-            names,
-            [
-                "signature_name_12",
-                "removed_hunt_one",
-                "dns_lookup",
-                "signature_name_11",
-                "is_proxy_ip",
-                "removed_hunt_three",
-                "signature_name_13"
-            ]
-        );
+    fn the_open_source_binary_has_no_hunt_scripts() {
+        assert!(super::app().hunt_script_names().is_empty());
     }
 
     /// The list's groups are ace3's and its modules registered, so `ace` starts with no overlay

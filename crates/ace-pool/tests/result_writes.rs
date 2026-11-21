@@ -339,6 +339,113 @@ async fn a_leased_task_says_what_its_observable_redirects_to_and_is_related_to()
     );
 }
 
+/// PLAN.md decision 37: a result relates the observable it analyzed to others, as ace3's
+/// `add_relationship` does on an observable of the tree. A target the root doesn't hold, and the
+/// result doesn't add, is refused, as ace3 takes only an observable of the tree; one the result adds
+/// and one already in the root land, on the analyzed observable, once each.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_result_relates_its_observable_only_to_one_in_the_root_or_one_it_adds() {
+    let core = Core::start(
+        vec![ace_mod_archive::MANIFEST],
+        &["archive"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let client = LeaseClient::new(&core.url, TOKEN, "checker").expect("a client");
+    let end = |result: serde_json::Value| TaskEnd::Done {
+        result: serde_json::from_value(result).expect("an envelope"),
+        writes: Vec::new(),
+        probes: Default::default(),
+    };
+    let related = |targets: &[(&str, &str)]| {
+        json!({
+            "analysis_type": "archive_analysis",
+            "schema_version": 1,
+            "details": {"file_count": 0, "extracted_files": []},
+            "observables": [{"type": "fqdn", "value": "added.example.com"}],
+            "analyzed": {"relationships": targets.iter().map(|(kind, value)| json!({
+                "type": "delivered_to", "target": {"type": kind, "value": value}
+            })).collect::<Vec<_>>()},
+        })
+    };
+
+    let (root, _, _) = core
+        .root_with_file("file", "ace3/archive/test.zip", "test.zip")
+        .await;
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the archive task");
+    let before = written(&core, root).await;
+    let refused = client
+        .end(
+            task.id,
+            &end(related(&[
+                ("fqdn", "added.example.com"),
+                ("fqdn", "elsewhere.example.com"),
+            ])),
+        )
+        .await;
+    let Err(ClientError::Api { status, error }) = refused else {
+        panic!("expected a refusal, got {refused:?}");
+    };
+    assert_eq!(status, 422);
+    assert!(
+        error.error.contains("fqdn:elsewhere.example.com"),
+        "{error:?}"
+    );
+    assert_eq!(written(&core, root).await, before, "nothing was written");
+    assert_eq!(task_of(&core, root, "archive").await.0, "failed");
+
+    // a second root, whose zip is related to an fqdn already in it and to one the result adds
+    let (root, zip, _) = core
+        .root_with_file("file", "ace3/archive/test.zip", "test.zip")
+        .await;
+    let db = core.test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    tree::upsert_observable(
+        &mut tx,
+        root,
+        &NewObservable::new(ObservableKind::Fqdn, "there.example.com"),
+    )
+    .await
+    .expect("adds");
+    tx.commit().await.expect("commits");
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the archive task");
+    client
+        .end(
+            task.id,
+            &end(related(&[
+                ("fqdn", "added.example.com"),
+                ("fqdn", "there.example.com"),
+                ("fqdn", "there.example.com"),
+            ])),
+        )
+        .await
+        .expect("lands");
+    let relationships = tree::relationships(db.pool(), root, zip)
+        .await
+        .expect("reads");
+    let delivered = |value: &str| {
+        Relationship::new(
+            RelationshipKind::DeliveredTo,
+            ObservableRef::new(ObservableKind::Fqdn, value),
+        )
+    };
+    assert_eq!(
+        relationships,
+        [
+            delivered("added.example.com"),
+            delivered("there.example.com")
+        ]
+    );
+}
+
 /// Postgres refuses a NUL in text and in JSONB, and a module's output and errors can quote what a
 /// hostile file holds. A task must still end, with the NUL replaced, not fail to land and wait out
 /// its lease on every attempt.

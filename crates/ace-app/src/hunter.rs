@@ -40,8 +40,8 @@
 //! `SplunkQuerySource` does. Its custom command types are the binary's (`App::command_type`), a
 //! command's `cache:` is kept in memory (`correlation_cache_bytes`), and what the run logs and the
 //! trace holds is scrubbed of the Splunk credentials the hunter holds, which no template can read.
-//! A `type: executable` command runs no script (PLAN.md decision 16): one of the signatures' hunt
-//! scripts runs as the script command type the binary registers for its path (`App::hunt_script`),
+//! A `type: executable` command runs no script (PLAN.md decision 16): a hunt script runs as the
+//! script command type the site's binary registers for its path (`App::hunt_script`),
 //! built over the hunter's network ([`net`]) with its settings in the configuration's `scripts`, and
 //! its `files:` are read from the signatures checkout. Any other executable fails its step.
 //!
@@ -112,8 +112,8 @@ pub struct HunterConfig {
     /// The bytes of correlation command outputs kept for their `cache:`.
     #[serde(default = "default_cache_bytes")]
     pub correlation_cache_bytes: usize,
-    /// Each script command type's settings, by its name (`App::hunt_script`), such as
-    /// `removed_hunt_three`'s home tenant (PLAN.md decision 16).
+    /// Each script command type's settings, by its name (`App::hunt_script`), such as a site's own
+    /// values a script holds in its code (PLAN.md decision 16).
     #[serde(default)]
     pub scripts: BTreeMap<String, Json>,
 }

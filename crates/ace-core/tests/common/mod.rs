@@ -128,6 +128,7 @@ pub mod stubs {
                 tags: &["x"],
                 directives: &["crawl"],
                 detections: false,
+                relationships: false,
             });
         type Output = SetsRootOutput;
         type Settings = ();

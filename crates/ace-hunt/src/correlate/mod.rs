@@ -17,8 +17,9 @@
 //!
 //! **`type: executable` runs no script** (PLAN.md decision 16). ace3 runs a hunt's executable, in
 //! the signatures one of the Python scripts under `hunts/scripts/`, in a Landlock sandbox
-//! (`saq/sandbox/`). ace4 has no Python and runs no hunt code: each of those scripts is a built-in
-//! script command type ([`scripts`]), Rust that computes what the script does, and an executable
+//! (`saq/sandbox/`). ace4 has no Python and runs no hunt code: each of those scripts is a script
+//! command type that the site's binary registers, Rust that computes what the script does, written
+//! with [`scripts`]' helpers, and an executable
 //! whose path is one of theirs runs it with what ace3 would hand the script ([`script`]). An
 //! executable that isn't one fails its step, so its event falls through to an alert, as ace3's does
 //! where Landlock is missing; a hunt that names one loads and validates. [`net`] is the network the

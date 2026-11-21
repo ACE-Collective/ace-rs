@@ -16,6 +16,10 @@
 //! have a view of the site's own, its analysis template (5.9), and a ticket has an observable action
 //! of the site's own that opens it, both named by the binary's list.
 //!
+//! Its hunts' `type: executable` command for `hunts/scripts/field_values.py` runs ace4's example
+//! script command type (`ace_hunt::correlate::scripts::example`, PLAN.md decision 16), registered
+//! with `App::hunt_script` as a site registers the types of its own hunt scripts.
+//!
 //! It adds a directive an analyst may add to an observable, `example_ticket_history`, which the alert
 //! page's Add Directive and the JSON API offer beside ace3's (PLAN.md decision 31).
 //!
@@ -113,6 +117,11 @@ pub fn app() -> App {
         .alert_router_type(EXAMPLE_TAG_ROUTER, |settings| {
             Ok(std::sync::Arc::new(ExampleTagRouter::new(settings)?))
         })
+        .hunt_script(
+            ace_hunt::correlate::scripts::example::SUFFIX,
+            ace_hunt::correlate::scripts::example::NAME,
+            |_, settings| ace_hunt::correlate::scripts::example::build(settings),
+        )
 }
 
 /// The example alert router's type name, which an overlay's `alert_routers:` entry names.

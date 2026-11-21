@@ -201,12 +201,14 @@ pub trait Module: Sized + Send + Sync + 'static {
 }
 
 /// What a module may add to other observables in its root (`Module::ADDS_TO_OTHERS`): these tags and
-/// directives, and detections only when `detections` is true. Never `yara_meta`.
+/// directives, detections only when `detections` is true, and relationships only when
+/// `relationships` is true. Never `yara_meta`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OtherAdditionsAllowed {
     pub tags: &'static [&'static str],
     pub directives: &'static [&'static str],
     pub detections: bool,
+    pub relationships: bool,
 }
 
 impl OtherAdditionsAllowed {
@@ -228,6 +230,9 @@ impl OtherAdditionsAllowed {
         }
         if !additions.detections.is_empty() && !self.detections {
             return Some("a detection".to_owned());
+        }
+        if !additions.relationships.is_empty() && !self.relationships {
+            return Some("a relationship".to_owned());
         }
         if !additions.yara_meta.is_empty() {
             return Some("a yara_meta tag".to_owned());

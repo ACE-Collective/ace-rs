@@ -272,7 +272,7 @@ expression: text
     },
     "ObservableAdditions": {
       "additionalProperties": false,
-      "description": "What a result adds to an observable already in the alert: tags, directives, `yara_meta` tags\nand detection points. ace3's modules change the observable they analyze this way, such as the\nemail module tagging a message `authentication_failed` or the YARA module adding `sandbox`.",
+      "description": "What a result adds to an observable already in the alert: tags, directives, `yara_meta` tags,\ndetection points and relationships. ace3's modules change the observable they analyze this way,\nsuch as the email module tagging a message `authentication_failed`, the YARA module adding\n`sandbox`, or a module relating an email delivery to the mailboxes its mail went to\n(`add_relationship`).",
       "properties": {
         "detections": {
           "items": {
@@ -283,6 +283,13 @@ expression: text
         "directives": {
           "items": {
             "type": "string"
+          },
+          "type": "array"
+        },
+        "relationships": {
+          "description": "Relationships from the observable, as ace3's `Observable.add_relationship` makes them on one\nalready in the tree (PLAN.md decision 37). Each target must be in the root, or added by the\nsame result; the core refuses a result with one that is neither.",
+          "items": {
+            "$ref": "#/$defs/Relationship"
           },
           "type": "array"
         },
