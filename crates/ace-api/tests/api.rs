@@ -1931,8 +1931,9 @@ async fn reads_observables(client: &mut Client<'_>, token: &str, id: Uuid, file:
     .await
     .expect("the fqdn");
     let result: i64 = sqlx::query_scalar(
-        "INSERT INTO analysis.results (root_id, observable_id, module, analysis_type, schema_version, details, summary)
-         VALUES ($1, $2, 'rdap_analyzer', 'test_stub', 1, '{\"note\": \"found\"}', 'a summary') RETURNING id",
+        "INSERT INTO analysis.results (root_id, observable_id, module, analysis_type, schema_version, details, summary, pivot_links)
+         VALUES ($1, $2, 'rdap_analyzer', 'test_stub', 1, '{\"note\": \"found\"}', 'a summary',
+                 '[{\"url\": \"https://rdap.example.com/d/1\", \"text\": \"RDAP\", \"icon\": \"rdap\"}]') RETURNING id",
     )
     .bind(id).bind(fqdn).fetch_one(db).await.expect("a result");
     sqlx::query("INSERT INTO analysis.detections (root_id, observable_id, result_id, description) VALUES ($1, $2, $3, 'bad')")
@@ -1975,6 +1976,35 @@ async fn reads_observables(client: &mut Client<'_>, token: &str, id: Uuid, file:
     assert_eq!(observables[0]["results"][0]["error"], "rdap: no answer");
     assert_eq!(observables[0]["results"][1]["summary"], "a summary");
     assert_eq!(observables[0]["results"][1]["error"], Value::Null);
+    // each result's pivot links (PLAN.md decision 32 part (b)), none for one without
+    assert_eq!(
+        observables[0]["results"][1]["pivot_links"],
+        json!([{"url": "https://rdap.example.com/d/1", "text": "RDAP", "icon": "rdap"}])
+    );
+    assert_eq!(observables[0]["results"][0]["pivot_links"], json!([]));
+    // and the alert's own, on its detail
+    sqlx::query(
+        "UPDATE analysis.roots SET pivot_links = '[{\"url\": \"https://hunt.example.com/q\", \"text\": \"Search\"}]'
+         WHERE id = $1",
+    )
+    .bind(id)
+    .execute(db)
+    .await
+    .expect("the root's links");
+    let detail = client
+        .json(
+            Method::GET,
+            ONE,
+            &fill(ONE, id, 0),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(
+        detail["pivot_links"],
+        json!([{"url": "https://hunt.example.com/q", "text": "Search", "icon": null}])
+    );
     // the module whose task failed left no result, so it's listed apart, by its task
     assert_eq!(
         observables[0]["failed_modules"],

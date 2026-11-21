@@ -304,7 +304,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let gui = ace_gui::Gui::new(service.clone(), web_config.transport)
         .with_views(app.views().clone())
         .with_actions(app.actions().clone())
-        .with_summaries(app.alert_summaries().clone());
+        .with_summaries(app.alert_summaries().clone())
+        .with_icons(app.pivot_link_icons().clone());
     let web = ace_api::Web::new(service, bucket.clone(), web_config)
         .with_email_archive(archive)
         .with_hunts(ace_api::HuntSupport {

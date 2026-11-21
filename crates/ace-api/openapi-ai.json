@@ -958,7 +958,8 @@
           "alert",
           "observables",
           "files",
-          "detections"
+          "detections",
+          "pivot_links"
         ],
         "properties": {
           "alert": {
@@ -975,6 +976,13 @@
           "observables": {
             "type": "integer",
             "format": "int64"
+          },
+          "pivot_links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PivotLinkBody"
+            },
+            "description": "The alert's own links out of ACE, such as those its hunt rendered: ace3's root\n`pivot_links`."
           }
         }
       },
@@ -1910,6 +1918,29 @@
           }
         }
       },
+      "PivotLinkBody": {
+        "type": "object",
+        "description": "A link out of ACE: ace3's `PivotLink` (PLAN.md decision 32 part (b)). The URL is always\n`https://`; the icon, when there is one, is served at `/icons/{icon}` by the GUI.",
+        "required": [
+          "url",
+          "text"
+        ],
+        "properties": {
+          "icon": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The name of an icon the binary registers, or null for a link with none."
+          },
+          "text": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
       "QueryBody": {
         "type": "object",
         "description": "ace3's `AIQueryResponse`.",
@@ -2066,7 +2097,8 @@
           "tags",
           "details",
           "created_at",
-          "from_cache_hit"
+          "from_cache_hit",
+          "pivot_links"
         ],
         "properties": {
           "analysis_type": {
@@ -2100,6 +2132,13 @@
           },
           "module": {
             "type": "string"
+          },
+          "pivot_links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PivotLinkBody"
+            },
+            "description": "The result's links out of ACE, ace3's `pivot_links`, in order."
           },
           "schema_version": {
             "type": "integer",

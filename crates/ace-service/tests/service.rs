@@ -13465,6 +13465,7 @@ fn graph_result(id: i64, module: &str) -> ModuleResult {
         details: serde_json::json!({}),
         created_at: chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time"),
         cached_at: None,
+        pivot_links: Vec::new(),
     }
 }
 
@@ -13498,6 +13499,7 @@ fn graph_tree(
             observables: i64::try_from(observables.len()).expect("a count"),
             files: 0,
             detections: 0,
+            pivot_links: Vec::new(),
         },
         observables,
         top,
@@ -14541,6 +14543,7 @@ fn hunt_submission() -> HuntSubmission {
             observables: vec![ip, signature],
             details: Some(json!({"alert_type": "hunter - splunk", "queue": "default"})),
             queue: None,
+            pivot_links: Vec::new(),
         },
         dedup_key: None,
         suppression_key: None,

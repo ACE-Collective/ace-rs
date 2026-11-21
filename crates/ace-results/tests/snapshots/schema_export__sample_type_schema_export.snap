@@ -455,6 +455,36 @@ expression: text
       ],
       "type": "object"
     },
+    "PivotLink": {
+      "additionalProperties": false,
+      "description": "A link out of ACE with a label and, if it has one, an icon: ace3's `PivotLink`. Only an\n`https://` URL of printable ASCII with nothing an attribute or a browser would read differently\n(no quote, angle bracket, backslash or backtick) is taken, so a link can't run script or break out\nof the page. The icon is the name of an image the binary registers and ACE serves itself\n(`ace_app::App::pivot_link_icon`); ace3 also takes a `data:` URL or another site's image, which\nace4 refuses, as its pages load images from ACE alone.",
+      "properties": {
+        "icon": {
+          "description": "The registered icon's name: 1 to 64 of a-z, 0-9, `_` and `-`.",
+          "pattern": "^[a-z0-9_-]{1,64}$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "description": "What the link says, and the icon's alternative text.",
+          "maxLength": 1024,
+          "pattern": "\\S",
+          "type": "string"
+        },
+        "url": {
+          "maxLength": 4096,
+          "pattern": "^https://[!#-&(-;=?-\\[\\]-_a-~]+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "text"
+      ],
+      "type": "object"
+    },
     "Relationship": {
       "additionalProperties": false,
       "description": "A relationship from the observable that carries it to `target`.",
@@ -661,6 +691,14 @@ expression: text
       "items": {
         "$ref": "#/$defs/OtherAdditions"
       },
+      "type": "array"
+    },
+    "pivot_links": {
+      "description": "Links out of ACE to where the result came from, such as a vendor's page about the email\n(ace3's `Analysis.pivot_links`, PLAN.md decision 32 part (b)), in order. The GUI shows each\nbeside the result.",
+      "items": {
+        "$ref": "#/$defs/PivotLink"
+      },
+      "maxItems": 100,
       "type": "array"
     },
     "redirected": {

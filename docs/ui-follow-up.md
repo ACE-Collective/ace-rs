@@ -60,6 +60,11 @@ The owner's direction, which every item here is measured against:
   Observable modal's multiselect. Check with analysts whether 16-plus boxes on a page read well, whether
   the list should be filtered by the observable's type (ace3 offers every one on every type), and whether
   the page should say which modules a directive lets in. It was looked at only in tests, not in a browser.
+- [ ] **Pivot links** (PLAN.md decision 32 part (b)): a result's are small links beside it in the tree,
+  an icon when the binary registered one, and an alert's own are an "External links" panel in the
+  summary, drawn only when it has some. Check with analysts whether the panel earns its place above the
+  type's summary, and whether a result's links should also show on its own page. Looked at only in
+  tests, not in a browser.
 
 ## Tables and lists
 

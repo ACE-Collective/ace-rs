@@ -85,6 +85,7 @@ pub struct App {
     views: ace_gui::Views,
     actions: ace_gui::ObservableActions,
     summaries: ace_gui::AlertSummaries,
+    icons: ace_gui::PivotIcons,
     hunt_types: Vec<Arc<dyn ace_hunt::HuntType>>,
     command_types: Vec<(
         String,
@@ -307,6 +308,23 @@ impl App {
     pub fn alert_summary<T: ace_gui::AlertSummary>(mut self) -> App {
         self.summaries = self.summaries.with(ace_gui::SummaryEntry::of::<T>());
         self
+    }
+
+    /// Adds an icon a pivot link may name (PLAN.md decision 32 part (b)): `png`, a PNG of at most 64
+    /// KiB the binary embeds, which the GUI serves itself, as an ace3 integration ships an image in its
+    /// static directory for its pivot links. One with a registered icon's name takes its place. Panics
+    /// on a name that isn't 1 to 64 of a-z, 0-9, `_` and `-`, or bytes that aren't such a PNG, as a
+    /// binary that registers one is wrong when it starts.
+    pub fn pivot_link_icon(mut self, name: &'static str, png: &'static [u8]) -> App {
+        let icon = ace_gui::PivotIcon::new(name, png)
+            .unwrap_or_else(|why| panic!("App::pivot_link_icon: {why}"));
+        self.icons = std::mem::take(&mut self.icons).with(icon);
+        self
+    }
+
+    /// The icons pivot links may name: ace4's own, none, and the site's.
+    pub fn pivot_link_icons(&self) -> &ace_gui::PivotIcons {
+        &self.icons
     }
 
     /// Adds an observable action of the site's own (PLAN.md 5.9, #1032) after the open-source ones
@@ -1268,6 +1286,20 @@ mod tests {
 
     /// A script type is built with its settings; one that can't be is recorded and fails the
     /// steps that run it, and settings for a type the binary hasn't are refused (decision 16).
+    /// PLAN.md decision 32 part (b): a site registers a pivot link icon by name, a PNG, which the
+    /// GUI then serves; ace4 registers none.
+    #[test]
+    fn a_site_registers_a_pivot_link_icon() {
+        const PNG: &[u8] = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89";
+        assert!(App::new().pivot_link_icons().names().is_empty());
+        let app = App::new().pivot_link_icon("vendor_portal", PNG);
+        assert_eq!(app.pivot_link_icons().names(), ["vendor_portal"]);
+        let bad = std::panic::catch_unwind(|| App::new().pivot_link_icon("vendor", b"GIF89a"));
+        assert!(bad.is_err(), "a GIF isn't taken");
+        let bad = std::panic::catch_unwind(|| App::new().pivot_link_icon("Vendor Portal", PNG));
+        assert!(bad.is_err(), "a name with a space isn't taken");
+    }
+
     #[test]
     fn hunt_scripts_are_built_with_their_settings() {
         let mut app = App::new();

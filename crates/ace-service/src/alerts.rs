@@ -289,6 +289,9 @@ pub struct Alert {
     pub observables: i64,
     pub files: i64,
     pub detections: i64,
+    /// The root's links out of ACE, such as a hunt's (ace3's root `pivot_links`, PLAN.md decision
+    /// 32 part (b)), which its summary shows.
+    pub pivot_links: Vec<ace_results::PivotLink>,
 }
 
 /// A path a file observable has in the alert.
@@ -326,6 +329,8 @@ pub struct ModuleResult {
     /// that made the kept result ended, in another root or this one: ace3's `cached_at`, with its
     /// `from_cache_hit` this being set. None for a result a task made here.
     pub cached_at: Option<DateTime<Utc>>,
+    /// The result's links out of ACE (`ResultEnvelope::pivot_links`), shown beside it.
+    pub pivot_links: Vec<ace_results::PivotLink>,
 }
 
 /// A module whose task on an observable failed and left no result: it crashed, was killed at its
@@ -1121,6 +1126,11 @@ impl Service {
     }
 }
 
+/// Stored pivot links, which the core checked as they landed; a list that doesn't read is none.
+fn links(stored: Value) -> Vec<ace_results::PivotLink> {
+    serde_json::from_value(stored).unwrap_or_default()
+}
+
 /// One alert and its counts, in a read's transaction.
 pub(crate) async fn alert_in(
     tx: &mut ace_core::db::Tx<'_>,
@@ -1151,7 +1161,8 @@ pub(crate) async fn alert_in(
         r#"SELECT
              (SELECT count(*) FROM analysis.observables WHERE root_id = $1) AS "observables!",
              (SELECT count(*) FROM analysis.files WHERE root_id = $1) AS "files!",
-             (SELECT count(*) FROM analysis.detections WHERE root_id = $1) AS "detections!""#,
+             (SELECT count(*) FROM analysis.detections WHERE root_id = $1) AS "detections!",
+             (SELECT pivot_links FROM analysis.roots WHERE id = $1) AS "pivot_links!""#,
         id,
     )
     .fetch_one(tx.conn())
@@ -1161,6 +1172,7 @@ pub(crate) async fn alert_in(
         observables: counts.observables,
         files: counts.files,
         detections: counts.detections,
+        pivot_links: links(counts.pivot_links),
     })
 }
 
@@ -1265,7 +1277,7 @@ pub(crate) async fn observables_in(
     }
     for row in sqlx::query!(
         "SELECT id, observable_id, module, analysis_type, schema_version, summary, error, tags,
-                details, created_at, cached_at
+                details, created_at, cached_at, pivot_links
          FROM analysis.results
          WHERE root_id = $1 AND observable_id = ANY($2)
          ORDER BY observable_id, module",
@@ -1287,6 +1299,7 @@ pub(crate) async fn observables_in(
                 details: row.details,
                 created_at: row.created_at,
                 cached_at: row.cached_at,
+                pivot_links: links(row.pivot_links),
             });
         }
     }

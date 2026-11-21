@@ -733,6 +733,24 @@ pub fn to_core(submission: &query::Submission) -> (Submission, Origin) {
         details: serde_json::to_value(submission).ok(),
         // the hunt's queue, ace3's `RootAnalysis.queue` (PLAN.md 7.13)
         queue: Some(submission.queue.clone()),
+        // the links the hunt rendered for its alert, ace3's root pivot links (decision 32 part
+        // (b)); one ace4 can't show (not https://, or an icon that isn't a name) is left out
+        pivot_links: submission
+            .pivot_links
+            .iter()
+            .take(ace_results::MAX_PIVOT_LINKS)
+            .filter_map(|link| {
+                let mut pivot = ace_results::PivotLink::new(link.url.clone(), link.text.clone());
+                pivot.icon = link.icon.clone();
+                match pivot.refusal() {
+                    None => Some(pivot),
+                    Some(why) => {
+                        tracing::warn!("a hunt's pivot link is left out: {why}");
+                        None
+                    }
+                }
+            })
+            .collect(),
     };
     (core, origin)
 }

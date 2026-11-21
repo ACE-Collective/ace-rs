@@ -45,6 +45,7 @@
 {%- if let Some(when) = node.cached %} <span class="cached" title="From the analysis cache: the module's result from its run at {{ when }}, not run again here">cached</span>{% endif %}
 {%- if let Some(shown) = node.error_shown %} <span class="failure-reason">{{ shown }}</span>{% endif %}
 {%- for tag in node.tags %} <span class="tag">{{ tag }}</span>{% endfor %}
+{%- for link in node.links %} <a class="pivot" href="{{ link.url }}" rel="noreferrer noopener" target="_blank" title="{{ link.text }}">{% if let Some(icon) = link.icon %}<img src="{{ icon }}" alt="{{ link.text }}" width="12" height="12">{% else %}{{ link.text }}{% endif %}</a>{% endfor %}
 {%- when TreeLine::Failed(node) %}
 <li class="result failed" data-module="{{ node.module }}">
 <span class="failure" title="The analysis module failed: {{ node.reason }}">error</span>

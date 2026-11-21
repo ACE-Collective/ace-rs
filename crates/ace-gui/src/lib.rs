@@ -117,6 +117,7 @@ pub mod detection;
 pub mod events;
 mod headers;
 pub mod help;
+pub mod icons;
 pub mod list;
 pub mod monitoring;
 mod places;
@@ -142,6 +143,7 @@ pub use analysis::summary::{
 pub use analysis::{AnalysisView, ViewEntry, Views};
 pub use assets::{Asset, asset_named};
 pub use headers::content_security_policy;
+pub use icons::{PivotIcon, PivotIcons};
 
 /// The largest form a page posts. A login's is a name and a password of at most
 /// `ace_service::MAX_PASSWORD_BYTES`.
@@ -158,6 +160,7 @@ pub struct Gui {
     views: std::sync::Arc<Views>,
     actions: std::sync::Arc<ObservableActions>,
     summaries: std::sync::Arc<AlertSummaries>,
+    icons: std::sync::Arc<icons::PivotIcons>,
     refreshes: std::sync::Arc<places::Places>,
     cli_refreshes: std::sync::Arc<places::Places>,
     svs_attention: std::sync::Arc<session::NavCount>,
@@ -177,6 +180,7 @@ impl Gui {
             views: std::sync::Arc::new(Views::builtin()),
             actions: std::sync::Arc::new(ObservableActions::builtin()),
             summaries: std::sync::Arc::new(AlertSummaries::builtin()),
+            icons: std::sync::Arc::new(icons::PivotIcons::builtin()),
             refreshes: std::sync::Arc::new(places::Places::new(
                 list::REFRESH_LIMITS.0,
                 list::REFRESH_LIMITS.1,
@@ -217,6 +221,18 @@ impl Gui {
     pub fn with_summaries(mut self, summaries: AlertSummaries) -> Self {
         self.summaries = std::sync::Arc::new(summaries);
         self
+    }
+
+    /// The GUI serving these pivot link icons (PLAN.md decision 32 part (b)), the binary's list,
+    /// rather than ace4's own, which are none.
+    pub fn with_icons(mut self, icons: icons::PivotIcons) -> Self {
+        self.icons = std::sync::Arc::new(icons);
+        self
+    }
+
+    /// The icons a pivot link may name.
+    pub(crate) fn icons(&self) -> &icons::PivotIcons {
+        &self.icons
     }
 
     /// The GUI with these bounds on list refreshes (`list::REFRESH_LIMITS`): in all, and for one user.
@@ -502,6 +518,7 @@ impl Gui {
             .route("/help/{set}/{guide}", get(help::guide))
             .route("/help/{set}/images/{file}", get(help::image))
             .route("/static/{name}", get(assets::serve))
+            .route("/icons/{file}", get(icons::serve))
             .layer(DefaultBodyLimit::max(MAX_FORM_BYTES))
             .layer(axum::middleware::from_fn(headers::secure))
             .layer(axum::middleware::from_fn(session::with_source))

@@ -854,6 +854,7 @@ async fn every_response_has_the_security_headers() {
         ("/", StatusCode::SEE_OTHER),
         (datastar.url().as_str(), StatusCode::OK),
         ("/static/nothing.js", StatusCode::NOT_FOUND),
+        ("/icons/nothing.png", StatusCode::NOT_FOUND),
     ] {
         let response = stack.get(path).send().await.expect("answered");
         assert_eq!(response.status(), status, "{path}");
@@ -893,7 +894,7 @@ async fn every_response_has_the_security_headers() {
         }
         nonces.insert(nonce);
     }
-    assert_eq!(nonces.len(), 4, "a new nonce each time");
+    assert_eq!(nonces.len(), 5, "a new nonce each time");
 }
 
 fn datastar_name() -> String {
@@ -1471,6 +1472,7 @@ fn module_result(id: i64, module: &str, summary: Option<&str>) -> ModuleResult {
         details: serde_json::json!({}),
         created_at: chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time"),
         cached_at: None,
+        pivot_links: Vec::new(),
     }
 }
 
@@ -1507,6 +1509,7 @@ fn fixture_tree() -> (AlertTree, Vec<ObservableComment>) {
             observables: 4,
             files: 1,
             detections: 1,
+            pivot_links: Vec::new(),
         },
         observables: vec![email, sender, ip, fqdn],
         top: vec![1],
@@ -4281,6 +4284,7 @@ async fn the_graph_page_loads_vis_and_its_script_with_the_nonce() {
         observables: 0,
         files: 0,
         detections: 0,
+        pivot_links: Vec::new(),
     };
     let page = GraphPage::new(
         Layout::new(
@@ -21123,4 +21127,157 @@ mod search_pages {
             .expect("counts");
         assert_eq!(audited, 0);
     }
+}
+
+// ----- pivot links (PLAN.md decision 32 part (b))
+
+/// The smallest PNG the icon check takes: its signature and an IHDR.
+const ICON_PNG: &[u8] = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89";
+
+fn icons() -> ace_gui::PivotIcons {
+    ace_gui::PivotIcons::builtin()
+        .with(ace_gui::PivotIcon::new("example_portal", ICON_PNG).expect("an icon"))
+}
+
+/// A result's pivot links are drawn beside it, as ace3 draws an analysis's: each a link out, opened
+/// apart, with the registered icon as an image of ACE's own and the label as its alternative text,
+/// or the label alone when the binary has no icon of that name; a root's links are the summary's
+/// External links. Every label is escaped.
+#[test]
+fn pivot_links_are_drawn_beside_their_result_and_in_the_summary() {
+    let (mut tree, comments) = fixture_tree();
+    tree.observables[2].results[0].pivot_links = vec![
+        ace_results::PivotLink::new("https://portal.example.com/m/1?a=b&c=d", "Portal <b>")
+            .with_icon("example_portal"),
+        ace_results::PivotLink::new("https://portal.example.com/m/2", "No icon here")
+            .with_icon("unregistered"),
+    ];
+    tree.alert.pivot_links = vec![ace_results::PivotLink::new(
+        "https://hunt.example.com/search?q=1",
+        "Hunt search",
+    )];
+    let icons = icons();
+    let icon = icons.get("example_portal").expect("registered").url();
+    let view = ace_gui::alert::tree_view_drawn(
+        &tree,
+        &comments,
+        &ObservableActions::empty(),
+        &icons,
+        ace_gui::alert::TreeMode::Full,
+    );
+    let html = AlertTreeFragment { tree: view }.render().expect("renders");
+    let compact: String = html.lines().map(str::trim).collect();
+    let with_icon = format!(
+        r#"<a class="pivot" href="https://portal.example.com/m/1?a=b&#38;c=d" rel="noreferrer noopener" target="_blank" title="Portal &#60;b&#62;"><img src="{icon}" alt="Portal &#60;b&#62;" width="12" height="12"></a>"#
+    );
+    assert!(compact.contains(&with_icon), "{compact}");
+    assert!(
+        compact.contains(r#"title="No icon here">No icon here</a>"#),
+        "an icon the binary hasn't is the label: {compact}"
+    );
+    // without the binary's icons, the label alone
+    let plain = AlertTreeFragment {
+        tree: tree_view(&tree, &comments, &ObservableActions::empty()),
+    }
+    .render()
+    .expect("renders");
+    assert!(!plain.contains("<img"), "{plain}");
+    let layout = || Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x");
+    let page = AlertPage::with(
+        layout(),
+        &tree,
+        &comments,
+        &ObservableActions::empty(),
+        &std::collections::BTreeMap::new(),
+        PageOptions {
+            icons: Some(&icons),
+            ..PageOptions::default()
+        },
+    )
+    .expect("a page")
+    .render()
+    .expect("renders");
+    let compact: String = page.lines().map(str::trim).collect();
+    assert!(
+        compact.contains(r#"<h2 id="external-links-title">External links</h2><ul class="plain"><li><a class="pivot" href="https://hunt.example.com/search?q=1" rel="noreferrer noopener" target="_blank">Hunt search</a></li></ul>"#),
+        "{compact}"
+    );
+    // an alert without links draws no such section
+    let (bare, comments) = fixture_tree();
+    let page = AlertPage::new(
+        layout(),
+        &bare,
+        &comments,
+        &ObservableActions::empty(),
+        &std::collections::BTreeMap::new(),
+    )
+    .expect("a page")
+    .render()
+    .expect("renders");
+    assert!(!page.contains("External links"), "{page}");
+}
+
+/// The GUI serves each registered icon itself, under a hash of its bytes, as a PNG cached for a year,
+/// and nothing else under `/icons/`; the pages' policy still loads images from this origin alone.
+#[tokio::test]
+async fn the_gui_serves_the_registered_icons_and_nothing_else() {
+    let stack = stack_from(|service| Gui::new(service, Transport::Plain).with_icons(icons())).await;
+    let url = icons().get("example_portal").expect("registered").url();
+    let response = stack.get(&url).send().await.expect("answered");
+    assert_eq!(response.status(), StatusCode::OK, "{url}");
+    assert_eq!(response.headers()["content-type"], "image/png");
+    assert_eq!(
+        response.headers()["cache-control"],
+        "public, max-age=31536000, immutable"
+    );
+    let policy = response.headers()["content-security-policy"]
+        .to_str()
+        .expect("text")
+        .to_owned();
+    assert!(policy.contains("img-src 'self';"), "{policy}");
+    assert_eq!(response.bytes().await.expect("bytes"), ICON_PNG);
+    for missing in [
+        "/icons/example_portal.png",
+        "/icons/example_portal.0000000000000000.png",
+        "/icons/unregistered.png",
+    ] {
+        let response = stack.get(missing).send().await.expect("answered");
+        assert_eq!(response.status(), StatusCode::NOT_FOUND, "{missing}");
+    }
+}
+
+/// An icon is a PNG of at most 64 KiB with an icon's name, served under a hash of its bytes; a link
+/// shows its icon only when the binary has one by that name, and isn't drawn at all when the core
+/// wouldn't have taken it. ace4 registers none.
+#[test]
+fn an_icon_is_a_named_png_and_a_link_shows_it_only_when_registered() {
+    use ace_gui::icons::{DrawnLink, MAX_ICON_BYTES};
+    let icon = ace_gui::PivotIcon::new("example", ICON_PNG).expect("an icon");
+    let hash = hex::encode(Sha256::digest(ICON_PNG));
+    assert_eq!(icon.url(), format!("/icons/example.{}.png", &hash[..16]));
+    assert!(ace_gui::PivotIcon::new("Example", ICON_PNG).is_err());
+    assert!(ace_gui::PivotIcon::new("example", b"<svg/>").is_err());
+    let big: &'static [u8] = Box::leak(
+        [ICON_PNG, &vec![0u8; MAX_ICON_BYTES]]
+            .concat()
+            .into_boxed_slice(),
+    );
+    assert!(ace_gui::PivotIcon::new("big", big).is_err());
+    let icons = ace_gui::PivotIcons::builtin().with(icon);
+    let links = [
+        ace_results::PivotLink::new("https://example.com/a", "A").with_icon("example"),
+        ace_results::PivotLink::new("https://example.com/b", "B").with_icon("unknown"),
+        ace_results::PivotLink::new("http://example.com/c", "C"),
+    ];
+    let drawn = DrawnLink::of(&links, &icons);
+    assert_eq!(drawn.len(), 2, "a link the core wouldn't take isn't drawn");
+    assert_eq!(
+        drawn[0].icon,
+        icons.get("example").map(ace_gui::PivotIcon::url)
+    );
+    assert_eq!(drawn[1].icon, None);
+    assert!(
+        ace_gui::PivotIcons::builtin().names().is_empty(),
+        "ace4 ships none"
+    );
 }

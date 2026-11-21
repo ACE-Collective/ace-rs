@@ -273,6 +273,35 @@ fn each_rule() {
     }
 }
 
+/// PLAN.md decision 33: a module the overlay turns off (`enabled: false`) isn't in the catalog, so a
+/// module that depends on it doesn't wait for it, as ace3's engine treats a dependency on a module it
+/// didn't load, and decision 30 one the binary hasn't.
+#[test]
+fn a_dependency_turned_off_in_the_overlay_is_met() {
+    let overlay =
+        ace_sdk::Overlay::from_yaml("modules: {archive: {enabled: false}}").expect("parses");
+    let catalog = Catalog::of(overlay.components(&manifests()).expect("components"));
+    assert!(catalog.component("archive").is_none(), "no component of it");
+    let component = catalog
+        .component("test_depends_on_archive")
+        .expect("the dependent");
+    let modes = modes();
+    let mut mode_modules = modes.modules_in("test");
+    mode_modules.retain(|m| catalog.keys().contains(m));
+    let got = check(
+        component,
+        Facts {
+            kind: ObservableKind::File,
+            directives: &[],
+            exclude_modules: &[],
+            limit_modules: &[],
+        },
+        &mode_modules,
+        &BTreeSet::new(),
+    );
+    assert_eq!(got, Ok(()));
+}
+
 #[tokio::test]
 async fn a_detection_mid_analysis_queues_the_correlation_group_for_the_tree() {
     let test_db = TestDb::new().await;

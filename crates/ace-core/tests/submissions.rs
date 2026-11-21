@@ -338,3 +338,95 @@ async fn the_health_endpoint_answers_without_a_token() {
     );
     server.abort();
 }
+
+/// PLAN.md decision 32 part (b): a root's pivot links, such as a hunt's, come with its origin and are
+/// stored on it; a submission whose origin holds a link ace4 can't show (not `https://`, an icon that
+/// isn't a name, past the bound) is refused and writes nothing. A result's links land with it.
+#[tokio::test]
+async fn a_root_and_a_result_keep_their_pivot_links() {
+    let stack = stack().await;
+    let submission: Submission =
+        serde_json::from_value(json!({"description": "linked", "analysis_mode": "analysis"}))
+            .expect("a submission");
+    let link = ace_results::PivotLink::new("https://hunt.example.com/search?q=1", "Search")
+        .with_icon("splunk");
+    let origin = submit::Origin {
+        pivot_links: vec![link.clone()],
+        ..submit::Origin::default()
+    };
+    for (bad, why) in [
+        (
+            ace_results::PivotLink::new("http://hunt.example.com/", "Plain"),
+            "https",
+        ),
+        (link.clone().with_icon("data:image/png;base64,AAAA"), "icon"),
+    ] {
+        let refused = submit::prepare(
+            &stack.orchestrator,
+            &submission,
+            &submit::Origin {
+                pivot_links: vec![bad],
+                ..submit::Origin::default()
+            },
+            &[],
+        );
+        assert!(
+            matches!(&refused, Err(SubmitError::Invalid(e)) if e.contains("pivot link")),
+            "{why}: {refused:?}"
+        );
+    }
+    let many = submit::Origin {
+        pivot_links: vec![link.clone(); ace_results::MAX_PIVOT_LINKS + 1],
+        ..submit::Origin::default()
+    };
+    assert!(submit::prepare(&stack.orchestrator, &submission, &many, &[]).is_err());
+    let root = submit::prepare(&stack.orchestrator, &submission, &origin, &[]).expect("prepares");
+    let db = stack.test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    submit::create(
+        &mut tx,
+        &stack.bucket,
+        &stack.orchestrator,
+        &root,
+        &submission,
+        &origin,
+        &[],
+    )
+    .await
+    .expect("creates");
+    let fqdn = ace_core::tree::upsert_observable(
+        &mut tx,
+        root.id,
+        &ace_results::NewObservable::new(ace_results::ObservableKind::Fqdn, "example.com"),
+    )
+    .await
+    .expect("adds");
+    let result: ace_results::ResultEnvelope<Value> = serde_json::from_value(json!({
+        "analysis_type": "example_line_stats", "schema_version": 1, "details": {},
+        "pivot_links": [{"url": "https://rdap.example.com/d/1", "text": "RDAP"}],
+    }))
+    .expect("a result");
+    ace_core::tree::insert_result(&mut tx, root.id, fqdn.id, "rdap_analyzer", &result)
+        .await
+        .expect("stores");
+    tx.commit().await.expect("commits");
+    let stored: Value = sqlx::query_scalar("SELECT pivot_links FROM analysis.roots WHERE id = $1")
+        .bind(root.id)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    assert_eq!(
+        stored,
+        json!([{"url": "https://hunt.example.com/search?q=1", "text": "Search", "icon": "splunk"}])
+    );
+    let stored: Value =
+        sqlx::query_scalar("SELECT pivot_links FROM analysis.results WHERE root_id = $1")
+            .bind(root.id)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(
+        stored,
+        json!([{"url": "https://rdap.example.com/d/1", "text": "RDAP"}])
+    );
+}

@@ -500,7 +500,24 @@ fn a_hunt_submission_becomes_the_core_s() {
             details: serde_json::Map::new(),
             extensions: serde_json::Map::new(),
             tags: vec![],
-            pivot_links: vec![],
+            pivot_links: vec![
+                ace_hunt::query::PivotLink {
+                    url: "https://splunk.example.com/search?q=x".to_owned(),
+                    icon: Some("splunk".to_owned()),
+                    text: "Search".to_owned(),
+                },
+                // ace3 would draw these; ace4 shows only https:// with a named icon
+                ace_hunt::query::PivotLink {
+                    url: "http://splunk.example.com/".to_owned(),
+                    icon: None,
+                    text: "Plain".to_owned(),
+                },
+                ace_hunt::query::PivotLink {
+                    url: "https://splunk.example.com/".to_owned(),
+                    icon: Some("images/vt.png".to_owned()),
+                    text: "A static file".to_owned(),
+                },
+            ],
             summary_details: vec![],
             detections: vec![ace_hunt::query::Detection {
                 description: "hunt x (splunk) matched".to_owned(),
@@ -534,6 +551,14 @@ fn a_hunt_submission_becomes_the_core_s() {
     assert_eq!(
         origin.details.as_ref().expect("details")["alert_type"],
         json!("a")
+    );
+    // the hunt's links are the root's, less those ace4 can't show (decision 32 part (b))
+    assert_eq!(
+        origin.pivot_links,
+        [
+            ace_results::PivotLink::new("https://splunk.example.com/search?q=x", "Search")
+                .with_icon("splunk")
+        ]
     );
 }
 

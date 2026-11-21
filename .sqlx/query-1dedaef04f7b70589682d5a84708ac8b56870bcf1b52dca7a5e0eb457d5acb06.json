@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, observable_id, module, analysis_type, schema_version, summary, error, tags,\n                details, created_at, cached_at\n         FROM analysis.results\n         WHERE root_id = $1 AND observable_id = ANY($2)\n         ORDER BY observable_id, module",
+  "query": "SELECT id, observable_id, module, analysis_type, schema_version, summary, error, tags,\n                details, created_at, cached_at, pivot_links\n         FROM analysis.results\n         WHERE root_id = $1 AND observable_id = ANY($2)\n         ORDER BY observable_id, module",
   "describe": {
     "columns": [
       {
@@ -123,6 +123,17 @@
             "name": "cached_at"
           }
         }
+      },
+      {
+        "ordinal": 11,
+        "name": "pivot_links",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "pivot_links"
+          }
+        }
       }
     ],
     "parameters": {
@@ -142,8 +153,9 @@
       false,
       false,
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "37c2f32c9345df1624ed7faa595cd5d6f2a399545301e98b24989748552cae2b"
+  "hash": "1dedaef04f7b70589682d5a84708ac8b56870bcf1b52dca7a5e0eb457d5acb06"
 }

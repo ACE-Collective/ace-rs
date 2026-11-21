@@ -245,6 +245,9 @@ pub(crate) struct AlertDetailBody {
     observables: i64,
     files: i64,
     detections: i64,
+    /// The alert's own links out of ACE, such as those its hunt rendered: ace3's root
+    /// `pivot_links`.
+    pivot_links: Vec<PivotLinkBody>,
 }
 
 impl From<ace_service::Alert> for AlertDetailBody {
@@ -254,6 +257,7 @@ impl From<ace_service::Alert> for AlertDetailBody {
             observables: alert.observables,
             files: alert.files,
             detections: alert.detections,
+            pivot_links: alert.pivot_links.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -437,6 +441,28 @@ pub(crate) struct ResultBody {
     /// For a result from the cache, when the task that made it ended: ace3's `cached_at`. Null
     /// otherwise.
     cached_at: Option<DateTime<Utc>>,
+    /// The result's links out of ACE, ace3's `pivot_links`, in order.
+    pivot_links: Vec<PivotLinkBody>,
+}
+
+/// A link out of ACE: ace3's `PivotLink` (PLAN.md decision 32 part (b)). The URL is always
+/// `https://`; the icon, when there is one, is served at `/icons/{icon}` by the GUI.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct PivotLinkBody {
+    url: String,
+    text: String,
+    /// The name of an icon the binary registers, or null for a link with none.
+    icon: Option<String>,
+}
+
+impl From<ace_results::PivotLink> for PivotLinkBody {
+    fn from(link: ace_results::PivotLink) -> Self {
+        PivotLinkBody {
+            url: link.url,
+            text: link.text,
+            icon: link.icon,
+        }
+    }
 }
 
 /// A module whose task on the observable failed and left no result: it crashed, was stopped at
@@ -557,6 +583,7 @@ impl From<AlertObservable> for ObservableBody {
                     created_at: result.created_at,
                     from_cache_hit: result.cached_at.is_some(),
                     cached_at: result.cached_at,
+                    pivot_links: result.pivot_links.into_iter().map(Into::into).collect(),
                 })
                 .collect(),
             failed_modules: observable.failed.map(|failed| {

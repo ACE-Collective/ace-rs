@@ -79,6 +79,14 @@
 //! there (`Module::AUTOMATION_LIMIT`, which it replaces). Like `cache_ttl` it isn't a setting, so it
 //! isn't in a cached result's key, as ace3's config hash leaves it out.
 //!
+//! A module's section, or an instance's, sets ace3's `enabled` (PLAN.md decision 33). `enabled: false`
+//! turns off a module that is on by default, or one instance: no component is made of it, so no pool
+//! builds it, the core queues no task for it, and a module that depends on it finds its dependency met,
+//! as ace3's engine treats a dependency on a module it didn't load (`build_and_validate_dependency_graph`)
+//! and as decision 30 treats a dependency the binary hasn't. `enabled: true`, like a section with
+//! nothing in it, turns on a module that is off by default. Left out, a section changes nothing about
+//! whether the module runs.
+//!
 //! `collectors:` holds each collector's section (PLAN.md 6.1, `ace_app::collector`), by its name: its
 //! `settings`, which its builder is given as a module's are, how long a key it submitted holds
 //! (`key_lifetime_seconds`), how long it waits between passes that found nothing (`poll_seconds`), how
@@ -965,6 +973,9 @@ pub struct ModuleSection {
     /// The module's slots (`Module::CONNECTIONS`), each bound to a connection
     /// (`crate::connections`), for the module and each of its instances.
     pub connections: BTreeMap<String, String>,
+    /// ace3's `enabled`: false turns the module and every instance of it off, whatever
+    /// `Module::ENABLED_BY_DEFAULT` says. Left out, or true, the section turns it on.
+    pub enabled: Option<bool>,
 }
 
 /// One named instance of a module.
@@ -987,6 +998,8 @@ pub struct InstanceSection {
     /// The instance's own bindings, each over its module's for that slot
     /// (`ModuleSection::connections`).
     pub connections: BTreeMap<String, String>,
+    /// ace3's `enabled` for this instance: false turns it off.
+    pub enabled: Option<bool>,
 }
 
 /// An overlay that doesn't load.
@@ -1485,6 +1498,13 @@ impl Overlay {
                 );
                 continue;
             }
+            if section.is_some_and(|s| s.enabled == Some(false)) {
+                tracing::info!(
+                    module = manifest.name,
+                    "the overlay turns this module off (enabled: false), so it doesn't run"
+                );
+                continue;
+            }
             let Some(section) = section else {
                 if manifest.enabled_by_default && !manifest.connections.is_empty() {
                     tracing::warn!(
@@ -1554,6 +1574,14 @@ impl Overlay {
                 });
             }
             for (name, instance) in &section.instances {
+                if instance.enabled == Some(false) {
+                    tracing::info!(
+                        module = manifest.name,
+                        instance = %name,
+                        "the overlay turns this instance off (enabled: false), so it doesn't run"
+                    );
+                    continue;
+                }
                 if name.is_empty()
                     || !name
                         .bytes()
@@ -2046,6 +2074,49 @@ mod tests {
         );
         let err = of("modules: {example_resolver: {settings: {delays: 1}}}").unwrap_err();
         assert!(err.to_string().contains("only as named instances"), "{err}");
+    }
+
+    /// ace3's `enabled: false` (PLAN.md decision 33) turns off a module that is on by default, with
+    /// its settings and bindings unread, and one instance of a module; `enabled: true` turns on one
+    /// that is off by default, as an empty section does.
+    #[test]
+    fn enabled_false_turns_a_module_or_an_instance_off() {
+        let mut resolver = RESOLVER;
+        resolver.enabled_by_default = false;
+        let manifests = [LINE_COUNTER, resolver];
+        let of = |yaml: &str| Overlay::from_yaml(yaml).and_then(|o| o.components(&manifests));
+        assert!(
+            keys(
+                &of("modules: {example_line_counter: {enabled: false, settings: {nope: 1}}}")
+                    .expect("loads")
+            )
+            .is_empty(),
+            "off, its settings aren't checked"
+        );
+        assert_eq!(
+            keys(&of("modules: {example_line_counter: {enabled: true}}").expect("loads")),
+            ["example_line_counter"]
+        );
+        assert_eq!(
+            keys(&of("modules: {example_resolver: {enabled: true}}").expect("loads")),
+            ["example_line_counter", "example_resolver"]
+        );
+        assert_eq!(
+            keys(&of("modules: {example_resolver: {enabled: false}}").expect("loads")),
+            ["example_line_counter"]
+        );
+        assert!(of("modules: {example_line_counter: {enabled: maybe}}").is_err());
+        let instances = of(
+            "modules: {example_line_counter: {instances: {a: {}, b: {enabled: false, settings: {nope: 1}}}}}",
+        )
+        .expect("loads");
+        assert_eq!(instances.len(), 1, "{:?}", keys(&instances));
+        assert!(
+            of("modules: {example_line_counter: {enabled: false, instances: {a: {}}}}")
+                .expect("loads")
+                .is_empty(),
+            "a module turned off takes its instances with it"
+        );
     }
 
     /// A module ace3 ships disabled runs only when the overlay has a section for it, empty or not,

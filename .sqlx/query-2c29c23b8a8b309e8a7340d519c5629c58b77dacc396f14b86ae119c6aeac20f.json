@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n             (SELECT count(*) FROM analysis.observables WHERE root_id = $1) AS \"observables!\",\n             (SELECT count(*) FROM analysis.files WHERE root_id = $1) AS \"files!\",\n             (SELECT count(*) FROM analysis.detections WHERE root_id = $1) AS \"detections!\",\n             (SELECT pivot_links FROM analysis.roots WHERE id = $1) AS \"pivot_links!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "observables!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "files!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "detections!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "pivot_links!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "2c29c23b8a8b309e8a7340d519c5629c58b77dacc396f14b86ae119c6aeac20f"
+}

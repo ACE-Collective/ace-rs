@@ -344,8 +344,8 @@ pub async fn insert_result_from(
     let id = sqlx::query_scalar!(
         r#"INSERT INTO analysis.results
                (root_id, observable_id, module, analysis_type, schema_version, details, summary,
-                tags, error, cached_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                tags, error, cached_at, pivot_links)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            RETURNING id AS "id: ResultId""#,
         root,
         observable as ObservableId,
@@ -358,6 +358,8 @@ pub async fn insert_result_from(
         &result.tags,
         result.error,
         cached_at,
+        serde_json::to_value(&result.pivot_links)
+            .map_err(|e| DbError::Decode(format!("the pivot links don't encode: {e}")))?,
     )
     .fetch_one(tx.conn())
     .await?;

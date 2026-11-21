@@ -255,6 +255,7 @@ fn the_site_binary_draws_its_alert_type_s_summary() {
             observables: 1,
             files: 0,
             detections: 0,
+            pivot_links: Vec::new(),
         },
         observables: ticket
             .map(|value| ace_service::AlertObservable {

@@ -1066,6 +1066,7 @@ fn refusal_alert(
             },
         })),
         queue: None,
+        pivot_links: Vec::new(),
     };
     (submission, origin)
 }

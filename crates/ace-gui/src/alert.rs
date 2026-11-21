@@ -279,6 +279,9 @@ pub struct ResultNode {
     /// For a result the analysis cache wrote in place of a task (`ModuleResult::cached_at`), when
     /// the module's run it was kept from ended, for the `cached` badge's title.
     pub cached: Option<String>,
+    /// Its links out of ACE, beside it, as ace3 draws an analysis's pivot links (PLAN.md decision
+    /// 32 part (b)).
+    pub links: Vec<crate::icons::DrawnLink>,
 }
 
 /// A module whose task on the observable failed and left no result (`FailedModule`), where the tree
@@ -417,11 +420,29 @@ fn detection_branches(tree: &AlertTree) -> (HashSet<i64>, HashSet<i64>) {
     (observables, results)
 }
 
-/// The tree's lines in a mode: the whole tree, or its branches that carry a detection.
+/// The tree's lines in a mode: the whole tree, or its branches that carry a detection, with ace4's
+/// own pivot link icons, which are none.
 pub fn tree_view_in(
     tree: &AlertTree,
     comments: &[ObservableComment],
     actions: &ObservableActions,
+    mode: TreeMode,
+) -> TreeView {
+    tree_view_drawn(
+        tree,
+        comments,
+        actions,
+        &crate::icons::PivotIcons::builtin(),
+        mode,
+    )
+}
+
+/// `tree_view_in`, with the binary's pivot link icons.
+pub fn tree_view_drawn(
+    tree: &AlertTree,
+    comments: &[ObservableComment],
+    actions: &ObservableActions,
+    icons: &crate::icons::PivotIcons,
     mode: TreeMode,
 ) -> TreeView {
     let (kept_observables, kept_results) = detection_branches(tree);
@@ -475,6 +496,7 @@ pub fn tree_view_in(
     let context = Context {
         alert: tree.alert.summary.id,
         actions,
+        icons,
         by_id,
         added_by,
         comments_of,
@@ -511,6 +533,7 @@ struct Keep {
 struct Context<'a> {
     alert: Uuid,
     actions: &'a ObservableActions,
+    icons: &'a crate::icons::PivotIcons,
     by_id: HashMap<i64, &'a AlertObservable>,
     added_by: HashMap<i64, Vec<i64>>,
     comments_of: HashMap<(&'a str, &'a str), Vec<CommentView>>,
@@ -528,6 +551,7 @@ fn walk<'a>(
     let Context {
         alert,
         actions,
+        icons,
         by_id,
         added_by,
         comments_of,
@@ -627,6 +651,7 @@ fn walk<'a>(
                         .filter(|_| result.summary.is_none())
                         .map(failure_shown),
                     cached: result.cached_at.map(when_cached),
+                    links: crate::icons::DrawnLink::of(&result.pivot_links, icons),
                 }));
                 let children: Vec<i64> = added_by
                     .get(&result.id)
@@ -913,6 +938,8 @@ pub struct PageOptions<'a> {
     pub dispositions: Option<&'a ace_service::Dispositions>,
     /// The alert's remediation coverage, when the viewer may read it.
     pub remediation: Option<&'a ace_service::Coverage>,
+    /// None draws pivot links with ace4's own icons, which are none.
+    pub icons: Option<&'a crate::icons::PivotIcons>,
 }
 
 /// `/alerts/{id}`.
@@ -939,6 +966,9 @@ pub struct AlertPage {
     /// What fired and on what, at most `MAX_FIRED`, and how many more the verdicts panel lists.
     pub fired: Vec<Fired>,
     pub more_fired: usize,
+    /// The alert's own links out of ACE, such as its hunt's, ace3's "External Link" rows (PLAN.md
+    /// decision 32 part (b)); none draws no section.
+    pub external_links: Vec<crate::icons::DrawnLink>,
     /// The summary of the alert's type, or None for the default: the key observables.
     pub summary: Option<DrawnSummary>,
     pub key_observables: Vec<KeyObservable>,
@@ -1132,7 +1162,9 @@ impl AlertPage {
         } else {
             TreeMode::Detections
         });
-        let view = tree_view_in(tree, comments, actions, mode);
+        let builtin = crate::icons::PivotIcons::builtin();
+        let icons = options.icons.unwrap_or(&builtin);
+        let view = tree_view_drawn(tree, comments, actions, icons, mode);
         let (_, version) = AlertTreeFragment { tree: view.clone() }.render_versioned()?;
         let time =
             |time: chrono::DateTime<chrono::Utc>| time.format("%Y-%m-%d %H:%M:%S UTC").to_string();
@@ -1268,6 +1300,7 @@ impl AlertPage {
             tags: summary.tags.clone(),
             fired,
             more_fired,
+            external_links: crate::icons::DrawnLink::of(&tree.alert.pivot_links, icons),
             summary: drawn,
             key_observables,
             more_observables,
@@ -1481,6 +1514,7 @@ pub(crate) async fn page(
         summaries: Some(&gui.summaries),
         dispositions: Some(gui.service.dispositions()),
         remediation: remediation.as_ref(),
+        icons: Some(gui.icons()),
     };
     let dispositions = if ownership.is_some() {
         gui.service.dispositions().selectable()
@@ -1800,7 +1834,13 @@ impl Streaming {
                         }
                     };
                     let fragment = AlertTreeFragment {
-                        tree: tree_view_in(&tree, &comments, &self.gui.actions, self.mode),
+                        tree: tree_view_drawn(
+                            &tree,
+                            &comments,
+                            &self.gui.actions,
+                            self.gui.icons(),
+                            self.mode,
+                        ),
                     };
                     let (html, version) = match fragment.render_versioned() {
                         Ok(drawn) => drawn,

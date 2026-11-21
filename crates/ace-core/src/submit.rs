@@ -83,6 +83,9 @@ pub struct Origin {
     /// The queue the alert starts in, such as a hunt's `queue`; `tree::DEFAULT_QUEUE` when None. A
     /// router's decision never takes an alert out of a queue a submitter named (PLAN.md 7.13).
     pub queue: Option<String>,
+    /// The root's links out of ACE, such as those a hunt renders for its alert (ace3's
+    /// `RootAnalysis.pivot_links`, PLAN.md decision 32 part (b)), which its alert's summary shows.
+    pub pivot_links: Vec<ace_results::PivotLink>,
 }
 
 impl Origin {
@@ -163,6 +166,15 @@ pub fn prepare(
     if let Some(queue) = &origin.queue {
         tree::check_queue_name(queue).map_err(SubmitError::Invalid)?;
     }
+    if origin.pivot_links.len() > ace_results::MAX_PIVOT_LINKS {
+        return Err(SubmitError::Invalid(format!(
+            "a root holds at most {} pivot links",
+            ace_results::MAX_PIVOT_LINKS
+        )));
+    }
+    if let Some(why) = origin.pivot_links.iter().find_map(|l| l.refusal()) {
+        return Err(SubmitError::Invalid(format!("a pivot link: {why}")));
+    }
     if let Some(path) = submission
         .file_yara_meta
         .keys()
@@ -204,6 +216,17 @@ pub async fn create(
             root.id,
             origin.details,
             origin.alerts(),
+        )
+        .execute(tx.conn())
+        .await
+        .map_err(DbError::from)?;
+    }
+    if !origin.pivot_links.is_empty() {
+        sqlx::query!(
+            "UPDATE analysis.roots SET pivot_links = $2 WHERE id = $1",
+            root.id,
+            serde_json::to_value(&origin.pivot_links)
+                .map_err(|e| DbError::Decode(format!("the pivot links don't encode: {e}")))?,
         )
         .execute(tx.conn())
         .await

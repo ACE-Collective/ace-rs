@@ -86,6 +86,16 @@
       <p class="muted">{{ more_fired }} more under <a href="#detections">Detection Verdicts</a>.</p>
       {%- endif %}
     </section>
+    {%- if !external_links.is_empty() %}
+    <section class="type-summary external-links" aria-labelledby="external-links-title">
+      <h2 id="external-links-title">External links</h2>
+      <ul class="plain">
+        {%- for link in external_links %}
+        <li><a class="pivot" href="{{ link.url }}" rel="noreferrer noopener" target="_blank">{% if let Some(icon) = link.icon %}<img src="{{ icon }}" alt="" width="12" height="12"> {% endif %}{{ link.text }}</a></li>
+        {%- endfor %}
+      </ul>
+    </section>
+    {%- endif %}
     {%- if let Some(summary) = summary %}
 {{ summary.html }}
     {%- else %}

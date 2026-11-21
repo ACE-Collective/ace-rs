@@ -84,6 +84,91 @@ pub struct ResultEnvelope<D> {
     /// mailbox module sets the root's description and details.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub root: Option<RootChanges>,
+    /// Links out of ACE to where the result came from, such as a vendor's page about the email
+    /// (ace3's `Analysis.pivot_links`, PLAN.md decision 32 part (b)), in order. The GUI shows each
+    /// beside the result.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(length(max = 100))]
+    pub pivot_links: Vec<PivotLink>,
+}
+
+/// The most pivot links one result, or one root, holds.
+pub const MAX_PIVOT_LINKS: usize = 100;
+
+/// A link out of ACE with a label and, if it has one, an icon: ace3's `PivotLink`. Only an
+/// `https://` URL of printable ASCII with nothing an attribute or a browser would read differently
+/// (no quote, angle bracket, backslash or backtick) is taken, so a link can't run script or break out
+/// of the page. The icon is the name of an image the binary registers and ACE serves itself
+/// (`ace_app::App::pivot_link_icon`); ace3 also takes a `data:` URL or another site's image, which
+/// ace4 refuses, as its pages load images from ACE alone.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PivotLink {
+    #[schemars(
+        regex(pattern = r"^https://[!#-&(-;=?-\[\]-_a-~]+$"),
+        length(max = 4096)
+    )]
+    pub url: String,
+    /// What the link says, and the icon's alternative text.
+    #[schemars(regex(pattern = r"\S"), length(max = 1024))]
+    pub text: String,
+    /// The registered icon's name: 1 to 64 of a-z, 0-9, `_` and `-`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(regex(pattern = r"^[a-z0-9_-]{1,64}$"))]
+    pub icon: Option<String>,
+}
+
+impl PivotLink {
+    /// A link with a label and no icon.
+    pub fn new(url: impl Into<String>, text: impl Into<String>) -> PivotLink {
+        PivotLink {
+            url: url.into(),
+            text: text.into(),
+            icon: None,
+        }
+    }
+
+    /// The link with the registered icon `name`.
+    pub fn with_icon(mut self, name: impl Into<String>) -> PivotLink {
+        self.icon = Some(name.into());
+        self
+    }
+
+    /// Why the link can't be taken, if it can't: the same rules as its schema, for links that come
+    /// from elsewhere than a result, such as a hunt's.
+    pub fn refusal(&self) -> Option<String> {
+        let plain = |text: &str| {
+            text.bytes().all(|b| b.is_ascii_graphic())
+                && !text.contains(['"', '\'', '<', '>', '\\', '`'])
+        };
+        if self.url.len() > 4096
+            || !self.url.starts_with("https://")
+            || self.url.len() == "https://".len()
+            || !plain(&self.url)
+        {
+            return Some(format!("{:?} isn't a plain https:// URL", self.url));
+        }
+        if self.text.trim().is_empty() || self.text.chars().count() > 1024 {
+            return Some("a link needs a label of at most 1,024 characters".to_owned());
+        }
+        if let Some(icon) = &self.icon
+            && !is_icon_name(icon)
+        {
+            return Some(format!(
+                "{icon:?} isn't an icon's name: 1 to 64 of a-z, 0-9, _ and -"
+            ));
+        }
+        None
+    }
+}
+
+/// An icon's name: 1 to 64 of a-z, 0-9, `_` and `-`.
+pub fn is_icon_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 64
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_' || b == b'-')
 }
 
 /// A file a result stores for its root without adding it (`ResultEnvelope::stored`).
@@ -142,6 +227,7 @@ impl<D: AnalysisType> ResultEnvelope<D> {
             files: Vec::new(),
             stored: Vec::new(),
             root: None,
+            pivot_links: Vec::new(),
         }
     }
 
@@ -174,11 +260,18 @@ impl<D: AnalysisType> ResultEnvelope<D> {
             files: self.files.clone(),
             stored: self.stored.clone(),
             root: self.root.clone(),
+            pivot_links: self.pivot_links.clone(),
         })
     }
 
     pub fn with_summary(mut self, summary: impl Into<String>) -> Self {
         self.summary = Some(summary.into());
+        self
+    }
+
+    /// Adds a link out of ACE beside the result (`ResultEnvelope::pivot_links`).
+    pub fn with_pivot_link(mut self, link: PivotLink) -> Self {
+        self.pivot_links.push(link);
         self
     }
 
@@ -471,6 +564,49 @@ mod tests {
                 .get("error")
                 .is_none()
         );
+    }
+
+    /// PLAN.md decision 32 part (b): a pivot link is an `https://` URL of plain characters with a
+    /// label and, if any, a registered icon's name; the schema and `PivotLink::refusal` refuse the
+    /// same links, a `data:` icon and another site's image among them.
+    #[test]
+    fn a_pivot_link_is_a_plain_https_link_with_a_named_icon() {
+        let validator = crate::validate::ResultValidator::of::<HeaderDump>().expect("a schema");
+        let good = PivotLink::new(
+            "https://portal.example.com/messages/1?id=a%20b&x=#top",
+            "Example Portal",
+        )
+        .with_icon("example_portal");
+        assert_eq!(good.refusal(), None);
+        let value = serde_json::to_value(sample().with_pivot_link(good.clone())).expect("json");
+        validator.validate(&value).expect("a plain link passes");
+        assert_eq!(value["pivot_links"][0]["icon"], "example_portal");
+        let bad = [
+            PivotLink::new("http://portal.example.com/", "plain http"),
+            PivotLink::new("javascript:alert(1)", "script"),
+            PivotLink::new("https://", "no host"),
+            PivotLink::new("https://example.com/\"onmouseover=\"x", "a quote"),
+            PivotLink::new("https://example.com/<b>", "angle brackets"),
+            PivotLink::new("https://example.com/a b", "a space"),
+            PivotLink::new("https://example.com/", "  "),
+            good.clone().with_icon("data:image/png;base64,iVBORw0KGgo="),
+            good.clone().with_icon("https://cdn.example.com/icon.png"),
+            good.clone().with_icon("Upper"),
+        ];
+        for link in bad {
+            assert!(link.refusal().is_some(), "{link:?}");
+            let value = serde_json::to_value(sample().with_pivot_link(link.clone())).expect("json");
+            assert!(validator.validate(&value).is_err(), "{link:?}");
+        }
+        let many = (0..=MAX_PIVOT_LINKS).fold(sample(), |r, _| r.with_pivot_link(good.clone()));
+        assert!(
+            validator
+                .validate(&serde_json::to_value(many).expect("json"))
+                .is_err()
+        );
+        // a result without links says nothing about them
+        let plain = serde_json::to_value(sample()).expect("json");
+        assert!(plain.get("pivot_links").is_none());
     }
 
     #[test]
