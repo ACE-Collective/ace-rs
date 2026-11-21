@@ -485,6 +485,33 @@ fn handlers(
     Ok(handlers)
 }
 
+/// The ports the connections a network pool's modules and handlers bind reach beyond their own,
+/// such as a proxy's (`ace_sdk::ConnectionType::tcp_ports`, PLAN.md decision 35): a connection
+/// bound by none of them adds none, nor does a handler the overlay leaves off.
+pub fn connection_ports(pool: &LookupPool, overlay: &Overlay) -> Result<Vec<u16>, String> {
+    let mut bindings = Vec::new();
+    for component in components(&pool.registry, overlay, None).map_err(|e| e.to_string())? {
+        bindings.extend(component.connections);
+    }
+    for (spec, _) in &pool.actions {
+        if !spec.is_enabled(overlay) {
+            continue;
+        }
+        let entry = spec.overlay_entry();
+        let section = overlay.actions.get(&entry).cloned().unwrap_or_default();
+        bindings.extend(
+            overlay
+                .bind(
+                    &format!("actions.{entry}.connections"),
+                    spec.connections,
+                    &section.connections,
+                )
+                .map_err(|e| e.to_string())?,
+        );
+    }
+    Ok(ace_sdk::connections::tcp_ports(&bindings))
+}
+
 /// A network pool's binary.
 pub fn lookup_main(pool: &LookupPool) -> ExitCode {
     let mut telemetry = ace_pool::telemetry::init(&format!("ace4-{}", pool.name), "info");
@@ -500,10 +527,11 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
         )
         .map_err(|e| e.to_string())?;
         let handlers = handlers(pool, &overlay, &ace_pool::secrets::process_env)?;
-        Ok((modules, handlers))
+        let ports = connection_ports(pool, &overlay)?;
+        Ok((modules, handlers, ports))
     });
-    let (modules, handlers) = match built {
-        Ok((modules, handlers)) => (Arc::new(modules), Arc::new(handlers)),
+    let (modules, handlers, connection_ports) = match built {
+        Ok((modules, handlers, ports)) => (Arc::new(modules), Arc::new(handlers), ports),
         Err(e) => {
             eprintln!("setup failed: {e}");
             return ExitCode::from(2);
@@ -521,11 +549,12 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
         return ExitCode::from(2);
     };
     let endpoint = std::env::var(ace_pool::pool::BUCKET_ENDPOINT_VAR).ok();
-    let mut profile = match PoolDefinition::lookup_sandbox(
+    let mut profile = match PoolDefinition::lookup_sandbox_with(
         &modules,
         handlers.collects_files(),
         port,
         endpoint.as_deref(),
+        &connection_ports,
         POOL_ADDRESS_SPACE,
     ) {
         Ok(profile) => profile,

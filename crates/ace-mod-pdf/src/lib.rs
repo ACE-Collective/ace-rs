@@ -653,6 +653,7 @@ mod tests {
                 Outcome::Done(result) => Some(result),
                 Outcome::Skipped(_) => None,
                 Outcome::Delay(_) => panic!("a delay"),
+                Outcome::Incomplete(_) => panic!("incomplete"),
             }
         }
 

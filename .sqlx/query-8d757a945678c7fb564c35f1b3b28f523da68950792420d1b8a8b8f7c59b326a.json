@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.tasks SET incomplete = true WHERE id = $1 AND state = 'done'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8d757a945678c7fb564c35f1b3b28f523da68950792420d1b8a8b8f7c59b326a"
+}

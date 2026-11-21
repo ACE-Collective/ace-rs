@@ -137,6 +137,7 @@ async fn the_splunk_module_runs_again_after_each_delay_it_asks_for() {
                 break result;
             }
             Outcome::Skipped(why) => panic!("skipped: {why}"),
+            Outcome::Incomplete(_) => panic!("incomplete"),
         }
     };
 

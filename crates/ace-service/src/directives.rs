@@ -148,7 +148,9 @@ impl Service {
                     .await?;
                     // ace3's request_analyst_analysis: correlation mode, so a dispositioned alert runs
                     // what the directive lets in, and what its disposition cancelled
-                    let queued = self.orchestrator.set_mode(tx, root, CORRELATION).await?;
+                    // a new pass, as ace3's `request_analyst_analysis` queues the alert again, which
+                    // runs again what ended incomplete (PLAN.md decision 34)
+                    let queued = self.orchestrator.new_pass(tx, root, CORRELATION).await?;
                     queue::check_completion(tx, root)
                         .await
                         .map_err(ace_core::orchestrator::OrchestratorError::from)?;

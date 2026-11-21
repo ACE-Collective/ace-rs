@@ -268,6 +268,12 @@ pub enum Outcome<D> {
     /// `error` badge, and what the module had before it failed is kept. An `Err(ModuleError)` is
     /// for a task that couldn't run to its end.
     Done(ResultEnvelope<D>),
+    /// The result as far as it goes, which the core stores, and a request to run the task again
+    /// whenever its observable gains a tag, a directive, a relationship or another result, and on the
+    /// root's next pass, with no limit, as ace3's engine runs a module again on an analysis it
+    /// returned `INCOMPLETE` from (PLAN.md decision 34). Each run's result replaces the last; the
+    /// first that's `Done` ends it. The analysis cache keeps no incomplete result.
+    Incomplete(ResultEnvelope<D>),
     /// Run the task again later, as ace3's `delay_analysis`.
     Delay(Delay),
     /// The module had nothing to say about this observable, such as an archive module given a

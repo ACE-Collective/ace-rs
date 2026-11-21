@@ -1520,6 +1520,42 @@ secrets:
   other_token: env:ACE4_TEST_OTHER_TOKEN
 ";
 
+/// A connection's own ports join its pool's (PLAN.md decision 35): the ticket system's proxy, on any
+/// port, is one the lookups pool reaches once the overlay binds the connection to the lookup there,
+/// and not otherwise.
+#[test]
+fn a_connection_s_proxy_port_joins_its_pool_s_ports() {
+    let app = ace_site_example::app();
+    let proxied = TICKET_CONNECTION.replace(
+        "      request_timeout_seconds: 5\n",
+        "      request_timeout_seconds: 5\n      proxy: http://proxy.site.example:3128\n",
+    );
+    assert_ne!(proxied, TICKET_CONNECTION);
+    let overlay = ace_sdk::Overlay::from_yaml(&proxied).expect("loads");
+    assert_eq!(app.check_overlay(&overlay), Ok(()));
+    assert_eq!(
+        app.lookup_connection_ports("lookups", &overlay),
+        Ok(Some(vec![3128]))
+    );
+    let direct = ace_sdk::Overlay::from_yaml(TICKET_CONNECTION).expect("loads");
+    assert_eq!(
+        app.lookup_connection_ports("lookups", &direct),
+        Ok(Some(vec![]))
+    );
+    // bound by no component, a connection adds nothing
+    let unbound = proxied.replace(
+        "  example_ticket_lookup:\n    connections:\n      tickets: tickets\n",
+        "  example_ticket_lookup: {}\n",
+    );
+    assert_ne!(unbound, proxied);
+    let overlay = ace_sdk::Overlay::from_yaml(&unbound).expect("loads");
+    assert_eq!(
+        app.lookup_connection_ports("lookups", &overlay),
+        Ok(Some(vec![]))
+    );
+    assert_eq!(app.lookup_connection_ports("nowhere", &overlay), Ok(None));
+}
+
 /// A shared connection: the site's binary checks it against the site's connection type, the ticket
 /// lookup gets its settings under its slot's name and its secret by role and no other secret, and a
 /// cached result's key holds the connection's identity (its URL) and not its timeout.

@@ -192,7 +192,7 @@ pub async fn send_end(
     end: &TaskEnd,
 ) -> Result<(), ClientError> {
     let uploads: Vec<(&ace_results::Sha256, u64)> = match end {
-        TaskEnd::Done { result, .. } => result
+        TaskEnd::Done { result, .. } | TaskEnd::Incomplete { result, .. } => result
             .files
             .iter()
             .map(|f| (&f.sha256, f.size))

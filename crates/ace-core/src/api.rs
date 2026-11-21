@@ -1590,6 +1590,7 @@ impl Api {
         result: Value,
         writes: &[crate::writes::Checked],
         probes: &std::collections::BTreeMap<String, String>,
+        incomplete: bool,
     ) -> Result<(), Failure> {
         let task = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
         let orchestrator = &self.inner.orchestrator;
@@ -1597,6 +1598,11 @@ impl Api {
             return Err(self.reject(worker, &task, &result, rejected).await);
         }
         if task.module == crate::type_step::TYPE_STEP {
+            if incomplete {
+                return Err(Failure::BadRequest(
+                    "a file's type step is never incomplete".to_owned(),
+                ));
+            }
             return self.land_type(worker, &task, &result).await;
         }
         let mut result: ResultEnvelope<Value> = serde_json::from_value(result)
@@ -1661,7 +1667,15 @@ impl Api {
                         details.insert("archive_id".to_owned(), archive_id.into());
                     }
                     orchestrator
-                        .land_result_with(tx, worker, task, &result, probes, !writes.is_empty())
+                        .land_ending(
+                            tx,
+                            worker,
+                            task,
+                            &result,
+                            probes,
+                            !writes.is_empty(),
+                            incomplete,
+                        )
                         .await?;
                     Ok::<_, LandError>(())
                 })
@@ -2518,7 +2532,18 @@ async fn end_in(
             // checked as JSON, so each field that fails is named
             let result = serde_json::to_value(result)
                 .map_err(|e| Failure::Internal(format!("re-encoding a result: {e}")))?;
-            api.land(&worker, task, without_nul(result), &writes, &probes)
+            api.land(&worker, task, without_nul(result), &writes, &probes, false)
+                .await?
+        }
+        TaskEnd::Incomplete {
+            result,
+            writes,
+            probes,
+        } => {
+            let writes = api.check_writes(&worker, task, writes, false).await?;
+            let result = serde_json::to_value(result)
+                .map_err(|e| Failure::Internal(format!("re-encoding a result: {e}")))?;
+            api.land(&worker, task, without_nul(result), &writes, &probes, true)
                 .await?
         }
         TaskEnd::Skipped { reason, writes } => {

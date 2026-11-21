@@ -366,6 +366,85 @@ pub async fn insert_result_from(
     Ok(id)
 }
 
+/// `insert_result_from`, or, for a module whose earlier task on the observable ended incomplete
+/// (PLAN.md decision 34), the same result row with what this run made in place of what the last
+/// one did. True when it replaced one. ace3 runs the module again on the same analysis, whose
+/// details it writes again; what it added to the tree before stays there.
+pub async fn store_result(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    observable: ObservableId,
+    module: &str,
+    result: &ResultEnvelope<Value>,
+    cached_at: Option<chrono::DateTime<chrono::Utc>>,
+) -> Result<(ResultId, bool), DbError> {
+    let row = sqlx::query!(
+        r#"INSERT INTO analysis.results AS r
+               (root_id, observable_id, module, analysis_type, schema_version, details, summary,
+                tags, error, cached_at, pivot_links)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+           ON CONFLICT (root_id, observable_id, module) DO UPDATE
+               SET analysis_type = EXCLUDED.analysis_type, schema_version = EXCLUDED.schema_version,
+                   details = EXCLUDED.details, summary = EXCLUDED.summary, tags = EXCLUDED.tags,
+                   error = EXCLUDED.error, cached_at = EXCLUDED.cached_at,
+                   pivot_links = EXCLUDED.pivot_links
+           RETURNING id AS "id: ResultId", (xmax <> 0) AS "replaced!""#,
+        root,
+        observable as ObservableId,
+        module,
+        result.analysis_type(),
+        i32::try_from(result.schema_version())
+            .map_err(|_| DbError::Decode("schema version past i32".to_owned()))?,
+        result.details,
+        result.summary,
+        &result.tags,
+        result.error,
+        cached_at,
+        serde_json::to_value(&result.pivot_links)
+            .map_err(|e| DbError::Decode(format!("the pivot links don't encode: {e}")))?,
+    )
+    .fetch_one(tx.conn())
+    .await?;
+    Ok((row.id, row.replaced))
+}
+
+/// Whether `result` already added `observable` (under `path`, for a file): a rerun's replaced
+/// result keeps what its earlier runs added, once each.
+pub async fn has_addition(
+    tx: &mut Tx<'_>,
+    result: ResultId,
+    observable: ObservableId,
+    path: Option<&str>,
+) -> Result<bool, DbError> {
+    Ok(sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM analysis.result_additions
+           WHERE result_id = $1 AND observable_id = $2 AND path IS NOT DISTINCT FROM $3) AS "e!""#,
+        result as ResultId,
+        observable as ObservableId,
+        path,
+    )
+    .fetch_one(tx.conn())
+    .await?)
+}
+
+/// Whether `result` already raised a detection with this description on `observable`.
+pub async fn has_detection(
+    tx: &mut Tx<'_>,
+    result: ResultId,
+    observable: ObservableId,
+    description: &str,
+) -> Result<bool, DbError> {
+    Ok(sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM analysis.detections
+           WHERE result_id = $1 AND observable_id = $2 AND description = $3) AS "e!""#,
+        result as ResultId,
+        observable as ObservableId,
+        description,
+    )
+    .fetch_one(tx.conn())
+    .await?)
+}
+
 /// What a result adds to an observable already in the root: tags and directives it doesn't have
 /// yet, and `yara_meta` tags on each path it has if it is a file. Detections are recorded apart,
 /// with the result that raised them.

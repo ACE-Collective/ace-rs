@@ -398,6 +398,7 @@ fn outcome_name(end: &ace_sdk::wire::TaskEnd) -> &'static str {
     use ace_sdk::wire::TaskEnd;
     match end {
         TaskEnd::Done { .. } => "done",
+        TaskEnd::Incomplete { .. } => "incomplete",
         TaskEnd::Skipped { .. } => "skipped",
         TaskEnd::Delay { .. } => "delayed",
         TaskEnd::Failed { .. } => "failed",

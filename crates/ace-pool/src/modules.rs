@@ -258,6 +258,16 @@ pub fn task_end<D: AnalysisType>(
                 error: format!("the result doesn't serialize: {e}"),
             },
         },
+        Ok(Outcome::Incomplete(result)) => match result.to_raw() {
+            Ok(result) => TaskEnd::Incomplete {
+                result,
+                writes,
+                probes: Default::default(),
+            },
+            Err(e) => TaskEnd::Failed {
+                error: format!("the result doesn't serialize: {e}"),
+            },
+        },
         Ok(Outcome::Delay(delay)) => TaskEnd::Delay {
             after_seconds: delay.run_after.as_secs_f64(),
             state: delay.state,
@@ -542,6 +552,12 @@ mod tests {
             ]
         };
         let result = ace_results::ResultEnvelope::new(EmailLoggingAnalysis {});
+        // an incomplete result goes with its writes, as a result does (PLAN.md decision 34)
+        let incomplete = task_end(Ok(Outcome::Incomplete(result.clone())), writes());
+        assert!(
+            matches!(&incomplete, TaskEnd::Incomplete { writes, .. } if writes.len() == 2),
+            "{incomplete:?}"
+        );
         let ends = [
             task_end(Ok(Outcome::Done(result)), writes()),
             task_end::<EmailLoggingAnalysis>(Ok(Outcome::Skipped("x".to_owned())), writes()),

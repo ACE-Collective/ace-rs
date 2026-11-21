@@ -164,6 +164,7 @@ fn the_lure_module_matches_the_reference_dumps_or_lists_each_difference() {
             }
             Outcome::Skipped(_) => json!({"analysis": null, "crawl": []}),
             Outcome::Delay(_) => panic!("{}: the module delayed", dump.name),
+            Outcome::Incomplete(_) => panic!("{}: the module was incomplete", dump.name),
         };
         compared.push((
             format!("lure_url_analyzer/{}", dump.short_name()),
@@ -261,6 +262,7 @@ fn the_mailbox_module_matches_the_reference_dumps_or_lists_each_difference() {
                 "tracked": [],
             }),
             Outcome::Delay(_) => panic!("{}: the module delayed", dump.name),
+            Outcome::Incomplete(_) => panic!("{}: the module was incomplete", dump.name),
         };
         compared.push((
             format!("mailbox_email_analyzer/{}", dump.short_name()),

@@ -359,6 +359,15 @@ pub enum TaskEnd {
         #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
         probes: BTreeMap<String, String>,
     },
+    /// The module's result as far as it goes (`Outcome::Incomplete`, PLAN.md decision 34), landed
+    /// as a `Done` is, writes and all, and the task runs again when its observable changes.
+    Incomplete {
+        result: ResultEnvelope<Value>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        writes: Vec<WireWrite>,
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        probes: BTreeMap<String, String>,
+    },
     /// The module had nothing to store about the observable, and its writes, if it made any, land
     /// as the task ends.
     Skipped {

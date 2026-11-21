@@ -352,6 +352,38 @@ async fn queue_hooks(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<TaskId>, Queu
     Ok(id)
 }
 
+/// Marks a task that just ended done as incomplete (PLAN.md decision 34): it runs again once its
+/// observable has changed since its claim, or on the root's next pass.
+pub async fn mark_incomplete(tx: &mut Tx<'_>, task: TaskId) -> Result<(), DbError> {
+    sqlx::query!(
+        "UPDATE queue.tasks SET incomplete = true WHERE id = $1 AND state = 'done'",
+        task as TaskId,
+    )
+    .execute(tx.conn())
+    .await?;
+    Ok(())
+}
+
+/// Queues again a task that ended incomplete, as ace3's engine runs a module again on an analysis
+/// that isn't completed. True when it was queued.
+pub async fn requeue_incomplete(tx: &mut Tx<'_>, task: TaskId) -> Result<bool, QueueError> {
+    let root = sqlx::query_scalar!(
+        "UPDATE queue.tasks
+         SET state = 'queued', run_after = now(), attempts = 0, error = NULL, delay_state = NULL,
+             first_delayed_at = NULL, delays = 0, cancel_requested = false, updated_at = now()
+         WHERE id = $1 AND state = 'done' AND incomplete
+         RETURNING root_id",
+        task as TaskId,
+    )
+    .fetch_optional(tx.conn())
+    .await?;
+    if let Some(root) = root {
+        begin_pass(tx, root).await?;
+        return Ok(true);
+    }
+    Ok(false)
+}
+
 /// Queues again the tasks of `modules` on the observable that ended with no result, as ace3's
 /// `reset_analysis` clears a module's "no analysis" mark so it runs again.
 pub async fn requeue_without_result(
@@ -612,7 +644,8 @@ impl Worker {
                UPDATE queue.tasks t
                SET state = 'running', lease_owner = $1,
                    lease_expires_at = now() + make_interval(secs => $2),
-                   attempts = t.attempts + 1, claimed_at = now(), updated_at = now()
+                   attempts = t.attempts + 1, claimed_at = now(), updated_at = now(),
+                   seen_changes = o.changes
                FROM due, analysis.observables o
                WHERE t.id = due.id AND o.id = t.observable_id
                RETURNING t.id AS "id: TaskId", t.root_id, t.module, t.attempts, t.input_hashes,
@@ -1034,7 +1067,7 @@ impl Worker {
         let finished = sqlx::query!(
             "UPDATE queue.tasks
              SET state = $3, error = $4, lease_owner = NULL, lease_expires_at = NULL,
-                 updated_at = now(),
+                 updated_at = now(), incomplete = false,
                  run_seconds = CASE WHEN run_pass = $5 THEN run_seconds ELSE 0 END
                      + GREATEST(COALESCE(EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),
                  runs = CASE WHEN run_pass = $5 THEN runs ELSE 0 END + 1,

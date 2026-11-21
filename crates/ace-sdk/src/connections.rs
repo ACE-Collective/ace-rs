@@ -75,6 +75,13 @@ pub trait ConnectionType: 'static {
     fn identity(settings: &Self::Settings) -> Value {
         serde_json::to_value(settings).unwrap_or(Value::Null)
     }
+
+    /// The TCP ports a connection with these settings reaches beyond its components' own, such as
+    /// a proxy's (PLAN.md decision 35): a pool whose components bind the connection is let reach
+    /// them too. None by default.
+    fn tcp_ports(_settings: &Self::Settings) -> Vec<u16> {
+        Vec::new()
+    }
 }
 
 /// A connection type without its Rust type, as a manifest or a spec holds it.
@@ -86,6 +93,7 @@ pub struct ConnectionKind {
     pub secrets: &'static [&'static str],
     check: fn(Option<&Value>) -> Result<(), SettingsError>,
     identity: fn(Option<&Value>) -> Result<Value, SettingsError>,
+    tcp_ports: fn(Option<&Value>) -> Result<Vec<u16>, SettingsError>,
 }
 
 impl ConnectionKind {
@@ -95,7 +103,13 @@ impl ConnectionKind {
             secrets: T::SECRETS,
             check: check::<T>,
             identity: identity::<T>,
+            tcp_ports: ports_of::<T>,
         }
+    }
+
+    /// The ports a connection with `block` reaches (`ConnectionType::tcp_ports`).
+    pub fn tcp_ports(&self, block: Option<&Value>) -> Result<Vec<u16>, SettingsError> {
+        (self.tcp_ports)(block)
     }
 
     /// Checks a connection's settings block against the type.
@@ -132,6 +146,10 @@ fn check<T: ConnectionType>(block: Option<&Value>) -> Result<(), SettingsError> 
 
 fn identity<T: ConnectionType>(block: Option<&Value>) -> Result<Value, SettingsError> {
     load_settings::<T::Settings>(block).map(|settings| T::identity(&settings))
+}
+
+fn ports_of<T: ConnectionType>(block: Option<&Value>) -> Result<Vec<u16>, SettingsError> {
+    load_settings::<T::Settings>(block).map(|settings| T::tcp_ports(&settings))
 }
 
 /// Where a component takes a connection of one type, by a name of its own.
@@ -182,6 +200,18 @@ pub struct Binding {
     pub identity: Value,
     /// The secret of the overlay's `secrets:` for each role it fills.
     pub secrets: BTreeMap<String, String>,
+    /// The TCP ports it reaches beyond its component's own (`ConnectionType::tcp_ports`), which a
+    /// pool that runs the component allows.
+    pub tcp_ports: Vec<u16>,
+}
+
+/// The ports `bindings` reach beyond their components' own, each once, in order.
+pub fn tcp_ports(bindings: &[Binding]) -> Vec<u16> {
+    let ports: std::collections::BTreeSet<u16> = bindings
+        .iter()
+        .flat_map(|b| b.tcp_ports.iter().copied())
+        .collect();
+    ports.into_iter().collect()
 }
 
 /// The names in the overlay's `secrets:` that `bindings` use, each once, in order: the only

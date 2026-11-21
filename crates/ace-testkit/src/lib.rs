@@ -534,7 +534,7 @@ pub fn check_result<D: AnalysisType>(result: &ResultEnvelope<D>) -> Result<(), H
 }
 
 fn check_outcome<D: AnalysisType>(outcome: Outcome<D>) -> Result<Outcome<D>, HarnessError> {
-    if let Outcome::Done(result) = &outcome {
+    if let Outcome::Done(result) | Outcome::Incomplete(result) = &outcome {
         check_result(result)?;
     }
     Ok(outcome)
@@ -553,6 +553,11 @@ pub fn snapshot_value<D: AnalysisType>(outcome: &Outcome<D>) -> Value {
             "run_after_seconds": delay.run_after.as_secs_f64(),
             "timeout_seconds": delay.timeout.as_secs_f64(),
             "state": delay.state,
+        }),
+        Outcome::Incomplete(result) => json!({
+            "outcome": "incomplete",
+            "result": serde_json::to_value(result)
+                .unwrap_or_else(|e| json!({"unserializable": e.to_string()})),
         }),
         Outcome::Skipped(reason) => json!({"outcome": "skipped", "reason": reason}),
     };

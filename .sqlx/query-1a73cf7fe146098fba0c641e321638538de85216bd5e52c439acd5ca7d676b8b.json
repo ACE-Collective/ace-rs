@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.roots r SET analysis_mode = $2, cancelled_at = NULL\n             FROM analysis.roots old WHERE r.id = $1 AND old.id = r.id\n             RETURNING old.analysis_mode",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "analysis_mode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "analysis_mode"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1a73cf7fe146098fba0c641e321638538de85216bd5e52c439acd5ca7d676b8b"
+}

@@ -4479,3 +4479,418 @@ async fn a_dependency_its_automation_limit_holds_lets_its_dependents_run() {
     assert_eq!(state("test_dep", "b.example"), None);
     assert_eq!(state("test_dependent", "b.example"), Some("queued"));
 }
+
+// ----- PLAN.md decision 34: a module's incomplete result, run again on a change
+
+/// Two lookups on an fqdn that do nothing themselves (the tests end their tasks), and one limited to
+/// one result of its type in a root, ace3's `automation_limit`.
+mod rerun {
+    use ace_results::ObservableKind;
+    use ace_results::types::sandbox::QrCodeAnalysis;
+    use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
+
+    macro_rules! stub {
+        ($ty:ident, $name:literal, $limit:expr) => {
+            pub struct $ty;
+            impl Module for $ty {
+                const NAME: &'static str = $name;
+                const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+                const AUTOMATION_LIMIT: Option<u32> = $limit;
+                type Output = QrCodeAnalysis;
+                type Settings = ();
+                fn init(_: &()) -> Result<Self, ModuleError> {
+                    Ok($ty)
+                }
+            }
+            impl Lookup for $ty {
+                const TCP_PORTS: &'static [u16] = &[];
+                async fn analyze(
+                    &self,
+                    _: &TaskContext<()>,
+                ) -> Result<Outcome<QrCodeAnalysis>, ModuleError> {
+                    Ok(Outcome::Skipped("a stub".to_owned()))
+                }
+            }
+        };
+    }
+    stub!(Unfinished, "test_unfinished", None);
+    stub!(Other, "test_other", None);
+    stub!(Limited, "test_limited", Some(1));
+
+    pub const UNFINISHED: Manifest = Manifest::lookup::<Unfinished>();
+    pub const OTHER: Manifest = Manifest::lookup::<Other>();
+    pub const LIMITED: Manifest = Manifest::lookup::<Limited>();
+}
+
+/// The modes: `rerun_test` runs the three, and `rerun_other_mode` only `test_other`.
+fn rerun_orchestrator() -> Orchestrator {
+    let modules = ["test_unfinished", "test_other", "test_limited"];
+    let mode = |name: &str, enabled: &[&str]| AnalysisMode {
+        name: name.to_owned(),
+        module_groups: Vec::new(),
+        enabled_modules: enabled.iter().map(|m| (*m).to_owned()).collect(),
+        disabled_modules: Vec::new(),
+    };
+    let modes = Modes::ace3()
+        .with_mode(mode("rerun_test", &modules))
+        .with_mode(mode("rerun_other_mode", &["test_other"]))
+        .with_mode(mode("rerun_alone", &["test_unfinished"]));
+    Orchestrator::new(
+        Catalog::new([rerun::UNFINISHED, rerun::OTHER, rerun::LIMITED]),
+        modes,
+    )
+}
+
+/// Claims `module`'s due task and lands `envelope`, as incomplete or not.
+async fn land_as(
+    test_db: &TestDb,
+    orchestrator: &Orchestrator,
+    module: &str,
+    envelope: serde_json::Value,
+    incomplete: bool,
+) {
+    let db = test_db.db();
+    let pool = worker(test_db, module, &[module], Duration::from_secs(60)).await;
+    let task = pool.claim().await.expect("claims").expect("a task");
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .land_ending(
+            &mut tx,
+            &pool,
+            &task,
+            &result(envelope),
+            &std::collections::BTreeMap::new(),
+            false,
+            incomplete,
+        )
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+}
+
+fn qr(text: &str) -> serde_json::Value {
+    json!({
+        "analysis_type": "qr_code_analysis", "schema_version": 1,
+        "details": {"extracted_text": text, "inverted": false},
+        "summary": text,
+    })
+}
+
+/// The state of `module`'s task on the root's first observable, and whether it ended incomplete.
+async fn state_of(db: &ace_core::db::Db, root: uuid::Uuid, module: &str) -> (String, bool) {
+    sqlx::query_as(
+        "SELECT state::text, incomplete FROM queue.tasks WHERE root_id = $1 AND module = $2
+         AND observable_id = (SELECT min(id) FROM analysis.observables WHERE root_id = $1)",
+    )
+    .bind(root)
+    .bind(module)
+    .fetch_one(db.pool())
+    .await
+    .expect("a task")
+}
+
+async fn eligible_again(
+    db: &ace_core::db::Db,
+    orchestrator: &Orchestrator,
+    root: uuid::Uuid,
+    on: tree::ObservableId,
+) {
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .queue_eligible(&mut tx, root, Scope::Observables(&[on]), false)
+        .await
+        .expect("eligibility");
+    tx.commit().await.expect("commits");
+}
+
+/// ace3's engine runs a module again on an analysis it returned INCOMPLETE from whenever the
+/// observable gains a tag, a directive, a relationship or an analysis, and in the root's next pass,
+/// with no limit; each run's result replaces the last, keeping what earlier runs added once. The
+/// first incomplete result is itself an analysis added, so it runs once more at once, as ace3's
+/// work stack holds the observable again; a rerun that changes nothing doesn't. A complete run ends
+/// it, a failed task stays failed, and the root completes between runs.
+#[tokio::test]
+async fn an_incomplete_result_runs_again_on_each_change_and_on_the_next_pass() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = rerun_orchestrator();
+    let (root, ids) = root_with(db, "rerun_test", &[(ObservableKind::Fqdn, "a.example")]).await;
+    let fqdn = ids[0];
+    start(db, &orchestrator, root).await;
+    let mut first = qr("first");
+    // an observable no module of the test takes, so the only task is the one under test
+    first["observables"] = json!([{"type": "ipv4", "value": "192.0.2.1"}]);
+    land_as(
+        &test_db,
+        &orchestrator,
+        "test_unfinished",
+        first.clone(),
+        true,
+    )
+    .await;
+    assert_eq!(
+        state_of(db, root, "test_unfinished").await,
+        ("queued".to_owned(), true),
+        "its own first result is an analysis added: it runs once more"
+    );
+    // the rerun replaces the result, with what it adds and detects once each
+    let mut second = first.clone();
+    second["details"]["extracted_text"] = json!("second");
+    second["summary"] = json!("second");
+    land_as(&test_db, &orchestrator, "test_unfinished", second, true).await;
+    assert_eq!(
+        state_of(db, root, "test_unfinished").await,
+        ("done".to_owned(), true),
+        "a rerun that changes nothing doesn't run again"
+    );
+    let rows: Vec<(String, i64)> = sqlx::query_as(
+        "SELECT r.summary,
+                (SELECT count(*) FROM analysis.result_additions a WHERE a.result_id = r.id)
+         FROM analysis.results r WHERE r.root_id = $1 AND r.module = 'test_unfinished'
+           AND r.observable_id = $2",
+    )
+    .bind(root)
+    .bind(fqdn.0)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(rows, [("second".to_owned(), 1)]);
+
+    // another module's result on the observable, with a tag: an analysis and a tag added
+    let mut tagged = qr("other");
+    tagged["analyzed"] = json!({"tags": ["new_tag"]});
+    land_as(&test_db, &orchestrator, "test_other", tagged, false).await;
+    assert_eq!(state_of(db, root, "test_unfinished").await.0, "queued");
+    land_as(
+        &test_db,
+        &orchestrator,
+        "test_unfinished",
+        qr("third"),
+        true,
+    )
+    .await;
+    assert_eq!(state_of(db, root, "test_unfinished").await.0, "done");
+
+    // a directive, then a relationship, each made outside a result, as a hook makes one
+    for change in [
+        "UPDATE analysis.observables SET directives = directives || '{crawl}' WHERE id = $1",
+        "INSERT INTO analysis.relationships (root_id, observable_id, kind, target_type, target_value)
+         SELECT root_id, id, 'related_to', 'ipv4', '192.0.2.1' FROM analysis.observables
+         WHERE id = $1",
+    ] {
+        sqlx::query(change).bind(fqdn.0).execute(db.pool()).await.expect("changes");
+        eligible_again(db, &orchestrator, root, fqdn).await;
+        assert_eq!(state_of(db, root, "test_unfinished").await.0, "queued", "{change}");
+        land_as(&test_db, &orchestrator, "test_unfinished", qr("again"), true).await;
+    }
+    // the same tag again is no change
+    sqlx::query("UPDATE analysis.observables SET tags = tags WHERE id = $1")
+        .bind(fqdn.0)
+        .execute(db.pool())
+        .await
+        .expect("updates");
+    eligible_again(db, &orchestrator, root, fqdn).await;
+    assert_eq!(state_of(db, root, "test_unfinished").await.0, "done");
+
+    // a mode set to the one it has is no new pass; the root's next pass runs it again, changed or not
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .set_mode(&mut tx, root, "rerun_test")
+        .await
+        .expect("the same mode");
+    tx.commit().await.expect("commits");
+    assert_eq!(state_of(db, root, "test_unfinished").await.0, "done");
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .new_pass(&mut tx, root, "rerun_test")
+        .await
+        .expect("a new pass");
+    tx.commit().await.expect("commits");
+    assert_eq!(state_of(db, root, "test_unfinished").await.0, "queued");
+    // a complete run ends it: no change runs it again
+    land_as(
+        &test_db,
+        &orchestrator,
+        "test_unfinished",
+        qr("done"),
+        false,
+    )
+    .await;
+    assert_eq!(
+        state_of(db, root, "test_unfinished").await,
+        ("done".to_owned(), false)
+    );
+    sqlx::query("UPDATE analysis.observables SET tags = tags || '{later}' WHERE id = $1")
+        .bind(fqdn.0)
+        .execute(db.pool())
+        .await
+        .expect("tags");
+    eligible_again(db, &orchestrator, root, fqdn).await;
+    assert_eq!(state_of(db, root, "test_unfinished").await.0, "done");
+    let summary: String = sqlx::query_scalar(
+        "SELECT summary FROM analysis.results WHERE root_id = $1 AND module = 'test_unfinished'
+           AND observable_id = $2",
+    )
+    .bind(root)
+    .bind(fqdn.0)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(summary, "done");
+}
+
+/// A root whose only task ended incomplete completes, as ace3's analysis ends with an incomplete
+/// analysis in it, and completes again after the rerun a change brings.
+#[tokio::test]
+async fn an_incomplete_task_holds_no_root_open() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = rerun_orchestrator();
+    let (root, ids) = root_with(db, "rerun_alone", &[(ObservableKind::Fqdn, "d.example")]).await;
+    start(db, &orchestrator, root).await;
+    land_as(
+        &test_db,
+        &orchestrator,
+        "test_unfinished",
+        qr("first"),
+        true,
+    )
+    .await;
+    land_as(
+        &test_db,
+        &orchestrator,
+        "test_unfinished",
+        qr("second"),
+        true,
+    )
+    .await;
+    let passes = ace_core::queue::completions(db, root).await.expect("reads");
+    assert_eq!(passes.len(), 1, "it completed with its task incomplete");
+    sqlx::query("UPDATE analysis.observables SET tags = tags || '{later}' WHERE id = $1")
+        .bind(ids[0].0)
+        .execute(db.pool())
+        .await
+        .expect("tags");
+    eligible_again(db, &orchestrator, root, ids[0]).await;
+    assert_eq!(state_of(db, root, "test_unfinished").await.0, "queued");
+    land_as(
+        &test_db,
+        &orchestrator,
+        "test_unfinished",
+        qr("third"),
+        true,
+    )
+    .await;
+    let passes = ace_core::queue::completions(db, root).await.expect("reads");
+    assert_eq!(passes.len(), 2, "and again after its rerun");
+}
+
+/// A rerun is a task's end like any other: a task that ends failed on a rerun stays failed whatever
+/// changes; a root that is cancelled reruns nothing; a mode that doesn't run the module doesn't run
+/// it again; and a module at its automation limit isn't run again, its own result counting, as ace3
+/// counts the analysis it would rerun.
+#[tokio::test]
+async fn a_rerun_keeps_failed_tasks_failed_and_the_mode_cancellation_and_limit_rules() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = rerun_orchestrator();
+    let (root, ids) = root_with(db, "rerun_test", &[(ObservableKind::Fqdn, "b.example")]).await;
+    let fqdn = ids[0];
+    start(db, &orchestrator, root).await;
+    // the limited module, incomplete, is at its limit with its own result: not run again
+    land_as(&test_db, &orchestrator, "test_limited", qr("limited"), true).await;
+    assert_eq!(
+        state_of(db, root, "test_limited").await,
+        ("done".to_owned(), true),
+        "its own result holds it at its limit of 1"
+    );
+    // the first incomplete one runs again at once, then fails
+    land_as(
+        &test_db,
+        &orchestrator,
+        "test_unfinished",
+        qr("first"),
+        true,
+    )
+    .await;
+    let pool = worker(&test_db, "w", &["test_unfinished"], Duration::from_secs(60)).await;
+    let task = pool.claim().await.expect("claims").expect("the rerun");
+    pool.fail(task.id, "the vendor broke").await.expect("fails");
+    sqlx::query("UPDATE analysis.observables SET tags = tags || '{after}' WHERE id = $1")
+        .bind(fqdn.0)
+        .execute(db.pool())
+        .await
+        .expect("tags");
+    eligible_again(db, &orchestrator, root, fqdn).await;
+    assert_eq!(
+        state_of(db, root, "test_unfinished").await,
+        ("failed".to_owned(), false),
+        "a failed task stays failed"
+    );
+    // another root: the mode that doesn't run it, then a cancellation
+    let (other, ids) = root_with(db, "rerun_test", &[(ObservableKind::Fqdn, "c.example")]).await;
+    start(db, &orchestrator, other).await;
+    land_as(
+        &test_db,
+        &orchestrator,
+        "test_unfinished",
+        qr("first"),
+        true,
+    )
+    .await;
+    land_as(
+        &test_db,
+        &orchestrator,
+        "test_unfinished",
+        qr("second"),
+        true,
+    )
+    .await;
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .set_mode(&mut tx, other, "rerun_other_mode")
+        .await
+        .expect("switches");
+    tx.commit().await.expect("commits");
+    assert_eq!(
+        state_of(db, other, "test_unfinished").await.0,
+        "done",
+        "outside the mode"
+    );
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .set_mode(&mut tx, other, "rerun_test")
+        .await
+        .expect("switches back");
+    ace_core::queue::cancel_root(&mut tx, other)
+        .await
+        .expect("cancels");
+    tx.commit().await.expect("commits");
+    sqlx::query("UPDATE analysis.observables SET tags = tags || '{x}' WHERE id = $1")
+        .bind(ids[0].0)
+        .execute(db.pool())
+        .await
+        .expect("tags");
+    eligible_again(db, &orchestrator, other, ids[0]).await;
+    assert_ne!(
+        state_of(db, other, "test_unfinished").await.0,
+        "queued",
+        "a cancelled root runs nothing again"
+    );
+}
+
+/// The analysis cache keeps no incomplete result, as ace3's keeps only a COMPLETED one; the same
+/// result complete is kept.
+#[tokio::test]
+async fn an_incomplete_result_isnt_kept() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = cache_orchestrator(None);
+    let (root, _) = root_with(db, "cache_test", &[(ObservableKind::Fqdn, "k.example")]).await;
+    start(db, &orchestrator, root).await;
+    land_as(&test_db, &orchestrator, "test_cached", found(), true).await;
+    assert_eq!(kept_rows(db).await, 0, "incomplete isn't kept");
+    // its rerun, complete, is
+    land_as(&test_db, &orchestrator, "test_cached", found(), false).await;
+    assert_eq!(kept_rows(db).await, 1);
+}

@@ -277,7 +277,18 @@ impl Orchestrator {
         scope: Scope<'a>,
         requeue_cancelled: bool,
     ) -> QueueFuture<'a> {
-        Box::pin(self.queue_eligible_unboxed(tx, root, mode, scope, requeue_cancelled))
+        Box::pin(self.queue_eligible_unboxed(tx, root, mode, scope, requeue_cancelled, false))
+    }
+
+    /// `queue_eligible_locked` for a new pass of the root, which runs again every task that ended
+    /// incomplete, changed or not (PLAN.md decision 34), as well as what a disposition cancelled.
+    fn queue_eligible_pass<'a>(
+        &'a self,
+        tx: &'a mut Tx<'_>,
+        root: Uuid,
+        mode: &'a str,
+    ) -> QueueFuture<'a> {
+        Box::pin(self.queue_eligible_unboxed(tx, root, mode, Scope::All, true, true))
     }
 
     async fn queue_eligible_unboxed(
@@ -287,6 +298,7 @@ impl Orchestrator {
         mode: &str,
         scope: Scope<'_>,
         requeue_cancelled: bool,
+        rerun_all: bool,
     ) -> Result<Vec<TaskId>, OrchestratorError> {
         // what the mode runs and the binary has: a dependency outside it never has a result
         let catalog = self.catalog.keys();
@@ -325,17 +337,28 @@ impl Orchestrator {
         }
         let mut tasks: BTreeMap<(ObservableId, String), (TaskId, TaskState, bool)> =
             BTreeMap::new();
+        // the tasks that ended incomplete and run again (PLAN.md decision 34): every one on a new
+        // pass, otherwise each whose observable changed since its claim
+        let mut rerun: BTreeSet<(ObservableId, String)> = BTreeSet::new();
         for row in sqlx::query!(
-            r#"SELECT id AS "id: TaskId", observable_id AS "observable_id: ObservableId", module,
-                      state AS "state: TaskState", declined IS NOT NULL AS "declined!"
-               FROM queue.tasks
-               WHERE root_id = $1 AND ($2::bigint[] IS NULL OR observable_id = ANY($2))"#,
+            r#"SELECT t.id AS "id: TaskId", t.observable_id AS "observable_id: ObservableId",
+                      t.module, t.state AS "state: TaskState",
+                      t.declined IS NOT NULL AS "declined!",
+                      (t.state = 'done' AND t.incomplete
+                       AND ($3 OR o.changes > COALESCE(t.seen_changes, -1))) AS "rerun!"
+               FROM queue.tasks t
+               JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id
+               WHERE t.root_id = $1 AND ($2::bigint[] IS NULL OR t.observable_id = ANY($2))"#,
             root,
             only.as_deref(),
+            rerun_all,
         )
         .fetch_all(tx.conn())
         .await?
         {
+            if row.rerun {
+                rerun.insert((row.observable_id, row.module.clone()));
+            }
             tasks.insert(
                 (row.observable_id, row.module),
                 (row.id, row.state, row.declined),
@@ -526,11 +549,13 @@ impl Orchestrator {
                 let mut no_task = false;
                 for component in std::mem::take(&mut components) {
                     let key = component.key.as_str();
-                    // a result with no task is one the cache wrote
-                    if has_result.contains(key) {
+                    let task = tasks.get(&(observable.id, key.to_owned()));
+                    let again = rerun.contains(&(observable.id, key.to_owned()));
+                    // a result with no task is one the cache wrote; one whose task ended incomplete
+                    // runs again on a change (PLAN.md decision 34)
+                    if has_result.contains(key) && !again {
                         continue;
                     }
-                    let task = tasks.get(&(observable.id, key.to_owned()));
                     // the module's declaration over what the core holds now (`crate::takes`)
                     let declined = component.takes.check(&facts).err();
                     if declined.is_some() && self.takes == TakesMode::Applied {
@@ -560,11 +585,15 @@ impl Orchestrator {
                     let requeued =
                         matches!(task, Some((_, TaskState::Cancelled, _))) && requeue_cancelled;
                     if let Some(limit) = limit
-                        && (task.is_none() || requeued)
+                        && (task.is_none() || requeued || again)
                     {
                         let (analysis_type, modules) = self.same_type(component);
+                        // a rerun's own result counts, as ace3 counts the analysis it reruns, and
+                        // one held back isn't waited for, since its result is there already
                         if counts.get(tx, root, analysis_type, &modules).await? >= limit {
-                            limits::hold(tx, root, observable.id, key, limit).await?;
+                            if !again {
+                                limits::hold(tx, root, observable.id, key, limit).await?;
+                            }
                             if task.is_none() {
                                 no_task |= settled.insert(key);
                             }
@@ -576,12 +605,16 @@ impl Orchestrator {
                         Some((id, TaskState::Cancelled, _)) if requeue_cancelled => {
                             queue::requeue_cancelled(tx, *id).await?.then_some(*id)
                         }
+                        Some((id, TaskState::Done, _)) if again => {
+                            queue::requeue_incomplete(tx, *id).await?.then_some(*id)
+                        }
                         Some(_) => None,
                     };
                     if added.is_some() {
                         // every task of a type counts toward its limit, a task of a component with
-                        // none among them, but not one the audit queues only to mark
-                        if declined.is_none() {
+                        // none among them, but not one the audit queues only to mark, nor a rerun,
+                        // whose result counts already
+                        if declined.is_none() && !again {
                             counts.add(component.manifest.output.name);
                         }
                         if limit.is_some() {
@@ -919,19 +952,48 @@ impl Orchestrator {
         root: Uuid,
         mode: &str,
     ) -> Result<Vec<TaskId>, OrchestratorError> {
+        self.switch_mode(tx, root, mode, false).await
+    }
+
+    /// `set_mode`, as a new pass of the root whether or not its mode changes, as ace3's
+    /// `request_analyst_analysis` queues the alert again: every task that ended incomplete runs
+    /// again (PLAN.md decision 34). `set_mode` is one only when the mode changes.
+    pub async fn new_pass(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+        mode: &str,
+    ) -> Result<Vec<TaskId>, OrchestratorError> {
+        self.switch_mode(tx, root, mode, true).await
+    }
+
+    async fn switch_mode(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+        mode: &str,
+        pass: bool,
+    ) -> Result<Vec<TaskId>, OrchestratorError> {
         lock_root(tx, root).await?;
-        sqlx::query!(
-            "UPDATE analysis.roots SET analysis_mode = $2, cancelled_at = NULL WHERE id = $1",
+        let before = sqlx::query_scalar!(
+            "UPDATE analysis.roots r SET analysis_mode = $2, cancelled_at = NULL
+             FROM analysis.roots old WHERE r.id = $1 AND old.id = r.id
+             RETURNING old.analysis_mode",
             root,
             mode,
         )
-        .execute(tx.conn())
+        .fetch_optional(tx.conn())
         .await?;
         hooks::mark_due(tx, &self.hooks, &self.modes, root, mode).await?;
         // a mode that runs file_type gives typed files ace3's result where an earlier mode didn't
         self.take_kept_types(tx, root, mode, Scope::All).await?;
-        self.queue_eligible_locked(tx, root, mode, Scope::All, true)
-            .await
+        // ace3 analyzes the root again in its new mode: a new pass
+        if pass || before.as_deref() != Some(mode) {
+            self.queue_eligible_pass(tx, root, mode).await
+        } else {
+            self.queue_eligible_locked(tx, root, mode, Scope::All, true)
+                .await
+        }
     }
 
     /// What follows a file's type step, however it ended (`queue::TaskEnded`): the file shows
@@ -1232,14 +1294,37 @@ impl Orchestrator {
         probes: &BTreeMap<String, String>,
         writes: bool,
     ) -> Result<Landed, OrchestratorError> {
+        self.land_ending(tx, worker, task, result, probes, writes, false)
+            .await
+    }
+
+    /// `land_result_with`, for a result that is `incomplete` too (PLAN.md decision 34): the task
+    /// ends done and marked so, which runs it again when its observable changes, and the analysis
+    /// cache keeps no incomplete result, as ace3's keeps only a `COMPLETED` one.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn land_ending(
+        &self,
+        tx: &mut Tx<'_>,
+        worker: &Worker,
+        task: &Task,
+        result: &ResultEnvelope<Value>,
+        probes: &BTreeMap<String, String>,
+        writes: bool,
+        incomplete: bool,
+    ) -> Result<Landed, OrchestratorError> {
         let root = task.root;
         let analyzed = task.observable.id;
         let locked = lock_root(tx, root).await?;
         worker.finish_in(tx, task.id, TaskState::Done, None).await?;
+        if incomplete {
+            queue::mark_incomplete(tx, task.id).await?;
+        }
         if self.takes == TakesMode::Audit {
             declared::report_if_marked(tx, task.id, &task.module, "stored a result").await?;
         }
-        self.keep(tx, task, result, probes, writes).await?;
+        if !incomplete {
+            self.keep(tx, task, result, probes, writes).await?;
+        }
         self.apply_result(
             tx,
             root,
@@ -1362,8 +1447,9 @@ impl Orchestrator {
         complete: bool,
     ) -> Result<Landed, OrchestratorError> {
         let mode = locked.mode.clone();
-        let result_id =
-            tree::insert_result_from(tx, root, analyzed, module, result, cached_at).await?;
+        // a rerun of an incomplete task replaces its result, and keeps what it added once each
+        let (result_id, replaced) =
+            tree::store_result(tx, root, analyzed, module, result, cached_at).await?;
         tree::add_to_observable(tx, root, analyzed, &result.analyzed).await?;
 
         // what the result adds is one deeper than what it analyzed (`tree::upsert_observable_at`)
@@ -1381,7 +1467,9 @@ impl Orchestrator {
             let id = tree::upsert_observable_at(tx, root, observable, depth)
                 .await?
                 .id;
-            tree::add_result_addition(tx, root, result_id, id, None).await?;
+            if !replaced || !tree::has_addition(tx, result_id, id, None).await? {
+                tree::add_result_addition(tx, root, result_id, id, None).await?;
+            }
             touched.push(id);
             detections.extend(observable.detections.iter().map(|d| (id, d)));
         }
@@ -1410,7 +1498,11 @@ impl Orchestrator {
                 depth,
             )
             .await?;
-            tree::add_result_addition(tx, root, result_id, id, Some(file.path.as_str())).await?;
+            if !replaced || !tree::has_addition(tx, result_id, id, Some(file.path.as_str())).await?
+            {
+                tree::add_result_addition(tx, root, result_id, id, Some(file.path.as_str()))
+                    .await?;
+            }
             touched.push(id);
             detections.extend(file.detections.iter().map(|d| (id, d)));
         }
@@ -1449,6 +1541,11 @@ impl Orchestrator {
             }
         }
         for (observable, detection) in &detections {
+            if replaced
+                && tree::has_detection(tx, result_id, *observable, &detection.description).await?
+            {
+                continue;
+            }
             tree::add_detection(tx, root, *observable, Some(result_id), detection).await?;
         }
         if let Some(changes) = &result.root {

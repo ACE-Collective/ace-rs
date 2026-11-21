@@ -7012,3 +7012,67 @@ async fn an_action_of_a_handler_the_catalog_leaves_out_is_never_claimed() {
         "{refused}"
     );
 }
+
+// ---- PLAN.md decision 34: an incomplete end ----
+
+/// A task's incomplete end (`TaskEnd::Incomplete`) lands its result as a `Done` does, its error
+/// and all, and leaves the task done and marked incomplete. The root's mode doesn't run this test's
+/// module, so nothing runs it again, as ace3 reruns only what the mode runs.
+#[tokio::test]
+async fn an_incomplete_end_lands_its_result_and_marks_the_task() {
+    let names = ["test_recorded_message_ids"];
+    let core = Core::start(
+        vec![ace_sdk::Manifest::lookup::<recorded::AsksTheStore>()],
+        &names,
+        Duration::from_secs(30),
+    )
+    .await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::MessageId,
+        &["<incomplete@example.com>"],
+        "test_recorded_message_ids",
+    )
+    .await;
+    let task = lease_one(&client, "test_recorded_message_ids").await;
+    let result = ace_results::ResultEnvelope::new(ace_sdk::example::LineStats {
+        lines: 1,
+        longest_line: 4,
+        first_line: ace_results::Bytes::from(b"line".to_vec()),
+        truncated: false,
+    })
+    .with_summary("as far as it goes")
+    .with_error("the vendor answered 503")
+    .to_raw()
+    .expect("raw");
+    client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Incomplete {
+                result,
+                writes: Vec::new(),
+                probes: Default::default(),
+            },
+        )
+        .await
+        .expect("lands");
+    let (state, incomplete): (String, bool) =
+        sqlx::query_as("SELECT state::text, incomplete FROM queue.tasks WHERE id = $1")
+            .bind(task.id)
+            .fetch_one(core.test_db.db().pool())
+            .await
+            .expect("reads");
+    assert_eq!((state.as_str(), incomplete), ("done", true));
+    let (summary, error): (String, String) =
+        sqlx::query_as("SELECT summary, error FROM analysis.results WHERE root_id = $1")
+            .bind(root)
+            .fetch_one(core.test_db.db().pool())
+            .await
+            .expect("its result");
+    assert_eq!(
+        (summary.as_str(), error.as_str()),
+        ("as far as it goes", "the vendor answered 503")
+    );
+}

@@ -310,6 +310,20 @@ impl App {
         self
     }
 
+    /// The ports the network pool `pool` allows for its components' connections beyond their own,
+    /// such as a proxy's, with `overlay` (`ace_sdk::ConnectionType::tcp_ports`, PLAN.md decision
+    /// 35), as the pool computes them when it starts. None for a pool this binary hasn't.
+    pub fn lookup_connection_ports(
+        &self,
+        pool: &str,
+        overlay: &ace_sdk::Overlay,
+    ) -> Result<Option<Vec<u16>>, String> {
+        match self.lookup_pools.iter().find(|p| p.name == pool) {
+            Some(pool) => pools::connection_ports(pool, overlay).map(Some),
+            None => Ok(None),
+        }
+    }
+
     /// Adds an icon a pivot link may name (PLAN.md decision 32 part (b)): `png`, a PNG of at most 64
     /// KiB the binary embeds, which the GUI serves itself, as an ace3 integration ships an image in its
     /// static directory for its pivot links. One with a registered icon's name takes its place. Panics

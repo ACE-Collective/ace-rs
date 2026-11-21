@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO analysis.results AS r\n               (root_id, observable_id, module, analysis_type, schema_version, details, summary,\n                tags, error, cached_at, pivot_links)\n           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n           ON CONFLICT (root_id, observable_id, module) DO UPDATE\n               SET analysis_type = EXCLUDED.analysis_type, schema_version = EXCLUDED.schema_version,\n                   details = EXCLUDED.details, summary = EXCLUDED.summary, tags = EXCLUDED.tags,\n                   error = EXCLUDED.error, cached_at = EXCLUDED.cached_at,\n                   pivot_links = EXCLUDED.pivot_links\n           RETURNING id AS \"id: ResultId\", (xmax <> 0) AS \"replaced!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: ResultId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "replaced!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Text",
+        "Text",
+        "Int4",
+        "Jsonb",
+        "Text",
+        "TextArray",
+        "Text",
+        "Timestamptz",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "bbf545782dd3fedacc81932d1414b9db944c84cc2f5c9055c93020e3125fc01e"
+}

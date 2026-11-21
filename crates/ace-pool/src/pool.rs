@@ -100,6 +100,28 @@ impl PoolDefinition {
         bucket_endpoint: Option<&str>,
         address_space_bytes: u64,
     ) -> Result<SandboxProfile, String> {
+        Self::lookup_sandbox_with(
+            modules,
+            collects_files,
+            api_port,
+            bucket_endpoint,
+            &[],
+            address_space_bytes,
+        )
+    }
+
+    /// `lookup_sandbox`, which also connects to `connection_ports`: the ports the connections its
+    /// modules and handlers bind reach beyond their own, such as a proxy's
+    /// (`ace_sdk::ConnectionType::tcp_ports`, PLAN.md decision 35), known only once the pool has
+    /// read the overlay.
+    pub fn lookup_sandbox_with(
+        modules: &Modules,
+        collects_files: bool,
+        api_port: u16,
+        bucket_endpoint: Option<&str>,
+        connection_ports: &[u16],
+        address_space_bytes: u64,
+    ) -> Result<SandboxProfile, String> {
         let mut profile = SandboxProfile {
             read_paths: Vec::new(),
             write_paths: Vec::new(),
@@ -113,6 +135,9 @@ impl PoolDefinition {
                     profile = profile.allow_port(port);
                 }
             }
+        }
+        for &port in connection_ports {
+            profile = profile.allow_port(port);
         }
         profile = profile.allow_port(api_port);
         if collects_files || Self::adds_fetched_files(modules) {
@@ -436,6 +461,24 @@ mod tests {
         assert!(
             PoolDefinition::lookup_sandbox(&with, false, 8080, Some("bucket"), POOL_ADDRESS_SPACE)
                 .is_err()
+        );
+        // a connection's own ports, such as a proxy's on 3128 (PLAN.md decision 35), join its
+        // modules' and handlers'; without them the pool reaches only those
+        assert!(!profile.tcp_ports.contains(&3128));
+        let proxied = PoolDefinition::lookup_sandbox_with(
+            &without,
+            false,
+            8080,
+            endpoint,
+            &[3128, 8080],
+            POOL_ADDRESS_SPACE,
+        )
+        .expect("a profile");
+        assert!(proxied.tcp_ports.contains(&3128), "{:?}", proxied.tcp_ports);
+        assert_eq!(
+            proxied.tcp_ports.iter().filter(|&&p| p == 8080).count(),
+            1,
+            "a port once"
         );
     }
 }

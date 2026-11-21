@@ -255,6 +255,11 @@ pub struct TicketSystemSettings {
     pub url: String,
     /// How long a request to it may take.
     pub request_timeout_seconds: u64,
+    /// A proxy the lookup reaches the system through, such as `http://proxy.example.com:3128`. Its
+    /// port joins the ports of the pool that runs the lookup (`ConnectionType::tcp_ports`, PLAN.md
+    /// decision 35), so a site's proxy may be on any port.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub proxy: Option<String>,
 }
 
 impl Default for TicketSystemSettings {
@@ -262,6 +267,7 @@ impl Default for TicketSystemSettings {
         TicketSystemSettings {
             url: "https://tickets.example.com".to_owned(),
             request_timeout_seconds: 30,
+            proxy: None,
         }
     }
 }
@@ -274,6 +280,17 @@ impl ace_sdk::ConnectionType for TicketSystem {
     /// Which system is asked changes what is found; how long a request may take doesn't.
     fn identity(settings: &TicketSystemSettings) -> serde_json::Value {
         serde_json::json!({"url": settings.url})
+    }
+
+    /// The proxy's port, when it names one, beside the lookup's own.
+    fn tcp_ports(settings: &TicketSystemSettings) -> Vec<u16> {
+        settings
+            .proxy
+            .as_deref()
+            .and_then(|url| url.trim_end_matches('/').rsplit(':').next())
+            .and_then(|port| port.parse().ok())
+            .into_iter()
+            .collect()
     }
 }
 

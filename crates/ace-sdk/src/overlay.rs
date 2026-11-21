@@ -1368,6 +1368,15 @@ impl Overlay {
             let identity = crate::connections::check_section(name, section, &slot.kind).map_err(
                 |(at, message)| refuse(at, format!("{message} (bound at {path}.{slot_name})")),
             )?;
+            let tcp_ports = slot
+                .kind
+                .tcp_ports(section.settings.as_ref())
+                .map_err(|e| {
+                    refuse(
+                        format!("connections.{name}.settings"),
+                        format!("{e} (bound at {path}.{slot_name})"),
+                    )
+                })?;
             bindings.push(Binding {
                 slot: slot.name.to_owned(),
                 connection: name.clone(),
@@ -1375,6 +1384,7 @@ impl Overlay {
                 settings: section.settings.clone(),
                 identity,
                 secrets: section.secrets.clone(),
+                tcp_ports,
             });
         }
         Ok(bindings)
