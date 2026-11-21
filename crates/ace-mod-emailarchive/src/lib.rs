@@ -4,22 +4,17 @@
 //!
 //! - `email_archiver` (`archiver`): ace3's `EmailArchiveAction`, which archives an email through the
 //!   `email-archive` write.
-//! - `encrypted_archive_analyzer` (`encrypted`): ace3's `EncryptedArchiveAnalyzer`, which opens an
-//!   archived email file in the alert through the `decrypted-archive` read.
-//! - `url_email_pivot_analyzer` (`pivot`): ace3's `URLEmailPivotAnalyzer`, which counts the archived
-//!   emails that held a URL through the `archived-url-count` read.
 //! - `message_id_analyzer_v2` (`message_id`): ace3's `MessageIDAnalyzerV2`, which pulls an archived
 //!   email into the alert by its Message-ID through the `archived-email` read.
+//!
+//! ace3's 4f1fa192 removed `encrypted_archive_analyzer` and `url_email_pivot_analyzer`, since the
+//! archive is no longer searchable and no alert holds a `.gz.e` file, and ace4 removed them with it.
 
 pub mod archiver;
-pub mod encrypted;
 pub mod message_id;
-pub mod pivot;
 
 pub use archiver::EmailArchiver;
-pub use encrypted::EncryptedArchiveAnalyzer;
 pub use message_id::MessageIdAnalyzer;
-pub use pivot::UrlEmailPivotAnalyzer;
 
 /// The tag ace3 gives an email it took out of the archive.
 pub const DECRYPTED_EMAIL: &str = "decrypted_email";

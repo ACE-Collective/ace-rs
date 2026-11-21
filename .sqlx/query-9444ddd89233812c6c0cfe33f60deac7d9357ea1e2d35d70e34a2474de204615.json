@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT status, result, message, resolved_target, created_at FROM queue.action_attempts\n         WHERE action_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.action_attempts",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "result",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.action_attempts",
+            "name": "result"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "message",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.action_attempts",
+            "name": "message"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "resolved_target",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.action_attempts",
+            "name": "resolved_target"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.action_attempts",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "9444ddd89233812c6c0cfe33f60deac7d9357ea1e2d35d70e34a2474de204615"
+}

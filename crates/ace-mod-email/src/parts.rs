@@ -11,7 +11,7 @@ use std::sync::LazyLock;
 
 use ace_results::FileRole;
 use ace_results::NewFile;
-use ace_results::types::email::ExtractionError;
+use ace_results::types::email::{BODY_PART_CONTENT_TYPES, EmailPart, ExtractionError, PartRole};
 use ace_sdk::{FileOutputError, InputFile};
 use sha2::{Digest, Sha256};
 
@@ -63,6 +63,8 @@ pub struct Extracted {
     pub files: Vec<NewFile>,
     pub attachments: Vec<Attachment>,
     pub errors: Vec<ExtractionError>,
+    /// Each part's file, content type and role, ace3's `details["parts"]` (5474fd6b).
+    pub parts: Vec<EmailPart>,
 }
 
 /// Extracts the parts of `target` (`__recursive_parser`).
@@ -152,19 +154,22 @@ impl<'w> Extractor<'w> {
             }
             file_name = Some(format!("{}.email.rfc822", self.input.path));
         }
-        let mut file_name = match file_name.or_else(|| node.headers.filename()) {
+        let named = match file_name.or_else(|| node.headers.filename()) {
             Some(name) if !name.is_empty() => {
                 let decoded = py::make_header_str(&name).unwrap_or_else(|| {
                     tracing::warn!(name = %name, "unable to fully decode an attachment name");
                     name.clone()
                 });
-                decoded.replace(['\r', '\n'], "")
+                Some(decoded.replace(['\r', '\n'], "")).filter(|name| !name.is_empty())
             }
-            _ => self.unnamed_part_name(node, unknown_ext),
+            _ => None,
         };
-        if file_name.is_empty() {
-            file_name = self.unnamed_part_name(node, unknown_ext);
-        }
+        // a body part is an unnamed text or html part; anything else is an attachment
+        let unnamed = named.is_none();
+        let file_name = match named {
+            Some(name) => name,
+            None => self.unnamed_part_name(node, unknown_ext),
+        };
 
         let payload: Vec<u8> = if is_message {
             // ace3 writes Python's re-serialization of the inner message (as_bytes); ace4 writes
@@ -200,6 +205,16 @@ impl<'w> Extractor<'w> {
             DIRECTIVE_RENDER
         });
 
+        let body = unnamed && BODY_PART_CONTENT_TYPES.contains(&node.content_type.as_str());
+        self.out.parts.push(EmailPart {
+            path: file.path.to_string(),
+            content_type: node.content_type.clone(),
+            role: if body {
+                PartRole::Body
+            } else {
+                PartRole::Attachment
+            },
+        });
         self.out.attachments.push(Attachment {
             size: payload.len() as u64,
             content_type: node.content_type.clone(),

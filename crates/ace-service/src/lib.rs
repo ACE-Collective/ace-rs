@@ -294,7 +294,7 @@ pub use remediation::{
     ACE_SOURCE, ActionAttempt, ActionQuery, ActionSummary, COVERAGE_TYPE, Coverage, CoverageCheck,
     CoverageRemediation, CoverageState, MAX_ACTIONS_PAGE, MAX_HISTORY, MAX_TARGET_ALERTS,
     MAX_TARGETS, Remediation, RemediationPage, RemediationTarget, TOOLTIP_TARGET_LIMIT,
-    TargetCoverage, TargetKey, assemble_coverage,
+    TargetCoverage, TargetKey, assemble_coverage, journal_explains,
 };
 pub use saved_filters::{
     MAX_SAVED_FILTER_DESCRIPTION_CHARS, MAX_SAVED_FILTER_NAME_CHARS, MAX_SAVED_FILTERS,

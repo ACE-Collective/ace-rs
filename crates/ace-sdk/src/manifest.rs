@@ -823,7 +823,12 @@ mod tests {
         }
         fn takes(_: &DeclaringSettings) -> Takes {
             Takes::everything().and(
-                crate::takes::Condition::result_fqdn("apex", "apex_domain").negated(),
+                crate::takes::Condition::result_text(
+                    "apex",
+                    "apex_domain",
+                    crate::takes::Text::exact(crate::takes::Match::NotEmpty),
+                )
+                .negated(),
                 "its apex is looked up",
             )
         }
@@ -872,7 +877,7 @@ mod tests {
             crate::Outcome::Skipped("its apex is looked up".to_owned())
         );
         assert_eq!(
-            run("-bad.com").await,
+            run("").await,
             crate::Outcome::Skipped("saw {} None".to_owned())
         );
     }

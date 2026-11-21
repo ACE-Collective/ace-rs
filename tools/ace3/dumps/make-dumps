@@ -139,7 +139,7 @@ analysis_module_proxy_domain_lookup:
   question: "Was this domain seen in proxy logs?"
   summary: "Proxy correlation"
   query: |
-    index=network_proxy_web (transport=HTTPS OR transport=HTTP) hostname="<O_VALUE>"
+    index=proxy (transport=HTTPS OR transport=HTTP) hostname="<O_VALUE>"
     | eval full_url = lower(transport) . "://" . url
   use_index_time: true
   narrow_duration_before: "00:24:00:00"
@@ -777,9 +777,6 @@ URLSAFE_200 = (
 )
 NETWORKS = ["--config", f"{REMOTE}/fixtures/values/networks.yaml"]
 ONE_DRIVE = ["--replay-http", f"{REMOTE}/fixtures/values/one_drive"]
-# tldextract reads the public suffix list the RDAP recording holds, as it does in make-trees, rather than
-# fetch one
-SUFFIX_LIST = ["--replay-http", f"{REMOTE}/rdap"]
 VALUE_RUNS = [
     ("command_line_analyzer", "paths", "command_line",
      r'cmd.exe /c "C:\Program Files\Acme Tool\run.exe" -o C:\Users\alice\AppData\Local\Temp\out.log \\fileserver\share\drop\x.dll',
@@ -829,14 +826,6 @@ VALUE_RUNS = [
     ("idna_analyzer", "sharp_s", "fqdn", "fa\u00df.de", [], [], []),
     ("idna_analyzer", "sharp_s_punycode", "fqdn", "xn--fa-hia.de", [], [], []),
     ("idna_analyzer", "snowman", "fqdn", "\u2603.net", [], [], []),
-    ("apex_domain_analyzer", "subdomain", "fqdn", "login.mail.Example.co.uk", [], [], SUFFIX_LIST),
-    ("apex_domain_analyzer", "apex", "fqdn", "example.com", [], [], SUFFIX_LIST),
-    ("apex_domain_analyzer", "upper", "fqdn", "MAIL.EXAMPLE.ORG", [], [], SUFFIX_LIST),
-    ("apex_domain_analyzer", "no_suffix", "fqdn", "host.corp-internal", [], [], SUFFIX_LIST),
-    ("apex_domain_analyzer", "suffix_only", "fqdn", "co.uk", [], [], SUFFIX_LIST),
-    ("apex_domain_analyzer", "private_suffix", "fqdn", "someone.github.io", [], [], SUFFIX_LIST),
-    ("apex_domain_analyzer", "unicode", "fqdn", "www.m\u00fcnchen.de", [], [], SUFFIX_LIST),
-    ("apex_domain_analyzer", "punycode", "fqdn", "www.xn--mnchen-3ya.de", [], [], SUFFIX_LIST),
     ("parse_url", "full", "url", "https://www.example.com/path/to?a=1&b=%20x+y#frag", [], [], []),
     ("parse_url", "ipv4_port", "url", "http://192.0.2.10:8080/login", [], [], []),
     ("parse_url", "host_first", "url", "yahoo.com/login", [], [], []),
@@ -1250,40 +1239,24 @@ def write_bodies(bodies):
     yield
 
 
-# 7.5 batch 9's email archive. ace3's archive is a MySQL database and files on the node; here it's
-# run_module.py's FakeEmailArchive and the work directory, under the test-only key in
-# fixtures/email_archive/key. The sealed fixtures there were made with seal.py, ace3's own encrypt.
+# 7.5 batch 9's email archive. ace3's archive is its email_archive CAS pool and the email archive
+# database's archived_messages (ace3's 6669e249 and 4f1fa192); here it's run_module.py's
+# FakeEmailArchive and the work directory, under the test-only key in fixtures/email_archive/key.
 EMAIL_ARCHIVE = f"{REMOTE}/fixtures/email_archive"
 EMAIL_ARCHIVE_KEY = (HERE / "fixtures" / "email_archive" / "key").read_text().strip()
-EMAIL_ARCHIVE_FILES = [
-    "sealed_v0.gz.e", "sealed_v1.gz.e", "other_key.gz.e", "not_gzip.gz.e", "truncated.gz.e",
-    "tampered.gz.e", "sealed_v0.bin",
-]
 EMAIL_ARCHIVE_MESSAGE_IDS = [
     "<archived-1@example.com>", "archived-1@example.com", "<archived-2@example.com>",
     "<not-archived@example.com>", "<missing-object@example.com>", "<empty@example.com>",
 ]
-EMAIL_ARCHIVE_URLS = ["http://example.com/a", "http://example.com/shared", "http://example.com/none"]
-EMAIL_ARCHIVE_PIVOT_CONFIG = "analysis_module_url_email_pivot_analyzer:\n  result_limit: 2\n"
 
 
 def email_archive_runs():
-    """The archive modules: the opener on each sealed fixture; the Message-ID and URL modules against
-    fixtures/email_archive/store.json, the URL module also with a result_limit the count passes; and the
+    """The archive modules: the Message-ID module against fixtures/email_archive/store.json, and the
     archiver on each email sample with the archive directive, against an empty archive, with the
-    email, file type and URL modules whose URLs its post-analysis indexes, keeping the whole root,
-    whose URLs those are."""
+    email, file type and URL modules, keeping the whole root."""
     runs = []
     key = ["--encryption-key", EMAIL_ARCHIVE_KEY]
     store = ["--email-archive-store", f"{EMAIL_ARCHIVE}/store.json"]
-    for name in EMAIL_ARCHIVE_FILES:
-        runs.append({
-            "module": "encrypted_archive_analyzer",
-            "enable": [],
-            "name": name,
-            "args": ["--file", f"{EMAIL_ARCHIVE}/{name}", "--alert-path", name, *key],
-            "label": f"fixtures/email_archive/{name}",
-        })
     for value in EMAIL_ARCHIVE_MESSAGE_IDS:
         runs.append({
             "module": "message_id_analyzer_v2",
@@ -1292,23 +1265,6 @@ def email_archive_runs():
             "args": ["--observable", "message_id", value, *key, *store],
             "label": f"message_id {value}, against fixtures/email_archive/store.json",
         })
-    for value in EMAIL_ARCHIVE_URLS:
-        runs.append({
-            "module": "url_email_pivot_analyzer",
-            "enable": [],
-            "name": f"url_{value.split('//', 1)[1].replace('/', '_')}",
-            "args": ["--observable", "url", value, *key, *store],
-            "label": f"url {value}, against fixtures/email_archive/store.json",
-        })
-    runs.append({
-        "module": "url_email_pivot_analyzer",
-        "enable": [],
-        "name": "url_example.com_shared.limit",
-        "args": ["--observable", "url", "http://example.com/shared", *key, *store,
-                 "--config", f"{EMAIL_ARCHIVE}/pivot_limit.yaml"],
-        "label": "url http://example.com/shared, against fixtures/email_archive/store.json, result_limit 2",
-        "service": write_pivot_config,
-    })
     for sample in manifest_samples("email"):
         if sample["path"].startswith("local/"):
             continue
@@ -1323,12 +1279,6 @@ def email_archive_runs():
             "label": f"{sample['path']} with the archive directive, against an empty archive",
         })
     return runs
-
-
-@contextlib.contextmanager
-def write_pivot_config():
-    put(f"{EMAIL_ARCHIVE}/pivot_limit.yaml", EMAIL_ARCHIVE_PIVOT_CONFIG.encode())
-    yield
 
 
 def exif_runs():
@@ -2029,7 +1979,6 @@ def run(spec):
         "network_identifier": "NetworkIdentifierAnalysis",
         "parse_url": "ParseURLAnalysis",
         "idna_analyzer": "IDNAAnalysis",
-        "apex_domain_analyzer": "ApexDomainAnalysis",
         "email_address_fqdn_analyzer": "EmailAddressFQDNAnalysis",
         "protected_url_analyzer": "ProtectedURLAnalysis",
         "html_data_url_extraction": "HTMLDataURLAnalysis",
@@ -2057,8 +2006,6 @@ def run(spec):
         "email_conversation_attachment_analyzer": "EmailConversationAttachmentAnalysis",
         "email_conversation_link_analyzer": "EmailConversationLinkAnalysis",
         "email_archiver": "EmailArchiveResults",
-        "encrypted_archive_analyzer": "EncryptedArchiveAnalysis",
-        "url_email_pivot_analyzer": "URLEmailPivotAnalysis_v2",
         "message_id_analyzer_v2": "MessageIDAnalysisV2",
         "pdftotext": "PDFTextAnalysis",
         "pdf_link_text": "PDFLinkTextAnalysis",
@@ -2119,8 +2066,9 @@ def main():
             results.append(run(spec))
             done_modules.add(spec["module"])
 
+    # a row whose dump is gone is a module or a run that was removed
     index["runs"] = sorted(
-        [r for r in index["runs"] if r["module"] not in done_modules] + results,
+        [r for r in index["runs"] if r["module"] not in done_modules and (OUT / r["dump"]).exists()] + results,
         key=lambda r: (r["module"], r["dump"]),
     )
     # modules' dumps are made at different times, so each row names the commit its dump was made at

@@ -2,9 +2,7 @@
   "analysis_type": "splunk_api_analysis",
   "schema_version": 1,
   "details": {
-    "dispatch_state": "DONE",
-    "end_time": "2026-01-01T00:00:00.000-00:00",
-    "query": "index=network_proxy_web (transport=HTTPS OR transport=HTTP) hostname=\"www.example.com\"\n| eval full_url = lower(transport) . \"://\" . url\n",
+    "query": "index=proxy (transport=HTTPS OR transport=HTTP) hostname=\"www.example.com\"\n| eval full_url = lower(transport) . \"://\" . url\n",
     "query_results": [
       {
         "_time": "2026-10-30T14:02:11.000+00:00",
@@ -29,12 +27,14 @@
         "src_ip": "192.0.2.12"
       }
     ],
-    "query_start": 1767225596.0,
-    "query_summary": "Proxy correlation",
     "question": "Was this domain seen in proxy logs?",
-    "running_start_time": "2026-01-01T00:00:00.000-00:00",
+    "query_summary": "Proxy correlation",
+    "query_start": 1767225596.0,
     "search_id": "1767225600.1",
-    "start_time": "2026-01-01T00:00:00.000-00:00"
+    "dispatch_state": "DONE",
+    "start_time": "2026-01-01T00:00:00.000-00:00",
+    "running_start_time": "2026-01-01T00:00:00.000-00:00",
+    "end_time": "2026-01-01T00:00:00.000-00:00"
   },
   "summary": "Proxy correlation: (3 results)",
   "observables": [

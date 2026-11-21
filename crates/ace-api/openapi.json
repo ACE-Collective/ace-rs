@@ -20687,6 +20687,13 @@
           "message": {
             "type": "string"
           },
+          "resolved_target": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the remediator acted on when it wasn't the key, such as the mailbox that owns an alias\naddress (ace3's `resolved_target`); absent when it acted on the key."
+          },
           "result": {
             "type": "string"
           },

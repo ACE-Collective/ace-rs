@@ -1,6 +1,6 @@
 # Differences from ace3's reference dumps
 
-`tests/reference.rs` runs the email module on each email fixture that `tools/ace3/dumps/reference/email_analyzer/` has a dump for, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit fe6da632.
+`tests/reference.rs` runs the email module on each email fixture that `tools/ace3/dumps/reference/email_analyzer/` has a dump for, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 85c8e9e5.
 
 In the Dumps column, `*` matches any text in a dump's name. In the Path column, a `*` segment matches one segment of the JSON pointer, `**` any number, and a `*` inside a segment any text. A `/` inside a file's path is written `~1`, as JSON pointers escape it.
 

@@ -113,6 +113,7 @@ impl Parser for EmailAnalyzer {
                         parsing_error: None,
                         extraction_errors: Vec::new(),
                         email: None,
+                        parts: None,
                     });
                     result.analyzed = analyzed;
                     return Ok(Outcome::Done(result));
@@ -157,6 +158,7 @@ impl Parser for EmailAnalyzer {
             }
         }
         result.details.extraction_errors = extracted.errors;
+        result.details.parts = Some(extracted.parts);
         result.analyzed = analyzed;
         let summary = summary(&result.details);
         if let Some(summary) = summary {

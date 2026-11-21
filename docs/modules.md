@@ -1,6 +1,6 @@
 # Module inventory
 
-PLAN.md 7.1. The 92 `analysis_module_*` sections of `ace3/etc/saq.default.yaml` at ace3 `fe6da632`, with what each module does, where it runs in ace4 and which step ports it. 90 of them were there at `141a60a2`, the commit PLAN.md was written against, and at `f72f8946`, which this inventory followed until 2026-11-16; ace3's `b4badb2c` added the 91st, `pdf_link_text`, which it followed to `37a765bf` until 2026-11-17, and `d7436a48` the 92nd, `apex_domain_analyzer`. Each entry comes from the module's code, not just its config: the class, the helpers it calls and the base classes they inherit. It's the plan for the rest of phase 7, so when a step ports a module, change its row.
+PLAN.md 7.1. The 89 `analysis_module_*` sections of `ace3/etc/saq.default.yaml` at ace3 `85c8e9e5`, with what each module does, where it runs in ace4 and which step ports it. 90 of them were there at `141a60a2`, the commit PLAN.md was written against, and at `f72f8946`, which this inventory followed until 2026-11-16; ace3's `b4badb2c` added the 91st, `pdf_link_text`, which it followed to `37a765bf` until 2026-11-17, and `d7436a48` the 92nd, `apex_domain_analyzer`, which it followed to `fe6da632` until 2026-11-21. ace3's `4f1fa192` removed `encrypted_archive_analyzer` and `url_email_pivot_analyzer`, and its `aaa74311` `apex_domain_analyzer`, so 89 are left at `85c8e9e5`, and ace4 removed the three with them (the owner, 2026-11-21). Each entry comes from the module's code, not just its config: the class, the helpers it calls and the base classes they inherit. It's the plan for the rest of phase 7, so when a step ports a module, change its row.
 
 `tools/ace3/modules/check` reads the sections at the head of ace3's checkout and fails if this file misses one, names one that's gone, or disagrees with ace3 about a module's class, groups or modes. It also checks that every module has a pool and a step from the lists below, that the ported modules are the ones `crates/ace` registers, that every reader of ACE's data has what serves it (7.2), and that every module starting a process has a decision for each program (7.3). tests/e2e/run runs it.
 
@@ -31,7 +31,6 @@ PLAN.md decisions 23 and 25. A module that declares what it takes (`Module::take
 | `dmg_analyzer` | the name ends in `.dmg`, lowered |
 | `email_analyzer` | the path doesn't end in `.headers`; file_type has a result with a description; that description has `RFC 822 mail` or `message/rfc822`, or its mime type has `message/rfc822`, or file_type calls it an email, or the file has `original_email` |
 | `email_conversation_attachment_analyzer` | file_type has a result that calls it an Office document (whether the root has an email stays in the module) |
-| `encrypted_archive_analyzer` | the path ends in `.gz.e` |
 | `exif` | the path doesn't end in `.pdfparser` or `.gs.pdf`; at most `file_size_limit` bytes, when it is set; an Office extension on the name, or file_type's description, lowered, names an Office format or OpenDocument, or the type is an OLE file or ace3's `is_pdf_file` |
 | `extracted_ole_analyzer` | file_type has a result; `officeparser3` added it |
 | `extracted_rtf_analyzer` | `rtfole` added it; file_type has a result |
@@ -66,19 +65,19 @@ PLAN.md decisions 23 and 25. A module that declares what it takes (`Module::take
 
 | Pool | Modules | Ported |
 |---|---|---|
-| parser | 54 | 54 |
-| lookup | 16 | 16 |
+| parser | 53 | 53 |
+| lookup | 14 | 14 |
 | core | 4 | 3 |
 | sandbox | 16 | 16 |
 | scanner | 2 | 2 |
-| all | 92 | 91 |
+| all | 89 | 88 |
 
 | Step | Modules |
 |---|---|
-| done | 91 |
+| done | 88 |
 | owner | 1 |
 
-No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported, those 7.4, 7.5, 7.6, 7.7 and 7.10 have ported since, `pdf_link_text`, ported when the inventory followed ace3 to `37a765bf`, and `apex_domain_analyzer`, ported when it followed ace3 to `fe6da632` (their entries). "owner" is a module no step names.
+No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported, those 7.4, 7.5, 7.6, 7.7 and 7.10 have ported since, and `pdf_link_text`, ported when the inventory followed ace3 to `37a765bf` (its entry). "owner" is a module no step names.
 
 ## 7.5's batches
 
@@ -92,7 +91,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 6. **RTF and scripts**: done. `microsoft_script_encoding_analysis`, `extracted_rtf_analyzer`, `vbscript_analyzer`, `nowhitespace_analyzer`, in `ace-mod-scripts`. Checks and transforms of RTF and script files. The Perl decoder ace3 runs for encoded scripts is ported and matches it byte for byte on 50,000 inputs (`docs/measurements/scripts.md`); `extracted_rtf_analyzer` reads on the lease which modules added its file, and looks for rtfole, whose `extracted_rtf` tag is what ace3 reads.
 7. **Encrypted files**: done. `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`, in `ace-mod-encrypted`. No John (7.3): the email's candidates, cut from every body part by `ace_mod_msoffice::words_from_parts` (4.11's, made ace3's again at `1998ca56`), are tried in the task with the zip crate, libunrar and libqpdf, keeping what John's check accepts, which for a PDF is the user password only. The dumps cover each encryption method, a wrong, missing and full list, and no email or no body, with 0 differences but other modules' tags; a decrypted PDF matches pikepdf's copy byte for byte but for the `/ID` pikepdf takes from the clock (`docs/measurements/encrypted.md`).
 8. **Email tree**: done. `lure_url_analyzer` and `mailbox_email_analyzer` in `ace-mod-emailtree`, `email_conversation_attachment_analyzer` and `email_conversation_link_analyzer` in `ace-mod-brocess`, beside the frequency module whose `new_sender` tag they read. Each walks the root's tree, which the core sends on the lease (`Module::READS_TREE`, `ace_sdk::tree`), with the files it reads (`Module::READS_TREE_FILES`), the lure module's HTML bodies; a result adds to other observables in the root (`ResultEnvelope::others`) only what its module declares (`Module::ADDS_TO_OTHERS`), the lure's `crawl` and the mailbox's `tracked`, and the mailbox module's changes its root's description and details (`ResultEnvelope::root`, `Module::SETS_ROOT`). The lure module runs last, as ace3's final analysis; the attachment module looks for a macro only as far as ace3 does when it runs, so its answer doesn't depend on which task lands first; the link module, which does nothing without a pattern in ace3, is off until a site gives it a section.
-9. **Email archive**: done. `email_archiver`, `encrypted_archive_analyzer`, `url_email_pivot_analyzer`, `message_id_analyzer_v2`, in `ace-mod-emailarchive`, lookup modules on 7.2's reads (`crates/ace-core/src/reads.md`): `archived-email`, `decrypted-archive` and `archived-url-count`, and the `email-archive` write. The archive is `ace_core::email_archive`: each email gzipped and encrypted in the core with ACE's key (`ACE4_ENCRYPTION_KEY`, AES-256-GCM in ace3's layout, which only `ace serve` holds), an object of the bucket's `email_archive` pool held by its rows, and migration 0041's weekly-partitioned tables, which the scheduler's `email_archive_partitions` keeps (6.7's `daily/partitions`, its archive half). A read that opens an email puts it in the task's root, and the result adds it with no upload, which the core allows only for a module that declares such a read (`ace_sdk::reads::FILE_READS`). Brings ace3's `email` router (5.6), `GET /api/email/v1/archive`, under `email:read`, each read audited. The email logger's log entry now names the archive path.
+9. **Email archive**: done. `email_archiver` and `message_id_analyzer_v2`, in `ace-mod-emailarchive`, lookup modules on 7.2's `archived-email` read (`crates/ace-core/src/reads.md`) and the `email-archive` write; `encrypted_archive_analyzer` and `url_email_pivot_analyzer` were ported here too and removed when the inventory followed ace3 to `85c8e9e5`, whose `4f1fa192` removed them and cut its archive to the Message-ID to the email. The archive is `ace_core::email_archive`: each email gzipped and encrypted in the core with ACE's key (`ACE4_ENCRYPTION_KEY`, AES-256-GCM in ace3's layout, which only `ace serve` holds), an object of the bucket's `email_archive` pool held by its rows, and migration 0041's weekly-partitioned `archive` table, cut by 0079 to ace3's `archived_messages` (the Message-ID's hash, the email's, the object and the time), which the scheduler's `email_archive_partitions` keeps (6.7's `daily/partitions`, its archive half). A read that opens an email puts it in the task's root, and the result adds it with no upload, which the core allows only for a module that declares such a read (`ace_sdk::reads::FILE_READS`). Brings ace3's `email` router (5.6), `GET /api/email/v1/archive`, under `email:read`, each read audited. The email logger's log entry names the archived email by its hash (`archive_hash`, ace3's since `6669e249`).
 10. **PDF and image text**: done. `ocr`, `qrcode`, `exif` and `pdftotext` in `ace-mod-sandbox`, on the sandbox pool, and `ssdeep` in `ace-mod-files`, on the parser pool. Builds the sandbox runner (`ace_pool::tools`, *The sandbox runner* below) and the sandbox pool's image (*Image*), and adds Ghostscript's rewrite to `pdf_analyzer` and ACE archives to `archive`, which move to the sandbox pool. OpenCV is 5.0.0, ace3's, built with the wheel's defaults and linked statically; tesseract's output matches ace3's on every dump. ssdeep is fuzzyhash's hash with ssdeep 2.14.1's comparison, which matches ssdeep's `-m` on all 420 measured files. The comparison keys Ghostscript's rewrite and ExifTool's metadata, whose bytes change every run on both systems, by their paths (`ace compare`'s `VOLATILE_FILES`), so what runs on them is compared.
 11. **Executables**: done. `java_class_decompiler`, `upx`, `autoit`, `de4dot`, `ilspy`, in `ace-mod-sandbox`, on the sandbox runner as it was built, under the filter that lets threads through: CFR on OpenJDK 21, upx, unautoit, and de4dotEx and ilspycmd on .NET 10, each at ace3's version, the .NET tools and unautoit byte for byte (*Image*). Every tool ran contained, with its threads, to the same output as plain (`docs/measurements/sandbox-runner.md`); the runner needed no change to its filter or Landlock, only fixed arguments in a tool's spec and the dlopen'd modules of a tool's data allowed to need a library the image lacks (*The sandbox runner*). Crafted files and what stops each are in `docs/measurements/executables.md`.
 12. **macOS images**: done. `dmg_analyzer` and `cve_2021_30657_analyzer`, in `ace-mod-sandbox`: dmg2img 1.6.7 and 7-Zip 25.01, ace3's, on the sandbox runner as it was built, with no change to its filter or Landlock; 7z is the program `/usr/bin/7z` execs, reading the `7z.so` and the RAR codec (7zip-rar's, as ace3 has) it loads. ace3 has no DMG sample, so `tools/samples/make-macos-images` makes ten on Linux (HFS+ by mkfs.hfsplus and libdmg-hfsplus, UDIF by libdmg-hfsplus and by hand), and the CVE module lists the image again rather than read the DMG's result. Crafted images and what stops each are in `docs/measurements/macos-images.md`.
@@ -179,7 +178,7 @@ ace3's `saq/modules/shodan.py` and `saq/modules/test.py` set it too. Neither has
 
 Modules that read or write ACE's own data in ace3, or hold its encryption key, and what serves each in ace4, where workers hold neither. The reads, their scope, their bounds and how they refuse are a contract in `crates/ace-core/src/reads.md`, beside the lease API; each module's port step builds what its module calls. None is built in 7.2: the one ported module here then, `yara_scanner_v3_4`, gets its data on the ruleset, and that waits for 7.6, which brings the list it reads. 7.4 built the first, `snort-signature`, then `smtp-counts`, `email-thread-domains` with the first writes, `email_logger`'s, `email-thread`, and `newly-registered`, which serves `nrd_analyzer` though ace3's module reads no database of ACE's (below). 7.6 built `observable-tags`, over migration 0042's `analysis.observable_tags`, and `observable_detection` reads its list on the lease; the `ruleset` half of `yara_scanner_v3_4`, ace3's export of the detections as YARA rules, isn't built yet (PLAN.md 7.6).
 
-`tools/ace3/modules/check` finds these in ace3's code at the commit it checks. From each section's class it follows the class's methods, its bases, the functions they name in ace3's own packages and, through an interface, the methods of the package's classes, until it finds `get_db(`, `get_db_connection(`, `private_transaction(`, `run_private_transaction(` or a Redis connection, or a use of `saq.crypto`. It doesn't follow ace3's framework (`saq.analysis`, `saq.configuration`, `saq.engine` and the module base classes), whose own reads are the engine's. Some reads aren't in the module's own file: they're in helpers such as `saq/brocess.py`, `saq/modules/email/conversation.py`, `saq/email_archive/` and `saq/svs/`. At ace3 `37a765bf` it finds the 14 below. The check fails when this table misses one or lists one it doesn't find, or when a row names nothing to serve it or a read `reads.md` doesn't have.
+`tools/ace3/modules/check` finds these in ace3's code at the commit it checks. From each section's class it follows the class's methods, its bases, the functions they name in ace3's own packages and, through an interface, the methods of the package's classes, until it finds `get_db(`, `get_db_connection(`, `private_transaction(`, `run_private_transaction(` or a Redis connection, or a use of `saq.crypto`. It doesn't follow ace3's framework (`saq.analysis`, `saq.configuration`, `saq.engine` and the module base classes), whose own reads are the engine's. Some reads aren't in the module's own file: they're in helpers such as `saq/brocess.py`, `saq/modules/email/conversation.py`, `saq/email_archive/` and `saq/svs/`. At ace3 `85c8e9e5` it finds the 12 below. The check fails when this table misses one or lists one it doesn't find, or when a row names nothing to serve it or a read `reads.md` doesn't have.
 
 Served by is one or more of: a read of `reads.md`; `lease`, on the leased task (`Module::LISTS` here); `ruleset`, on the YARA ruleset; `end`, a write that lands with the task's end; and `core`, only for a module on the core's pool, which runs in the core.
 
@@ -187,15 +186,13 @@ Not here: `rdap_analyzer` and `nrd_analyzer` use ace3's analysis result cache, w
 
 | Module | Reads and writes in ace3 | Why | Served by |
 |---|---|---|---|
-| `email_archiver` | email_archive: archive (W, INSERT IGNORE; R archive_id); email_archive: archive_index (W, field message_id and url hashes); email_archive: email_history (W, message_id/recipient); email_archive: archive_server (R/W at initialize_email_archive/register, not in this module) | to keep every email it archives findable by Message-ID and URL later | `end` |
-| `encrypted_archive_analyzer` | ACE's encryption key: saq.crypto.decrypt of the file, then gunzip. No database | to open an archived email file (`.gz.e`) in the alert | `decrypted-archive` |
+| `email_archiver` | email_archive: archived_messages (W, INSERT IGNORE of the Message-ID's hash, the email's digest and the time, through a private transaction); the email_archive CAS pool (put, encrypted with ACE's key) | to keep every email it archives findable by its Message-ID later | `end` |
 | `snort_signature_analysis_v1` | Redis: Redis 'default' config (get_config().redis host/port/user/password), DB 1 (REDIS_DB_SNORT): GET '<sid>:<rev>' per observable. The index (keys '<sid>:<rev>' = rule line, 'suricata_rules_lastmtime', lock 'suricata_rules_lock' with 30s ex/nx) is built by 'ace signatures build-db' (saq/cli/commands/signatures.py:202-230) from data/snort/snort.rules, not by the module. A new redis.Redis connection is created per call (snort.py:110-120). | to show the rule text of a sid and rev an IDS alert names | `snort-signature` |
 | `email_conversation_frequency_analyzer` | brocess: smtplog (R, SUM(numconnections) by source, and by source+destination) | to tag a new sender or a frequent conversation by how often the pair was seen | `smtp-counts` |
 | `email_thread_analyzer` | brocess: email_thread_message (R: anchor by message_id_hash, messages by thread_id_hash, same-subject threads by normalized_subject_hash); brocess: email_thread_domain (R: participants by thread_id_hash, subject-linked domains) | to show the conversation a Message-ID belongs to, and judge look-alike domains in it | `email-thread` |
-| `url_email_pivot_analyzer` | email_archive (primary plus every database_email_archive_* section): archive_index (R, COUNT(DISTINCT archive_id) WHERE field='url' AND hash=UNHEX(SHA2(url,256))) | to count the archived emails that held a URL | `archived-url-count` |
 | `email_logger` | brocess: smtplog (W, INSERT ... ON DUPLICATE KEY UPDATE numconnections+1 per envelope recipient); brocess: email_thread_message (W record_thread; R COUNT by thread for telemetry); brocess: email_thread_domain (W record_thread; R established domains by thread or same-subject) | to record each email's sender, recipients and thread for the modules above, and to emit look-alike telemetry against earlier messages | `email-thread-domains`, `end` |
 | `yara_scanner_v3_4` | ace: observable_detections (ObservableDetection) by id from $obsd_<id> strings, R; ace: observables (Observable) by id from legacy $obs_<id> strings, R | to add the observable an exported detection rule matched | `ruleset` |
-| `message_id_analyzer_v2` | email_archive (primary section): archive JOIN archive_server JOIN archive_index (R, by message_id hash) - called twice (email_is_archived then iter_archived_email) | to pull an archived email into the alert by its Message-ID | `archived-email` |
+| `message_id_analyzer_v2` | email_archive: archived_messages (R, digests by the Message-ID's hash, newest first, through a private transaction); the email_archive CAS pool (exists, then materialize, decrypted with ACE's key) | to pull an archived email into the alert by its Message-ID | `archived-email` |
 | `user_defined_tagging` | ace: observables, observable_tag_mapping, tags R (one SELECT per observable, tag.py:107-120) | to add the tags mapped to an observable's value | `observable-tags` |
 | `alert_added_to_event` | ace: event_mapping joined to alerts, R | to switch the root to event mode when it's in an event | `core` |
 | `svs_yara_sample_capture` | ace: alerts R (disposition), svs_attributions + svs_runs R (unreviewed_run_condition); ace: svs_yara_captures R/W (insert pending, update stored/missing; private transactions); ace: svs_sample_deletions R (is_deleted, checked before and after); ace: cas_objects, cas_holds, cas_purges R/W (CAS index via pool.put/hold/stat/release) | to capture the files YARA matched on a dispositioned alert as SVS samples | `svs-capture-state`, `end` |
@@ -328,13 +325,11 @@ In the config's order. ace4 is the crate a ported module is in.
 | `email_analyzer` | `EmailAnalyzer` | `ace-mod-email` | parser | done | email | analysis, cli, correlation, email |
 | `lure_url_analyzer` | `LureURLAnalyzer` | `ace-mod-emailtree` | parser | done | correlation | analysis, cli, correlation |
 | `email_archiver` | `EmailArchiveAction` | `ace-mod-emailarchive` | lookup | done | - | email |
-| `encrypted_archive_analyzer` | `EncryptedArchiveAnalyzer` | `ace-mod-emailarchive` | lookup | done | email | analysis, cli, correlation, email |
 | `file_location_analysis` | `FileLocationAnalyzer` | `ace-mod-values` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `file_path_analysis` | `FilePathAnalyzer` | `ace-mod-values` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `network_identifier` | `NetworkIdentifier` | `ace-mod-values` | parser | done | correlation | analysis, cli, correlation |
 | `parse_url` | `ParseURLAnalyzer` | `ace-mod-values` | parser | done | correlation | analysis, cli, correlation |
 | `fqdn_analyzer` | `FQDNAnalyzer` | `ace-mod-dns` | lookup | done | correlation | analysis, cli, correlation |
-| `apex_domain_analyzer` | `ApexDomainAnalyzer` | `ace-mod-values` | parser | done | correlation | analysis, cli, correlation |
 | `idna_analyzer` | `IDNAAnalyzer` | `ace-mod-values` | parser | done | correlation | analysis, cli, correlation |
 | `rdap_analyzer` | `RdapAnalyzer` | `ace-mod-rdap` | lookup | done | correlation | analysis, cli, correlation |
 | `nrd_analyzer` | `NRDAnalyzer` | `ace-mod-nrd` | lookup | done | common | analysis, binary, cli, correlation, email, file |
@@ -345,7 +340,6 @@ In the config's order. ace4 is the crate a ported module is in.
 | `email_conversation_attachment_analyzer` | `EmailConversationAttachmentAnalyzer` | `ace-mod-brocess` | parser | done | email | analysis, cli, correlation, email |
 | `email_conversation_link_analyzer` | `EmailConversationLinkAnalyzer` | `ace-mod-brocess` | parser | done | email | analysis, cli, correlation, email |
 | `email_thread_analyzer` | `EmailThreadAnalyzer` | `ace-mod-brocess` | lookup | done | correlation | analysis, cli, correlation |
-| `url_email_pivot_analyzer` | `URLEmailPivotAnalyzer` | `ace-mod-emailarchive` | lookup | done | correlation | analysis, cli, correlation |
 | `email_logger` | `EmailLoggingAnalyzer` | `ace-mod-brocess` | lookup | done | - | email |
 | `file_hash_analyzer` | `FileHashAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `ssdeep` | `SsdeepAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
@@ -707,7 +701,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### email_analyzer
 
 - **Section**: `analysis_module_email_analyzer`, class `EmailAnalyzer` in `saq/modules/email/rfc822.py`, enabled by default.
-- **ace4**: ported in `ace-mod-email`.
+- **ace4**: ported in `ace-mod-email`. Since ace4 followed ace3 to `85c8e9e5` it records each part it extracts, its path, content type and role (`body` for an unnamed text or HTML part, `attachment` otherwise), in its result's `parts`, as ace3's `5474fd6b` does by the file's uuid; the core's carrying email, the lure module, the search index and the GUI's summary tell the body by it, and by the names only for a result made before. This role is the part's to its email, ace3's `PART_ROLE_*`; the file's role of decision 25 is ace3's `yara_meta` type, `email.attachment` for every part. For an Office 365 journal report it records where each recipient's copy went, from the whole `Recipient:` lines (`deliveries`, ace3's `aaeef15e`), tags the `email_delivery` of an address the journal didn't deliver to under that address (`delivery_forwarded`, `delivery_expanded`, `delivery_not_journaled`, `1b4077d1`), and relates a forwarded or expanded one to the deliveries of the mailboxes that got its mail (`delivered_to`, `0b42ba1e`).
 - **Pool**: parser. Parses an attacker's MIME in the task's own process on mail-parser (1.x, 4.x).
 - **Step**: done.
 - **Does**: Parses a file observable that FileTypeAnalysis says is an RFC 822 email (or has the original_email directive) with Python's email package, picks the target message (Office 365 journal unwrapping by X-MS-Exchange-Parent-Message-Id and the journal 'meta block'), applies the outbound filter (`scan_inbound_only`, which since 8617ba8e skips only the email analysis), and adds address/subject/message-id/delivery/IP/first-hop/DKIM/tenant/user-agent observables plus every MIME part as an extracted file.
@@ -749,44 +743,23 @@ In the config's order. ace4 is the crate a ported module is in.
 ### email_archiver
 
 - **Section**: `analysis_module_email_archiver`, class `EmailArchiveAction` in `saq/modules/email/archive.py`, disabled by default.
-- **ace4**: ported in `ace-mod-emailarchive`. It depends on the email module, whose result comes with the task, reads its file's tags in the tree on the lease (`Module::READS_TREE`), and hands the email's Message-ID and normalized envelope recipients to the core as the `email-archive` write (`reads.md`). The core reads the file from the bucket, gzips it and encrypts it with ACE's key, puts it in the `email_archive` pool held by its row until its week is dropped, and writes migration 0041's rows in the end's transaction, setting the result's `archive_id`; when the root's analysis completes it indexes the URLs below the email, as ace3's post-analysis does (`ace_core::email_archive::index_urls`). The archive path names the email by its hash, without ace3's data directory or hostname. Off by default and in the `email` mode, as in ace3. `crates/ace-mod-emailarchive/tests/differences.md` has the rest.
+- **ace4**: ported in `ace-mod-emailarchive`. It depends on the email module, whose result comes with the task, reads its file's tags in the tree on the lease (`Module::READS_TREE`), and hands the email's Message-ID to the core as the `email-archive` write (`reads.md`). The core reads the file from the bucket, gzips it and encrypts it with ACE's key, puts it in the `email_archive` pool held by its row until its week is dropped, and writes the row, ace3's `archived_messages` (migrations 0041 and 0079), in the end's transaction. The result is ace3's since `4f1fa192`: the Message-ID key ace3 never sets and the email's hash, with the summary `Archived Email: <hash>`; an email without envelope recipients is archived, and nothing is indexed by URL. Off by default and in the `email` mode, as in ace3. `crates/ace-mod-emailarchive/tests/differences.md` has the rest.
 - **Pool**: lookup. Writes ACE's email archive, which in ace4 is the bucket and Postgres; the write lands with the task's end (7.2, `reads.md`). It parses nothing.
 - **Step**: done.
-- **Does**: For an email file with the archive directive and an EmailAnalysis carrying a message-id and envelope recipients, gzips and AES-GCM encrypts the email into the email archive, records it in the email_archive database, and in post-analysis indexes every URL under the email.
+- **Does**: For an email file with the archive directive and an EmailAnalysis carrying a message-id, puts the email in the email archive's CAS pool (gzipped and AES-GCM encrypted) and records its Message-ID's hash and digest in archived_messages (since `4f1fa192`; before, it also needed envelope recipients, recorded them and indexed every URL under the email in post-analysis).
 - **Input**: file (required directive archive).
 - **Groups and modes**: groups none; modes email.
-- **Depends on**: config: email_analyzer; reads EmailAnalysis via get_and_load_analysis (config dependency email_analyzer); post-analysis walks the tree for all F_URL under the email (recurse_tree) after every other module has run.
+- **Depends on**: config: email_analyzer; reads EmailAnalysis via get_and_load_analysis (config dependency email_analyzer).
 - **Libraries**: cryptography 50.0.2 (AES-256-GCM via saq.crypto); PyMySQL 1.2.0; python stdlib gzip; boto3/botocore only when email_archive.target is s3 (not pinned; 1.43.125 in ace3's dev container).
 - **Tools**: none.
-- **Writes**: OUTSIDE ALERT: $DATA_DIR/archive/email/<hostname>/<sha256[0:2]>/<sha256>.gz.e (encrypted gzip of the email; temp .gz removed); OUTSIDE ALERT: $DATA_DIR/review/rfc822/<uuid4>.rfc822 when message-id or envelope recipients are missing (archive.py:194); S3 object <sha256> in bucket email_archive.s3_bucket with metadata message_id (target s3).
+- **Writes**: OUTSIDE ALERT: the email as an object of the email_archive CAS pool (ttl pool, encrypted, gzip); OUTSIDE ALERT: $DATA_DIR/review/rfc822/<uuid4>.rfc822 when the message-id is missing.
 - **yara_meta**: none.
-- **ACE's data**: email_archive: archive (W, INSERT IGNORE; R archive_id); email_archive: archive_index (W, field message_id and url hashes); email_archive: email_history (W, message_id/recipient); email_archive: archive_server (R/W at initialize_email_archive/register, not in this module).
-- **Secrets**: SAQ encryption key (encryption must be initialized; raises otherwise); S3 credentials when target is s3.
-- **Network**: MySQL email_archive database; S3 endpoint when target is s3.
+- **ACE's data**: email_archive: archived_messages (W, INSERT IGNORE); the email_archive CAS pool (put).
+- **Secrets**: SAQ encryption key (encryption must be initialized; raises otherwise).
+- **Network**: MySQL email_archive database; the CAS pool's backend.
 - **Reads outside the alert**: none.
 - **Tags and detections**: None.
-- **Notes**: Disabled by default and only in mode 'email'. Side effects outside ACE's alert: permanent archive file and DB rows. expiration_days is declared in config but never read anywhere in saq/ (archive.py:100). Uses lock_local on the target path; skips if file already exists (dedup by sha256). insert_date truncated to seconds because it is part of the unique key (local.py). The analysis is created only after the archive succeeds so post-analysis never indexes under a missing archive_id. Skips files tagged decrypted_email.
-
-### encrypted_archive_analyzer
-
-- **Section**: `analysis_module_encrypted_archive_analyzer`, class `EncryptedArchiveAnalyzer` in `saq/modules/email/archive.py`, enabled by default.
-- **ace4**: ported in `ace-mod-emailarchive`. For a file whose path ends `.gz.e` (a lookup gets the file's path, `Observable::path`, not its bytes) it asks the core for the `decrypted-archive` read, which decrypts ace3's v0 or v1 layout with ACE's key and gunzips up to 64 MiB, and puts the email in the root; the result adds it with no upload. A file that doesn't open gets no result, as in ace3. ace3's leftover `.rfc822.gz` isn't written.
-- **Pool**: lookup. Opens an archived email with ACE's encryption key. In ace4 that's the `decrypted-archive` read (7.2): the core decrypts, and no worker holds the key.
-- **Step**: done.
-- **Does**: For a file named *.gz.e (an ACE email archive file), decrypts it with the ACE encryption key, gunzips it, and adds the resulting .rfc822 email as a file observable.
-- **Input**: file (name ending .gz.e).
-- **Groups and modes**: groups email; modes analysis, cli, correlation, email.
-- **Depends on**: none.
-- **Libraries**: cryptography 50.0.2 (AES-256-GCM via saq.crypto.decrypt); python stdlib gzip.
-- **Tools**: none.
-- **Writes**: {file minus .gz.e}.rfc822.gz (decrypted gzip, left on disk); {file minus .gz.e}.rfc822 (added as file observable).
-- **yara_meta**: type=email (on the decrypted email).
-- **ACE's data**: none.
-- **Secrets**: SAQ encryption key (returns early unless encryption_initialized).
-- **Network**: none.
-- **Reads outside the alert**: none.
-- **Tags and detections**: Tags the decrypted email decrypted_email.
-- **Notes**: verify_environment calls verify_program_exists('zcat'), which runs `which zcat` via Popen at startup (base_module.py:157), but zcat is never executed - decompression uses Python gzip. No size cap on the gunzip (decompression bomb risk) - archive.py:75. The intermediate .rfc822.gz is written into the alert dir and not removed.
+- **Notes**: Disabled by default and only in mode 'email'. Side effects outside ACE's alert: permanent archive file and DB rows. expiration_days is declared in config but never read anywhere in saq/ (archive.py:100). insert_date truncated to seconds because it is part of the primary key. The analysis is created only after the archive succeeds. Skips files tagged decrypted_email.
 
 ### file_location_analysis
 
@@ -893,27 +866,6 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Tags and detections**: none; adds one ip observable (first sorted A record)
 - **Notes**: Timeout 5s per query, lifetime 5s (dns.py:48,171-175). Only the first address becomes an observable (line 214-217); all are in details. MX and wildcard probe only when the name is its own eTLD+1 (line 177-179, 224). Probe label is constant for cacheability, but no cache_ttl is configured for this module. A CNAME chain is recorded as aliaslist.
 
-### apex_domain_analyzer
-
-- **Section**: `analysis_module_apex_domain_analyzer`, class `ApexDomainAnalyzer` in `saq/modules/apex_domain.py`, enabled by default. ace3 added it in `d7436a48`.
-- **ace4**: ported in `ace-mod-values`. Ported when the inventory followed ace3 to `fe6da632`. The apex is `ace_sdk::domains::apex_domain_of`, on the public suffix list tldextract 5.4.0 ships, the reduction the RDAP module already used.
-- **Pool**: parser. Reduces a name in memory.
-- **Step**: done.
-- **Does**: Adds the registrable domain (eTLD+1) of a subdomain fqdn as an fqdn observable of its own, with the subdomain's time, so an analyst can pivot to every alert with that domain. A name that is its own apex, or has no public suffix, gets no analysis.
-- **Input**: fqdn.
-- **Groups and modes**: groups correlation; modes analysis, cli, correlation.
-- **Depends on**: none. `rdap_analyzer` depends on it, in ace3 and in ace4, and skips a subdomain it gave an apex observable (`7265bb53`, `e871441c`; its entry).
-- **Libraries**: tldextract 5.4.0 (`saq.domain_similarity.registrable_domain`, imported when the module first runs).
-- **Tools**: none.
-- **Writes**: none.
-- **yara_meta**: none.
-- **ACE's data**: none.
-- **Secrets**: none.
-- **Network**: none in ace4. ace3's tldextract may fetch the public suffix list from publicsuffix.org when its cache is empty.
-- **Reads outside the alert**: none in ace4; tldextract's cache in ace3.
-- **Tags and detections**: none; the apex observable gets display_type 'Apex Domain'.
-- **Notes**: Details hold `apex_domain`; the summary is `Apex Domain: <apex>`. The name is stripped, lowered and its trailing dots dropped before it is reduced (apex_domain.py:21-33).
-
 ### idna_analyzer
 
 - **Section**: `analysis_module_idna_analyzer`, class `IDNAAnalyzer` in `saq/modules/url/idna.py`, enabled by default.
@@ -938,13 +890,13 @@ In the config's order. ace4 is the crate a ported module is in.
 ### rdap_analyzer
 
 - **Section**: `analysis_module_rdap_analyzer`, class `RdapAnalyzer` in `saq/modules/rdap.py`, enabled by default.
-- **ace4**: ported in `ace-mod-rdap`. Its results are kept in the analysis cache for 7 days, ace3's `cache_ttl` (PLAN.md decision 26); a lookup that failed is marked failed and isn't kept. Its skip of a subdomain is its declaration, which reads the apex module's result, so the core checks it before the cache, as ace3 checks `custom_requirement` before its cache; `analyze` doesn't see that result (`Module::READS_DEPENDENCIES`), so the cache doesn't refuse the module.
+- **ace4**: ported in `ace-mod-rdap`. Its results are kept in the analysis cache for 7 days, ace3's `cache_ttl` (PLAN.md decision 26); a lookup that failed is marked failed and isn't kept. Since ace3's `aaa74311` it looks every fqdn up, as its registrable domain, with no dependency, as ace3 does.
 - **Pool**: lookup. RDAP over HTTPS (1.x).
 - **Step**: done.
 - **Does**: Looks up registration data for an fqdn (reduced to its eTLD+1) or a globally routable ip via RDAP, falling back to legacy WHOIS, recording registrar, dates/ages, nameservers, emails, network CIDR/country and raw responses.
-- **Input**: fqdn; ip (and subtypes, e.g. email_first_hop_ip; custom_requirement skips non-global IPs, and since `7265bb53` a subdomain fqdn that `apex_domain_analyzer` gave an apex observable, which RDAP looks up instead).
+- **Input**: fqdn; ip (and subtypes, e.g. email_first_hop_ip; custom_requirement skips non-global IPs).
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
-- **Depends on**: `apex_domain_analyzer`, in ace3 and in ace4. A subdomain is skipped when the apex result's `apex_domain` is a value an fqdn observable takes, which is when the apex module added it (`takes::Field::Fqdn`, ace3's `get_observable_by_type(F_FQDN)`). A name with no apex result is looked up: one that is its own apex, has no public suffix, or that the apex module doesn't run on (a mode or an observable modifier rule leaving it out), as in ace3.
+- **Depends on**: none. From `7265bb53` to `aaa74311` ace3 had it depend on `apex_domain_analyzer` and skip a subdomain that module gave an apex observable; ace4 did the same until it followed ace3 to `85c8e9e5`.
 - **Libraries**: whoisit 4.1.0 (RDAP bootstrap + domain/ip queries); python-whois 0.9.6 (whois.whois fallback); tldextract 5.4.0 (eTLD+1 reduction).
 - **Tools**: none.
 - **Writes**: none.
@@ -1123,27 +1075,6 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Reads outside the alert**: etc/email_thread_analysis.yaml (config_path, analyst-editable ignored_domain_pairs, watched for live reload).
 - **Tags and detections**: None by design (thread.py:9-10); adds an Analysis summary detail (markdown) when look-a-likes exist. No observables.
 - **Notes**: Caps max_messages 50 and max_threads 50 (fetches max_messages+1 to detect truncation; never drops the anchor). Any query exception -> cooldown 60s (thread.py:286-289). Up to 4-5 brocess queries per message id. Has a custom presenter template analysis/email_thread.html. In correlation group only.
-
-### url_email_pivot_analyzer
-
-- **Section**: `analysis_module_url_email_pivot_analyzer`, class `URLEmailPivotAnalyzer` in `saq/modules/email/correlation.py`, enabled by default.
-- **ace4**: ported in `ace-mod-emailarchive`. It counts on the `archived-url-count` read, over ace4's one archive.
-- **Pool**: lookup. Reads the email archive's URL index through the `archived-url-count` read (7.2).
-- **Step**: done.
-- **Does**: For a URL, counts how many archived emails contain it by looking up its SHA-256 in archive_index across every configured email archive database.
-- **Input**: url.
-- **Groups and modes**: groups correlation; modes analysis, cli, correlation.
-- **Depends on**: data indexed by email_archiver post-analysis.
-- **Libraries**: PyMySQL 1.2.0.
-- **Tools**: none.
-- **Writes**: none.
-- **yara_meta**: none.
-- **ACE's data**: email_archive (primary plus every database_email_archive_* section): archive_index (R, COUNT(DISTINCT archive_id) WHERE field='url' AND hash=UNHEX(SHA2(url,256))).
-- **Secrets**: email_archive DB credentials (each section).
-- **Network**: MySQL email_archive database(s).
-- **Reads outside the alert**: none.
-- **Tags and detections**: None.
-- **Notes**: Only records a count: the emails list is never populated (correlation.py:73, 105-109 commented out) and the result_limit (35) branch does the same thing as the other branch (correlation.py:98-104). No exception handling: a DB error fails the module.
 
 ### email_logger
 
@@ -2030,18 +1961,18 @@ In the config's order. ace4 is the crate a ported module is in.
 ### message_id_analyzer_v2
 
 - **Section**: `analysis_module_message_id_analyzer_v2`, class `MessageIDAnalyzerV2` in `saq/modules/email/message_id.py`, enabled by default.
-- **ace4**: ported in `ace-mod-emailarchive`. It pulls the email through the `archived-email` read, which finds the newest archive with the normalized Message-ID, opens it in the core and puts it in the root; the result adds it with no upload. ace3's `search_down` for the email that added the Message-ID is whether the email module's result added it (`Module::READS_ADDED_BY`).
+- **ace4**: ported in `ace-mod-emailarchive`. It pulls the email through the `archived-email` read, which finds the newest archive with the normalized Message-ID whose object is still there, as ace3's `find_archived_email`, opens it in the core and puts it in the root; the result adds it with no upload. ace3's `search_down` for the email that added the Message-ID is whether the email module's result added it (`Module::READS_ADDED_BY`).
 - **Pool**: lookup. Fetches an archived email through the `archived-email` read (7.2), which decrypts it in the core; the email it adds is parsed by email_analyzer.
 - **Step**: done.
 - **Does**: For a message_id not already backed by an EmailAnalysis in the tree, looks it up in the email archive, decrypts and gunzips the archived email, and adds it as a file observable.
 - **Input**: message_id.
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
 - **Depends on**: search_down for an EmailAnalysis whose message_id equals the observable (skips if found); EmailAnalyzer excludes this module on the message_id it extracts.
-- **Libraries**: PyMySQL 1.2.0; cryptography 50.0.2 (AES-256-GCM via saq.crypto.decrypt); python stdlib gzip/tempfile; boto3/botocore when email_archive.target is s3 (not pinned; 1.43.125 in ace3's dev container).
+- **Libraries**: SQLAlchemy (archived_messages, a private transaction); the CAS (AES-256-GCM, gzip).
 - **Tools**: none.
 - **Writes**: <sha256(message_id)>.rfc822 (root file dir via create_file_path; removed if 0 bytes); OUTSIDE ALERT: decrypted gzip in a NamedTemporaryFile in the system temp dir during iteration (local.py iter_decrypt_email); OUTSIDE ALERT (s3 target): downloads $DATA_DIR/archive/email/<host>/<xx>/<sha256>.gz.e from S3 as a cache if missing.
 - **yara_meta**: type=email (on the extracted email).
-- **ACE's data**: email_archive (primary section): archive JOIN archive_server JOIN archive_index (R, by message_id hash) - called twice (email_is_archived then iter_archived_email).
+- **ACE's data**: email_archive: archived_messages (R, digests by the Message-ID's hash, newest first); the email_archive CAS pool (exists, materialize).
 - **Secrets**: SAQ encryption key; email_archive DB credentials; S3 credentials when target is s3.
 - **Network**: MySQL email_archive database; S3 when target is s3.
 - **Reads outside the alert**: $DATA_DIR/archive/email/<hostname>/<xx>/<sha256>.gz.e (archive store).

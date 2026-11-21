@@ -1,12 +1,13 @@
-{#- An action's tries, newest first (src/remediation.rs). -#}
+{#- An action's tries, newest first (src/remediation.rs). A try that acted on another target than the
+    key, such as the mailbox that owns an alias, names it, as ace3's timeline does. -#}
   <h2>History</h2>
   <div class="table-wrap"><table class="keys">
-    <thead><tr><th>When (UTC)</th><th>Status</th><th>Result</th><th>Message</th></tr></thead>
+    <thead><tr><th>When (UTC)</th><th>Status</th><th>Result</th><th>Acted on</th><th>Message</th></tr></thead>
     <tbody>
       {%- for a in view.attempts %}
-      <tr><td class="nowrap">{{ a.at }}</td><td>{{ a.status }}</td><td>{{ a.result }}</td><td>{{ a.message }}</td></tr>
+      <tr><td class="nowrap">{{ a.at }}</td><td>{{ a.status }}</td><td>{{ a.result }}</td><td>{% if let Some(target) = a.resolved_target %}{{ target }}{% endif %}</td><td>{{ a.message }}</td></tr>
       {%- else %}
-      <tr><td colspan="4" class="muted">No tries yet.</td></tr>
+      <tr><td colspan="5" class="muted">No tries yet.</td></tr>
       {%- endfor %}
     </tbody>
   </table></div>

@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "file_type",
     "email_analyzer"
@@ -23,6 +23,34 @@
           "compauth_reason": "300",
           "compauth_result": "none",
           "decoded_subject": "INVOICE PDL-06-38776",
+          "deliveries": {
+            "bob.smith@company.com": {
+              "mailboxes": [
+                "bob.smith@company.com"
+              ],
+              "reason": "delivered"
+            },
+            "charlie.jones@company.com": {
+              "mailboxes": [
+                "charlie.jones@company.com"
+              ],
+              "reason": "delivered"
+            },
+            "dl-allstaff@company.com": {
+              "mailboxes": [
+                "lulu.zingzing@company.com",
+                "bob.smith@company.com",
+                "charlie.jones@company.com"
+              ],
+              "reason": "expanded"
+            },
+            "lulu.zingzing@company.com": {
+              "mailboxes": [
+                "lulu.zingzing@company.com"
+              ],
+              "reason": "delivered"
+            }
+          },
           "dkim_result": "none",
           "dmarc_result": "none",
           "env_mail_from": "ap@someothercompany.com",
@@ -542,7 +570,7 @@
             "cc": [],
             "compauth_reason": "300",
             "compauth_result": "none",
-            "date": "2026-11-18 05:52:31.932502 +0000",
+            "date": "2026-11-21 14:39:20.359309 +0000",
             "dkim_result": "none",
             "dmarc_result": "none",
             "env_mail_from": "ap@someothercompany.com",
@@ -641,7 +669,14 @@
           "x-sender-id": "ap@someothercompany.com"
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/html",
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -929,6 +964,34 @@
         "compauth_reason": "300",
         "compauth_result": "none",
         "decoded_subject": "INVOICE PDL-06-38776",
+        "deliveries": {
+          "bob.smith@company.com": {
+            "mailboxes": [
+              "bob.smith@company.com"
+            ],
+            "reason": "delivered"
+          },
+          "charlie.jones@company.com": {
+            "mailboxes": [
+              "charlie.jones@company.com"
+            ],
+            "reason": "delivered"
+          },
+          "dl-allstaff@company.com": {
+            "mailboxes": [
+              "lulu.zingzing@company.com",
+              "bob.smith@company.com",
+              "charlie.jones@company.com"
+            ],
+            "reason": "expanded"
+          },
+          "lulu.zingzing@company.com": {
+            "mailboxes": [
+              "lulu.zingzing@company.com"
+            ],
+            "reason": "delivered"
+          }
+        },
         "dkim_result": "none",
         "dmarc_result": "none",
         "env_mail_from": "ap@someothercompany.com",
@@ -1448,7 +1511,7 @@
           "cc": [],
           "compauth_reason": "300",
           "compauth_result": "none",
-          "date": "2026-11-18 05:52:31.932502 +0000",
+          "date": "2026-11-21 14:39:20.359309 +0000",
           "dkim_result": "none",
           "dmarc_result": "none",
           "env_mail_from": "ap@someothercompany.com",
@@ -1547,7 +1610,14 @@
         "x-sender-id": "ap@someothercompany.com"
       },
       "extraction_errors": [],
-      "parsing_error": null
+      "parsing_error": null,
+      "parts": [
+        {
+          "content_type": "text/html",
+          "role": "body",
+          "uuid": "a0c9d9db-b503-47f3-9b14-610a0f1f9734"
+        }
+      ]
     }
   },
   "tree_view": {
@@ -1569,8 +1639,42 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "email_envelope_rcpt_to",
+        "value": "bob.smith@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_envelope_rcpt_to",
+        "value": "lulu.zingzing@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "email_conversation",
-        "value": "ap@someothercompany.com|lulu.zingzing@company.com"
+        "value": "ap@someothercompany.com|charlie.jones@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "tracked"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<13268020124593518925.93733CB7019D1C46@company.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "ap@someothercompany.com"
       },
       {
         "detections": [],
@@ -1585,8 +1689,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "ap@someothercompany.com|random.person@whatever.com"
+        "type": "email_return_path",
+        "value": "ap@someothercompany.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "INVOICE PDL-06-38776"
       },
       {
         "detections": [],
@@ -1618,6 +1730,26 @@
       {
         "detections": [],
         "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 742,
+        "tags": [],
+        "type": "file",
+        "value": "3f24e117b8b7030113feba19238f67e2fe2dd02c748f0c7ad0e0a1a2972eb11f"
+      },
+      {
+        "detections": [],
+        "directives": [
           "original_email"
         ],
         "paths": [
@@ -1641,15 +1773,23 @@
         "paths": [],
         "tags": [],
         "type": "email_envelope_rcpt_to",
-        "value": "bob.smith@company.com"
+        "value": "charlie.jones@company.com"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_subject",
-        "value": "INVOICE PDL-06-38776"
+        "type": "email_conversation",
+        "value": "ap@someothercompany.com|bob.smith@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_x_sender_id",
+        "value": "ap@someothercompany.com"
       },
       {
         "detections": [],
@@ -1684,51 +1824,7 @@
         "paths": [],
         "tags": [],
         "type": "email_conversation",
-        "value": "ap@someothercompany.com|charlie.jones@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_envelope_rcpt_to",
-        "value": "charlie.jones@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "ap@someothercompany.com"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_html_000.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 742,
-        "tags": [],
-        "type": "file",
-        "value": "3f24e117b8b7030113feba19238f67e2fe2dd02c748f0c7ad0e0a1a2972eb11f"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "ap@someothercompany.com"
+        "value": "ap@someothercompany.com|random.person@whatever.com"
       },
       {
         "detections": [],
@@ -1736,33 +1832,7 @@
         "paths": [],
         "tags": [],
         "type": "email_conversation",
-        "value": "ap@someothercompany.com|bob.smith@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_envelope_rcpt_to",
-        "value": "lulu.zingzing@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_x_sender_id",
-        "value": "ap@someothercompany.com"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "tracked"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<13268020124593518925.93733CB7019D1C46@company.com>"
+        "value": "ap@someothercompany.com|lulu.zingzing@company.com"
       }
     ],
     "results": [
@@ -1785,8 +1855,31 @@
           "type": "RFC 822 mail, ASCII text, with very long lines (1998)"
         },
         "module": "file_type",
-        "observable": 5,
+        "observable": 10,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (1998) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/html",
+          "type": "HTML document, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 11,
+        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
         "tags": []
       },
       {
@@ -1794,70 +1887,70 @@
         "class": "MailboxEmailAnalysis",
         "details": {},
         "module": "mailbox_email_analyzer",
-        "observable": 6,
+        "observable": 12,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 15
-          },
-          {
-            "observable": 17
-          },
-          {
-            "observable": 1
-          },
-          {
-            "observable": 7
-          },
-          {
-            "observable": 16
-          },
-          {
-            "observable": 12
-          },
-          {
-            "observable": 11
-          },
-          {
-            "observable": 10
-          },
-          {
-            "observable": 3
-          },
-          {
-            "observable": 8
-          },
-          {
-            "observable": 19
-          },
-          {
-            "observable": 18
-          },
-          {
-            "observable": 0
-          },
-          {
-            "observable": 13
+            "observable": 5
           },
           {
             "observable": 2
           },
           {
+            "observable": 19
+          },
+          {
+            "observable": 1
+          },
+          {
+            "observable": 14
+          },
+          {
+            "observable": 13
+          },
+          {
+            "observable": 3
+          },
+          {
+            "observable": 17
+          },
+          {
+            "observable": 18
+          },
+          {
+            "observable": 8
+          },
+          {
             "observable": 4
           },
           {
-            "observable": 14,
+            "observable": 15
+          },
+          {
+            "observable": 0
+          },
+          {
+            "observable": 7
+          },
+          {
+            "observable": 6
+          },
+          {
+            "observable": 9
+          },
+          {
+            "observable": 11,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 5,
+            "observable": 10,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 9,
+            "observable": 16,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1868,6 +1961,34 @@
             "compauth_reason": "300",
             "compauth_result": "none",
             "decoded_subject": "INVOICE PDL-06-38776",
+            "deliveries": {
+              "bob.smith@company.com": {
+                "mailboxes": [
+                  "bob.smith@company.com"
+                ],
+                "reason": "delivered"
+              },
+              "charlie.jones@company.com": {
+                "mailboxes": [
+                  "charlie.jones@company.com"
+                ],
+                "reason": "delivered"
+              },
+              "dl-allstaff@company.com": {
+                "mailboxes": [
+                  "lulu.zingzing@company.com",
+                  "bob.smith@company.com",
+                  "charlie.jones@company.com"
+                ],
+                "reason": "expanded"
+              },
+              "lulu.zingzing@company.com": {
+                "mailboxes": [
+                  "lulu.zingzing@company.com"
+                ],
+                "reason": "delivered"
+              }
+            },
             "dkim_result": "none",
             "dmarc_result": "none",
             "env_mail_from": "ap@someothercompany.com",
@@ -2387,7 +2508,7 @@
               "cc": [],
               "compauth_reason": "300",
               "compauth_result": "none",
-              "date": "2026-11-18 05:52:31.932502 +0000",
+              "date": "2026-11-21 14:39:20.359309 +0000",
               "dkim_result": "none",
               "dmarc_result": "none",
               "env_mail_from": "ap@someothercompany.com",
@@ -2486,10 +2607,17 @@
             "x-sender-id": "ap@someothercompany.com"
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/html",
+              "path": "email.rfc822.unknown_text_html_000.html",
+              "role": "body"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 6,
+        "observable": 12,
         "summary": "Email Analysis: From Bobbie Fruitypie <ap@someothercompany.com> To lulu.zingzing@company.com Subject INVOICE PDL-06-38776",
         "tags": []
       },
@@ -2512,7 +2640,7 @@
           "type": "SMTP mail, ASCII text, with very long lines (818)"
         },
         "module": "file_type",
-        "observable": 6,
+        "observable": 12,
         "summary": "File Type Analysis: SMTP mail, ASCII text, with very long lines (818) (message/rfc822) (email)",
         "tags": []
       },
@@ -2535,31 +2663,8 @@
           "type": "RFC 822 mail, ASCII text, with very long lines (1998)"
         },
         "module": "file_type",
-        "observable": 9,
+        "observable": 16,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (1998) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 14,
-        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
         "tags": []
       }
     ]

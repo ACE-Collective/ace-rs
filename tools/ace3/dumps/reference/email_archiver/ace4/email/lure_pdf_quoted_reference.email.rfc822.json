@@ -1,12 +1,24 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "email_analyzer",
     "file_type",
     "url_extraction"
   ],
   "analyses": [
+    {
+      "class": "EmailArchiveResults",
+      "details": {
+        "hash": "ecba5dd85f0a3674a082eebd331b2f2f23170df06337905e34e55f3158cc4fae",
+        "message_id": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.archive:EmailArchiveResults",
+      "observables": [],
+      "summary": "Archived Email: ecba5dd85f0a3674a082eebd331b2f2f23170df06337905e34e55f3158cc4fae",
+      "tags": []
+    },
     {
       "class": "EmailAnalysis",
       "details": {
@@ -84,7 +96,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 06:05:56.084647 +0000",
+            "date": "2026-11-21 14:52:05.415176 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -141,7 +153,24 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "application/pdf",
+            "path": "signed.pdf",
+            "role": "attachment"
+          },
+          {
+            "content_type": "application/pdf",
+            "path": "rotated.pdf",
+            "role": "attachment"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -338,14 +367,20 @@
     }
   ],
   "email_archive_after": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [
+      {
+        "digest": "ecba5dd85f0a3674a082eebd331b2f2f23170df06337905e34e55f3158cc4fae",
+        "insert_date": "2026-11-21 14:52:05",
+        "message_id_hash": "75115232263CEDDCF825B2C908DA3FB60FAD0466FD607B48F9BF208F2130FB24"
+      }
+    ],
+    "pool": [
+      "ecba5dd85f0a3674a082eebd331b2f2f23170df06337905e34e55f3158cc4fae"
+    ]
   },
   "email_archive_before": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [],
+    "pool": []
   },
   "email_archive_reads": [],
   "input": {
@@ -395,22 +430,6 @@
     "observables": [
       {
         "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<lure_pdf_quoted_reference@partner-example.org>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://docs.lure-example.net/bid/4471"
-      },
-      {
-        "detections": [],
         "directives": [
           "extract_urls",
           "preview"
@@ -427,30 +446,6 @@
         "tags": [],
         "type": "file",
         "value": "275b8bd9d5a05539d05f4d746a53adb6665e4388a959aa93a961a570cd6be336"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "sam@partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://example.com/rotate"
       },
       {
         "detections": [],
@@ -476,31 +471,41 @@
       },
       {
         "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "sam@partner-example.org"
-      },
-      {
-        "detections": [],
         "directives": [
-          "archive"
+          "extract_urls",
+          "render"
         ],
         "paths": [
           {
-            "path": "email.rfc822",
+            "path": "rotated.pdf",
             "yara_meta": [
-              "type=email"
+              "type=document.pdf",
+              "type=email.attachment"
             ]
           }
         ],
-        "size": 2879,
+        "size": 753,
         "tags": [
-          "email"
+          "pdf"
         ],
         "type": "file",
-        "value": "ecba5dd85f0a3674a082eebd331b2f2f23170df06337905e34e55f3158cc4fae"
+        "value": "18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<lure_pdf_quoted_reference@partner-example.org>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://docs.lure-example.net/bid/4471"
       },
       {
         "detections": [],
@@ -532,6 +537,66 @@
       {
         "detections": [],
         "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sam@partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "RE: Signed copy"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "archive"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 2879,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "ecba5dd85f0a3674a082eebd331b2f2f23170df06337905e34e55f3158cc4fae"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "sam@partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://example.com/rotate"
+      },
+      {
+        "detections": [],
+        "directives": [],
         "paths": [
           {
             "path": "email.rfc822.combined",
@@ -547,36 +612,6 @@
         ],
         "type": "file",
         "value": "8f658f099b5bcb5c7ab57cf37c0767909ab7100643d5a8faa0b18c27ce89d179"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "RE: Signed copy"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "rotated.pdf",
-            "yara_meta": [
-              "type=document.pdf",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 753,
-        "tags": [
-          "pdf"
-        ],
-        "type": "file",
-        "value": "18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a"
       }
     ],
     "results": [
@@ -599,7 +634,7 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 2,
+        "observable": 0,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
@@ -611,7 +646,7 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 2,
+        "observable": 0,
         "summary": null,
         "tags": []
       },
@@ -634,14 +669,14 @@
           "type": "PDF document, version 1.7, 1 page(s)"
         },
         "module": "file_type",
-        "observable": 6,
+        "observable": 1,
         "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 1
+            "observable": 4
           }
         ],
         "class": "URLExtractionAnalysis",
@@ -656,48 +691,128 @@
           }
         },
         "module": "url_extraction",
-        "observable": 6,
+        "observable": 1,
         "summary": "URL Extraction Analysis (docs.lure-example.net)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": true,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/pdf",
+          "type": "PDF document, version 1.7, 1 page(s)"
+        },
+        "module": "file_type",
+        "observable": 2,
+        "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 3
-          },
-          {
-            "observable": 4
-          },
-          {
-            "observable": 9
-          },
-          {
             "observable": 12
-          },
-          {
-            "observable": 0
-          },
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://example.com/rotate"
+          ],
+          "urls_grouped_by_domain": {
+            "example.com": [
+              "https://example.com/rotate"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 2,
+        "summary": "URL Extraction Analysis (example.com)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 6,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "EmailArchiveResults",
+        "details": {
+          "hash": "ecba5dd85f0a3674a082eebd331b2f2f23170df06337905e34e55f3158cc4fae",
+          "message_id": null
+        },
+        "module": "email_archiver",
+        "observable": 9,
+        "summary": "Archived Email: ecba5dd85f0a3674a082eebd331b2f2f23170df06337905e34e55f3158cc4fae",
+        "tags": []
+      },
+      {
+        "added": [
           {
             "observable": 7
           },
           {
-            "observable": 2,
+            "observable": 10
+          },
+          {
+            "observable": 5
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 3
+          },
+          {
+            "observable": 11
+          },
+          {
+            "observable": 0,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 6,
+            "observable": 1,
             "path": "signed.pdf"
           },
           {
-            "observable": 13,
+            "observable": 2,
             "path": "rotated.pdf"
           },
           {
-            "observable": 10,
+            "observable": 6,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 11,
+            "observable": 13,
             "path": "email.rfc822.combined"
           }
         ],
@@ -777,7 +892,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 06:05:56.084647 +0000",
+              "date": "2026-11-21 14:52:05.415176 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -834,10 +949,27 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "application/pdf",
+              "path": "signed.pdf",
+              "role": "attachment"
+            },
+            {
+              "content_type": "application/pdf",
+              "path": "rotated.pdf",
+              "role": "attachment"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 8,
+        "observable": 9,
         "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject RE: Signed copy",
         "tags": []
       },
@@ -860,7 +992,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 8,
+        "observable": 9,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -883,76 +1015,8 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 10,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 11,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": true,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/pdf",
-          "type": "PDF document, version 1.7, 1 page(s)"
-        },
-        "module": "file_type",
         "observable": 13,
-        "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 5
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://example.com/rotate"
-          ],
-          "urls_grouped_by_domain": {
-            "example.com": [
-              "https://example.com/rotate"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 13,
-        "summary": "URL Extraction Analysis (example.com)",
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       }
     ]

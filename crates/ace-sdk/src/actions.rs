@@ -553,6 +553,10 @@ pub struct RemediatorResult {
     /// What a restore of this removal needs, such as where the email was moved to.
     #[serde(default)]
     pub restore_key: Option<String>,
+    /// What the remediator acted on when it wasn't the action's key, such as the mailbox that owns an
+    /// alias address: ace3's `resolved_target` (aaeef15e), kept on the try's history.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_target: Option<String>,
 }
 
 impl RemediatorResult {
@@ -561,7 +565,14 @@ impl RemediatorResult {
             status,
             message: Some(message.into()),
             restore_key: None,
+            resolved_target: None,
         }
+    }
+
+    /// The result, naming what the remediator acted on in place of the key.
+    pub fn resolved_to(mut self, target: impl Into<String>) -> Self {
+        self.resolved_target = Some(target.into());
+        self
     }
 }
 
@@ -644,6 +655,42 @@ pub struct ActionLeaseRequest {
     pub wait_seconds: u64,
 }
 
+/// A remediator asking whether its handler's latest remediation of another key, of the action's own
+/// type, covers the message (ace3's `removal_covers`): `POST /api/worker/v1/actions/<id>/removal-covers`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RemovalCoversRequest {
+    pub observable_value: String,
+}
+
+/// The core's answer to a `RemovalCoversRequest`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RemovalCoversAnswer {
+    pub covers: bool,
+}
+
+/// What a remediator may ask the core while it tries a leased action. The pool gives one to each try.
+pub trait ActionCore: Send + Sync {
+    /// ace3's `removal_covers`: whether this handler's latest remediation of `observable_value`, of the
+    /// action's own type, is a removal under way or one that found nothing left to remove. A
+    /// remediator that resolves its key to another target (an alias to the mailbox that owns it)
+    /// leaves the message to that target's own removal, and says so with `resolved_target`.
+    fn removal_covers<'a>(
+        &'a self,
+        observable_value: &'a str,
+    ) -> ActionFuture<'a, Result<bool, String>>;
+}
+
+/// An `ActionCore` that answers nothing is covered, for a try with no core to ask, such as a test's.
+pub struct NoCore;
+
+impl ActionCore for NoCore {
+    fn removal_covers<'a>(&'a self, _: &'a str) -> ActionFuture<'a, Result<bool, String>> {
+        Box::pin(async { Ok(false) })
+    }
+}
+
 /// The core's answer to a renewal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -682,6 +729,17 @@ pub trait Remediator: Send + Sync + 'static {
     fn spec(&self) -> &'static ActionSpec;
     fn remove<'a>(&'a self, target: &'a LeasedAction) -> ActionFuture<'a, RemediatorResult>;
     fn restore<'a>(&'a self, target: &'a LeasedAction) -> ActionFuture<'a, RemediatorResult>;
+
+    /// `remove`, able to ask the core what another removal covers (`ActionCore`). The pool calls this;
+    /// a remediator that asks overrides it, and the default is `remove`.
+    fn remove_with<'a>(
+        &'a self,
+        target: &'a LeasedAction,
+        core: &'a dyn ActionCore,
+    ) -> ActionFuture<'a, RemediatorResult> {
+        let _ = core;
+        self.remove(target)
+    }
 }
 
 /// ace3's `ExternalRemediationProbe`: asks another system whether it removed a target by itself. A try

@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "email_analyzer",
     "file_type",
@@ -10,15 +10,13 @@
     {
       "class": "EmailArchiveResults",
       "details": {
-        "archive_id": 1,
-        "archive_path": "<work>/data/archive/email/ace3-node/00/00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478.gz.e",
         "hash": "00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478",
         "message_id": null
       },
       "detections": [],
       "module_path": "saq.modules.email.archive:EmailArchiveResults",
       "observables": [],
-      "summary": "Archive Path: <work>/data/archive/email/ace3-node/00/00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478.gz.e",
+      "summary": "Archived Email: 00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478",
       "tags": []
     },
     {
@@ -34,6 +32,26 @@
           "compauth_reason": null,
           "compauth_result": null,
           "decoded_subject": "RE: Test Subject Line",
+          "deliveries": {
+            "alice@acmecorp.com": {
+              "mailboxes": [
+                "alice@acmecorp.com"
+              ],
+              "reason": "delivered"
+            },
+            "bob@acmecorp.com": {
+              "mailboxes": [
+                "bob@acmecorp.com"
+              ],
+              "reason": "delivered"
+            },
+            "carol@acmecorp.com": {
+              "mailboxes": [
+                "carol@acmecorp.com"
+              ],
+              "reason": "delivered"
+            }
+          },
           "dkim_result": null,
           "dmarc_result": null,
           "env_mail_from": "john.smith@contractor.example",
@@ -111,7 +129,7 @@
             ],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 06:04:20.330487 +0000",
+            "date": "2026-11-21 14:50:28.210209 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": "john.smith@contractor.example",
@@ -174,7 +192,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "text/html",
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -447,45 +477,20 @@
     }
   ],
   "email_archive_after": {
-    "archive": [
+    "archived_messages": [
       {
-        "archive_id": 1,
-        "hash": "00892C0DF0360D7B5BEDD806470854672FC6030D63E0D2CD4EBF8F9A80352478",
-        "insert_date": "2026-11-18 06:04:20"
+        "digest": "00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478",
+        "insert_date": "2026-11-21 14:50:28",
+        "message_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA"
       }
     ],
-    "archive_index": [
-      {
-        "archive_id": 1,
-        "field": "message_id",
-        "hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA"
-      }
-    ],
-    "email_history": [
-      {
-        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
-        "message_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA",
-        "recipient": "alice@acmecorp.com",
-        "recipient_hash": "89E5B23BE58230F137CFDD38615AB505AD01C0EBD0FD909039C2A46ED9C11089"
-      },
-      {
-        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
-        "message_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA",
-        "recipient": "bob@acmecorp.com",
-        "recipient_hash": "2598BBB57284B491335848B6AD88F57E8D96DC5AF8A1A7648A7CF2EFFB5A33DC"
-      },
-      {
-        "message_id": "<000001dcb67c$11223344$55667788$@contractor.example>",
-        "message_id_hash": "709A5C218DB3566EBB680B02C0598443577145401B918A5E6DCAAEADB9D24CBA",
-        "recipient": "carol@acmecorp.com",
-        "recipient_hash": "93B26CC4CA8A167F2D6E193AA147CA75579D92E01C1D158E5ADEA878F3563B01"
-      }
+    "pool": [
+      "00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478"
     ]
   },
   "email_archive_before": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [],
+    "pool": []
   },
   "email_archive_reads": [],
   "input": {
@@ -539,8 +544,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "message_id",
-        "value": "<000001dcb67c$11223344$55667788$@contractor.example>"
+        "type": "email_envelope_rcpt_to",
+        "value": "alice@acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "john.smith@contractor.example"
       },
       {
         "detections": [],
@@ -548,7 +561,26 @@
         "paths": [],
         "tags": [],
         "type": "email_conversation",
-        "value": "john.smith@contractor.example|jane.doe@partner.example"
+        "value": "john.smith@contractor.example|carol@acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 883,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "b25b7ac1b1ad03d6d2a62a6a5f429be18676024b8fa136a236f7b7999eed1e97"
       },
       {
         "detections": [],
@@ -563,8 +595,67 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "jane.doe@partner.example"
+        "type": "email_conversation",
+        "value": "john.smith@contractor.example|jane.doe@partner.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_cc",
+        "value": "user2@partner.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_cc",
+        "value": "user3@contractor.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<000001dcb67c$11223344$55667788$@contractor.example>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "RE: Test Subject Line"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_cc",
+        "value": "user1@partner.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 724,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "cdec7dbb0ea4d18561ae8e72c3fd0307ce2fad0dce297313fdb6561b83beda3c"
       },
       {
         "detections": [],
@@ -572,7 +663,15 @@
         "paths": [],
         "tags": [],
         "type": "email_envelope_rcpt_to",
-        "value": "alice@acmecorp.com"
+        "value": "carol@acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_envelope_rcpt_to",
+        "value": "bob@acmecorp.com"
       },
       {
         "detections": [],
@@ -580,15 +679,7 @@
         "paths": [],
         "tags": [],
         "type": "email_conversation",
-        "value": "john.smith@contractor.example|carol@acmecorp.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "john.smith@contractor.example|user1@partner.example"
+        "value": "john.smith@contractor.example|user2@partner.example"
       },
       {
         "detections": [],
@@ -612,19 +703,38 @@
       },
       {
         "detections": [],
-        "directives": [],
-        "paths": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 60,
         "tags": [],
-        "type": "email_envelope_rcpt_to",
-        "value": "bob@acmecorp.com"
+        "type": "file",
+        "value": "91c8aae712a2e64a4d3e8d2379d54d124ef6009650c4b68f04b9c15ecdf57ae8"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_cc",
-        "value": "user3@contractor.example"
+        "type": "email_conversation",
+        "value": "john.smith@contractor.example|user3@contractor.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "jane.doe@partner.example"
       },
       {
         "detections": [],
@@ -651,124 +761,65 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "john.smith@contractor.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_envelope_rcpt_to",
-        "value": "carol@acmecorp.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "email_conversation",
         "value": "john.smith@contractor.example|bob@acmecorp.com"
       },
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 883,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "b25b7ac1b1ad03d6d2a62a6a5f429be18676024b8fa136a236f7b7999eed1e97"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 60,
-        "tags": [],
-        "type": "file",
-        "value": "91c8aae712a2e64a4d3e8d2379d54d124ef6009650c4b68f04b9c15ecdf57ae8"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_cc",
-        "value": "user2@partner.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "RE: Test Subject Line"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [],
         "tags": [],
         "type": "email_conversation",
-        "value": "john.smith@contractor.example|user3@contractor.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_cc",
-        "value": "user1@partner.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "john.smith@contractor.example|user2@partner.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 724,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "cdec7dbb0ea4d18561ae8e72c3fd0307ce2fad0dce297313fdb6561b83beda3c"
+        "value": "john.smith@contractor.example|user1@partner.example"
       }
     ],
     "results": [
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 3,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 11,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
       {
         "added": [],
         "class": "FileTypeAnalysis",
@@ -788,7 +839,7 @@
           "type": "HTML document, ASCII text"
         },
         "module": "file_type",
-        "observable": 7,
+        "observable": 15,
         "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
         "tags": []
       },
@@ -800,7 +851,42 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 7,
+        "observable": 15,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 16,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 16,
         "summary": null,
         "tags": []
       },
@@ -808,83 +894,81 @@
         "added": [],
         "class": "EmailArchiveResults",
         "details": {
-          "archive_id": 1,
-          "archive_path": "<work>/data/archive/email/ace3-node/00/00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478.gz.e",
           "hash": "00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478",
           "message_id": null
         },
         "module": "email_archiver",
-        "observable": 10,
-        "summary": "Archive Path: <work>/data/archive/email/ace3-node/00/00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478.gz.e",
+        "observable": 19,
+        "summary": "Archived Email: 00892c0df0360d7b5bedd806470854672fc6030d63e0d2cd4ebf8f9a80352478",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 11
-          },
-          {
-            "observable": 4
-          },
-          {
-            "observable": 2
-          },
-          {
-            "observable": 8
-          },
-          {
-            "observable": 13
-          },
-          {
-            "observable": 12
-          },
-          {
-            "observable": 5
-          },
-          {
-            "observable": 3
-          },
-          {
             "observable": 1
-          },
-          {
-            "observable": 17
           },
           {
             "observable": 0
           },
           {
-            "observable": 19
+            "observable": 4
           },
           {
-            "observable": 6
-          },
-          {
-            "observable": 16
+            "observable": 13
           },
           {
             "observable": 20
           },
           {
-            "observable": 9
+            "observable": 12
+          },
+          {
+            "observable": 2
           },
           {
             "observable": 18
           },
           {
-            "observable": 15,
+            "observable": 5
+          },
+          {
+            "observable": 9
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 10
+          },
+          {
+            "observable": 21
+          },
+          {
+            "observable": 6
+          },
+          {
+            "observable": 14
+          },
+          {
+            "observable": 7
+          },
+          {
+            "observable": 17
+          },
+          {
+            "observable": 16,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 7,
+            "observable": 15,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 21,
+            "observable": 11,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 14,
+            "observable": 3,
             "path": "email.rfc822.combined"
           }
         ],
@@ -900,6 +984,26 @@
             "compauth_reason": null,
             "compauth_result": null,
             "decoded_subject": "RE: Test Subject Line",
+            "deliveries": {
+              "alice@acmecorp.com": {
+                "mailboxes": [
+                  "alice@acmecorp.com"
+                ],
+                "reason": "delivered"
+              },
+              "bob@acmecorp.com": {
+                "mailboxes": [
+                  "bob@acmecorp.com"
+                ],
+                "reason": "delivered"
+              },
+              "carol@acmecorp.com": {
+                "mailboxes": [
+                  "carol@acmecorp.com"
+                ],
+                "reason": "delivered"
+              }
+            },
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": "john.smith@contractor.example",
@@ -977,7 +1081,7 @@
               ],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 06:04:20.330487 +0000",
+              "date": "2026-11-21 14:50:28.210209 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": "john.smith@contractor.example",
@@ -1040,10 +1144,22 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "text/html",
+              "path": "email.rfc822.unknown_text_html_000.html",
+              "role": "body"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 10,
+        "observable": 19,
         "summary": "Email Analysis: From \"John Smith\" <john.smith@contractor.example> To alice@acmecorp.com Subject RE: Test Subject Line",
         "tags": []
       },
@@ -1066,89 +1182,8 @@
           "type": "SMTP mail, Unicode text, UTF-8 text"
         },
         "module": "file_type",
-        "observable": 10,
+        "observable": 19,
         "summary": "File Type Analysis: SMTP mail, Unicode text, UTF-8 text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 14,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 15,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 15,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 21,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       }
     ]

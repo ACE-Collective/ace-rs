@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -117,7 +117,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 05:53:55.765027 +0000",
+            "date": "2026-11-21 14:40:43.987911 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -172,7 +172,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "application/octet-stream",
+            "path": "invoice.docx",
+            "role": "attachment"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -401,50 +413,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "recipient@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 18,
-        "tags": [],
-        "type": "file",
-        "value": "9fb6306f1ad315c22bf9d4166fe5781bd5fe5cbcc8ff865057d53abdeae4c005"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "invoice.docx",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 17920,
-        "tags": [
-          "encrypted_msoffice",
-          "microsoft_office",
-          "ole"
-        ],
-        "type": "file",
-        "value": "7a11e1342e44371796a4cdaa5906d4c67c84eb7303ab1b63dc38fd2333e1fee7"
+        "type": "fqdn",
+        "value": "example.com"
       },
       {
         "detections": [],
@@ -488,6 +458,37 @@
       },
       {
         "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "invoice.docx",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 17920,
+        "tags": [
+          "encrypted_msoffice",
+          "microsoft_office",
+          "ole"
+        ],
+        "type": "file",
+        "value": "7a11e1342e44371796a4cdaa5906d4c67c84eb7303ab1b63dc38fd2333e1fee7"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "the attached file"
+      },
+      {
+        "detections": [],
         "directives": [],
         "paths": [
           {
@@ -507,11 +508,62 @@
       },
       {
         "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 18,
+        "tags": [],
+        "type": "file",
+        "value": "9fb6306f1ad315c22bf9d4166fe5781bd5fe5cbcc8ff865057d53abdeae4c005"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "invoice.docx.officeparser/stream_4_0.dat",
+            "yara_meta": []
+          }
+        ],
+        "size": 112,
+        "tags": [],
+        "type": "file",
+        "value": "b520d7662070c97304b0bbff09af9f61baaa6872976663ed1a886abc7c29cb15"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "invoice.docx.officeparser/stream_6_0.dat",
+            "yara_meta": []
+          }
+        ],
+        "size": 64,
+        "tags": [],
+        "type": "file",
+        "value": "167181108f6fd083cd67d569e9906a592ca923bc2d4c571ed1242caf92ed48f8"
+      },
+      {
+        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "md5",
-        "value": "e89db9e69f17dd34963c9587b1655ec1"
+        "type": "sha256",
+        "value": "7a11e1342e44371796a4cdaa5906d4c67c84eb7303ab1b63dc38fd2333e1fee7"
       },
       {
         "detections": [],
@@ -526,8 +578,42 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "fqdn",
-        "value": "example.com"
+        "type": "email_conversation",
+        "value": "sender@example.com|recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 24849,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "a88e14b5bfae3b53ca4b2a42c5b2bb3773fb266e48206e8e3eb73d9aa0821fc5"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "md5",
+        "value": "e89db9e69f17dd34963c9587b1655ec1"
       },
       {
         "detections": [],
@@ -566,24 +652,6 @@
       },
       {
         "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 24849,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "a88e14b5bfae3b53ca4b2a42c5b2bb3773fb266e48206e8e3eb73d9aa0821fc5"
-      },
-      {
-        "detections": [],
         "directives": [
           "extract_urls"
         ],
@@ -597,78 +665,53 @@
         "tags": [],
         "type": "file",
         "value": "02cccb025e7e5ea971354b59ce34be31ecda7f59518b3799cfabe004baa7848f"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "the attached file"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "sha256",
-        "value": "7a11e1342e44371796a4cdaa5906d4c67c84eb7303ab1b63dc38fd2333e1fee7"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sender@example.com|recipient@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "invoice.docx.officeparser/stream_6_0.dat",
-            "yara_meta": []
-          }
-        ],
-        "size": 64,
-        "tags": [],
-        "type": "file",
-        "value": "167181108f6fd083cd67d569e9906a592ca923bc2d4c571ed1242caf92ed48f8"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "invoice.docx.officeparser/stream_4_0.dat",
-            "yara_meta": []
-          }
-        ],
-        "size": 112,
-        "tags": [],
-        "type": "file",
-        "value": "b520d7662070c97304b0bbff09af9f61baaa6872976663ed1a886abc7c29cb15"
       }
     ],
     "results": [
       {
-        "added": [
-          {
-            "observable": 9
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
+        "added": [],
+        "class": "FileTypeAnalysis",
         "details": {
-          "domain": "example.com"
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/octet-stream",
+          "type": "data"
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 0,
-        "summary": "Email Address FQDN: example.com",
+        "module": "file_type",
+        "observable": 1,
+        "summary": "File Type Analysis: data (application/octet-stream)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ExtractedOLEAnalysis",
+        "details": {
+          "suspect_files": []
+        },
+        "module": "extracted_ole_analyzer",
+        "observable": 1,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 1,
+        "summary": null,
         "tags": []
       },
       {
@@ -686,12 +729,23 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
+          "mime": "application/octet-stream",
+          "type": "data"
         },
         "module": "file_type",
-        "observable": 1,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "observable": 2,
+        "summary": "File Type Analysis: data (application/octet-stream)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ExtractedOLEAnalysis",
+        "details": {
+          "suspect_files": []
+        },
+        "module": "extracted_ole_analyzer",
+        "observable": 2,
+        "summary": null,
         "tags": []
       },
       {
@@ -702,8 +756,23 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 1,
+        "observable": 2,
         "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 0
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "example.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 3,
+        "summary": "Email Address FQDN: example.com",
         "tags": []
       },
       {
@@ -730,7 +799,7 @@
           ]
         },
         "module": "msoffice_encryption_analyzer",
-        "observable": 2,
+        "observable": 4,
         "summary": "MSOffice Encryption Analysis: password not available",
         "tags": []
       },
@@ -753,17 +822,17 @@
           "type": "CDFV2 Encrypted"
         },
         "module": "file_type",
-        "observable": 2,
+        "observable": 4,
         "summary": "File Type Analysis: CDFV2 Encrypted (application/encrypted) (ms office document) (ole compound file)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 7
+            "observable": 15
           },
           {
-            "observable": 15
+            "observable": 10
           }
         ],
         "class": "FileHashAnalysis",
@@ -773,34 +842,34 @@
           "sha256": "7a11e1342e44371796a4cdaa5906d4c67c84eb7303ab1b63dc38fd2333e1fee7"
         },
         "module": "file_hash_analyzer",
-        "observable": 2,
+        "observable": 4,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 10,
+            "observable": 16,
             "path": "invoice.docx.officeparser/stream_1_0.dat"
           },
           {
-            "observable": 4,
+            "observable": 2,
             "path": "invoice.docx.officeparser/stream_3_0.dat"
           },
           {
-            "observable": 18,
+            "observable": 8,
             "path": "invoice.docx.officeparser/stream_4_0.dat"
           },
           {
-            "observable": 17,
+            "observable": 9,
             "path": "invoice.docx.officeparser/stream_6_0.dat"
           },
           {
-            "observable": 3,
+            "observable": 1,
             "path": "invoice.docx.officeparser/stream_9_0.dat"
           },
           {
-            "observable": 13,
+            "observable": 18,
             "path": "invoice.docx.officeparser/stream_10_0.dat"
           }
         ],
@@ -816,7 +885,7 @@
           ]
         },
         "module": "officeparser3",
-        "observable": 2,
+        "observable": 4,
         "summary": "OfficeParser3 Analysis: extracted 6 files",
         "tags": []
       },
@@ -829,7 +898,7 @@
           "type": "OLE"
         },
         "module": "olevba_v1_2",
-        "observable": 2,
+        "observable": 4,
         "summary": null,
         "tags": []
       },
@@ -841,7 +910,82 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 2,
+        "observable": 4,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 6,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 6,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 7,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 7,
         "summary": null,
         "tags": []
       },
@@ -864,7 +1008,7 @@
           "type": "data"
         },
         "module": "file_type",
-        "observable": 3,
+        "observable": 8,
         "summary": "File Type Analysis: data (application/octet-stream)",
         "tags": []
       },
@@ -875,7 +1019,7 @@
           "suspect_files": []
         },
         "module": "extracted_ole_analyzer",
-        "observable": 3,
+        "observable": 8,
         "summary": null,
         "tags": []
       },
@@ -887,7 +1031,7 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 3,
+        "observable": 8,
         "summary": null,
         "tags": []
       },
@@ -910,7 +1054,7 @@
           "type": "data"
         },
         "module": "file_type",
-        "observable": 4,
+        "observable": 9,
         "summary": "File Type Analysis: data (application/octet-stream)",
         "tags": []
       },
@@ -921,7 +1065,7 @@
           "suspect_files": []
         },
         "module": "extracted_ole_analyzer",
-        "observable": 4,
+        "observable": 9,
         "summary": null,
         "tags": []
       },
@@ -933,14 +1077,14 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 4,
+        "observable": 9,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 9
+            "observable": 0
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -948,163 +1092,37 @@
           "domain": "example.com"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 5,
+        "observable": 13,
         "summary": "Email Address FQDN: example.com",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 6,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 6,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/octet-stream",
-          "type": "data"
-        },
-        "module": "file_type",
-        "observable": 10,
-        "summary": "File Type Analysis: data (application/octet-stream)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ExtractedOLEAnalysis",
-        "details": {
-          "suspect_files": []
-        },
-        "module": "extracted_ole_analyzer",
-        "observable": 10,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 10,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 11,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 11,
-        "summary": null,
         "tags": []
       },
       {
         "added": [
           {
+            "observable": 3
+          },
+          {
+            "observable": 13
+          },
+          {
+            "observable": 12
+          },
+          {
             "observable": 5
           },
           {
-            "observable": 0
+            "observable": 11
           },
           {
-            "observable": 16
-          },
-          {
-            "observable": 14
-          },
-          {
-            "observable": 8
-          },
-          {
-            "observable": 1,
+            "observable": 7,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 2,
+            "observable": 4,
             "path": "invoice.docx"
           },
           {
-            "observable": 11,
+            "observable": 17,
             "path": "email.rfc822.headers"
           },
           {
@@ -1180,7 +1198,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 05:53:55.765027 +0000",
+              "date": "2026-11-21 14:40:43.987911 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -1235,10 +1253,22 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "application/octet-stream",
+              "path": "invoice.docx",
+              "role": "attachment"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 12,
+        "observable": 14,
         "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
         "tags": []
       },
@@ -1261,7 +1291,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 12,
+        "observable": 14,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1278,7 +1308,93 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 12,
+        "observable": 14,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/octet-stream",
+          "type": "data"
+        },
+        "module": "file_type",
+        "observable": 16,
+        "summary": "File Type Analysis: data (application/octet-stream)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ExtractedOLEAnalysis",
+        "details": {
+          "suspect_files": []
+        },
+        "module": "extracted_ole_analyzer",
+        "observable": 16,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 16,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 17,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 17,
         "summary": null,
         "tags": []
       },
@@ -1301,7 +1417,7 @@
           "type": "StarOffice Gallery theme @, 1836597052 objects, 1st sion=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
         },
         "module": "file_type",
-        "observable": 13,
+        "observable": 18,
         "summary": "File Type Analysis: StarOffice Gallery theme @, 1836597052 objects, 1st sion=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?> (application/x-stargallery-thm)",
         "tags": []
       },
@@ -1312,7 +1428,7 @@
           "suspect_files": []
         },
         "module": "extracted_ole_analyzer",
-        "observable": 13,
+        "observable": 18,
         "summary": null,
         "tags": []
       },
@@ -1324,7 +1440,7 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 13,
+        "observable": 18,
         "summary": null,
         "tags": []
       },
@@ -1336,98 +1452,6 @@
         },
         "error": "unable to parse XML: Start tag expected, '<' not found, line 1, column 1 (stream_10_0.dat, line 1)",
         "module": "xml_plain_text_analyzer",
-        "observable": 13,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/octet-stream",
-          "type": "data"
-        },
-        "module": "file_type",
-        "observable": 17,
-        "summary": "File Type Analysis: data (application/octet-stream)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ExtractedOLEAnalysis",
-        "details": {
-          "suspect_files": []
-        },
-        "module": "extracted_ole_analyzer",
-        "observable": 17,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 17,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/octet-stream",
-          "type": "data"
-        },
-        "module": "file_type",
-        "observable": 18,
-        "summary": "File Type Analysis: data (application/octet-stream)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ExtractedOLEAnalysis",
-        "details": {
-          "suspect_files": []
-        },
-        "module": "extracted_ole_analyzer",
-        "observable": 18,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
         "observable": 18,
         "summary": null,
         "tags": []

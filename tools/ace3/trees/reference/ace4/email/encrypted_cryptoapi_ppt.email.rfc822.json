@@ -238,7 +238,7 @@
       },
       "tags": {}
     },
-    "file:4143ccd9d627cd6ef87f760dd9bfc8db07e411034aa51b51d2a07e8f137ae338": {
+    "file:2911fc1c4990b89242d1a80cf3ac45f9cd4b23590ee9784912aaa5f2de20de3d": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -246,12 +246,12 @@
         "file_type": true
       },
       "paths": {
-        "invoice.ppt.exif/exiftool.out": {
+        "invoice.ppt.decrypted.exif/exiftool.out": {
           "type=metadata.exif": true
         }
       },
       "relationships": {
-        "extracted_from file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": true
+        "extracted_from file:6a31409a43eb61fb673a2c6cb0dddc479b589d33663016c5a1fa26dde87fc189": true
       },
       "results": {
         "observable_detection": {
@@ -420,9 +420,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 03:54:26+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 03:54:26+00:00",
-              "File:FileModifyDate": "2026:11:18 03:54:26+00:00",
+              "File:FileAccessDate": "2026:11:21 12:00:57+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 12:00:57+00:00",
+              "File:FileModifyDate": "2026:11:21 12:00:57+00:00",
               "File:FileName": "invoice.ppt",
               "File:FilePermissions": 100664,
               "File:FileSize": 2560,
@@ -583,9 +583,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 03:54:26+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 03:54:26+00:00",
-              "File:FileModifyDate": "2026:11:18 03:54:26+00:00",
+              "File:FileAccessDate": "2026:11:21 12:00:58+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 12:00:58+00:00",
+              "File:FileModifyDate": "2026:11:21 12:00:58+00:00",
               "File:FileName": "invoice.ppt.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 2560,
@@ -667,6 +667,39 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:862ab383b80c6c0072ad962901bfb07af3c36fe7c9d5c53e19bdec1a5a8d898d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:9c6b482c56abc1760cba854018af735b3903d7d85295df35f3aca4f392191ee4": {
       "detections": {},
@@ -866,7 +899,19 @@
               ]
             },
             "extraction_errors": [],
-            "parsing_error": null
+            "parsing_error": null,
+            "parts": [
+              {
+                "content_type": "text/plain",
+                "path": "email.rfc822.unknown_text_plain_000.txt",
+                "role": "body"
+              },
+              {
+                "content_type": "application/octet-stream",
+                "path": "invoice.ppt",
+                "role": "attachment"
+              }
+            ]
           },
           "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
           "tags": {}
@@ -1038,39 +1083,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:e0c5e51d7a2bd236976e2fa83ad29bc488ff4ef87446d8c33950f1619a7ea3b7": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.ppt.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a31409a43eb61fb673a2c6cb0dddc479b589d33663016c5a1fa26dde87fc189": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}

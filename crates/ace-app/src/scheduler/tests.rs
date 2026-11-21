@@ -1077,8 +1077,9 @@ async fn email_archive_partitions_drops_the_old_weeks_and_makes_the_ones_ahead()
     .await
     .expect("makes an old week");
     sqlx::query(
-        "INSERT INTO email_archive.archive (hash, object_sha256, insert_date, root_id, observable_id)
-         VALUES (sha256('old'::bytea), 'x', $1, gen_random_uuid(), 1)",
+        "INSERT INTO email_archive.archive
+             (message_id_hash, hash, object_sha256, insert_date, root_id, observable_id)
+         VALUES (sha256('<m>'::bytea), sha256('old'::bytea), 'x', $1, gen_random_uuid(), 1)",
     )
     .bind(old + chrono::Duration::days(1))
     .execute(db.pool())
@@ -1092,7 +1093,7 @@ async fn email_archive_partitions_drops_the_old_weeks_and_makes_the_ones_ahead()
     assert_eq!(run.outcome.as_deref(), Some("succeeded"), "{run:?}");
     let (this_week, _) = week_of(now);
     let (oldest_kept, _) = week_of(now - chrono::Duration::days(30));
-    for table in ["archive", "archive_index", "email_history"] {
+    for table in ace_core::email_archive::partitions::TABLES {
         let mut expected = Vec::new();
         let mut week = oldest_kept;
         while week <= this_week + chrono::Duration::weeks(WEEKS_AHEAD) {
@@ -1116,9 +1117,9 @@ async fn email_archive_partitions_drops_the_old_weeks_and_makes_the_ones_ahead()
     // a row in the catchall for a week not yet made keeps that week from being made
     let (ahead, _) = week_of(now + chrono::Duration::weeks(WEEKS_AHEAD + 1));
     sqlx::query(
-        "INSERT INTO email_archive.email_history
-             (insert_date, message_id, message_id_hash, recipient, recipient_hash)
-         VALUES ($1, '<m>', sha256('m'::bytea), 'r', sha256('r'::bytea))",
+        "INSERT INTO email_archive.archive
+             (message_id_hash, hash, object_sha256, insert_date, root_id, observable_id)
+         VALUES (sha256('<m>'::bytea), sha256('ahead'::bytea), 'x', $1, gen_random_uuid(), 1)",
     )
     .bind(ahead + chrono::Duration::days(1))
     .execute(db.pool())
@@ -1136,24 +1137,18 @@ async fn email_archive_partitions_drops_the_old_weeks_and_makes_the_ones_ahead()
         )
         .await
         .expect("runs");
-    let history = done
-        .iter()
-        .find(|t| t.table == "email_archive.email_history")
-        .expect("a table");
-    assert_eq!(history.problems.len(), 1, "{history:?}");
+    assert_eq!(done.len(), 1, "{done:?}");
+    let archive = &done[0];
+    assert_eq!(archive.table, "email_archive.archive");
+    assert_eq!(archive.problems.len(), 1, "{archive:?}");
     assert!(
-        history.problems[0].contains(&partition_name("email_history", ahead)),
-        "{history:?}"
+        archive.problems[0].contains(&partition_name("archive", ahead)),
+        "{archive:?}"
     );
     assert!(
-        !archive_weeks(db, "email_history")
+        !archive_weeks(db, "archive")
             .await
-            .contains(&partition_name("email_history", ahead))
-    );
-    assert!(
-        done.iter()
-            .filter(|t| t.table != "email_archive.email_history")
-            .all(|t| t.ok())
+            .contains(&partition_name("archive", ahead))
     );
 }
 

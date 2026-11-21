@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO email_archive.archive\n                   (message_id_hash, hash, object_sha256, insert_date, root_id, observable_id)\n               VALUES ($1, $2, $3, date_trunc('second', now() AT TIME ZONE 'UTC'), $4, $5)\n               ON CONFLICT (message_id_hash, hash, insert_date) DO NOTHING\n               RETURNING archive_id, insert_date",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "archive_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "email_archive.archive",
+            "name": "archive_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "insert_date",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "email_archive.archive",
+            "name": "insert_date"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Bytea",
+        "Text",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "0668d4775e61fd857777c654c8c9c87d251df0506fdbc5ac64edd46e334f1a94"
+}

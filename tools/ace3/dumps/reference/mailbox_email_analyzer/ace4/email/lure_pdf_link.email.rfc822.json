@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "file_type",
     "email_analyzer"
@@ -88,7 +88,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 06:00:48.749588 +0000",
+            "date": "2026-11-21 14:47:23.459986 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -145,7 +145,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "application/pdf",
+            "path": "Bid_4471.pdf",
+            "role": "attachment"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -428,7 +440,7 @@
           "cc": [],
           "compauth_reason": null,
           "compauth_result": null,
-          "date": "2026-11-18 06:00:48.749588 +0000",
+          "date": "2026-11-21 14:47:23.459986 +0000",
           "dkim_result": null,
           "dmarc_result": null,
           "env_mail_from": null,
@@ -485,7 +497,19 @@
         ]
       },
       "extraction_errors": [],
-      "parsing_error": null
+      "parsing_error": null,
+      "parts": [
+        {
+          "content_type": "text/plain",
+          "role": "body",
+          "uuid": "154b38db-37d2-4e99-a6a2-2bec1c582280"
+        },
+        {
+          "content_type": "application/pdf",
+          "role": "attachment",
+          "uuid": "012f5823-6c65-482a-af0c-7fd32691c6a0"
+        }
+      ]
     }
   },
   "tree_view": {
@@ -494,6 +518,110 @@
       "23d72e0d55acff9dc7fff4fdf07f919cf9174e2149d55a1f4fdfdaaa7d2e32a6": "SGVsbG8gUGF0LAoKUGxlYXNlIGZpbmQgYXR0YWNoZWQgdGhlIGJpZCBkb2N1bWVudHMgZm9yIHByb2plY3QgNDQ3MS4gUmV2aWV3IHRoZW0gYmVmb3JlIEZyaWRheS4KClJlZ2FyZHMsClNhbQo="
     },
     "observables": [
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "Bid_4471.pdf",
+            "yara_meta": [
+              "type=document.pdf",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 701,
+        "tags": [
+          "pdf"
+        ],
+        "type": "file",
+        "value": "6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 110,
+        "tags": [],
+        "type": "file",
+        "value": "23d72e0d55acff9dc7fff4fdf07f919cf9174e2149d55a1f4fdfdaaa7d2e32a6"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sam@partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 424,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "25ad4d31ca3349e97c270395f4747ec24cf77b6baa6b9146e1d3738e9c03fd0c"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "original_email"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 1679,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "ddc486fe29be4a37d70c403ab41d5e26069d0d83a89baf01ee35298574441160"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sam@partner-example.org|pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Bid documents for project 4471"
+      },
       {
         "detections": [],
         "directives": [],
@@ -523,96 +651,6 @@
       },
       {
         "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sam@partner-example.org|pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 424,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "25ad4d31ca3349e97c270395f4747ec24cf77b6baa6b9146e1d3738e9c03fd0c"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "sam@partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 110,
-        "tags": [],
-        "type": "file",
-        "value": "23d72e0d55acff9dc7fff4fdf07f919cf9174e2149d55a1f4fdfdaaa7d2e32a6"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "sam@partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "original_email"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 1679,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "ddc486fe29be4a37d70c403ab41d5e26069d0d83a89baf01ee35298574441160"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "Bid documents for project 4471"
-      },
-      {
-        "detections": [],
         "directives": [
           "tracked"
         ],
@@ -623,25 +661,11 @@
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "Bid_4471.pdf",
-            "yara_meta": [
-              "type=document.pdf",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 701,
-        "tags": [
-          "pdf"
-        ],
-        "type": "file",
-        "value": "6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6"
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "sam@partner-example.org"
       }
     ],
     "results": [
@@ -649,7 +673,30 @@
         "added": [],
         "class": "FileTypeAnalysis",
         "details": {
-          "is_email_file": true,
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": true,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/pdf",
+          "type": "PDF document, version 1.7, 1 page(s)"
+        },
+        "module": "file_type",
+        "observable": 0,
+        "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
           "is_jar_file": false,
           "is_lnk_file": false,
           "is_office_document": false,
@@ -660,12 +707,12 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
+          "mime": "text/plain",
+          "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 0,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "observable": 1,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
@@ -693,44 +740,15 @@
       },
       {
         "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 5,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
         "class": "MailboxEmailAnalysis",
         "details": {},
         "module": "mailbox_email_analyzer",
-        "observable": 7,
+        "observable": 4,
         "summary": null,
         "tags": []
       },
       {
         "added": [
-          {
-            "observable": 4
-          },
-          {
-            "observable": 1
-          },
           {
             "observable": 2
           },
@@ -738,21 +756,27 @@
             "observable": 8
           },
           {
-            "observable": 9
+            "observable": 5
           },
           {
             "observable": 6
           },
           {
-            "observable": 5,
+            "observable": 9
+          },
+          {
+            "observable": 10
+          },
+          {
+            "observable": 1,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 10,
+            "observable": 0,
             "path": "Bid_4471.pdf"
           },
           {
-            "observable": 0,
+            "observable": 7,
             "path": "email.rfc822.headers"
           },
           {
@@ -832,7 +856,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 06:00:48.749588 +0000",
+              "date": "2026-11-21 14:47:23.459986 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -889,11 +913,46 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "application/pdf",
+              "path": "Bid_4471.pdf",
+              "role": "attachment"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 7,
+        "observable": 4,
         "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject Bid documents for project 4471",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 4,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
       {
@@ -917,29 +976,6 @@
         "module": "file_type",
         "observable": 7,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": true,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/pdf",
-          "type": "PDF document, version 1.7, 1 page(s)"
-        },
-        "module": "file_type",
-        "observable": 10,
-        "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
         "tags": []
       }
     ]

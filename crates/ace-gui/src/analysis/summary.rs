@@ -270,8 +270,9 @@ pub struct SummaryAttachment {
 pub struct Delivery {
     /// Whose mailbox it went to.
     pub recipient: String,
-    /// What became of it, in ace3's words, such as `remediated` or `not attempted`.
-    pub state: &'static str,
+    /// What became of it, in ace3's words, such as `remediated` or `not attempted`, or what the
+    /// journal says of an address that didn't receive its own copy.
+    pub state: String,
     /// The badge's class.
     pub class: &'static str,
     /// What confirmed a remediation.
@@ -354,9 +355,43 @@ fn mailbox_view(alert: &SummaryInput<'_>) -> Option<MailboxSummaryView> {
     add("Return-Path", text("return_path"));
     add("To", text("to"));
     add("Cc", text("cc"));
-    let delivered = text("env_rcpt_to");
-    if delivered != text("to") {
-        add("Delivered to", delivered);
+    // ace3's "Delivered to" (aaeef15e): a journal report's delivered mailboxes and what happened
+    // to each address it didn't deliver to under that address; else the envelope recipients
+    let journal: Option<std::collections::BTreeMap<String, ace_results::types::email::Delivery>> =
+        email
+            .get("deliveries")
+            .filter(|d| d.is_object())
+            .and_then(|d| serde_json::from_value(d.clone()).ok());
+    match journal {
+        Some(journal) => {
+            use ace_results::types::email::DeliveryReason;
+            let delivered: Vec<&str> = journal
+                .iter()
+                .filter(|(_, d)| d.reason == DeliveryReason::Delivered)
+                .map(|(address, _)| address.as_str())
+                .collect();
+            add(
+                "Delivered to",
+                (!delivered.is_empty()).then(|| delivered.join(", ")),
+            );
+            let notes: Vec<String> = journal
+                .iter()
+                .filter(|(_, d)| d.reason != DeliveryReason::Delivered)
+                .map(|(address, d)| {
+                    format!("{address}: {}", d.reason.describe_undelivered(&d.mailboxes))
+                })
+                .collect();
+            add(
+                "Not delivered",
+                (!notes.is_empty()).then(|| notes.join("; ")),
+            );
+        }
+        None => {
+            let delivered = text("env_rcpt_to");
+            if delivered != text("to") {
+                add("Delivered to", delivered);
+            }
+        }
     }
     let date = email["headers"].as_array().and_then(|headers| {
         headers.iter().find_map(|header| {
@@ -449,7 +484,13 @@ fn mailbox_view(alert: &SummaryInput<'_>) -> Option<MailboxSummaryView> {
                     .map_or(observable.value.as_str(), |file| file.path.as_str())
             })
             .collect();
-        let index = EmailAnalysis::body_of(&paths)?;
+        // the parts the result records, or, for a result made before it recorded them, the names
+        let parts: Option<Vec<ace_results::types::email::EmailPart>> = result
+            .details
+            .get("parts")
+            .filter(|parts| !parts.is_null())
+            .and_then(|parts| serde_json::from_value(parts.clone()).ok());
+        let index = EmailAnalysis::body_in(parts.as_deref(), &paths)?;
         Some((paths[index].to_owned(), tree_anchor(tree, added[index].id)))
     });
 
@@ -483,19 +524,21 @@ fn mailbox_view(alert: &SummaryInput<'_>) -> Option<MailboxSummaryView> {
         .map(|target| {
             // ace3's words for a target (`TargetCoverage::status_display`)
             let (state, class) = if target.remediated() {
-                ("remediated", "coverage-remediated")
+                ("remediated".to_owned(), "coverage-remediated")
+            } else if let (true, Some(reason)) = (target.not_delivered, target.undelivered) {
+                (reason.describe_undelivered(&[]), "coverage-unremediated")
             } else if target.failed {
-                ("failed", "coverage-failed")
+                ("failed".to_owned(), "coverage-failed")
             } else if target.not_found {
-                ("not in mailbox", "coverage-unremediated")
+                ("not in mailbox".to_owned(), "coverage-unremediated")
             } else if target.remediating {
-                ("remediating", "coverage-pending")
+                ("remediating".to_owned(), "coverage-pending")
             } else if target.pending {
-                ("watching", "coverage-pending")
+                ("watching".to_owned(), "coverage-pending")
             } else if target.attempted {
-                ("not remediated", "coverage-unremediated")
+                ("not remediated".to_owned(), "coverage-unremediated")
             } else {
-                ("not attempted", "coverage-unremediated")
+                ("not attempted".to_owned(), "coverage-unremediated")
             };
             Delivery {
                 recipient: clip(target.recipient(), MAX_VALUE).text,

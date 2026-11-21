@@ -416,6 +416,7 @@ fn email_details(from: &str, rcpt: &[&str], message_id: Option<&str>) -> Value {
     let analysis = EmailAnalysis {
         parsing_error: None,
         extraction_errors: Vec::new(),
+        parts: None,
         email: Some(EmailDetails {
             headers: vec![
                 ["From".to_owned(), from.to_owned()],
@@ -523,7 +524,7 @@ async fn the_logger_sends_urls_apart_and_its_writes_follow_its_settings() {
     assert_eq!(records[3]["record"]["header_index"], json!(1));
     let main = records[4]["record"].as_object().expect("an object");
     assert!(!main.contains_key("extracted_urls") && !main.contains_key("headers"));
-    assert_eq!(main["archive_path"], Value::Null);
+    assert_eq!(main["archive_hash"], Value::Null);
 
     // with brocess logging and thread recording off, nothing is written, and the read is still made
     let harness = logger(
@@ -582,7 +583,7 @@ async fn without_a_message_id_the_urls_stay_in_the_entry_and_nothing_is_threaded
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn the_entry_names_where_the_archiver_archived_the_email() {
+async fn the_entry_names_the_email_the_archiver_archived() {
     use ace_sdk::tree::{TreeObservable, TreeResult, TreeView};
     let fluent_bit = FakeFluentBit::start().await;
     let harness = logger(
@@ -623,10 +624,7 @@ async fn the_entry_names_where_the_archiver_archived_the_email() {
         .expect("runs");
     let records = fluent_bit.records(1).await;
     let sha256 = &file.value;
-    assert_eq!(
-        records[0]["record"]["archive_path"],
-        json!(format!("archive/email/{}/{sha256}.gz.e", &sha256[..2]))
-    );
+    assert_eq!(records[0]["record"]["archive_hash"], json!(sha256));
 }
 
 #[tokio::test(flavor = "multi_thread")]

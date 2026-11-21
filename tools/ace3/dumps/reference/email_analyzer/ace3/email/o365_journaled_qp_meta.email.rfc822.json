@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "file_type"
   ],
@@ -13,6 +13,14 @@
           "compauth_reason": null,
           "compauth_result": null,
           "decoded_subject": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+          "deliveries": {
+            "john.doe@acmecorp.com": {
+              "mailboxes": [
+                "john.doe@acmecorp.com"
+              ],
+              "reason": "delivered"
+            }
+          },
           "dkim_result": null,
           "dmarc_result": null,
           "env_mail_from": "jane.smith@widgetsinc.com",
@@ -80,7 +88,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 05:03:47.793054 +0000",
+            "date": "2026-11-21 13:51:07.318828 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": "jane.smith@widgetsinc.com",
@@ -138,7 +146,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "text/html",
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",

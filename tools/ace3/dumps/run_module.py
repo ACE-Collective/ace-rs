@@ -36,11 +36,11 @@ does (saq/cli/commands/correlate.py) with all modules disabled except the ones n
 - with --fluent-bit, what ace3 sends to fluent-bit is kept in the dump instead of sent;
 - with --encryption-key HEX, ace3's encryption is initialized with that 32-byte key, as its own
   password would load one, so its archive modules seal and open with it;
-- with --email-archive-store FILE, ace3's email archive (saq/email_archive/local.py) writes and reads
-  an email-archive database held in memory (FakeEmailArchive below), and its files under the work
-  directory, starting with the emails that JSON file lists, each archived with ace3's own
-  archive_email and the URLs it names indexed; the dump keeps the rows after the run and what each
-  query answered;
+- with --email-archive-store FILE, ace3's email archive (saq/email_archive/archive.py) writes and
+  reads its archived_messages table held in memory and its CAS pool under the work directory
+  (FakeEmailArchive below), starting with the emails that JSON file lists, each archived with ace3's
+  own archive_email; the dump keeps the rows and the pool's digests before and after the run and what
+  each query answered;
 - with --sidecars SUFFIX, the dump keeps the text of each file the run left in the root's file
   directory whose name ends in SUFFIX, by its path there, such as the DOM snapshots ace3's HTML
   modules write beside the scripts they extract, which aren't observables;
@@ -670,136 +670,96 @@ def fake_brocess_store(path):
 
 
 class FakeEmailArchive:
-    """ace3's email-archive database, in memory, answering the statements saq/email_archive/local.py
-    and the URL pivot module send, as MySQL would: each hash is UNHEX(SHA2(text, 256)) of the text's
-    UTF-8, HEX() is upper case, INSERT IGNORE leaves a duplicate key's row, and a NULL or a duplicate
-    in email_history raises IntegrityError, which ace3 passes over. One archive server, ace3-node,
-    so the paths don't carry the container's hostname. A statement it doesn't know fails the run."""
+    """ace3's email archive, in memory (saq/email_archive/archive.py, since ace3's 6669e249 and
+    4f1fa192): the email_archive CAS pool, whose objects are files under the work directory named by
+    their sha256, and the email archive database's archived_messages, the one table ace3 reads, keyed
+    as MySQL keys it: message_id_hash is UNHEX(SHA2(normalized Message-ID, 256)), INSERT IGNORE
+    leaves a duplicate key's row, and a lookup is newest first. ace3's own archive_email and
+    query_archive_hashes send their statements through a private session this answers; a statement
+    it doesn't know fails the run."""
 
-    HOSTNAME = "ace3-node"
-
-    def __init__(self):
-        self.archive = []
-        self.index = []
-        self.history = []
+    def __init__(self, pool_dir):
+        self.pool_dir = pool_dir
+        os.makedirs(pool_dir, exist_ok=True)
+        self.messages = []
         self.reads = []
 
     def rows(self):
         return {
-            "archive": [
-                {"archive_id": a["archive_id"], "hash": a["hash"], "insert_date": a["insert_date"]}
-                for a in self.archive
+            "archived_messages": [
+                {"message_id_hash": m["message_id_hash"], "digest": m["digest"], "insert_date": m["insert_date"]}
+                for m in self.messages
             ],
-            "archive_index": sorted(
-                ({"field": i["field"], "hash": i["hash"], "archive_id": i["archive_id"]} for i in self.index),
-                key=lambda i: (i["archive_id"], i["field"], i["hash"]),
-            ),
-            "email_history": [
-                {"message_id": h["message_id"], "message_id_hash": h["message_id_hash"],
-                 "recipient": h["recipient"], "recipient_hash": h["recipient_hash"]}
-                for h in self.history
-            ],
+            "pool": sorted(os.listdir(self.pool_dir)),
         }
 
-    @staticmethod
-    def sha(text):
-        return hashlib.sha256(text.encode("utf-8")).hexdigest().upper()
+    # the CAS pool: put, exists, materialize and open, as saq.cas.CASPool answers them
+    def put(self, path):
+        with open(path, "rb") as fp:
+            data = fp.read()
+        digest = hashlib.sha256(data).hexdigest()
+        with open(os.path.join(self.pool_dir, digest), "wb") as fp:
+            fp.write(data)
+        return digest
 
-    def connection(self, names):
+    def exists(self, digest):
+        return os.path.exists(os.path.join(self.pool_dir, digest))
+
+    def materialize(self, digest, target):
+        shutil.copyfile(os.path.join(self.pool_dir, digest), target)
+
+    def open(self, digest):
+        return open(os.path.join(self.pool_dir, digest), "rb")
+
+    def session(self):
         import contextlib
 
         store = self
 
-        class Cursor:
-            def __init__(self):
-                self.result = []
-                self.rowcount = 0
-                self.lastrowid = 0
+        class Result:
+            def __init__(self, values):
+                self.values = values
 
-            def execute(self, sql, params=()):
-                self.result, self.lastrowid = store.execute(" ".join(sql.split()), tuple(params or ()))
-                self.rowcount = len(self.result)
+            def scalars(self):
+                return iter(self.values)
 
-            def fetchall(self):
-                return list(self.result)
-
-            def fetchone(self):
-                return self.result[0] if self.result else None
-
-            def __iter__(self):
-                return iter(list(self.result))
-
-        class Connection:
-            server_status = 0
-
-            def cursor(self):
-                return Cursor()
-
-            def commit(self):
-                pass
-
-            def rollback(self):
-                pass
+        class Session:
+            def execute(self, statement):
+                return Result(store.execute(statement))
 
         @contextlib.contextmanager
-        def get_db_connection(name="ace"):
-            assert name in names, name
-            yield Connection()
+        def private_transaction(database="ace"):
+            assert database == "email_archive", database
+            yield Session()
 
-        return get_db_connection
+        def run_private_transaction(work, *args, database="ace", **kwargs):
+            for name in ("attempts", "description", "extra"):
+                kwargs.pop(name, None)
+            with private_transaction(database) as session:
+                return work(session, *args, **kwargs)
 
-    def execute(self, sql, params):
-        import pymysql
+        return private_transaction, run_private_transaction
 
-        def when(value):
-            return value.strftime("%Y-%m-%d %H:%M:%S") if hasattr(value, "strftime") else str(value)
+    def execute(self, statement):
+        from sqlalchemy.sql import Insert, Select
 
-        if sql == "INSERT IGNORE INTO archive ( server_id, hash, insert_date ) VALUES ( %s, UNHEX(%s), %s )":
-            _, digest, insert_date = params
-            key = (digest.upper(), when(insert_date))
-            if any((a["hash"], a["insert_date"]) == key for a in self.archive):
-                return [], 0
-            archive_id = len(self.archive) + 1
-            self.archive.append({"archive_id": archive_id, "hash": key[0], "insert_date": key[1]})
-            return [], archive_id
-        if sql == "SELECT archive_id FROM archive WHERE server_id = %s AND hash = UNHEX(%s) AND insert_date = %s":
-            _, digest, insert_date = params
-            key = (digest.upper(), when(insert_date))
-            return [(a["archive_id"],) for a in self.archive if (a["hash"], a["insert_date"]) == key], 0
-        if sql == "INSERT IGNORE INTO archive_index ( field, hash, archive_id, insert_date ) VALUES ( %s, UNHEX(SHA2(%s, 256)), %s, %s )":
-            field, value, archive_id, insert_date = params
-            row = {"field": field, "hash": self.sha(value), "archive_id": archive_id, "insert_date": when(insert_date)}
-            if row not in self.index:
-                self.index.append(row)
-            return [], 0
-        if sql.startswith("INSERT INTO email_history ( insert_date, message_id, message_id_hash, recipient, recipient_hash ) VALUES"):
-            insert_date, message_id, _, recipient, _ = params
-            if message_id is None or recipient is None:
-                raise pymysql.err.IntegrityError(1048, "Column cannot be null")
-            row = {"insert_date": when(insert_date), "message_id": message_id,
-                   "message_id_hash": self.sha(message_id), "recipient": recipient,
-                   "recipient_hash": self.sha(recipient)}
-            if any((h["message_id_hash"], h["recipient_hash"], h["insert_date"])
-                   == (row["message_id_hash"], row["recipient_hash"], row["insert_date"]) for h in self.history):
-                raise pymysql.err.IntegrityError(1062, "Duplicate entry")
-            self.history.append(row)
-            return [], 0
-        if sql.startswith("SELECT archive_server.hostname, HEX(archive.hash) FROM archive JOIN archive_server"):
-            digest = self.sha(params[0])
-            ids = {i["archive_id"] for i in self.index if i["field"] == "message_id" and i["hash"] == digest}
-            found = sorted((a for a in self.archive if a["archive_id"] in ids),
-                           key=lambda a: a["insert_date"], reverse=True)
-            self.reads.append({"query_by_message_id": params[0],
-                               "hash": found[0]["hash"] if found else None})
-            return [(self.HOSTNAME, a["hash"]) for a in found], 0
-        if sql == "SELECT COUNT(DISTINCT(archive_id)) FROM archive_index WHERE field = 'url' AND hash = UNHEX(SHA2(%s, 256))":
-            digest = self.sha(params[0])
-            count = len({i["archive_id"] for i in self.index if i["field"] == "url" and i["hash"] == digest})
-            self.reads.append({"url_count": params[0], "count": count})
-            return [(count,)], 0
-        if sql == "SELECT server_id FROM archive_server WHERE hostname = %s":
-            return [(1,)], 0
-        raise RuntimeError(f"FakeEmailArchive doesn't know {sql}")
+        params = statement.compile().params
+        if isinstance(statement, Insert) and statement.table.name == "archived_messages":
+            row = {
+                "message_id_hash": params["message_id_hash"].hex().upper(),
+                "digest": params["digest"].hex(),
+                "insert_date": params["insert_date"].strftime("%Y-%m-%d %H:%M:%S"),
+            }
+            if row not in self.messages:
+                self.messages.append(row)
+            return []
+        if isinstance(statement, Select) and [c.name for c in statement.selected_columns] == ["digest"]:
+            wanted = next(v for k, v in params.items() if k.startswith("message_id_hash")).hex().upper()
+            found = sorted((m for m in self.messages if m["message_id_hash"] == wanted),
+                           key=lambda m: m["insert_date"], reverse=True)
+            self.reads.append({"query_by_message_id_hash": wanted, "digests": [m["digest"] for m in found]})
+            return [bytes.fromhex(m["digest"]) for m in found]
+        raise RuntimeError(f"FakeEmailArchive doesn't know {statement}")
 
 
 def use_encryption_key(key_hex):
@@ -813,37 +773,28 @@ def use_encryption_key(key_hex):
 
 def fake_email_archive(path, work):
     """Points ace3's email archive at a FakeEmailArchive, and archives the emails `path` lists with
-    ace3's own archive_email, each at its insert_date, indexing the URLs it names. An email marked
-    `delete_file` loses its file once archived, as one archived by another node is missing here."""
+    ace3's own archive_email, each at its insert_date. An email marked `delete_file` loses its
+    object once archived, as one past the pool's ttl is gone while its row is still kept."""
     import datetime
 
-    import saq.email_archive.local as local
-    import saq.modules.email.archive as archive_module
-    import saq.modules.email.correlation as correlation
-    from saq.constants import DB_EMAIL_ARCHIVE, EMAIL_ARCHIVE_FIELD_URL
-    from saq.email_archive import archive_email, get_archive_path_by_hash, index_email_archive
+    import saq.database.private_session as private_session
+    import saq.email_archive.archive as archive
+    import saq.modules.email.message_id as message_id_module
 
-    store = FakeEmailArchive()
-    connection = store.connection({DB_EMAIL_ARCHIVE, "email_archive"})
-    local.get_db_connection = connection
-    archive_module.get_db_connection = connection
-    correlation.get_db_connection = connection
-    correlation.get_email_archive_sections = lambda: ["email_archive"]
-    local.EmailArchiveLocal.get_email_archive_local_server_name = lambda self: FakeEmailArchive.HOSTNAME
-    local.EmailArchiveLocal.get_email_archive_server_id = lambda self: 1
+    store = FakeEmailArchive(os.path.join(work, "email_archive_pool"))
+    private_session.private_transaction, private_session.run_private_transaction = store.session()
+    archive.get_email_archive_pool = lambda: store
+    message_id_module.get_email_archive_pool = lambda: store
 
     with open(path) as fp:
         seed = json.load(fp)
     base = os.path.dirname(os.path.abspath(path))
     for email in seed.get("emails", []):
         insert_date = datetime.datetime.strptime(email["insert_date"], "%Y-%m-%d %H:%M:%S")
-        result = archive_email(os.path.join(base, email["file"]), email["message_id"], email["recipients"], insert_date)
-        with connection(DB_EMAIL_ARCHIVE) as db:
-            cursor = db.cursor()
-            for url in email.get("urls", []):
-                index_email_archive(db, cursor, result.archive_id, EMAIL_ARCHIVE_FIELD_URL, url, insert_date)
+        digest = archive.archive_email(os.path.join(base, email["file"]), email["message_id"], insert_date)
         if email.get("delete_file"):
-            os.remove(get_archive_path_by_hash(result.hash))
+            os.remove(os.path.join(store.pool_dir, digest))
+    store.reads.clear()
     return store
 
 
@@ -1136,11 +1087,12 @@ def carrying_email(work, body, attachment, name):
 
 def carrying_email_body(root, target):
     """The body parts of the email search_down() finds from target, as the encryption modules read them
-    since ace3's 1998ca56 (EmailAnalysis.body_parts), in order, each with whether it is HTML."""
+    since ace3's 1998ca56 (EmailAnalysis.body_parts), in order, each with whether it is HTML (by the
+    email's record of its parts since 5474fd6b)."""
     import base64
 
     from saq.analysis.search import search_down
-    from saq.modules.email.rfc822 import EmailAnalysis, is_html_body_part
+    from saq.modules.email.rfc822 import EmailAnalysis
 
     for analysis in root.all_analysis:
         analysis.load_details()
@@ -1152,7 +1104,7 @@ def carrying_email_body(root, target):
         with open(part.full_path, "rb") as fp:
             parts.append({
                 "path": part.file_path,
-                "html": is_html_body_part(part),
+                "html": found.is_html_body_part(part),
                 "body": base64.b64encode(fp.read()).decode(),
             })
     return {"parts": parts}
@@ -1336,7 +1288,7 @@ def tree_form(root):
             result = {
                 "summary": analysis.summary,
                 "tags": members(str(tag) for tag in analysis.tags),
-                "details": json_safe(analysis.details),
+                "details": analysis_details(analysis),
             }
             # ace3's Analysis.error (2b9fcd2c), on a result whose module failed and on no other, as
             # ace4's form holds a result's error (ace_core::normal). A tool or a library names the
@@ -1470,7 +1422,7 @@ def tree_view(root):
                 "module": tree_module(analysis),
                 "tags": sorted(str(tag) for tag in analysis.tags),
                 "summary": analysis.summary,
-                "details": json_safe(analysis.details),
+                "details": analysis_details(analysis),
                 # ace3's Analysis.error, kept only when the module failed (ace_sdk's TreeResult::error)
                 **({"error": analysis.error} if getattr(analysis, "error", None) else {}),
                 "added": [
@@ -1519,6 +1471,20 @@ def prepare_work_dir(work):
     os.environ["HOME"] = os.path.join(work, "home")
     os.environ["TLDEXTRACT_CACHE"] = os.path.join(work, "home", "tldextract")
     os.chdir(work)
+
+
+def analysis_details(analysis):
+    """An analysis's details as the dumps and the trees keep them. EmailAnalysis names each part it
+    extracted by its file observable's uuid (ace3's 5474fd6b), which is new each run and which ace4's
+    observables don't have, so each part names the file by its path in the alert instead."""
+    details = json_safe(analysis.details)
+    if type(analysis).__name__ == "EmailAnalysis" and isinstance(details, dict) and isinstance(details.get("parts"), list):
+        paths = {o.uuid: o.file_path for o in analysis.observables if o.type == "file"}
+        details["parts"] = [
+            {**{k: v for k, v in part.items() if k != "uuid"}, "path": paths.get(part.get("uuid"))}
+            for part in details["parts"]
+        ]
+    return details
 
 
 def json_safe(value):
@@ -1676,7 +1642,7 @@ def dump_analysis(analysis):
         "module_path": analysis.module_path,
         "class": type(analysis).__name__,
         "summary": analysis.summary,
-        "details": json_safe(analysis.details),
+        "details": analysis_details(analysis),
         "tags": sorted(str(tag) for tag in analysis.tags),
         "detections": [
             {"description": d.description, "details": json_safe(d.details)} for d in analysis.detections

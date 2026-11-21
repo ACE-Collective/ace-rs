@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [],
   "analyses": [
     {
@@ -12,7 +12,7 @@
           "document_url": "https://kit.evil.example/a.js",
           "total_bytes_downloaded": 0
         },
-        "output_dir": "<work>/tmp/tmph028dtf7",
+        "output_dir": "<work>/tmp/tmpkf4x9n4u",
         "output_files": [
           "phishkit/00000000-0000-4000-8000-000000000000/requests.json",
           "phishkit/00000000-0000-4000-8000-000000000000/script.js",
@@ -142,7 +142,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-18T06:48:24.674380",
+        "timestamp": "2026-11-21T15:35:09.162099",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -158,29 +158,29 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "34e50a29-3645-45ce-b11a-894f3017a563",
-        "timestamp": "2026-11-18 06:48:24.676644",
-        "total_analysis_time_seconds": 0.008874,
-        "total_time_seconds": 0.01685166358947754
+        "root_uuid": "4299b5f9-9668-4875-8ddc-eb5062e6d55b",
+        "timestamp": "2026-11-21 15:35:09.164382",
+        "total_analysis_time_seconds": 0.008819,
+        "total_time_seconds": 0.016446352005004883
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.008874,
+        "analysis_time_seconds": 0.008819,
         "event_type": "module",
         "exec_count": 1,
         "module": "phishkit_analyzer",
-        "percentage": 52.659489390359504,
-        "root_uuid": "34e50a29-3645-45ce-b11a-894f3017a563",
-        "timestamp": "2026-11-18 06:48:24.676644"
+        "percentage": 53.622833789014365,
+        "root_uuid": "4299b5f9-9668-4875-8ddc-eb5062e6d55b",
+        "timestamp": "2026-11-21 15:35:09.164382"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-18T06:48:24.676905",
+        "timestamp": "2026-11-21T15:35:09.164643",
         "value": 0
       },
       "tag": "monitoring"
@@ -188,7 +188,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-18T06:48:24.676916",
+        "timestamp": "2026-11-21T15:35:09.164660",
         "value": 1
       },
       "tag": "monitoring"
@@ -224,22 +224,22 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "34e50a29-3645-45ce-b11a-894f3017a563",
-        "timestamp": "2026-11-18 06:48:30.688122",
-        "total_analysis_time_seconds": 0.003905,
-        "total_time_seconds": 0.004766702651977539
+        "root_uuid": "4299b5f9-9668-4875-8ddc-eb5062e6d55b",
+        "timestamp": "2026-11-21 15:35:15.173377",
+        "total_analysis_time_seconds": 0.003629,
+        "total_time_seconds": 0.004558563232421875
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.003905,
+        "analysis_time_seconds": 0.003629,
         "event_type": "module",
         "exec_count": 1,
         "module": "phishkit_analyzer",
-        "percentage": 81.92245846046117,
-        "root_uuid": "34e50a29-3645-45ce-b11a-894f3017a563",
-        "timestamp": "2026-11-18 06:48:30.688122"
+        "percentage": 79.60841640167364,
+        "root_uuid": "4299b5f9-9668-4875-8ddc-eb5062e6d55b",
+        "timestamp": "2026-11-21 15:35:15.173377"
       },
       "tag": "metrics"
     }

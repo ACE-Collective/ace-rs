@@ -1,12 +1,24 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "email_analyzer",
     "file_type",
     "url_extraction"
   ],
   "analyses": [
+    {
+      "class": "EmailArchiveResults",
+      "details": {
+        "hash": "71c2b71030bea5a106315fb1a75f56241b967e7b4ab330f8a9e8e6f3d8dab17d",
+        "message_id": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.archive:EmailArchiveResults",
+      "observables": [],
+      "summary": "Archived Email: 71c2b71030bea5a106315fb1a75f56241b967e7b4ab330f8a9e8e6f3d8dab17d",
+      "tags": []
+    },
     {
       "class": "EmailAnalysis",
       "details": {
@@ -76,7 +88,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 06:06:14.377582 +0000",
+            "date": "2026-11-21 14:52:23.723247 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -131,7 +143,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "text/html",
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -295,14 +319,20 @@
     }
   ],
   "email_archive_after": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [
+      {
+        "digest": "71c2b71030bea5a106315fb1a75f56241b967e7b4ab330f8a9e8e6f3d8dab17d",
+        "insert_date": "2026-11-21 14:52:23",
+        "message_id_hash": "32D99469FC96541C1C89284898337F75261E502D8F63A073E97A068332BCB777"
+      }
+    ],
+    "pool": [
+      "71c2b71030bea5a106315fb1a75f56241b967e7b4ab330f8a9e8e6f3d8dab17d"
+    ]
   },
   "email_archive_before": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [],
+    "pool": []
   },
   "email_archive_reads": [],
   "input": {
@@ -356,8 +386,24 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "message_id",
+        "value": "<url_newsletter@example.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "url",
-        "value": "https://198.51.100.4/x"
+        "value": "https://news.example.com/b"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "support@example.com"
       },
       {
         "detections": [],
@@ -381,74 +427,6 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://news.example.com/b"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://mail.example.com/unsub"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://news.example.com/online"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://shop.example.net/cart"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "support@example.com|bob@example.net"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_html_000.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 960,
-        "tags": [],
-        "type": "file",
-        "value": "fef02c6e4daa6da7271c777c51157f847a8ec45ed726a0eb4ff38789f77317c5"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://news.example.com/c"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [
           {
             "path": "email.rfc822.combined",
@@ -464,6 +442,65 @@
         ],
         "type": "file",
         "value": "372f9639c2510d2c31cff9261e611aa57f139546a7e9c7f1cd923d9edf07cf87"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 45,
+        "tags": [],
+        "type": "file",
+        "value": "bcbef8a2c3f995dcb0a73200f012fc873099ce83f66bb45419a51e19f1ef37cb"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://news.example.com/online"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://blog.example.org/post/1"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "News"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://198.51.100.4/x"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://news.example.com/e"
       },
       {
         "detections": [],
@@ -506,16 +543,40 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://shop.example.net/sale"
+        "type": "email_to",
+        "value": "bob@example.net"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "message_id",
-        "value": "<url_newsletter@example.com>"
+        "type": "url",
+        "value": "https://mail.example.com/unsub"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "support@example.com|bob@example.net"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://news.example.com/d"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://shop.example.net/sale"
       },
       {
         "detections": [],
@@ -530,8 +591,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "bob@example.net"
+        "type": "url",
+        "value": "https://shop.example.net/cart"
       },
       {
         "detections": [],
@@ -539,58 +600,27 @@
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "https://news.example.com/e"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "News"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "support@example.com"
+        "value": "https://news.example.com/c"
       },
       {
         "detections": [],
         "directives": [
           "extract_urls",
-          "preview"
+          "render"
         ],
         "paths": [
           {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "path": "email.rfc822.unknown_text_html_000.html",
             "yara_meta": [
+              "type=document.html",
               "type=email.attachment"
             ]
           }
         ],
-        "size": 45,
+        "size": 960,
         "tags": [],
         "type": "file",
-        "value": "bcbef8a2c3f995dcb0a73200f012fc873099ce83f66bb45419a51e19f1ef37cb"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://blog.example.org/post/1"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://news.example.com/d"
+        "value": "fef02c6e4daa6da7271c777c51157f847a8ec45ed726a0eb4ff38789f77317c5"
       }
     ],
     "results": [
@@ -613,120 +643,8 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 1,
+        "observable": 3,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text, with very long lines (959)"
-        },
-        "module": "file_type",
-        "observable": 7,
-        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (959) (text/html)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 12
-          },
-          {
-            "observable": 0
-          },
-          {
-            "observable": 15
-          },
-          {
-            "observable": 13
-          },
-          {
-            "observable": 5
-          },
-          {
-            "observable": 21
-          },
-          {
-            "observable": 2
-          },
-          {
-            "observable": 22
-          },
-          {
-            "observable": 3
-          },
-          {
-            "observable": 10
-          },
-          {
-            "observable": 17
-          },
-          {
-            "observable": 8
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://land.example.co.uk/x",
-            "https://198.51.100.4/x",
-            "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx",
-            "https://shop.example.net/sale",
-            "https://shop.example.net/cart",
-            "https://blog.example.org/post/1",
-            "https://news.example.com/b",
-            "https://news.example.com/d",
-            "https://mail.example.com/unsub",
-            "https://news.example.com/a",
-            "https://news.example.com/e",
-            "https://news.example.com/c",
-            "https://cdn.example.org/logo.png"
-          ],
-          "urls_grouped_by_domain": {
-            "example.co.uk": [
-              "https://land.example.co.uk/x"
-            ],
-            "example.com": [
-              "https://news.example.com/b",
-              "https://news.example.com/d",
-              "https://mail.example.com/unsub",
-              "https://news.example.com/a",
-              "https://news.example.com/e",
-              "https://news.example.com/c"
-            ],
-            "example.info": [
-              "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx"
-            ],
-            "example.net": [
-              "https://shop.example.net/sale",
-              "https://shop.example.net/cart"
-            ],
-            "example.org": [
-              "https://blog.example.org/post/1",
-              "https://cdn.example.org/logo.png"
-            ],
-            "no_tld": [
-              "https://198.51.100.4/x"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 7,
-        "summary": "URL Extraction Analysis (198.51.100.4, blog.example.org, cdn.example.org, land.example.co.uk, mail.example.com, news.example.com, shop.example.net, track.example.info)",
         "tags": []
       },
       {
@@ -748,41 +666,98 @@
           "type": "news or mail, ASCII text, with very long lines (959)"
         },
         "module": "file_type",
-        "observable": 9,
+        "observable": 4,
         "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (959) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 5,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 19
-          },
-          {
-            "observable": 16
-          },
-          {
             "observable": 6
-          },
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://news.example.com/online"
+          ],
+          "urls_grouped_by_domain": {
+            "example.com": [
+              "https://news.example.com/online"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 5,
+        "summary": "URL Extraction Analysis (news.example.com)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "EmailArchiveResults",
+        "details": {
+          "hash": "71c2b71030bea5a106315fb1a75f56241b967e7b4ab330f8a9e8e6f3d8dab17d",
+          "message_id": null
+        },
+        "module": "email_archiver",
+        "observable": 12,
+        "summary": "Archived Email: 71c2b71030bea5a106315fb1a75f56241b967e7b4ab330f8a9e8e6f3d8dab17d",
+        "tags": []
+      },
+      {
+        "added": [
           {
-            "observable": 18
+            "observable": 2
           },
           {
             "observable": 14
           },
           {
-            "observable": 20,
+            "observable": 16
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 0
+          },
+          {
+            "observable": 5,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 7,
+            "observable": 22,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 1,
+            "observable": 3,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 9,
+            "observable": 4,
             "path": "email.rfc822.combined"
           }
         ],
@@ -854,7 +829,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 06:06:14.377582 +0000",
+              "date": "2026-11-21 14:52:23.723247 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -909,10 +884,22 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "text/html",
+              "path": "email.rfc822.unknown_text_html_000.html",
+              "role": "body"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 11,
+        "observable": 12,
         "summary": "Email Analysis: From Support <support@example.com> To bob@example.net Subject News",
         "tags": []
       },
@@ -935,7 +922,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 11,
+        "observable": 12,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -954,34 +941,101 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
+          "mime": "text/html",
+          "type": "HTML document, ASCII text, with very long lines (959)"
         },
         "module": "file_type",
-        "observable": 20,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "observable": 22,
+        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (959) (text/html)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 4
+            "observable": 19
+          },
+          {
+            "observable": 13
+          },
+          {
+            "observable": 9
+          },
+          {
+            "observable": 7
+          },
+          {
+            "observable": 20
+          },
+          {
+            "observable": 18
+          },
+          {
+            "observable": 15
+          },
+          {
+            "observable": 1
+          },
+          {
+            "observable": 21
+          },
+          {
+            "observable": 11
+          },
+          {
+            "observable": 10
+          },
+          {
+            "observable": 17
           }
         ],
         "class": "URLExtractionAnalysis",
         "details": {
           "urls": [
-            "https://news.example.com/online"
+            "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx",
+            "https://land.example.co.uk/x",
+            "https://198.51.100.4/x",
+            "https://blog.example.org/post/1",
+            "https://shop.example.net/cart",
+            "https://shop.example.net/sale",
+            "https://mail.example.com/unsub",
+            "https://news.example.com/b",
+            "https://news.example.com/c",
+            "https://news.example.com/a",
+            "https://news.example.com/e",
+            "https://news.example.com/d",
+            "https://cdn.example.org/logo.png"
           ],
           "urls_grouped_by_domain": {
+            "example.co.uk": [
+              "https://land.example.co.uk/x"
+            ],
             "example.com": [
-              "https://news.example.com/online"
+              "https://mail.example.com/unsub",
+              "https://news.example.com/b",
+              "https://news.example.com/c",
+              "https://news.example.com/a",
+              "https://news.example.com/e",
+              "https://news.example.com/d"
+            ],
+            "example.info": [
+              "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx"
+            ],
+            "example.net": [
+              "https://shop.example.net/cart",
+              "https://shop.example.net/sale"
+            ],
+            "example.org": [
+              "https://cdn.example.org/logo.png",
+              "https://blog.example.org/post/1"
+            ],
+            "no_tld": [
+              "https://198.51.100.4/x"
             ]
           }
         },
         "module": "url_extraction",
-        "observable": 20,
-        "summary": "URL Extraction Analysis (news.example.com)",
+        "observable": 22,
+        "summary": "URL Extraction Analysis (198.51.100.4, blog.example.org, cdn.example.org, land.example.co.uk, mail.example.com, news.example.com, shop.example.net, track.example.info)",
         "tags": []
       }
     ]

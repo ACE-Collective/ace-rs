@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -61,7 +61,7 @@
                 "https://www.alienvault.com/"
               ]
             ],
-            "observable_uuid": "a1d205fc-3a55-4607-bcf2-ee4733e501dd",
+            "observable_uuid": "3a4e081f-a504-4053-a4d6-b9c1796a72df",
             "reasons": [
               "found in the email body",
               "clickable link with text 'https://www.alienvault.com/'"
@@ -81,7 +81,7 @@
                 "http://tldp.org/LDP/abs/html/"
               ]
             ],
-            "observable_uuid": "d9c04543-1fd1-4494-864c-982c4d137c16",
+            "observable_uuid": "f957c8de-245f-44e1-b3e4-4b3f56c1efe2",
             "reasons": [
               "found in the email body",
               "clickable link with text 'http://tldp.org/LDP/abs/html/'"
@@ -103,7 +103,7 @@
               "https://www.alienvault.com/"
             ]
           ],
-          "observable_uuid": "a1d205fc-3a55-4607-bcf2-ee4733e501dd",
+          "observable_uuid": "3a4e081f-a504-4053-a4d6-b9c1796a72df",
           "reasons": [
             "found in the email body",
             "clickable link with text 'https://www.alienvault.com/'"
@@ -130,6 +130,14 @@
           "compauth_reason": "201",
           "compauth_result": "softpass",
           "decoded_subject": "canary #3",
+          "deliveries": {
+            "jwdavison@company.com": {
+              "mailboxes": [
+                "jwdavison@company.com"
+              ],
+              "reason": "delivered"
+            }
+          },
           "dkim_result": "fail",
           "dkim_signing_domains": [
             "gmail.com"
@@ -614,7 +622,7 @@
             "cc": [],
             "compauth_reason": "201",
             "compauth_result": "softpass",
-            "date": "2026-11-18 05:53:12.480706 +0000",
+            "date": "2026-11-21 14:40:00.225685 +0000",
             "dkim_result": "fail",
             "dmarc_result": "fail",
             "env_mail_from": "unixfreak0037@gmail.com",
@@ -709,7 +717,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "text/html",
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -984,16 +1004,95 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "fqdn",
-        "value": "company.com"
+        "type": "email_conversation",
+        "value": "unixfreak0037@gmail.com|jwdavison@company.com"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_envelope_rcpt_to",
+        "type": "email_first_hop_helo",
+        "value": "us-smtp-1.mimecast.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_first_hop_ip",
+        "value": "207.211.31.120"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "gmail.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_dkim_signing_domain",
+        "value": "gmail.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "tldp.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 18824,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "89e250afe409274e9573db84275aeac0a1e1e3804a4561fe184e77ba98dfb84c"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "crawl"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://www.alienvault.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
         "value": "jwdavison@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "canary #3"
       },
       {
         "detections": [],
@@ -1020,22 +1119,6 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_first_hop_helo",
-        "value": "us-smtp-1.mimecast.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "jwdavison@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "message_id",
         "value": "<CANTOGZsMiMb+7aB868zXSen_fO=NS-qFTUMo9h2eHtOexY8Qhw@mail.gmail.com>"
       },
@@ -1044,107 +1127,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/LDP/abs/html"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "unixfreak0037@gmail.com|jwdavison@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "canary #3"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 326,
-        "tags": [],
-        "type": "file",
-        "value": "804cc369beb99c1fb72f1b43da0d7b5798a1fe20bb06d57a45cf9f52ff05e7a4"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 18824,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "89e250afe409274e9573db84275aeac0a1e1e3804a4561fe184e77ba98dfb84c"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "gmail.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_first_hop_ip",
-        "value": "207.211.31.120"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "crawl"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://www.alienvault.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 20717,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "bae7fb5dafc2144f35345d66b465398c07b242e86ba303981d35aa5263545538"
+        "type": "email_from",
+        "value": "unixfreak0037@gmail.com"
       },
       {
         "detections": [],
@@ -1170,42 +1154,62 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "email_envelope_rcpt_to",
+        "value": "jwdavison@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "email_return_path",
         "value": "unixfreak0037@gmail.com"
       },
       {
         "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_dkim_signing_domain",
-        "value": "gmail.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "http://tldp.org/LDP/abs/html"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
+        "directives": [
+          "extract_urls",
+          "preview"
         ],
-        "type": "fqdn",
-        "value": "tldp.org"
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 326,
+        "tags": [],
+        "type": "file",
+        "value": "804cc369beb99c1fb72f1b43da0d7b5798a1fe20bb06d57a45cf9f52ff05e7a4"
       },
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "unixfreak0037@gmail.com"
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 20717,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "bae7fb5dafc2144f35345d66b465398c07b242e86ba303981d35aa5263545538"
       },
       {
         "detections": [],
@@ -1216,13 +1220,112 @@
         ],
         "type": "fqdn",
         "value": "www.alienvault.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/LDP/abs/html"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "http://tldp.org/LDP/abs/html"
       }
     ],
     "results": [
       {
+        "added": [],
+        "class": "NetworkIdentifierAnalysis",
+        "details": {
+          "identified_networks": []
+        },
+        "module": "network_identifier",
+        "observable": 2,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with very long lines (2096)"
+        },
+        "module": "file_type",
+        "observable": 6,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (2096) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 6,
+        "summary": null,
+        "tags": []
+      },
+      {
         "added": [
           {
-            "observable": 0
+            "observable": 19
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "www.alienvault.com",
+          "params": null,
+          "path": "",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 7,
+        "summary": "URL Parser: scheme=https, netloc=www.alienvault.com",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://www.alienvault.com",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 7,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 15
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -1230,7 +1333,7 @@
           "domain": "company.com"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 1,
+        "observable": 8,
         "summary": "Email Address FQDN: company.com",
         "tags": []
       },
@@ -1253,7 +1356,7 @@
           "type": "HTML document, ASCII text, with very long lines (446)"
         },
         "module": "file_type",
-        "observable": 2,
+        "observable": 10,
         "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (446) (text/html)",
         "tags": []
       },
@@ -1270,227 +1373,52 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 2,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 13
-          },
-          {
-            "observable": 18
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://www.alienvault.com",
-            "http://tldp.org/LDP/abs/html"
-          ],
-          "urls_grouped_by_domain": {
-            "alienvault.com": [
-              "https://www.alienvault.com"
-            ],
-            "tldp.org": [
-              "http://tldp.org/LDP/abs/html"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 2,
-        "summary": "URL Extraction Analysis (tldp.org, www.alienvault.com)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 0
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "company.com"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 4,
-        "summary": "Email Address FQDN: company.com",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 9,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 13
-          },
-          {
-            "observable": 18
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://www.alienvault.com",
-            "http://tldp.org/LDP/abs/html"
-          ],
-          "urls_grouped_by_domain": {
-            "alienvault.com": [
-              "https://www.alienvault.com"
-            ],
-            "tldp.org": [
-              "http://tldp.org/LDP/abs/html"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 9,
-        "summary": "URL Extraction Analysis (tldp.org, www.alienvault.com)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with very long lines (2096)"
-        },
-        "module": "file_type",
-        "observable": 10,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (2096) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
         "observable": 10,
         "summary": null,
         "tags": []
       },
       {
-        "added": [],
-        "class": "NetworkIdentifierAnalysis",
-        "details": {
-          "identified_networks": []
-        },
-        "module": "network_identifier",
-        "observable": 12,
-        "summary": null,
-        "tags": []
-      },
-      {
         "added": [
+          {
+            "observable": 7
+          },
           {
             "observable": 21
           }
         ],
-        "class": "ParseURLAnalysis",
+        "class": "URLExtractionAnalysis",
         "details": {
-          "fragment": "",
-          "netloc": "www.alienvault.com",
-          "params": null,
-          "path": "",
-          "query": "",
-          "scheme": "https"
+          "urls": [
+            "https://www.alienvault.com",
+            "http://tldp.org/LDP/abs/html"
+          ],
+          "urls_grouped_by_domain": {
+            "alienvault.com": [
+              "https://www.alienvault.com"
+            ],
+            "tldp.org": [
+              "http://tldp.org/LDP/abs/html"
+            ]
+          }
         },
-        "module": "parse_url",
-        "observable": 13,
-        "summary": "URL Parser: scheme=https, netloc=www.alienvault.com",
+        "module": "url_extraction",
+        "observable": 10,
+        "summary": "URL Extraction Analysis (tldp.org, www.alienvault.com)",
         "tags": []
       },
       {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
+        "added": [
+          {
+            "observable": 3
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "extracted_url": "https://www.alienvault.com",
-          "protection_type": "unprotected"
+          "domain": "gmail.com"
         },
-        "module": "protected_url_analyzer",
-        "observable": 13,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with very long lines (2096)"
-        },
-        "module": "file_type",
-        "observable": 14,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (2096) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 14,
-        "summary": null,
+        "module": "email_address_fqdn_analyzer",
+        "observable": 12,
+        "summary": "Email Address FQDN: gmail.com",
         "tags": []
       },
       {
@@ -1507,7 +1435,7 @@
                   "https://www.alienvault.com/"
                 ]
               ],
-              "observable_uuid": "a1d205fc-3a55-4607-bcf2-ee4733e501dd",
+              "observable_uuid": "3a4e081f-a504-4053-a4d6-b9c1796a72df",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'https://www.alienvault.com/'"
@@ -1527,7 +1455,7 @@
                   "http://tldp.org/LDP/abs/html/"
                 ]
               ],
-              "observable_uuid": "d9c04543-1fd1-4494-864c-982c4d137c16",
+              "observable_uuid": "f957c8de-245f-44e1-b3e4-4b3f56c1efe2",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'http://tldp.org/LDP/abs/html/'"
@@ -1549,7 +1477,7 @@
                 "https://www.alienvault.com/"
               ]
             ],
-            "observable_uuid": "a1d205fc-3a55-4607-bcf2-ee4733e501dd",
+            "observable_uuid": "3a4e081f-a504-4053-a4d6-b9c1796a72df",
             "reasons": [
               "found in the email body",
               "clickable link with text 'https://www.alienvault.com/'"
@@ -1563,56 +1491,56 @@
           "subject": "canary #3"
         },
         "module": "lure_url_analyzer",
-        "observable": 15,
+        "observable": 13,
         "summary": "Lure URL Analysis: https://www.alienvault.com (found in the email body; clickable link with text 'https://www.alienvault.com/')",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 20
+            "observable": 12
           },
           {
-            "observable": 1
+            "observable": 14
           },
           {
-            "observable": 7
-          },
-          {
-            "observable": 4
+            "observable": 0
           },
           {
             "observable": 8
           },
           {
-            "observable": 5
+            "observable": 9
+          },
+          {
+            "observable": 11
           },
           {
             "observable": 16
           },
           {
-            "observable": 12
+            "observable": 2
           },
           {
-            "observable": 3
+            "observable": 1
           },
           {
-            "observable": 17
+            "observable": 4
           },
           {
-            "observable": 9,
+            "observable": 17,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 2,
+            "observable": 10,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 10,
+            "observable": 6,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 14,
+            "observable": 18,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1623,6 +1551,14 @@
             "compauth_reason": "201",
             "compauth_result": "softpass",
             "decoded_subject": "canary #3",
+            "deliveries": {
+              "jwdavison@company.com": {
+                "mailboxes": [
+                  "jwdavison@company.com"
+                ],
+                "reason": "delivered"
+              }
+            },
             "dkim_result": "fail",
             "dkim_signing_domains": [
               "gmail.com"
@@ -2107,7 +2043,7 @@
               "cc": [],
               "compauth_reason": "201",
               "compauth_result": "softpass",
-              "date": "2026-11-18 05:53:12.480706 +0000",
+              "date": "2026-11-21 14:40:00.225685 +0000",
               "dkim_result": "fail",
               "dmarc_result": "fail",
               "env_mail_from": "unixfreak0037@gmail.com",
@@ -2202,10 +2138,22 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "text/html",
+              "path": "email.rfc822.unknown_text_html_000.html",
+              "role": "body"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 15,
+        "observable": 13,
         "summary": "Email Analysis: From John Davison <unixfreak0037@gmail.com> To jwdavison@company.com Subject canary #3",
         "tags": []
       },
@@ -2228,7 +2176,7 @@
           "type": "SMTP mail, ASCII text, with very long lines (948)"
         },
         "module": "file_type",
-        "observable": 15,
+        "observable": 13,
         "summary": "File Type Analysis: SMTP mail, ASCII text, with very long lines (948) (message/rfc822) (email)",
         "tags": []
       },
@@ -2245,14 +2193,29 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 15,
+        "observable": 13,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 11
+            "observable": 15
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "company.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 14,
+        "summary": "Email Address FQDN: company.com",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 3
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -2265,12 +2228,104 @@
         "tags": []
       },
       {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 17,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
         "added": [
           {
-            "observable": 19
+            "observable": 7
           },
           {
-            "observable": 6
+            "observable": 21
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://www.alienvault.com",
+            "http://tldp.org/LDP/abs/html"
+          ],
+          "urls_grouped_by_domain": {
+            "alienvault.com": [
+              "https://www.alienvault.com"
+            ],
+            "tldp.org": [
+              "http://tldp.org/LDP/abs/html"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 17,
+        "summary": "URL Extraction Analysis (tldp.org, www.alienvault.com)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with very long lines (2096)"
+        },
+        "module": "file_type",
+        "observable": 18,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (2096) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 18,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 5
+          },
+          {
+            "observable": 20
           }
         ],
         "class": "ParseURLAnalysis",
@@ -2283,7 +2338,7 @@
           "scheme": "http"
         },
         "module": "parse_url",
-        "observable": 18,
+        "observable": 21,
         "summary": "URL Parser: scheme=http, netloc=tldp.org, path=/LDP/abs/html",
         "tags": []
       },
@@ -2295,23 +2350,8 @@
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 18,
+        "observable": 21,
         "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 11
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "gmail.com"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 20,
-        "summary": "Email Address FQDN: gmail.com",
         "tags": []
       }
     ]

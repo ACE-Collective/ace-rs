@@ -310,6 +310,39 @@
       },
       "tags": {}
     },
+    "file:2796fc0197866db358befb6e5c9a8ce7cfa8a5ff1a9c531e5171542a4aabf53b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:5b0bab3732443808206ca47ec7c2125aac009722235718fe1a89f83d68d78a13": {
       "detections": {},
       "directives": {
@@ -354,39 +387,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:5eaf2a2c5bfd9057bcca9293173ddbe16845887b0595fa375e4e0b269108c95e": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:a1040eae21a229a1435b0bf019fd65887811abcac9ae900e41e3a3fa8cab8dc4": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -485,9 +485,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 19:45:49+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 19:45:49+00:00",
-              "File:FileModifyDate": "2026:11:16 19:45:49+00:00",
+              "File:FileAccessDate": "2026:11:21 12:00:37+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 12:00:37+00:00",
+              "File:FileModifyDate": "2026:11:21 12:00:37+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -856,7 +856,19 @@
               ]
             },
             "extraction_errors": [],
-            "parsing_error": null
+            "parsing_error": null,
+            "parts": [
+              {
+                "content_type": "text/plain",
+                "path": "email.rfc822.unknown_text_plain_000.txt",
+                "role": "body"
+              },
+              {
+                "content_type": "application/octet-stream",
+                "path": "invoice.docx",
+                "role": "attachment"
+              }
+            ]
           },
           "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
           "tags": {}

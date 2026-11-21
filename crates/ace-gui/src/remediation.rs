@@ -265,6 +265,9 @@ pub struct AttemptRow {
     pub status: String,
     pub result: String,
     pub message: String,
+    /// What the remediator acted on in place of the key, which ace3's timeline shows as
+    /// `key → target`.
+    pub resolved_target: Option<String>,
 }
 
 fn attempt_row(a: ActionAttempt) -> AttemptRow {
@@ -273,6 +276,7 @@ fn attempt_row(a: ActionAttempt) -> AttemptRow {
         status: a.status,
         result: a.result,
         message: a.message,
+        resolved_target: a.resolved_target,
     }
 }
 

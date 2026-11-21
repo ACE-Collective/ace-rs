@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -87,7 +87,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 05:11:53.247565 +0000",
+            "date": "2026-11-21 13:58:09.160888 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -144,7 +144,29 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "text/html",
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "role": "body"
+          },
+          {
+            "content_type": "message/rfc822",
+            "path": "email.rfc822.email.rfc822",
+            "role": "attachment"
+          },
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_001.txt",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -433,7 +455,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-18T05:11:53.240981",
+        "timestamp": "2026-11-21T13:58:09.154979",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -443,7 +465,7 @@
         "header": "From: Pat <pat@corp.example>",
         "header_index": 0,
         "message_id": "<lure_forward@corp.example>",
-        "timestamp": "1794978713.247565"
+        "timestamp": "1795269489.160888"
       },
       "tag": "phishfinder-headers"
     },
@@ -452,7 +474,7 @@
         "header": "To: abuse@corp.example",
         "header_index": 1,
         "message_id": "<lure_forward@corp.example>",
-        "timestamp": "1794978713.247565"
+        "timestamp": "1795269489.160888"
       },
       "tag": "phishfinder-headers"
     },
@@ -461,7 +483,7 @@
         "header": "Return-Path: <bounce@mailer.corp.example>",
         "header_index": 2,
         "message_id": "<lure_forward@corp.example>",
-        "timestamp": "1794978713.247565"
+        "timestamp": "1795269489.160888"
       },
       "tag": "phishfinder-headers"
     },
@@ -470,7 +492,7 @@
         "header": "Subject: FW: Your account is locked",
         "header_index": 3,
         "message_id": "<lure_forward@corp.example>",
-        "timestamp": "1794978713.247565"
+        "timestamp": "1795269489.160888"
       },
       "tag": "phishfinder-headers"
     },
@@ -479,7 +501,7 @@
         "header": "Date: Mon, 09 Nov 2026 12:00:00 +0000",
         "header_index": 4,
         "message_id": "<lure_forward@corp.example>",
-        "timestamp": "1794978713.247565"
+        "timestamp": "1795269489.160888"
       },
       "tag": "phishfinder-headers"
     },
@@ -488,7 +510,7 @@
         "header": "Message-ID: <lure_forward@corp.example>",
         "header_index": 5,
         "message_id": "<lure_forward@corp.example>",
-        "timestamp": "1794978713.247565"
+        "timestamp": "1795269489.160888"
       },
       "tag": "phishfinder-headers"
     },
@@ -497,7 +519,7 @@
         "header": "MIME-Version: 1.0",
         "header_index": 6,
         "message_id": "<lure_forward@corp.example>",
-        "timestamp": "1794978713.247565"
+        "timestamp": "1795269489.160888"
       },
       "tag": "phishfinder-headers"
     },
@@ -506,13 +528,13 @@
         "header": "Content-Type: multipart/mixed; boundary=\"lure_forward-boundary\"",
         "header_index": 7,
         "message_id": "<lure_forward@corp.example>",
-        "timestamp": "1794978713.247565"
+        "timestamp": "1795269489.160888"
       },
       "tag": "phishfinder-headers"
     },
     {
       "record": {
-        "archive_path": null,
+        "archive_hash": null,
         "attachment_count": 4,
         "attachment_hashes": [
           "bd3a98efb101e500776df64ba6cf7a941a6cd3833fc0bd750de306ff064eb3dd",
@@ -543,7 +565,7 @@
         "cc": [],
         "compauth_reason": null,
         "compauth_result": null,
-        "date": "2026-11-18 05:11:53.247565 +0000",
+        "date": "2026-11-21 13:58:09.160888 +0000",
         "dkim_result": null,
         "dmarc_result": null,
         "env_mail_from": null,
@@ -571,7 +593,7 @@
         "subject_raw": "FW: Your account is locked",
         "thread_index": null,
         "thread_topic": null,
-        "timestamp": "1794978713.247565",
+        "timestamp": "1795269489.160888",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -608,7 +630,7 @@
         "thread_id": "<lure_forward@corp.example>",
         "thread_message_count": 0,
         "thread_method": "self",
-        "timestamp": "1794978713.247565"
+        "timestamp": "1795269489.160888"
       },
       "tag": "phishfinder-lookalike"
     },
@@ -629,53 +651,53 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "d94bbc1b-1dee-4ef9-8561-c83f6996b3fa",
-        "timestamp": "2026-11-18 05:11:53.945304",
-        "total_analysis_time_seconds": 0.055965999999999995,
-        "total_time_seconds": 0.722693920135498
+        "root_uuid": "87d26790-2eb4-4249-9dca-699a8e6aaeb6",
+        "timestamp": "2026-11-21 13:58:09.559840",
+        "total_analysis_time_seconds": 0.046426,
+        "total_time_seconds": 0.42066097259521484
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.04579799999999999,
+        "analysis_time_seconds": 0.03718,
         "event_type": "module",
         "exec_count": 10,
         "module": "file_type",
-        "percentage": 6.33712263573676,
-        "root_uuid": "d94bbc1b-1dee-4ef9-8561-c83f6996b3fa",
-        "timestamp": "2026-11-18 05:11:53.945304"
+        "percentage": 8.838471458529341,
+        "root_uuid": "87d26790-2eb4-4249-9dca-699a8e6aaeb6",
+        "timestamp": "2026-11-21 13:58:09.559840"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.003192000000000001,
+        "analysis_time_seconds": 0.0027990000000000003,
         "event_type": "module",
         "exec_count": 21,
         "module": "email_logger",
-        "percentage": 0.4416807601482979,
-        "root_uuid": "d94bbc1b-1dee-4ef9-8561-c83f6996b3fa",
-        "timestamp": "2026-11-18 05:11:53.945304"
+        "percentage": 0.6653814312109637,
+        "root_uuid": "87d26790-2eb4-4249-9dca-699a8e6aaeb6",
+        "timestamp": "2026-11-21 13:58:09.559840"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.0069759999999999996,
+        "analysis_time_seconds": 0.006447000000000001,
         "event_type": "module",
         "exec_count": 6,
         "module": "email_analyzer",
-        "percentage": 0.9652772502489115,
-        "root_uuid": "d94bbc1b-1dee-4ef9-8561-c83f6996b3fa",
-        "timestamp": "2026-11-18 05:11:53.945304"
+        "percentage": 1.5325880982554783,
+        "root_uuid": "87d26790-2eb4-4249-9dca-699a8e6aaeb6",
+        "timestamp": "2026-11-21 13:58:09.559840"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-18T05:11:53.945858",
+        "timestamp": "2026-11-21T13:58:09.560336",
         "value": 0
       },
       "tag": "monitoring"
@@ -683,7 +705,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-18T05:11:53.945878",
+        "timestamp": "2026-11-21T13:58:09.560364",
         "value": 1
       },
       "tag": "monitoring"

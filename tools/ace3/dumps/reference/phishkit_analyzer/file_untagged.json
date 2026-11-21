@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "file_type"
   ],
@@ -33,7 +33,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-18T06:48:54.468284",
+        "timestamp": "2026-11-21T15:35:39.243142",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -49,29 +49,29 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "b59e520f-cbdd-4237-9a5c-b635861d8e0c",
-        "timestamp": "2026-11-18 06:48:54.491126",
-        "total_analysis_time_seconds": 0.01158,
-        "total_time_seconds": 0.021044254302978516
+        "root_uuid": "ada75a5f-8a12-4cc4-b160-6e518213a162",
+        "timestamp": "2026-11-21 15:35:39.261469",
+        "total_analysis_time_seconds": 0.009088,
+        "total_time_seconds": 0.017117738723754883
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.01158,
+        "analysis_time_seconds": 0.009088,
         "event_type": "module",
         "exec_count": 1,
         "module": "file_type",
-        "percentage": 55.02689633607505,
-        "root_uuid": "b59e520f-cbdd-4237-9a5c-b635861d8e0c",
-        "timestamp": "2026-11-18 06:48:54.491126"
+        "percentage": 53.09112463194842,
+        "root_uuid": "ada75a5f-8a12-4cc4-b160-6e518213a162",
+        "timestamp": "2026-11-21 15:35:39.261469"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-18T06:48:54.491434",
+        "timestamp": "2026-11-21T15:35:39.261739",
         "value": 0
       },
       "tag": "monitoring"
@@ -79,7 +79,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-18T06:48:54.491457",
+        "timestamp": "2026-11-21T15:35:39.261757",
         "value": 1
       },
       "tag": "monitoring"

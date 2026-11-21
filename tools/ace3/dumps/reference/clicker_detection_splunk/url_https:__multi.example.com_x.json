@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [],
   "analyses": [
     {
@@ -10,7 +10,7 @@
           {
             "action_type": null,
             "network_message_id": null,
-            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fmulti.example.com%2Fx%22+OR+%22https%253A%252F%252Fmulti.example.com%252Fx%22%29+_index_earliest+%3D+11%2F17%2F2026%3A05%3A16%3A17+_index_latest+%3D+11%2F18%2F2026%3A06%3A16%3A17%0A%7C+table+_time+user+url",
+            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fmulti.example.com%2Fx%22+OR+%22https%253A%252F%252Fmulti.example.com%252Fx%22%29+_index_earliest+%3D+11%2F20%2F2026%3A14%3A01%3A54+_index_latest+%3D+11%2F21%2F2026%3A15%3A01%3A54%0A%7C+table+_time+user+url",
             "searched_value": "https://multi.example.com/x",
             "source": "splunk:proxy",
             "timestamp": "2026-11-08T10:07:00.000+00:00",
@@ -28,21 +28,21 @@
         ],
         "clicker_source": "splunk",
         "dispatch_state": "DONE",
-        "end_time": "2026-11-18T05:16:21.945-00:00",
-        "gui_link": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fmulti.example.com%2Fx%22+OR+%22https%253A%252F%252Fmulti.example.com%252Fx%22%29+_index_earliest+%3D+11%2F17%2F2026%3A05%3A16%3A17+_index_latest+%3D+11%2F18%2F2026%3A06%3A16%3A17%0A%7C+table+_time+user+url",
+        "end_time": "2026-11-21T14:01:59.134-00:00",
+        "gui_link": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fmulti.example.com%2Fx%22+OR+%22https%253A%252F%252Fmulti.example.com%252Fx%22%29+_index_earliest+%3D+11%2F20%2F2026%3A14%3A01%3A54+_index_latest+%3D+11%2F21%2F2026%3A15%3A01%3A54%0A%7C+table+_time+user+url",
         "gui_link_label": "Open in Splunk",
         "matched_url_count": 1,
         "query": null,
         "query_results": null,
-        "query_start": 1794978977.8432398,
+        "query_start": 1795269715.031696,
         "query_summary": "URL Clicks",
         "question": "Did anyone click this URL or visit this domain?",
-        "running_start_time": "2026-11-18T05:16:20.925-00:00",
+        "running_start_time": "2026-11-21T14:01:58.118-00:00",
         "search_id": "1767225600.2",
-        "start_time": "2026-11-18T05:16:19.904-00:00"
+        "start_time": "2026-11-21T14:01:57.095-00:00"
       },
       "detections": [],
-      "error": "TypeError: cannot use 'list' as a set element (unhashable type: 'list') (crash_id 1f5bb366-0aa6-4a0b-9e9c-e9e2f4a582f9)",
+      "error": "TypeError: cannot use 'list' as a set element (unhashable type: 'list') (crash_id edc2d909-d9b3-4963-8fba-16bc91874f9a)",
       "instance": "clicker_detection_splunk",
       "module_path": "saq.modules.clicker_detection:SplunkClickerDetectionAnalysis:clicker_detection_splunk",
       "observables": [
@@ -67,7 +67,7 @@
           "value": "grace@example.com"
         }
       ],
-      "summary": "URL Clicks (Splunk): 1 click found, ERROR: TypeError: cannot use 'list' as a set element (unhashable type: 'list') (crash_id 1f5bb366-0aa6-4a0b-9e9c-e9e2f4a582f9)",
+      "summary": "URL Clicks (Splunk): 1 click found, ERROR: TypeError: cannot use 'list' as a set element (unhashable type: 'list') (crash_id edc2d909-d9b3-4963-8fba-16bc91874f9a)",
       "tags": []
     }
   ],

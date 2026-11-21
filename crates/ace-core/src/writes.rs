@@ -87,13 +87,6 @@ pub struct Stores<'a> {
     pub actions: &'a ActionCatalog,
 }
 
-/// What the writes gave the task's result: the archive's id for an `email-archive`, which its result
-/// carries as `archive_id`.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Applied {
-    pub archive_id: Option<i64>,
-}
-
 /// Checks `writes` for `task`, whose module is `manifest`, before its end's transaction. An
 /// `email-archive` is sealed here, with the archive's key, and an `svs-capture`'s bytes are read
 /// from the bucket. With a delay (`on_delay`), only a write that lands with one may come.
@@ -410,11 +403,10 @@ pub async fn apply(
     stores: Stores<'_>,
     task: &Task,
     writes: &[Checked],
-) -> Result<Applied, DbError> {
+) -> Result<(), DbError> {
     let Stores {
         archive, bucket, ..
     } = stores;
-    let mut applied = Applied::default();
     for write in writes {
         match write {
             Checked::SmtpLog(rows) => {
@@ -445,7 +437,7 @@ pub async fn apply(
                 let archive = archive.ok_or_else(|| {
                     DbError::Decode("an email-archive write with no archive".to_owned())
                 })?;
-                let id = archive.land(tx, prepared).await.map_err(|e| match e {
+                archive.land(tx, prepared).await.map_err(|e| match e {
                     crate::email_archive::ArchiveError::Db(e) => e,
                     crate::email_archive::ArchiveError::Bucket(crate::bucket::BucketError::Db(
                         e,
@@ -454,7 +446,6 @@ pub async fn apply(
                         DbError::Decode(format!("archiving task {}'s email: {other}", task.id))
                     }
                 })?;
-                applied.archive_id = Some(id);
             }
             Checked::SvsCapture(prepared) => {
                 let results = crate::svs::samples::land(tx, bucket, prepared).await?;
@@ -512,7 +503,7 @@ pub async fn apply(
             }
         }
     }
-    Ok(applied)
+    Ok(())
 }
 
 /// ace3's `record_thread`: the message, then each participant, each left as it was when it's

@@ -1,12 +1,24 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "email_analyzer",
     "file_type",
     "url_extraction"
   ],
   "analyses": [
+    {
+      "class": "EmailArchiveResults",
+      "details": {
+        "hash": "743daf6ee0f2e4d6ca6552fa6c6e19af981718e6235d85dd616ec11277d88c30",
+        "message_id": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.archive:EmailArchiveResults",
+      "observables": [],
+      "summary": "Archived Email: 743daf6ee0f2e4d6ca6552fa6c6e19af981718e6235d85dd616ec11277d88c30",
+      "tags": []
+    },
     {
       "class": "EmailAnalysis",
       "details": {
@@ -80,7 +92,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 06:06:07.528660 +0000",
+            "date": "2026-11-21 14:52:16.834709 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -137,7 +149,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "text/html",
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -310,14 +334,20 @@
     }
   ],
   "email_archive_after": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [
+      {
+        "digest": "743daf6ee0f2e4d6ca6552fa6c6e19af981718e6235d85dd616ec11277d88c30",
+        "insert_date": "2026-11-21 14:52:16",
+        "message_id_hash": "9D1D34FD77BFCAEBEB73CB89676136970427CDF23C348D8A619F69A26C86C7F5"
+      }
+    ],
+    "pool": [
+      "743daf6ee0f2e4d6ca6552fa6c6e19af981718e6235d85dd616ec11277d88c30"
+    ]
   },
   "email_archive_before": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [],
+    "pool": []
   },
   "email_archive_reads": [],
   "input": {
@@ -371,51 +401,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "message_id",
-        "value": "<lure_thread_header@partner-example.org>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "FW: Voicemail from 555-0100"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "email_conversation",
         "value": "sam@partner-example.org|pat@corp.example"
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 19,
-        "tags": [],
-        "type": "file",
-        "value": "c1c97de8022f1e664982378daa9e238e16cb9e15ce3197a72f21572c0640b484"
-      },
-      {
-        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_return_path",
-        "value": "sam@partner-example.org"
+        "type": "email_to",
+        "value": "pat@corp.example"
       },
       {
         "detections": [],
@@ -449,28 +444,24 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://voice.lure-example.net/play?id=3"
+        "type": "email_subject",
+        "value": "FW: Voicemail from 555-0100"
       },
       {
         "detections": [],
-        "directives": [
-          "archive"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 1253,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "743daf6ee0f2e4d6ca6552fa6c6e19af981718e6235d85dd616ec11277d88c30"
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "sam@partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://voice.lure-example.net/play?id=3"
       },
       {
         "detections": [],
@@ -503,14 +494,6 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [
           {
             "path": "email.rfc822.combined",
@@ -529,6 +512,53 @@
       },
       {
         "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 19,
+        "tags": [],
+        "type": "file",
+        "value": "c1c97de8022f1e664982378daa9e238e16cb9e15ce3197a72f21572c0640b484"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "archive"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 1253,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "743daf6ee0f2e4d6ca6552fa6c6e19af981718e6235d85dd616ec11277d88c30"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<lure_thread_header@partner-example.org>"
+      },
+      {
+        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
@@ -537,41 +567,6 @@
       }
     ],
     "results": [
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 3,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 3,
-        "summary": null,
-        "tags": []
-      },
       {
         "added": [],
         "class": "FileTypeAnalysis",
@@ -591,20 +586,141 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 6,
+        "observable": 3,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/html",
+          "type": "HTML document, ASCII text, with very long lines (611)"
+        },
+        "module": "file_type",
+        "observable": 7,
+        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (611) (text/html)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 10
-          },
-          {
-            "observable": 11
-          },
-          {
             "observable": 2
+          },
+          {
+            "observable": 6
+          },
+          {
+            "observable": 13
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://voice.partner-example.org/original",
+            "https://voice.lure-example.net/play?id=3",
+            "https://voice.lure-example.net/settings"
+          ],
+          "urls_grouped_by_domain": {
+            "lure-example.net": [
+              "https://voice.lure-example.net/play?id=3",
+              "https://voice.lure-example.net/settings"
+            ],
+            "partner-example.org": [
+              "https://voice.partner-example.org/original"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 7,
+        "summary": "URL Extraction Analysis (voice.lure-example.net, voice.partner-example.org)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text, with very long lines (611)"
+        },
+        "module": "file_type",
+        "observable": 9,
+        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (611) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 10,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 10,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "EmailArchiveResults",
+        "details": {
+          "hash": "743daf6ee0f2e4d6ca6552fa6c6e19af981718e6235d85dd616ec11277d88c30",
+          "message_id": null
+        },
+        "module": "email_archiver",
+        "observable": 11,
+        "summary": "Archived Email: 743daf6ee0f2e4d6ca6552fa6c6e19af981718e6235d85dd616ec11277d88c30",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 8
           },
           {
             "observable": 1
@@ -616,19 +732,25 @@
             "observable": 4
           },
           {
-            "observable": 3,
+            "observable": 12
+          },
+          {
+            "observable": 5
+          },
+          {
+            "observable": 10,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 9,
+            "observable": 7,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 6,
+            "observable": 3,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 12,
+            "observable": 9,
             "path": "email.rfc822.combined"
           }
         ],
@@ -704,7 +826,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 06:06:07.528660 +0000",
+              "date": "2026-11-21 14:52:16.834709 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -761,10 +883,22 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "text/html",
+              "path": "email.rfc822.unknown_text_html_000.html",
+              "role": "body"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 8,
+        "observable": 11,
         "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject FW: Voicemail from 555-0100",
         "tags": []
       },
@@ -787,88 +921,8 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 8,
+        "observable": 11,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text, with very long lines (611)"
-        },
-        "module": "file_type",
-        "observable": 9,
-        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (611) (text/html)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 5
-          },
-          {
-            "observable": 7
-          },
-          {
-            "observable": 13
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://voice.partner-example.org/original",
-            "https://voice.lure-example.net/play?id=3",
-            "https://voice.lure-example.net/settings"
-          ],
-          "urls_grouped_by_domain": {
-            "lure-example.net": [
-              "https://voice.lure-example.net/play?id=3",
-              "https://voice.lure-example.net/settings"
-            ],
-            "partner-example.org": [
-              "https://voice.partner-example.org/original"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 9,
-        "summary": "URL Extraction Analysis (voice.lure-example.net, voice.partner-example.org)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text, with very long lines (611)"
-        },
-        "module": "file_type",
-        "observable": 12,
-        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (611) (message/rfc822) (email)",
         "tags": []
       }
     ]

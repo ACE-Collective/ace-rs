@@ -483,7 +483,14 @@
               ]
             },
             "extraction_errors": [],
-            "parsing_error": null
+            "parsing_error": null,
+            "parts": [
+              {
+                "content_type": "text/plain",
+                "path": "email.rfc822.email.rfc822.unknown_text_plain_000.txt",
+                "role": "body"
+              }
+            ]
           },
           "summary": "Email Analysis: From Security <security@lure-example.org> To pat@corp.example Subject Your account is locked",
           "tags": {}
@@ -620,11 +627,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "cf93e493683a7e576c408edce0df327d14f5d8902373155293ae8a3853063d12",
+                "rule_content_hash": "4e1ac5b484b3ecdd3ccc1c6ee48c22d7df824c1b30257214b932612619a669c6",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/18/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/21/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -783,11 +790,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "cf93e493683a7e576c408edce0df327d14f5d8902373155293ae8a3853063d12",
+                "rule_content_hash": "4e1ac5b484b3ecdd3ccc1c6ee48c22d7df824c1b30257214b932612619a669c6",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/18/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/21/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -946,11 +953,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "cf93e493683a7e576c408edce0df327d14f5d8902373155293ae8a3853063d12",
+                "rule_content_hash": "4e1ac5b484b3ecdd3ccc1c6ee48c22d7df824c1b30257214b932612619a669c6",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/18/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/21/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -1120,11 +1127,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "cf93e493683a7e576c408edce0df327d14f5d8902373155293ae8a3853063d12",
+                "rule_content_hash": "4e1ac5b484b3ecdd3ccc1c6ee48c22d7df824c1b30257214b932612619a669c6",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/18/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/21/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -1325,7 +1332,29 @@
               ]
             },
             "extraction_errors": [],
-            "parsing_error": null
+            "parsing_error": null,
+            "parts": [
+              {
+                "content_type": "text/plain",
+                "path": "email.rfc822.unknown_text_plain_000.txt",
+                "role": "body"
+              },
+              {
+                "content_type": "text/html",
+                "path": "email.rfc822.unknown_text_html_000.html",
+                "role": "body"
+              },
+              {
+                "content_type": "message/rfc822",
+                "path": "email.rfc822.email.rfc822",
+                "role": "attachment"
+              },
+              {
+                "content_type": "text/plain",
+                "path": "email.rfc822.unknown_text_plain_001.txt",
+                "role": "body"
+              }
+            ]
           },
           "summary": "Email Analysis: From Pat <pat@corp.example> To abuse@corp.example Subject FW: Your account is locked",
           "tags": {}
@@ -1481,11 +1510,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "cf93e493683a7e576c408edce0df327d14f5d8902373155293ae8a3853063d12",
+                "rule_content_hash": "4e1ac5b484b3ecdd3ccc1c6ee48c22d7df824c1b30257214b932612619a669c6",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/18/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/21/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -1708,11 +1737,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "cf93e493683a7e576c408edce0df327d14f5d8902373155293ae8a3853063d12",
+                "rule_content_hash": "4e1ac5b484b3ecdd3ccc1c6ee48c22d7df824c1b30257214b932612619a669c6",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/18/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/21/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -1846,11 +1875,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "cf93e493683a7e576c408edce0df327d14f5d8902373155293ae8a3853063d12",
+                "rule_content_hash": "4e1ac5b484b3ecdd3ccc1c6ee48c22d7df824c1b30257214b932612619a669c6",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/18/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/21/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -2031,11 +2060,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "cf93e493683a7e576c408edce0df327d14f5d8902373155293ae8a3853063d12",
+                "rule_content_hash": "4e1ac5b484b3ecdd3ccc1c6ee48c22d7df824c1b30257214b932612619a669c6",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/18/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/21/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -2622,13 +2651,6 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
-        "apex_domain_analyzer": {
-          "details": {
-            "apex_domain": "lure-example.org"
-          },
-          "summary": "Apex Domain: lure-example.org",
-          "tags": {}
-        },
         "fqdn_analyzer": {
           "details": {
             "aliaslist": [],
@@ -2682,6 +2704,32 @@
             "question": "Was this domain seen in proxy logs?"
           },
           "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/lure-example.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/lure-example.org",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/lure-example.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/lure-example.org; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

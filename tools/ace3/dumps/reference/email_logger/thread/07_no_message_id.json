@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -67,7 +67,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 05:13:14.795874 +0000",
+            "date": "2026-11-21 13:59:08.766761 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -120,7 +120,14 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "07_no_message_id.email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -837,14 +844,14 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-18T05:13:14.788857",
+        "timestamp": "2026-11-21T13:59:08.762007",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
     },
     {
       "record": {
-        "archive_path": null,
+        "archive_hash": null,
         "attachment_count": 1,
         "attachment_hashes": [
           "21d4b7a6d66cbcc374454e5c4510d3aa57da7d78d70dc33e749345ff416a1d0f"
@@ -863,7 +870,7 @@
         "cc": [],
         "compauth_reason": null,
         "compauth_result": null,
-        "date": "2026-11-18 05:13:14.795874 +0000",
+        "date": "2026-11-21 13:59:08.766761 +0000",
         "dkim_result": null,
         "dmarc_result": null,
         "env_mail_from": null,
@@ -900,7 +907,7 @@
         "subject_raw": "Re: Quarterly invoice",
         "thread_index": null,
         "thread_topic": null,
-        "timestamp": "1794978794.795874",
+        "timestamp": "1795269548.766761",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -922,53 +929,53 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "a4867216-cbdd-4a9a-99e7-feeb1a4312bd",
-        "timestamp": "2026-11-18 05:13:15.534158",
-        "total_analysis_time_seconds": 0.034483,
-        "total_time_seconds": 0.7682018280029297
+        "root_uuid": "96666a0c-0aa5-47a6-a61d-f56a401c894c",
+        "timestamp": "2026-11-21 13:59:09.149797",
+        "total_analysis_time_seconds": 0.025918000000000004,
+        "total_time_seconds": 0.4062991142272949
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.0016810000000000004,
-        "event_type": "module",
-        "exec_count": 8,
-        "module": "email_logger",
-        "percentage": 0.21882270241012622,
-        "root_uuid": "a4867216-cbdd-4a9a-99e7-feeb1a4312bd",
-        "timestamp": "2026-11-18 05:13:15.534158"
-      },
-      "tag": "metrics"
-    },
-    {
-      "record": {
-        "analysis_time_seconds": 0.028389,
-        "event_type": "module",
-        "exec_count": 4,
-        "module": "file_type",
-        "percentage": 3.6955132056639335,
-        "root_uuid": "a4867216-cbdd-4a9a-99e7-feeb1a4312bd",
-        "timestamp": "2026-11-18 05:13:15.534158"
-      },
-      "tag": "metrics"
-    },
-    {
-      "record": {
-        "analysis_time_seconds": 0.004412999999999999,
+        "analysis_time_seconds": 0.0032400000000000003,
         "event_type": "module",
         "exec_count": 2,
         "module": "email_analyzer",
-        "percentage": 0.5744584091230736,
-        "root_uuid": "a4867216-cbdd-4a9a-99e7-feeb1a4312bd",
-        "timestamp": "2026-11-18 05:13:15.534158"
+        "percentage": 0.7974420535377921,
+        "root_uuid": "96666a0c-0aa5-47a6-a61d-f56a401c894c",
+        "timestamp": "2026-11-21 13:59:09.149797"
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.021521000000000002,
+        "event_type": "module",
+        "exec_count": 4,
+        "module": "file_type",
+        "percentage": 5.2968365537613655,
+        "root_uuid": "96666a0c-0aa5-47a6-a61d-f56a401c894c",
+        "timestamp": "2026-11-21 13:59:09.149797"
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.001157,
+        "event_type": "module",
+        "exec_count": 8,
+        "module": "email_logger",
+        "percentage": 0.2847655728219831,
+        "root_uuid": "96666a0c-0aa5-47a6-a61d-f56a401c894c",
+        "timestamp": "2026-11-21 13:59:09.149797"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-18T05:13:15.534544",
+        "timestamp": "2026-11-21T13:59:09.150160",
         "value": 0
       },
       "tag": "monitoring"
@@ -976,7 +983,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-18T05:13:15.534559",
+        "timestamp": "2026-11-21T13:59:09.150175",
         "value": 1
       },
       "tag": "monitoring"

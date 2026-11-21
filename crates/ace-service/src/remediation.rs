@@ -16,12 +16,16 @@
 //!
 //! `remediation_coverage` is ace3's `saq/remediation/coverage.py`: for each alert, its `email_delivery`
 //! targets, whether ACE's own latest remediation of each removed it, or a remediation check found another
-//! system did, and the badge that sums them up, which the event page shows beside each alert.
+//! system did, and the badge that sums them up, which the event page shows beside each alert. A target
+//! whose delivery tag says the journal didn't deliver to that address (ace3's 1b4077d1 and 0b42ba1e:
+//! forwarded, a distribution list, or not in the journal) and whose removal found nothing it explains
+//! is shown with why and left out of the counts.
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use ace_core::actions::{self as core_actions, NewRemediation};
 use ace_core::db::Tx;
+use ace_results::types::email::DeliveryReason;
 use ace_sdk::actions::{ActionKind, RemediationAction, RemediationEvent};
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
@@ -129,6 +133,9 @@ pub struct ActionAttempt {
     pub status: String,
     pub result: String,
     pub message: String,
+    /// What the remediator acted on when it wasn't the key, such as the mailbox owning an alias
+    /// (ace3's `resolved_target`).
+    pub resolved_target: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -256,7 +263,7 @@ pub(crate) async fn history_in(
         return Err(no_action(kind, id));
     }
     Ok(sqlx::query!(
-        "SELECT status, result, message, created_at FROM queue.action_attempts
+        "SELECT status, result, message, resolved_target, created_at FROM queue.action_attempts
          WHERE action_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2",
         id,
         i64::from(limit),
@@ -268,6 +275,7 @@ pub(crate) async fn history_in(
         status: row.status,
         result: row.result,
         message: row.message,
+        resolved_target: row.resolved_target,
         created_at: row.created_at,
     })
     .collect())
@@ -938,6 +946,12 @@ pub struct TargetCoverage {
     pub remediating: bool,
     pub not_found: bool,
     pub attempted: bool,
+    /// Why the journal shows this address didn't receive its own copy, from the delivery tag the
+    /// email module put on the observable (ace3's `undelivered`).
+    pub undelivered: Option<DeliveryReason>,
+    /// The journal explains ACE's finished, unsuccessful removal: there was nothing to remove at
+    /// this address. Such a target is left out of the alert's counts (ace3's `not_delivered`).
+    pub not_delivered: bool,
 }
 
 impl TargetCoverage {
@@ -957,6 +971,8 @@ impl TargetCoverage {
     pub fn status_display(&self) -> String {
         if self.remediated() {
             self.sources.iter().cloned().collect::<Vec<_>>().join(", ")
+        } else if let (true, Some(reason)) = (self.not_delivered, self.undelivered) {
+            reason.describe_undelivered(&[])
         } else if self.failed {
             "failed".to_owned()
         } else if self.not_found {
@@ -980,25 +996,29 @@ pub struct Coverage {
 }
 
 impl Coverage {
+    /// The targets the counts and the state cover: all but those the journal shows had nothing to
+    /// remove (ace3's `counted`).
+    pub fn counted(&self) -> impl Iterator<Item = &TargetCoverage> {
+        self.targets.iter().filter(|t| !t.not_delivered)
+    }
+
     pub fn total(&self) -> usize {
-        self.targets.len()
+        self.counted().count()
     }
 
     pub fn remediated_count(&self) -> usize {
-        self.targets.iter().filter(|t| t.remediated()).count()
+        self.counted().filter(|t| t.remediated()).count()
     }
 
     pub fn not_found_count(&self) -> usize {
-        self.targets
-            .iter()
+        self.counted()
             .filter(|t| t.not_found && !t.remediated())
             .count()
     }
 
     /// Targets nothing is left to do for: remediated, or not in the mailbox.
     pub fn covered_count(&self) -> usize {
-        self.targets
-            .iter()
+        self.counted()
             .filter(|t| t.remediated() || t.not_found)
             .count()
     }
@@ -1013,10 +1033,10 @@ impl Coverage {
     }
 
     pub fn state(&self) -> CoverageState {
-        if self.targets.is_empty() || !self.targets.iter().any(|t| t.attempted) {
+        if self.total() == 0 || !self.counted().any(|t| t.attempted) {
             return CoverageState::None;
         }
-        if self.targets.iter().any(|t| t.failed && !t.remediated()) {
+        if self.counted().any(|t| t.failed && !t.remediated()) {
             return CoverageState::Failed;
         }
         let covered = self.covered_count();
@@ -1029,7 +1049,7 @@ impl Coverage {
         if covered > 0 {
             return CoverageState::Partial;
         }
-        if self.targets.iter().any(|t| t.pending) {
+        if self.counted().any(|t| t.pending) {
             return CoverageState::Pending;
         }
         CoverageState::Unremediated
@@ -1049,7 +1069,7 @@ impl Coverage {
         let prefix = match state {
             CoverageState::Remediated | CoverageState::Partial => "remediated",
             CoverageState::Failed => "remediation failed",
-            CoverageState::Pending if self.targets.iter().any(|t| t.remediating) => "remediating",
+            CoverageState::Pending if self.counted().any(|t| t.remediating) => "remediating",
             CoverageState::Pending => "watching",
             CoverageState::Unremediated => "not remediated",
             CoverageState::NotFound | CoverageState::None => "",
@@ -1075,10 +1095,10 @@ impl Coverage {
             .take(TOOLTIP_TARGET_LIMIT)
             .map(|t| format!("{}: {}", t.recipient(), t.status_display()))
             .collect();
-        if self.total() > TOOLTIP_TARGET_LIMIT {
+        if self.targets.len() > TOOLTIP_TARGET_LIMIT {
             lines.push(format!(
                 "... and {} more",
-                self.total() - TOOLTIP_TARGET_LIMIT
+                self.targets.len() - TOOLTIP_TARGET_LIMIT
             ));
         }
         lines.join("\n")
@@ -1110,14 +1130,24 @@ async fn coverage_in(
 ) -> Result<BTreeMap<Uuid, Coverage>, ServiceError> {
     let mut targets_by_alert: BTreeMap<Uuid, BTreeSet<String>> =
         alerts.iter().map(|a| (*a, BTreeSet::new())).collect();
+    // the delivery tags are each alert's: the journal of this alert's email says where that address's
+    // copy went
+    let mut undelivered_by_alert: BTreeMap<Uuid, BTreeMap<String, DeliveryReason>> =
+        BTreeMap::new();
     let observables = sqlx::query!(
-        "SELECT root_id, value FROM analysis.observables WHERE root_id = ANY($1) AND type = $2",
+        "SELECT root_id, value, tags FROM analysis.observables WHERE root_id = ANY($1) AND type = $2",
         alerts,
         COVERAGE_TYPE,
     )
     .fetch_all(tx.conn())
     .await?;
     for row in observables {
+        if let Some(reason) = row.tags.iter().find_map(|tag| DeliveryReason::of_tag(tag)) {
+            undelivered_by_alert
+                .entry(row.root_id)
+                .or_default()
+                .insert(row.value.clone(), reason);
+        }
         targets_by_alert
             .entry(row.root_id)
             .or_default()
@@ -1184,6 +1214,7 @@ async fn coverage_in(
                     targets_by_alert.get(alert).cloned().unwrap_or_default(),
                     &ace_rows,
                     checks,
+                    undelivered_by_alert.get(alert).cloned().unwrap_or_default(),
                 ),
             )
         })
@@ -1191,11 +1222,12 @@ async fn coverage_in(
 }
 
 /// ace3's `assemble_coverage` for one alert: its `email_delivery` values, ACE's remediations of each target
-/// oldest first, and the alert's checks.
+/// oldest first, the alert's checks, and the journal's reason for each target its delivery tag names.
 pub fn assemble_coverage(
     values: BTreeSet<String>,
     ace_rows: &BTreeMap<String, Vec<CoverageRemediation>>,
     checks: &[CoverageCheck],
+    undelivered: BTreeMap<String, DeliveryReason>,
 ) -> Coverage {
     let mut targets: BTreeMap<String, TargetCoverage> = values
         .into_iter()
@@ -1220,8 +1252,19 @@ pub fn assemble_coverage(
         apply_check(target, check);
     }
     for (value, target) in &mut targets {
-        if let Some(latest) = ace_rows.get(value).and_then(|rows| rows.last()) {
+        let latest = ace_rows.get(value).and_then(|rows| rows.last());
+        if let Some(latest) = latest {
             apply_ace_row(target, latest);
+        }
+        target.undelivered = undelivered.get(value).copied();
+        if let Some(latest) = latest
+            && !target.remediated()
+            && !target.pending
+            && latest.action.as_deref() == Some("remove")
+            && journal_explains(target.undelivered, latest.result.as_deref())
+        {
+            target.not_delivered = true;
+            target.failed = false;
         }
     }
     for check in checks {
@@ -1239,6 +1282,23 @@ pub fn assemble_coverage(
     }
     Coverage {
         targets: targets.into_values().collect(),
+    }
+}
+
+/// Whether the journal's account of an address explains ACE's finished removal there finding nothing
+/// to remove (ace3's `journal_explains`): a distribution list holds no mail, so any unsuccessful result
+/// is expected; a forwarded address explains `NOT_FOUND` and `FAILED` (not a mailbox) but not `ERROR`,
+/// which says nothing about the address; and an address the journal doesn't name explains only
+/// `NOT_FOUND`, since another journal report may name it.
+pub fn journal_explains(reason: Option<DeliveryReason>, result: Option<&str>) -> bool {
+    let Some(reason) = reason else {
+        return false;
+    };
+    match result {
+        Some("NOT_FOUND") => true,
+        Some("FAILED") => reason != DeliveryReason::NotJournaled,
+        Some("ERROR") => reason == DeliveryReason::Expanded,
+        _ => false,
     }
 }
 

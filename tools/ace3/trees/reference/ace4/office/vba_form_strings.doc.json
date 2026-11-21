@@ -177,11 +177,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_url",
-                "rule_content_hash": "aa790744243b20e8bec23dd662a4538107c814b8403f5a93545475669e7baefb",
+                "rule_content_hash": "aaea6a0e2045729b68b8a2a26ff2b4b30b539addf8f56575b71eac7773f8cd6f",
                 "rule_source": {
                   "file": "url.yar",
                   "start_line": 1,
-                  "text": "rule detect_url : detect_url\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_2 = /(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_2 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))h\\x00t\\x00t\\x00p\\x00:\\x00\\/\\x00\\/\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00\\.\\x00c\\x00o\\x00m\\x00\\/\\x00p\\x00a\\x00y\\x00l\\x00o\\x00a\\x00d\\x00\\.\\x00e\\x00x\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_url : detect_url\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/21/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_2 = /(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_2 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))h\\x00t\\x00t\\x00p\\x00:\\x00\\/\\x00\\/\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00\\.\\x00c\\x00o\\x00m\\x00\\/\\x00p\\x00a\\x00y\\x00l\\x00o\\x00a\\x00d\\x00\\.\\x00e\\x00x\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_2": "/(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -208,6 +208,39 @@
         "detect_url": true,
         "macro": true
       }
+    },
+    "file:4203001cf6982849eaf512058caabad3bc05d4e1d1cd9400258838feae9c99ff": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_form_strings.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:cb9b4fbce26078135c8fd041589c04f7bbdfc7dacae6f5d950c1d9e10b0d8a73": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:4bc03d883e84c6e66e0e608c1a98f8a4347cd41642277aacfdbb48255334ac60": {
       "detections": {},
@@ -339,39 +372,6 @@
       },
       "tags": {}
     },
-    "file:a58608a5f75a3815cb85199a1fd39a09b7c1c6ee36677c08f5908785f8ce8463": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "vba_form_strings.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:cb9b4fbce26078135c8fd041589c04f7bbdfc7dacae6f5d950c1d9e10b0d8a73": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:bdb2d909bc4221cb8f2f878ce4acf8a40f8778e6ac8e37e1f69950ac0867f127": {
       "detections": {},
       "directives": {
@@ -461,8 +461,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:10:46+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:10:46+00:00",
+              "File:FileAccessDate": "2026:11:21 12:30:56+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 12:30:56+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "vba_form_strings.doc",
               "File:FilePermissions": 100644,
@@ -780,11 +780,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_url",
-                "rule_content_hash": "aa790744243b20e8bec23dd662a4538107c814b8403f5a93545475669e7baefb",
+                "rule_content_hash": "aaea6a0e2045729b68b8a2a26ff2b4b30b539addf8f56575b71eac7773f8cd6f",
                 "rule_source": {
                   "file": "url.yar",
                   "start_line": 1,
-                  "text": "rule detect_url : detect_url\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_2 = /(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_2 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))h\\x00t\\x00t\\x00p\\x00:\\x00\\/\\x00\\/\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00\\.\\x00c\\x00o\\x00m\\x00\\/\\x00p\\x00a\\x00y\\x00l\\x00o\\x00a\\x00d\\x00\\.\\x00e\\x00x\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_url : detect_url\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/21/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_2 = /(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_2 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))h\\x00t\\x00t\\x00p\\x00:\\x00\\/\\x00\\/\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00\\.\\x00c\\x00o\\x00m\\x00\\/\\x00p\\x00a\\x00y\\x00l\\x00o\\x00a\\x00d\\x00\\.\\x00e\\x00x\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_2": "/(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"

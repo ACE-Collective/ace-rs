@@ -18,7 +18,7 @@ systems see the same world, as tests/e2e/run gives ace4:
   is kept in tools/ace3/trees/dns.json, which tests/e2e/run's responder replays to ace4;
 - the email archive is empty (run_module.py --email-archive-store), under the dumps' test-only key, as
   tests/e2e/run's stack starts with an empty archive. No sample has the archive directive, so the
-  archiver archives nothing, and none is a .gz.e;
+  archiver archives nothing;
 - the observables enabled for detection are tools/ace3/trees/detections.json (run_module.py
   --detections), which ace3's own export also writes as YARA rules into the rule directory, as its
   export-observables cron does every minute (--export-detections, PLAN.md 7.16), each detection's id its
@@ -63,7 +63,7 @@ _loader.exec_module(dumps)
 CONTAINER, REMOTE, docker, put = dumps.CONTAINER, dumps.REMOTE, dumps.docker, dumps.put
 ENABLE = [
     "file_type", "archive", "yara_scanner_v3_4", "rdap_analyzer", "proxy_domain_splunk", "olevba_v1_2",
-    "rtfole", "msoffice_encryption_analyzer", "xlmdeobfuscator", "pcodedmp", "pdf_analyzer", "fqdn_analyzer", "apex_domain_analyzer",
+    "rtfole", "msoffice_encryption_analyzer", "xlmdeobfuscator", "pcodedmp", "pdf_analyzer", "fqdn_analyzer",
     "email_conversation_frequency_analyzer", "email_thread_analyzer", "nrd_analyzer", "url_extraction",
     "ioc_extraction", "file_hash_analyzer", "binary_file_analyzer", "x509_analyzer", "lnk_parser", "dhash",
     "command_line_analyzer", "file_location_analysis", "file_path_analysis", "network_identifier", "parse_url",
@@ -73,7 +73,7 @@ ENABLE = [
     "microsoft_script_encoding_analysis", "extracted_rtf_analyzer", "vbscript_analyzer", "nowhitespace_analyzer",
     "zip_encryption_analyzer", "rar_encryption_analyzer", "pdf_encryption_analyzer", "lure_url_analyzer",
     "mailbox_email_analyzer", "email_conversation_attachment_analyzer", "email_conversation_link_analyzer",
-    "email_archiver", "encrypted_archive_analyzer", "url_email_pivot_analyzer", "message_id_analyzer_v2",
+    "email_archiver", "message_id_analyzer_v2",
     "pdftotext", "pdf_link_text", "exif", "qrcode", "ocr", "java_class_decompiler", "upx", "autoit", "de4dot", "ilspy",
     "dmg_analyzer", "cve_2021_30657_analyzer", "pcap_analyzer", "pcap_dns", "pcap_tls", "pcap_http", "pcap_files",
     "pcap_tls_decryption", "tls_keylog", "user_defined_tagging", "observable_detection", "site_tagger",

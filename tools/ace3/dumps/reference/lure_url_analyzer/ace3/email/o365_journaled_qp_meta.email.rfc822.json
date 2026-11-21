@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -56,6 +56,14 @@
           "compauth_reason": null,
           "compauth_result": null,
           "decoded_subject": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+          "deliveries": {
+            "john.doe@acmecorp.com": {
+              "mailboxes": [
+                "john.doe@acmecorp.com"
+              ],
+              "reason": "delivered"
+            }
+          },
           "dkim_result": null,
           "dmarc_result": null,
           "env_mail_from": "jane.smith@widgetsinc.com",
@@ -123,7 +131,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 05:52:42.744735 +0000",
+            "date": "2026-11-21 14:39:31.210773 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": "jane.smith@widgetsinc.com",
@@ -181,7 +189,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "text/html",
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -418,51 +438,27 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "fqdn",
-        "value": "widgetsinc.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "email_subject",
         "value": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report"
       },
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_envelope_rcpt_to",
-        "value": "john.doe@acmecorp.com"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
         "paths": [
           {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "path": "email.rfc822.headers",
             "yara_meta": [
-              "type=email.attachment"
+              "type=email",
+              "type=email.headers"
             ]
           }
         ],
-        "size": 68,
-        "tags": [],
+        "size": 666,
+        "tags": [
+          "email"
+        ],
         "type": "file",
-        "value": "60fbfe366f59414a1081c02008fdafa93ed5d6d4fe7ec0d7c3f26aec39cc2c4a"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "jane.smith@widgetsinc.com"
+        "value": "cdfdd99c50c5e0e5430954cf1d7366f8fa1d8b0e792b8ce8872c6a173af8c1b9"
       },
       {
         "detections": [],
@@ -470,15 +466,7 @@
         "paths": [],
         "tags": [],
         "type": "fqdn",
-        "value": "acmecorp.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>"
+        "value": "widgetsinc.com"
       },
       {
         "detections": [],
@@ -503,19 +491,19 @@
         "directives": [],
         "paths": [
           {
-            "path": "email.rfc822.headers",
+            "path": "email.rfc822.combined",
             "yara_meta": [
               "type=email",
-              "type=email.headers"
+              "type=email.combined"
             ]
           }
         ],
-        "size": 666,
+        "size": 841,
         "tags": [
           "email"
         ],
         "type": "file",
-        "value": "cdfdd99c50c5e0e5430954cf1d7366f8fa1d8b0e792b8ce8872c6a173af8c1b9"
+        "value": "1c0b59da5a0031fcab308b31f033bb91a68f75c20377d6cbb8145692f61af999"
       },
       {
         "detections": [],
@@ -548,21 +536,29 @@
       {
         "detections": [],
         "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "jane.smith@widgetsinc.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
         "paths": [
           {
-            "path": "email.rfc822.combined",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
             "yara_meta": [
-              "type=email",
-              "type=email.combined"
+              "type=email.attachment"
             ]
           }
         ],
-        "size": 841,
-        "tags": [
-          "email"
-        ],
+        "size": 68,
+        "tags": [],
         "type": "file",
-        "value": "1c0b59da5a0031fcab308b31f033bb91a68f75c20377d6cbb8145692f61af999"
+        "value": "60fbfe366f59414a1081c02008fdafa93ed5d6d4fe7ec0d7c3f26aec39cc2c4a"
       },
       {
         "detections": [],
@@ -571,29 +567,38 @@
         "tags": [],
         "type": "email_conversation",
         "value": "jane.smith@widgetsinc.com|john.doe@acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_envelope_rcpt_to",
+        "value": "john.doe@acmecorp.com"
       }
     ],
     "results": [
       {
-        "added": [
-          {
-            "observable": 5
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "acmecorp.com"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 2,
-        "summary": "Email Address FQDN: acmecorp.com",
-        "tags": []
-      },
-      {
         "added": [],
         "class": "FileTypeAnalysis",
         "details": {
-          "is_email_file": false,
+          "is_email_file": true,
           "is_jar_file": false,
           "is_lnk_file": false,
           "is_office_document": false,
@@ -604,75 +609,65 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 3,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "observable": 1,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
       {
         "added": [],
-        "class": "URLExtractionAnalysis",
+        "class": "HTMLJavaScriptExtractionAnalysis",
         "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
         },
-        "module": "url_extraction",
-        "observable": 3,
+        "module": "html_js_extraction",
+        "observable": 1,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 0
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "widgetsinc.com"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 4,
-        "summary": "Email Address FQDN: widgetsinc.com",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 4
-          },
-          {
-            "observable": 2
+            "observable": 7
           },
           {
             "observable": 12
           },
           {
-            "observable": 10
-          },
-          {
-            "observable": 1
+            "observable": 9
           },
           {
             "observable": 6
           },
           {
-            "observable": 3,
-            "path": "email.rfc822.unknown_text_plain_000.txt"
+            "observable": 0
           },
           {
-            "observable": 9,
-            "path": "email.rfc822.unknown_text_html_000.html"
+            "observable": 11
           },
           {
             "observable": 8,
+            "path": "email.rfc822.unknown_text_plain_000.txt"
+          },
+          {
+            "observable": 5,
+            "path": "email.rfc822.unknown_text_html_000.html"
+          },
+          {
+            "observable": 1,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 11,
+            "observable": 4,
             "path": "email.rfc822.combined"
           }
         ],
@@ -683,6 +678,14 @@
             "compauth_reason": null,
             "compauth_result": null,
             "decoded_subject": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
+            "deliveries": {
+              "john.doe@acmecorp.com": {
+                "mailboxes": [
+                  "john.doe@acmecorp.com"
+                ],
+                "reason": "delivered"
+              }
+            },
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": "jane.smith@widgetsinc.com",
@@ -750,7 +753,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 05:52:42.744735 +0000",
+              "date": "2026-11-21 14:39:31.210773 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": "jane.smith@widgetsinc.com",
@@ -808,10 +811,22 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "text/html",
+              "path": "email.rfc822.unknown_text_html_000.html",
+              "role": "body"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 7,
+        "observable": 3,
         "summary": "Email Analysis: From \"Smith, Jane\" <jane.smith@widgetsinc.com> To john.doe@acmecorp.com Subject RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
         "tags": []
       },
@@ -834,7 +849,7 @@
           "type": "SMTP mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 7,
+        "observable": 3,
         "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -851,7 +866,7 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 7,
+        "observable": 3,
         "summary": null,
         "tags": []
       },
@@ -874,7 +889,7 @@
           "type": "RFC 822 mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 8,
+        "observable": 4,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -891,7 +906,7 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 8,
+        "observable": 4,
         "summary": null,
         "tags": []
       },
@@ -914,7 +929,7 @@
           "type": "HTML document, ASCII text"
         },
         "module": "file_type",
-        "observable": 9,
+        "observable": 5,
         "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
         "tags": []
       },
@@ -931,7 +946,7 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 9,
+        "observable": 5,
         "summary": null,
         "tags": []
       },
@@ -943,14 +958,14 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 9,
+        "observable": 5,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 5
+            "observable": 10
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -958,15 +973,30 @@
           "domain": "acmecorp.com"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 10,
+        "observable": 6,
         "summary": "Email Address FQDN: acmecorp.com",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 2
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "widgetsinc.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 7,
+        "summary": "Email Address FQDN: widgetsinc.com",
         "tags": []
       },
       {
         "added": [],
         "class": "FileTypeAnalysis",
         "details": {
-          "is_email_file": true,
+          "is_email_file": false,
           "is_jar_file": false,
           "is_lnk_file": false,
           "is_office_document": false,
@@ -977,29 +1007,39 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text"
+          "mime": "text/plain",
+          "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 11,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "observable": 8,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
         "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
+        "class": "URLExtractionAnalysis",
         "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
+          "urls": [],
+          "urls_grouped_by_domain": {}
         },
-        "module": "html_js_extraction",
-        "observable": 11,
+        "module": "url_extraction",
+        "observable": 8,
         "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 10
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "acmecorp.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 12,
+        "summary": "Email Address FQDN: acmecorp.com",
         "tags": []
       }
     ]

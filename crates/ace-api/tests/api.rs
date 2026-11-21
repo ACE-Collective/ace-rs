@@ -4223,9 +4223,7 @@ async fn email_archive(
         .seed(&ace_core::email_archive::Seed {
             email,
             message_id: "<a/b@example.com>",
-            recipients: &["bob@example.com"],
             insert_date: chrono::Utc::now().naive_utc(),
-            urls: &[],
         })
         .await
         .expect("archives");

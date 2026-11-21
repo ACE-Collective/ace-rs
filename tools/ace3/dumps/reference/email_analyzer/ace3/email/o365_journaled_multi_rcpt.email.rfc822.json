@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "file_type"
   ],
@@ -13,6 +13,26 @@
           "compauth_reason": "300",
           "compauth_result": "none",
           "decoded_subject": "INVOICE PDL-06-38776",
+          "deliveries": {
+            "bob.smith@company.com": {
+              "mailboxes": [
+                "bob.smith@company.com"
+              ],
+              "reason": "delivered"
+            },
+            "charlie.jones@company.com": {
+              "mailboxes": [
+                "charlie.jones@company.com"
+              ],
+              "reason": "delivered"
+            },
+            "lulu.zingzing@company.com": {
+              "mailboxes": [
+                "lulu.zingzing@company.com"
+              ],
+              "reason": "delivered"
+            }
+          },
           "dkim_result": "none",
           "dmarc_result": "none",
           "env_mail_from": "ap@someothercompany.com",
@@ -532,7 +552,7 @@
             "cc": [],
             "compauth_reason": "300",
             "compauth_result": "none",
-            "date": "2026-11-18 05:03:44.754856 +0000",
+            "date": "2026-11-21 13:51:03.995807 +0000",
             "dkim_result": "none",
             "dmarc_result": "none",
             "env_mail_from": "ap@someothercompany.com",
@@ -631,7 +651,14 @@
           "x-sender-id": "ap@someothercompany.com"
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/html",
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",

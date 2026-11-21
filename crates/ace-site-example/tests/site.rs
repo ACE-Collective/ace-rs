@@ -802,17 +802,16 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
     let mut pool = Process::start(lookups, &dir.path().join("lookups.log"));
 
     // RDAP and DNS would look example.com up on the internet, so the submission leaves them out,
-    // and the newly registered domains module, which would read the core's empty list, the
-    // IDNA and apex domain modules, parsers this test has no pool for, and the two that read what
-    // analysts flagged and tagged, which would find nothing
+    // and the newly registered domains module, which would read the core's empty list, the IDNA
+    // module, a parser this test has no pool for, and the two that read what analysts flagged and
+    // tagged, which would find nothing
     let analysis = json!({
         "description": "a site's own module and type",
         "analysis_mode": "analysis",
         "observables": [
             {"type": "fqdn", "value": "example.com",
              "exclude_modules": ["rdap_analyzer", "fqdn_analyzer", "nrd_analyzer", "idna_analyzer",
-                                 "apex_domain_analyzer", "observable_detection",
-                                 "user_defined_tagging"]},
+                                 "observable_detection", "user_defined_tagging"]},
             // a ticket the site's ticket system doesn't know, so the lookup says it failed
             {"type": "example_ticket", "value": "LEGACY-7",
              "exclude_modules": ["observable_detection", "user_defined_tagging"]},

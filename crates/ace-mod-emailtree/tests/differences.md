@@ -1,6 +1,6 @@
 # Differences from ace3's reference dumps
 
-`tests/reference.rs` runs the lure and mailbox modules on ace3's dumps, made by `tools/ace3/dumps/make-dumps emailtree` with each run's whole root kept (`run_module.py --tree-view`). Each module gets that root as the core's tree (`ace_testkit::reference::Dump::tree_view_with_details`, with the details of `pdf_link_text`'s results, which the lure module declares it reads), the bodies the dump kept, HTML and plain text, as the tree's files, and ace4's email module's result for the same email as its dependency. The test fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit fe6da632, which has the lure module's context scoring (`b4badb2c`, `40ee8208`).
+`tests/reference.rs` runs the lure and mailbox modules on ace3's dumps, made by `tools/ace3/dumps/make-dumps emailtree` with each run's whole root kept (`run_module.py --tree-view`). Each module gets that root as the core's tree (`ace_testkit::reference::Dump::tree_view_with_details`, with the details of `pdf_link_text`'s results, which the lure module declares it reads), the bodies the dump kept, HTML and plain text, as the tree's files, and ace4's email module's result for the same email as its dependency. The test fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 85c8e9e5, which has the lure module's context scoring (`b4badb2c`, `40ee8208`).
 
 | Dumps | Path | Why |
 |---|---|---|

@@ -180,39 +180,6 @@
       },
       "tags": {}
     },
-    "file:00de9e99c4decb5e43e14d2147065830c8f1c1b939148eb61aafd032c1be2abd": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.xls.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:092cb2908d11f4d742112762cd779214d032c19bb407a9916a590194f84263cd": {
       "detections": {},
       "directives": {
@@ -317,39 +284,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:0b23fa38a387075b20cc7f4f2de8e4b0d9bc0a39a6e1c7c63044b5a1a8904379": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:8ff8e52eb1b97ac21b0b4348d81f143f6f25d0ea817d7748b7f8ddae27637857": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -900,7 +834,19 @@
               ]
             },
             "extraction_errors": [],
-            "parsing_error": null
+            "parsing_error": null,
+            "parts": [
+              {
+                "content_type": "text/plain",
+                "path": "email.rfc822.unknown_text_plain_000.txt",
+                "role": "body"
+              },
+              {
+                "content_type": "application/octet-stream",
+                "path": "invoice.xls",
+                "role": "attachment"
+              }
+            ]
           },
           "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
           "tags": {}
@@ -1275,9 +1221,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 03:57:00+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 03:57:00+00:00",
-              "File:FileModifyDate": "2026:11:18 03:57:00+00:00",
+              "File:FileAccessDate": "2026:11:21 12:03:38+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 12:03:38+00:00",
+              "File:FileModifyDate": "2026:11:21 12:03:38+00:00",
               "File:FileName": "invoice.xls",
               "File:FilePermissions": 100664,
               "File:FileSize": 69125,
@@ -1450,6 +1396,39 @@
         "xlm4:no_cells": true
       }
     },
+    "file:93ca7b8f136e8a3ca233c014a2bc03a966126398590a6ba0b774566c6606c6d1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8ff8e52eb1b97ac21b0b4348d81f143f6f25d0ea817d7748b7f8ddae27637857": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:9e8aa70fc70328cddc2bfdc99c1cf431d2d7cf474876852665f76b14a87e2fb4": {
       "detections": {},
       "directives": {},
@@ -1515,6 +1494,39 @@
         "email": true
       }
     },
+    "file:aafeeabcbdc62b008242ee781af579f7311d39130eb6cb55419b9071f82b52bf": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.xls.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": {
       "detections": {
         "A url was found in an Excel 4.0 macro.": [
@@ -1538,9 +1550,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 03:57:00+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 03:57:00+00:00",
-              "File:FileModifyDate": "2026:11:18 03:57:00+00:00",
+              "File:FileAccessDate": "2026:11:21 12:03:45+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 12:03:45+00:00",
+              "File:FileModifyDate": "2026:11:21 12:03:45+00:00",
               "File:FileName": "invoice.xls.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 69125,

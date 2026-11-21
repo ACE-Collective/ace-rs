@@ -2,9 +2,8 @@
 //! (`ace3/saq/database/partitions.py`, `ace3/docs/DATABASE_PARTITIONS.md`), which the scheduler's
 //! `email_archive_partitions` task runs daily.
 //!
-//! Each of `archive`, `archive_index` and `email_history` has a partition an ISO week,
-//! `<table>_pYYYYwWW`, and a default partition under them, `<table>_p_catchall`. For each table,
-//! maintenance:
+//! `archive`, ace3's `archived_messages`, has a partition an ISO week, `<table>_pYYYYwWW`, and a
+//! default partition under them, `<table>_p_catchall`. For each table, maintenance:
 //!
 //! 1. drops each week every row of which is past the table's retention, which is a catalog change,
 //!    not a delete;
@@ -26,13 +25,8 @@ use crate::db::{Db, DbError};
 /// How many weeks past this one are made ahead, as ace3's.
 pub const WEEKS_AHEAD: i64 = 4;
 
-/// The partitioned tables, and whether each keeps the history's retention rather than the
-/// archive's.
-pub const TABLES: [(&str, bool); 3] = [
-    ("archive", false),
-    ("archive_index", false),
-    ("email_history", true),
-];
+/// The partitioned tables.
+pub const TABLES: [&str; 1] = ["archive"];
 
 /// What one run did to one table.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -72,13 +66,10 @@ pub async fn maintain(
     dry_run: bool,
 ) -> Result<Vec<TableMaintenance>, DbError> {
     let mut done = Vec::new();
-    for (table, history) in TABLES {
-        let retention = if history {
-            config.history_retention_days
-        } else {
-            config.retention_days
-        };
-        done.push(maintain_table(db, table, retention, now.naive_utc(), dry_run).await?);
+    for table in TABLES {
+        done.push(
+            maintain_table(db, table, config.retention_days, now.naive_utc(), dry_run).await?,
+        );
     }
     Ok(done)
 }

@@ -619,7 +619,14 @@
               ]
             },
             "extraction_errors": [],
-            "parsing_error": null
+            "parsing_error": null,
+            "parts": [
+              {
+                "content_type": "text/plain",
+                "path": "email.rfc822.unknown_text_plain_000.txt",
+                "role": "body"
+              }
+            ]
           },
           "summary": "Email Analysis: From External Sender <sender@external.example> To alice@company.com, Bob <bob@company.com> Subject Re: Invoices 12927-12929",
           "tags": {}

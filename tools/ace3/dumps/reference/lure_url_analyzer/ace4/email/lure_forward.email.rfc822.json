@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -129,7 +129,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 06:00:17.678859 +0000",
+            "date": "2026-11-21 14:46:52.674013 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -186,7 +186,29 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "text/html",
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "role": "body"
+          },
+          {
+            "content_type": "message/rfc822",
+            "path": "email.rfc822.email.rfc822",
+            "role": "attachment"
+          },
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_001.txt",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -467,13 +489,13 @@
         ],
         "paths": [
           {
-            "path": "email.rfc822.unknown_text_plain_001.txt",
+            "path": "email.rfc822.email.rfc822.unknown_text_plain_000.txt",
             "yara_meta": [
               "type=email.attachment"
             ]
           },
           {
-            "path": "email.rfc822.email.rfc822.unknown_text_plain_000.txt",
+            "path": "email.rfc822.unknown_text_plain_001.txt",
             "yara_meta": [
               "type=email.attachment"
             ]
@@ -489,8 +511,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "abuse@corp.example"
+        "type": "message_id",
+        "value": "<lure_inner@corp.example>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://unlock.lure-example.org/now"
       },
       {
         "detections": [],
@@ -516,6 +546,49 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "uri_path",
+        "value": "/now"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 305,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "4da625b989c17ba10f9450fe8722d33e8c64dec535b3a0e5d0782da27c019984"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "security@lure-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "email_subject",
         "value": "FW: Your account is locked"
       },
@@ -524,8 +597,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://unlock.lure-example.org/now"
+        "type": "email_to",
+        "value": "pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "pat@corp.example|abuse@corp.example"
       },
       {
         "detections": [],
@@ -553,22 +634,6 @@
         "detections": [],
         "directives": [],
         "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<lure_forward@corp.example>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<lure_inner@corp.example>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
         "tags": [
           "domain_in_url"
         ],
@@ -580,43 +645,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 73,
-        "tags": [],
-        "type": "file",
-        "value": "bd3a98efb101e500776df64ba6cf7a941a6cd3833fc0bd750de306ff064eb3dd"
+        "type": "fqdn",
+        "value": "mailer.corp.example"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "security@lure-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "pat@corp.example|abuse@corp.example"
+        "type": "email_return_path",
+        "value": "bounce@mailer.corp.example"
       },
       {
         "detections": [],
@@ -624,7 +662,15 @@
         "paths": [],
         "tags": [],
         "type": "fqdn",
-        "value": "mailer.corp.example"
+        "value": "lure-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<lure_forward@corp.example>"
       },
       {
         "detections": [],
@@ -651,42 +697,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/now"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "lure-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 1407,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "86a248585577112582dd4206dd1bf6b1cecf4cdd8fad369a7364ce35044a6300"
+        "type": "email_to",
+        "value": "abuse@corp.example"
       },
       {
         "detections": [],
@@ -698,38 +710,49 @@
       },
       {
         "detections": [],
-        "directives": [],
-        "paths": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 73,
         "tags": [],
-        "type": "email_conversation",
-        "value": "security@lure-example.org|pat@corp.example"
+        "type": "file",
+        "value": "bd3a98efb101e500776df64ba6cf7a941a6cd3833fc0bd750de306ff064eb3dd"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_return_path",
-        "value": "bounce@mailer.corp.example"
+        "type": "email_from",
+        "value": "pat@corp.example"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [
           {
-            "path": "email.rfc822.email.rfc822.headers",
+            "path": "email.rfc822.email.rfc822.combined",
             "yara_meta": [
               "type=email",
-              "type=email.headers"
+              "type=email.combined"
             ]
           }
         ],
-        "size": 305,
+        "size": 358,
         "tags": [
           "email"
         ],
         "type": "file",
-        "value": "4da625b989c17ba10f9450fe8722d33e8c64dec535b3a0e5d0782da27c019984"
+        "value": "2f71de525161c8ec17a55068963655e52275026401ec6a77df4a2ead1e8000d0"
       },
       {
         "detections": [],
@@ -755,27 +778,26 @@
         "directives": [],
         "paths": [
           {
-            "path": "email.rfc822.email.rfc822.combined",
+            "path": "email.rfc822",
             "yara_meta": [
-              "type=email",
-              "type=email.combined"
+              "type=email"
             ]
           }
         ],
-        "size": 358,
+        "size": 1407,
         "tags": [
           "email"
         ],
         "type": "file",
-        "value": "2f71de525161c8ec17a55068963655e52275026401ec6a77df4a2ead1e8000d0"
+        "value": "86a248585577112582dd4206dd1bf6b1cecf4cdd8fad369a7364ce35044a6300"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "fqdn",
-        "value": "corp.example"
+        "type": "email_conversation",
+        "value": "security@lure-example.org|pat@corp.example"
       }
     ],
     "results": [
@@ -805,7 +827,7 @@
       {
         "added": [
           {
-            "observable": 4
+            "observable": 2
           }
         ],
         "class": "URLExtractionAnalysis",
@@ -827,16 +849,36 @@
       {
         "added": [
           {
-            "observable": 25
+            "observable": 12
+          },
+          {
+            "observable": 4
           }
         ],
-        "class": "EmailAddressFQDNAnalysis",
+        "class": "ParseURLAnalysis",
         "details": {
-          "domain": "corp.example"
+          "fragment": "",
+          "netloc": "unlock.lure-example.org",
+          "params": null,
+          "path": "/now",
+          "query": "",
+          "scheme": "https"
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 1,
-        "summary": "Email Address FQDN: corp.example",
+        "module": "parse_url",
+        "observable": 2,
+        "summary": "URL Parser: scheme=https, netloc=unlock.lure-example.org, path=/now",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://unlock.lure-example.org/now",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 2,
+        "summary": null,
         "tags": []
       },
       {
@@ -858,7 +900,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 2,
+        "observable": 3,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -875,43 +917,78 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 2,
+        "observable": 3,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 5,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 5,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 8
-          },
-          {
-            "observable": 16
+            "observable": 15
           }
         ],
-        "class": "ParseURLAnalysis",
+        "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "fragment": "",
-          "netloc": "unlock.lure-example.org",
-          "params": null,
-          "path": "/now",
-          "query": "",
-          "scheme": "https"
+          "domain": "lure-example.org"
         },
-        "module": "parse_url",
-        "observable": 4,
-        "summary": "URL Parser: scheme=https, netloc=unlock.lure-example.org, path=/now",
+        "module": "email_address_fqdn_analyzer",
+        "observable": 7,
+        "summary": "Email Address FQDN: lure-example.org",
         "tags": []
       },
       {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
+        "added": [
+          {
+            "observable": 6
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "extracted_url": "https://unlock.lure-example.org/now",
-          "protection_type": "unprotected"
+          "domain": "corp.example"
         },
-        "module": "protected_url_analyzer",
-        "observable": 4,
-        "summary": null,
+        "module": "email_address_fqdn_analyzer",
+        "observable": 9,
+        "summary": "Email Address FQDN: corp.example",
         "tags": []
       },
       {
@@ -926,7 +1003,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "3578ab7b-f50a-42b1-b4a8-4b898ebdd270",
+              "observable_uuid": "152fca6b-e5f4-40ad-ad7f-d9dd64f5e723",
               "reasons": [
                 "found in the email body",
                 "same domain as the sender (lure-example.org)"
@@ -943,40 +1020,40 @@
           "subject": "Your account is locked"
         },
         "module": "lure_url_analyzer",
-        "observable": 5,
+        "observable": 11,
         "summary": "Lure URL Analysis: no lure URL identified",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 11
+            "observable": 7
           },
           {
             "observable": 9
           },
           {
-            "observable": 20
+            "observable": 25
           },
           {
             "observable": 19
           },
           {
-            "observable": 7
+            "observable": 1
           },
           {
-            "observable": 21
+            "observable": 14
           },
           {
             "observable": 0,
             "path": "email.rfc822.email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 22,
+            "observable": 5,
             "path": "email.rfc822.email.rfc822.headers"
           },
           {
-            "observable": 24,
+            "observable": 22,
             "path": "email.rfc822.email.rfc822.combined"
           }
         ],
@@ -1052,7 +1129,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 06:00:17.762894 +0000",
+              "date": "2026-11-21 14:46:52.757973 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -1110,10 +1187,17 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 5,
+        "observable": 11,
         "summary": "Email Analysis: From Security <security@lure-example.org> To pat@corp.example Subject Your account is locked",
         "tags": []
       },
@@ -1136,7 +1220,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 5,
+        "observable": 11,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1153,7 +1237,7 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 5,
+        "observable": 11,
         "summary": null,
         "tags": []
       },
@@ -1165,14 +1249,81 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 5,
+        "observable": 11,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 25
+            "observable": 13
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "mailer.corp.example"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 14,
+        "summary": "Email Address FQDN: mailer.corp.example",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/html",
+          "type": "HTML document, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 17,
+        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 17,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 17,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 6
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -1180,7 +1331,7 @@
           "domain": "corp.example"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 9,
+        "observable": 18,
         "summary": "Email Address FQDN: corp.example",
         "tags": []
       },
@@ -1203,7 +1354,7 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 10,
+        "observable": 20,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
@@ -1215,30 +1366,30 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 10,
+        "observable": 20,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 17
+            "observable": 6
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "domain": "lure-example.org"
+          "domain": "corp.example"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 11,
-        "summary": "Email Address FQDN: lure-example.org",
+        "observable": 21,
+        "summary": "Email Address FQDN: corp.example",
         "tags": []
       },
       {
         "added": [],
         "class": "FileTypeAnalysis",
         "details": {
-          "is_email_file": false,
+          "is_email_file": true,
           "is_jar_file": false,
           "is_lnk_file": false,
           "is_office_document": false,
@@ -1249,12 +1400,12 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text"
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 14,
-        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+        "observable": 22,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
       {
@@ -1270,67 +1421,80 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 14,
+        "observable": 22,
         "summary": null,
         "tags": []
       },
       {
         "added": [],
-        "class": "URLExtractionAnalysis",
+        "class": "FileTypeAnalysis",
         "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
         },
-        "module": "url_extraction",
-        "observable": 14,
+        "module": "file_type",
+        "observable": 23,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 23,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 25
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "corp.example"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 15,
-        "summary": "Email Address FQDN: corp.example",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 15
-          },
-          {
-            "observable": 1
-          },
-          {
-            "observable": 12
-          },
-          {
-            "observable": 3
-          },
-          {
-            "observable": 6
-          },
-          {
             "observable": 21
           },
           {
-            "observable": 10,
+            "observable": 18
+          },
+          {
+            "observable": 10
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 16
+          },
+          {
+            "observable": 14
+          },
+          {
+            "observable": 20,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 14,
+            "observable": 17,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 5,
+            "observable": 11,
             "path": "email.rfc822.email.rfc822"
           },
           {
@@ -1338,7 +1502,7 @@
             "path": "email.rfc822.unknown_text_plain_001.txt"
           },
           {
-            "observable": 2,
+            "observable": 3,
             "path": "email.rfc822.headers"
           },
           {
@@ -1426,7 +1590,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 06:00:17.678859 +0000",
+              "date": "2026-11-21 14:46:52.674013 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -1483,146 +1647,33 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "text/html",
+              "path": "email.rfc822.unknown_text_html_000.html",
+              "role": "body"
+            },
+            {
+              "content_type": "message/rfc822",
+              "path": "email.rfc822.email.rfc822",
+              "role": "attachment"
+            },
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_001.txt",
+              "role": "body"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 18,
+        "observable": 24,
         "summary": "Email Analysis: From Pat <pat@corp.example> To abuse@corp.example Subject FW: Your account is locked",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 18,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 18,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 13
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "mailer.corp.example"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 21,
-        "summary": "Email Address FQDN: mailer.corp.example",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 22,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 22,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 23,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 23,
-        "summary": null,
         "tags": []
       },
       {

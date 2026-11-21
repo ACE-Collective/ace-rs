@@ -24,7 +24,7 @@ pub fn proxy_domain_lookup(base_url: &str) -> Value {
         "request_timeout_seconds": 10,
         "question": "Was this domain seen in proxy logs?",
         "summary": "Proxy correlation",
-        "query": "index=network_proxy_web (transport=HTTPS OR transport=HTTP) hostname=\"<O_VALUE>\"\n| eval full_url = lower(transport) . \"://\" . url\n",
+        "query": "index=proxy (transport=HTTPS OR transport=HTTP) hostname=\"<O_VALUE>\"\n| eval full_url = lower(transport) . \"://\" . url\n",
         "valid_observable_types": ["fqdn"],
         "observable_mapping": [
             {"field": "src_ip", "type": "ip", "display_type": "Source IP"},

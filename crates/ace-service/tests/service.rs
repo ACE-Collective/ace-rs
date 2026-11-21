@@ -1967,9 +1967,7 @@ async fn archived(
         .seed(&ace_core::email_archive::Seed {
             email,
             message_id,
-            recipients: &["bob@example.com"],
             insert_date: chrono::Utc::now().naive_utc(),
-            urls: &[],
         })
         .await
         .expect("archives")
@@ -16060,6 +16058,44 @@ async fn remediations_and_collections_list_through_their_screens_filters() {
     );
     assert_eq!(coverage[&other].state(), CoverageState::None);
 
+    // a delivery tag on the alert's observable explains a removal that found nothing (ace3's
+    // 1b4077d1): the distribution list is shown with why and left out of the counts
+    let listed = alert(db).await;
+    let mut tx = db.begin().await.expect("begins");
+    tree::upsert_observable(
+        &mut tx,
+        listed,
+        &NewObservable::new(ObservableKind::EmailDelivery, "<a@b>|x@example.com"),
+    )
+    .await
+    .expect("adds");
+    let mut dl = NewObservable::new(ObservableKind::EmailDelivery, "<a@b>|dl@example.com");
+    dl.tags.push("delivery_expanded".to_owned());
+    tree::upsert_observable(&mut tx, listed, &dl)
+        .await
+        .expect("adds");
+    tx.commit().await.expect("commits");
+    sqlx::query(
+        "INSERT INTO queue.actions (kind, handler, observable_type, observable_value, action, status, result)
+         VALUES ('remediation', 'test', 'email_delivery', '<a@b>|dl@example.com', 'remove', 'COMPLETED', 'FAILED')",
+    )
+    .execute(db.pool())
+    .await
+    .expect("a removal that failed");
+    let coverage = service
+        .remediation_coverage(&actor, &[listed])
+        .await
+        .expect("reads");
+    assert_eq!(coverage[&listed].state(), CoverageState::Remediated);
+    assert_eq!(coverage[&listed].label(), "remediated 1/1 · ACE");
+    assert!(
+        coverage[&listed]
+            .tooltip()
+            .contains("dl@example.com: distribution list"),
+        "{}",
+        coverage[&listed].tooltip()
+    );
+
     // the file collections, and the alerts each belongs to
     let shared = collection(db, Some(root), "h@C:\\x.exe").await;
     assert_eq!(
@@ -16137,6 +16173,71 @@ fn ace(action: &str, status: &str, result: Option<&str>) -> ace_service::Coverag
     }
 }
 
+/// ace3's #1199 cases of `test_coverage.py` (1b4077d1, 0b42ba1e): an address the journal shows didn't
+/// receive its own copy, whose removal found nothing the journal explains, is shown with why and left
+/// out of the counts; while it's pending or once it's remediated it counts.
+#[test]
+fn coverage_leaves_out_what_the_journal_explains() {
+    use ace_results::types::email::DeliveryReason::{Expanded, Forwarded, NotJournaled};
+    use ace_service::journal_explains;
+    for (reason, result, explains) in [
+        (None, "NOT_FOUND", false),
+        (Some(Expanded), "SUCCESS", false),
+        (Some(Expanded), "FAILED", true),
+        (Some(Expanded), "ERROR", true),
+        (Some(Forwarded), "FAILED", true),
+        (Some(Forwarded), "NOT_FOUND", true),
+        (Some(Forwarded), "ERROR", false),
+        (Some(NotJournaled), "NOT_FOUND", true),
+        (Some(NotJournaled), "FAILED", false),
+        (Some(NotJournaled), "ERROR", false),
+    ] {
+        assert_eq!(
+            journal_explains(reason, Some(result)),
+            explains,
+            "{reason:?} {result}"
+        );
+    }
+    let (alice, dl) = (
+        "<msg-1@example.com>|alice@example.com",
+        "<msg-1@example.com>|dl@example.com",
+    );
+    let values = BTreeSet::from([alice.to_owned(), dl.to_owned()]);
+    let assemble = |dl_row: ace_service::CoverageRemediation, reason| {
+        let rows = std::collections::BTreeMap::from([
+            (
+                alice.to_owned(),
+                vec![ace("remove", "COMPLETED", Some("SUCCESS"))],
+            ),
+            (dl.to_owned(), vec![dl_row]),
+        ]);
+        ace_service::assemble_coverage(
+            values.clone(),
+            &rows,
+            &[],
+            std::collections::BTreeMap::from([(dl.to_owned(), reason)]),
+        )
+    };
+    let listed = assemble(ace("remove", "COMPLETED", Some("FAILED")), Expanded);
+    assert_eq!(listed.state(), CoverageState::Remediated);
+    assert_eq!(listed.status_label(), "remediated 1/1");
+    assert!(
+        listed.tooltip().contains(
+            "dl@example.com: distribution list; its members' copies are their own deliveries"
+        ),
+        "{}",
+        listed.tooltip()
+    );
+    let unjournaled = assemble(ace("remove", "COMPLETED", Some("FAILED")), NotJournaled);
+    assert_eq!(unjournaled.state(), CoverageState::Failed);
+    for row in [
+        ace("remove", "IN_PROGRESS", None),
+        ace("remove", "COMPLETED", Some("SUCCESS")),
+    ] {
+        assert_eq!(assemble(row, Forwarded).total(), 2);
+    }
+}
+
 /// ace3's `tests/saq/remediation/test_coverage.py` cases, over rows rather than ORM objects.
 #[test]
 fn coverage_sums_up_as_ace3_s() {
@@ -16145,6 +16246,7 @@ fn coverage_sums_up_as_ace3_s() {
         values(&["<a>|x@y"]),
         &std::collections::BTreeMap::new(),
         &[],
+        Default::default(),
     );
     assert_eq!(none.state(), CoverageState::None);
     assert!(!none.visible());
@@ -16154,7 +16256,7 @@ fn coverage_sums_up_as_ace3_s() {
         "<a>|x@y".to_owned(),
         vec![ace("remove", "COMPLETED", Some("SUCCESS"))],
     );
-    let done = ace_service::assemble_coverage(values(&["<a>|x@y"]), &rows, &[]);
+    let done = ace_service::assemble_coverage(values(&["<a>|x@y"]), &rows, &[], Default::default());
     assert_eq!(done.state(), CoverageState::Remediated);
     assert_eq!(done.label(), "remediated 1/1 · ACE");
     assert_eq!(done.tooltip(), "x@y: ACE");
@@ -16163,7 +16265,12 @@ fn coverage_sums_up_as_ace3_s() {
     rows.get_mut("<a>|x@y")
         .expect("a row")
         .push(ace("restore", "COMPLETED", Some("SUCCESS")));
-    let restored = ace_service::assemble_coverage(values(&["<a>|x@y", "<b>|z@y"]), &rows, &[]);
+    let restored = ace_service::assemble_coverage(
+        values(&["<a>|x@y", "<b>|z@y"]),
+        &rows,
+        &[],
+        Default::default(),
+    );
     assert_eq!(restored.state(), CoverageState::Unremediated);
     assert_eq!(restored.status_label(), "not remediated 0/2");
 
@@ -16181,6 +16288,7 @@ fn coverage_sums_up_as_ace3_s() {
         values(&["<b>|z@y"]),
         &std::collections::BTreeMap::new(),
         &[check("<b>|z@y", "NEW", None, None)],
+        Default::default(),
     );
     assert_eq!(watching.state(), CoverageState::Pending);
     assert_eq!(watching.status_label(), "watching 0/1");
@@ -16197,6 +16305,7 @@ fn coverage_sums_up_as_ace3_s() {
             Some("CONFIRMED"),
             Some(events),
         )],
+        Default::default(),
     );
     assert_eq!(partial.state(), CoverageState::Partial);
     assert_eq!(partial.label(), "remediated 1/2 · MailVendor");
@@ -16207,7 +16316,8 @@ fn coverage_sums_up_as_ace3_s() {
         vec![ace("remove", "COMPLETED", Some("ERROR"))],
     );
     assert_eq!(
-        ace_service::assemble_coverage(values(&["<c>|w@y"]), &failed, &[]).state(),
+        ace_service::assemble_coverage(values(&["<c>|w@y"]), &failed, &[], Default::default())
+            .state(),
         CoverageState::Failed
     );
     let mut missing = std::collections::BTreeMap::new();
@@ -16215,7 +16325,8 @@ fn coverage_sums_up_as_ace3_s() {
         "<c>|w@y".to_owned(),
         vec![ace("remove", "COMPLETED", Some("NOT_FOUND"))],
     );
-    let not_found = ace_service::assemble_coverage(values(&["<c>|w@y"]), &missing, &[]);
+    let not_found =
+        ace_service::assemble_coverage(values(&["<c>|w@y"]), &missing, &[], Default::default());
     assert_eq!(not_found.state(), CoverageState::NotFound);
     assert_eq!(not_found.label(), "not in mailbox 1/1");
     let mut pending = std::collections::BTreeMap::new();
@@ -16224,7 +16335,8 @@ fn coverage_sums_up_as_ace3_s() {
         vec![ace("remove", "IN_PROGRESS", Some("DELAYED"))],
     );
     assert_eq!(
-        ace_service::assemble_coverage(values(&["<c>|w@y"]), &pending, &[]).status_label(),
+        ace_service::assemble_coverage(values(&["<c>|w@y"]), &pending, &[], Default::default())
+            .status_label(),
         "remediating 0/1"
     );
     let superseded = ace_service::CoverageCheck {
@@ -16238,7 +16350,8 @@ fn coverage_sums_up_as_ace3_s() {
         ace_service::assemble_coverage(
             values(&["<c>|w@y"]),
             &std::collections::BTreeMap::new(),
-            &[superseded]
+            &[superseded],
+            Default::default()
         )
         .label(),
         "remediated 1/1 · msmail_filter"
@@ -16248,6 +16361,7 @@ fn coverage_sums_up_as_ace3_s() {
         many.iter().cloned().collect(),
         &std::collections::BTreeMap::new(),
         &[check("<m>|u0@y", "NEW", None, None)],
+        Default::default(),
     );
     assert!(
         many.tooltip().ends_with("... and 5 more"),
@@ -49767,7 +49881,6 @@ mod ai_tests {
             "service.groups",
             "service.saved_filters",
             "email_archive.archive",
-            "email_archive.email_history",
             "store.objects",
             "lists.entries",
             "queue.tasks",

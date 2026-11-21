@@ -1136,14 +1136,15 @@ pub async fn observables_below(
 /// through the results that added it, by any route, to the nearest email result that parsed a
 /// message. A result lands after the one that added what it analyzed, so the highest id is the
 /// nearest. None means no email carried it; otherwise the email's text and HTML body parts, in the
-/// order its result added them (ace3's `EmailAnalysis.body_parts`), which an email without a text
-/// part has none of.
+/// order they were extracted (ace3's `EmailAnalysis.body_parts`), which an email without a text
+/// part has none of: the parts its result records, or, for a result made before it recorded them,
+/// the files named as body parts.
 pub async fn carrying_email(
     pool: &PgPool,
     root: Uuid,
     observable: ObservableId,
 ) -> Result<Option<Vec<EmailBodyFile>>, DbError> {
-    let email = sqlx::query_scalar!(
+    let email = sqlx::query!(
         r#"WITH RECURSIVE ancestors (observable_id) AS (
                SELECT $2::bigint
                UNION
@@ -1153,7 +1154,7 @@ pub async fn carrying_email(
                  ON a.root_id = $1 AND a.observable_id = ancestors.observable_id
                JOIN analysis.results r ON r.id = a.result_id
            )
-           SELECT r.id AS "id: ResultId"
+           SELECT r.id AS "id!: ResultId", r.details -> 'parts' AS parts
            FROM ancestors
            JOIN analysis.result_additions a
              ON a.root_id = $1 AND a.observable_id = ancestors.observable_id
@@ -1170,6 +1171,13 @@ pub async fn carrying_email(
     let Some(email) = email else {
         return Ok(None);
     };
+    let parts: Option<Vec<ace_results::types::email::EmailPart>> = email
+        .parts
+        .filter(|parts| !parts.is_null())
+        .map(serde_json::from_value)
+        .transpose()
+        .map_err(|e| DbError::Decode(format!("an email result's parts: {e}")))?;
+    let email = email.id;
     let files = sqlx::query!(
         r#"SELECT a.path AS "path!", o.value
            FROM analysis.result_additions a
@@ -1180,12 +1188,9 @@ pub async fn carrying_email(
     )
     .fetch_all(pool)
     .await?;
-    let names: Vec<&str> = files
-        .iter()
-        .map(|file| file.path.rsplit('/').next().unwrap_or_default())
-        .collect();
+    let paths: Vec<&str> = files.iter().map(|file| file.path.as_str()).collect();
     Ok(Some(
-        EmailAnalysis::body_parts_of(&names)
+        EmailAnalysis::body_parts_in(parts.as_deref(), &paths)
             .into_iter()
             .map(|(index, html)| EmailBodyFile {
                 path: files[index].path.clone(),

@@ -1,12 +1,24 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "email_analyzer",
     "file_type",
     "url_extraction"
   ],
   "analyses": [
+    {
+      "class": "EmailArchiveResults",
+      "details": {
+        "hash": "5d2569cdbe088294e456effabcfd8362108468f12deaf6464f95bc5400f85874",
+        "message_id": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.archive:EmailArchiveResults",
+      "observables": [],
+      "summary": "Archived Email: 5d2569cdbe088294e456effabcfd8362108468f12deaf6464f95bc5400f85874",
+      "tags": []
+    },
     {
       "class": "EmailAnalysis",
       "details": {
@@ -299,7 +311,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 06:04:33.950461 +0000",
+            "date": "2026-11-21 14:50:42.221122 +0000",
             "dkim_result": "fail",
             "dmarc_result": "fail",
             "env_mail_from": null,
@@ -403,7 +415,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "text/html",
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -595,14 +619,20 @@
     }
   ],
   "email_archive_after": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [
+      {
+        "digest": "5d2569cdbe088294e456effabcfd8362108468f12deaf6464f95bc5400f85874",
+        "insert_date": "2026-11-21 14:50:42",
+        "message_id_hash": "7A58ECFA782925AC40D04633B859B207AF8607F53EAF3AC5F08E4556D3BAF247"
+      }
+    ],
+    "pool": [
+      "5d2569cdbe088294e456effabcfd8362108468f12deaf6464f95bc5400f85874"
+    ]
   },
   "email_archive_before": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [],
+    "pool": []
   },
   "email_archive_reads": [],
   "input": {
@@ -654,41 +684,6 @@
     "observables": [
       {
         "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 12476,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "5c0125d3a06c99c65c8fc13de8a8e91987b176e5f043b8b017b3bd020e037bc2"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "test canary #1"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "unixfreak0037@gmail.com"
-      },
-      {
-        "detections": [],
         "directives": [
           "archive"
         ],
@@ -707,41 +702,6 @@
         ],
         "type": "file",
         "value": "5d2569cdbe088294e456effabcfd8362108468f12deaf6464f95bc5400f85874"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "unixfreak0037@gmail.com|john.davison@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 266,
-        "tags": [],
-        "type": "file",
-        "value": "15a7537dedc7a56b45959da8c1f68a53eb2d2808dafc09c040eb40e5d0b5a1c2"
       },
       {
         "detections": [],
@@ -775,6 +735,33 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "email_subject",
+        "value": "test canary #1"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 266,
+        "tags": [],
+        "type": "file",
+        "value": "15a7537dedc7a56b45959da8c1f68a53eb2d2808dafc09c040eb40e5d0b5a1c2"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "email_dkim_signing_domain",
         "value": "gmail.com"
       },
@@ -783,7 +770,42 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "email_conversation",
+        "value": "unixfreak0037@gmail.com|john.davison@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 12476,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "5c0125d3a06c99c65c8fc13de8a8e91987b176e5f043b8b017b3bd020e037bc2"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "email_from",
+        "value": "unixfreak0037@gmail.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
         "value": "unixfreak0037@gmail.com"
       },
       {
@@ -813,72 +835,69 @@
         "tags": [],
         "type": "file",
         "value": "811f5117e3a51ac9a95f89eeb50c6c0c7c59387f931d909b780f644c956bb5ea"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>"
       }
     ],
     "results": [
       {
         "added": [],
-        "class": "FileTypeAnalysis",
+        "class": "EmailArchiveResults",
         "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with very long lines (3316)"
+          "hash": "5d2569cdbe088294e456effabcfd8362108468f12deaf6464f95bc5400f85874",
+          "message_id": null
         },
-        "module": "file_type",
+        "module": "email_archiver",
         "observable": 0,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (3316) (message/rfc822) (email)",
+        "summary": "Archived Email: 5d2569cdbe088294e456effabcfd8362108468f12deaf6464f95bc5400f85874",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 10
-          },
-          {
-            "observable": 7
-          },
-          {
-            "observable": 5
+            "observable": 8
           },
           {
             "observable": 1
           },
           {
-            "observable": 4
+            "observable": 6
           },
           {
-            "observable": 2
+            "observable": 3
+          },
+          {
+            "observable": 12
           },
           {
             "observable": 9
           },
           {
-            "observable": 11
+            "observable": 5
           },
           {
-            "observable": 6,
+            "observable": 10
+          },
+          {
+            "observable": 4,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 12,
+            "observable": 11,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 0,
+            "observable": 7,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 8,
+            "observable": 2,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1173,7 +1192,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 06:04:33.950461 +0000",
+              "date": "2026-11-21 14:50:42.221122 +0000",
               "dkim_result": "fail",
               "dmarc_result": "fail",
               "env_mail_from": null,
@@ -1277,10 +1296,22 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "text/html",
+              "path": "email.rfc822.unknown_text_html_000.html",
+              "role": "body"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 3,
+        "observable": 0,
         "summary": "Email Analysis: From John Davison <unixfreak0037@gmail.com> To \"Davison, John\" <John.Davison@company.com> Subject test canary #1",
         "tags": []
       },
@@ -1303,8 +1334,31 @@
           "type": "RFC 822 mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 3,
+        "observable": 0,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with very long lines (3316)"
+        },
+        "module": "file_type",
+        "observable": 2,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (3316) (message/rfc822) (email)",
         "tags": []
       },
       {
@@ -1326,7 +1380,7 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 6,
+        "observable": 4,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
@@ -1338,7 +1392,7 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 6,
+        "observable": 4,
         "summary": null,
         "tags": []
       },
@@ -1361,7 +1415,7 @@
           "type": "RFC 822 mail, ASCII text, with very long lines (3316)"
         },
         "module": "file_type",
-        "observable": 8,
+        "observable": 7,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (3316) (message/rfc822) (email)",
         "tags": []
       },
@@ -1384,7 +1438,7 @@
           "type": "HTML document, ASCII text"
         },
         "module": "file_type",
-        "observable": 12,
+        "observable": 11,
         "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
         "tags": []
       },
@@ -1396,7 +1450,7 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 12,
+        "observable": 11,
         "summary": null,
         "tags": []
       }

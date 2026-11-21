@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -151,7 +151,7 @@
             "cc": [],
             "compauth_reason": "000",
             "compauth_result": "fail",
-            "date": "2026-11-18 05:51:13.168183 +0000",
+            "date": "2026-11-21 14:38:01.346437 +0000",
             "dkim_result": "none",
             "dmarc_result": "fail",
             "env_mail_from": null,
@@ -211,7 +211,14 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -439,24 +446,27 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "ceo@company.com"
+        "type": "email_subject",
+        "value": "Task Submission Confirmation"
       },
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_first_hop_helo",
-        "value": "203.0.113.10"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "ceo@company.com|user@company.com"
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 1182,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "40d9aecb6fd9faa25e4d25dc16838dcc526fb237d5689ed8170f9b34427aa10c"
       },
       {
         "detections": [],
@@ -479,29 +489,26 @@
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 57,
+        "directives": [],
+        "paths": [],
         "tags": [],
-        "type": "file",
-        "value": "338f9994f1661eb65a7f1ec035b91edd5dcd1d76ef4100f4ec044cf48319b798"
+        "type": "fqdn",
+        "value": "company.com"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_first_hop_ip",
+        "type": "email_from",
+        "value": "ceo@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_first_hop_helo",
         "value": "203.0.113.10"
       },
       {
@@ -509,8 +516,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "fqdn",
-        "value": "company.com"
+        "type": "message_id",
+        "value": "<direct-send-spoof-test@company.com>"
       },
       {
         "detections": [],
@@ -545,51 +552,76 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "message_id",
-        "value": "<direct-send-spoof-test@company.com>"
+        "type": "email_first_hop_ip",
+        "value": "203.0.113.10"
       },
       {
         "detections": [],
-        "directives": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
         "paths": [
           {
-            "path": "email.rfc822.combined",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
             "yara_meta": [
-              "type=email",
-              "type=email.combined"
+              "type=email.attachment"
             ]
           }
         ],
-        "size": 1182,
-        "tags": [
-          "email"
-        ],
+        "size": 57,
+        "tags": [],
         "type": "file",
-        "value": "40d9aecb6fd9faa25e4d25dc16838dcc526fb237d5689ed8170f9b34427aa10c"
+        "value": "338f9994f1661eb65a7f1ec035b91edd5dcd1d76ef4100f4ec044cf48319b798"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_subject",
-        "value": "Task Submission Confirmation"
+        "type": "email_conversation",
+        "value": "ceo@company.com|user@company.com"
       }
     ],
     "results": [
       {
-        "added": [
-          {
-            "observable": 6
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
+        "added": [],
+        "class": "FileTypeAnalysis",
         "details": {
-          "domain": "company.com"
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 0,
-        "summary": "Email Address FQDN: company.com",
+        "module": "file_type",
+        "observable": 1,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 1,
+        "summary": null,
         "tags": []
       },
       {
@@ -611,7 +643,7 @@
           "type": "RFC 822 mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 3,
+        "observable": 2,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -628,60 +660,29 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 3,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 4,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 4,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "NetworkIdentifierAnalysis",
-        "details": {
-          "identified_networks": []
-        },
-        "module": "network_identifier",
-        "observable": 5,
+        "observable": 2,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 6
+            "observable": 3
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "company.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 4,
+        "summary": "Email Address FQDN: company.com",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 3
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -696,16 +697,19 @@
       {
         "added": [
           {
-            "observable": 0
+            "observable": 4
           },
           {
             "observable": 7
           },
           {
-            "observable": 2
+            "observable": 11
           },
           {
-            "observable": 11
+            "observable": 0
+          },
+          {
+            "observable": 6
           },
           {
             "observable": 9
@@ -714,18 +718,15 @@
             "observable": 5
           },
           {
-            "observable": 1
-          },
-          {
-            "observable": 4,
+            "observable": 10,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 3,
+            "observable": 2,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 10,
+            "observable": 1,
             "path": "email.rfc822.combined"
           }
         ],
@@ -831,7 +832,7 @@
               "cc": [],
               "compauth_reason": "000",
               "compauth_result": "fail",
-              "date": "2026-11-18 05:51:13.168183 +0000",
+              "date": "2026-11-21 14:38:01.346437 +0000",
               "dkim_result": "none",
               "dmarc_result": "fail",
               "env_mail_from": null,
@@ -891,7 +892,14 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            }
+          ]
         },
         "module": "email_analyzer",
         "observable": 8,
@@ -940,9 +948,20 @@
       },
       {
         "added": [],
+        "class": "NetworkIdentifierAnalysis",
+        "details": {
+          "identified_networks": []
+        },
+        "module": "network_identifier",
+        "observable": 9,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
         "class": "FileTypeAnalysis",
         "details": {
-          "is_email_file": true,
+          "is_email_file": false,
           "is_jar_file": false,
           "is_lnk_file": false,
           "is_office_document": false,
@@ -953,27 +972,22 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text"
+          "mime": "text/plain",
+          "type": "ASCII text"
         },
         "module": "file_type",
         "observable": 10,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
         "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
+        "class": "URLExtractionAnalysis",
         "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
+          "urls": [],
+          "urls_grouped_by_domain": {}
         },
-        "module": "html_js_extraction",
+        "module": "url_extraction",
         "observable": 10,
         "summary": null,
         "tags": []

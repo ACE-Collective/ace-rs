@@ -369,7 +369,14 @@
               ]
             },
             "extraction_errors": [],
-            "parsing_error": null
+            "parsing_error": null,
+            "parts": [
+              {
+                "content_type": "application/octet-stream",
+                "path": "invoice.docx",
+                "role": "attachment"
+              }
+            ]
           },
           "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
           "tags": {}
@@ -555,39 +562,6 @@
       },
       "tags": {}
     },
-    "file:30160f82b827a977e679315b8e053c3eb30fce0f5dd1777e3210046bcedf0806": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:331bbc4db116c378b57566005a5070982edc6206e29d7dd45e87603efe32936a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:308e07d8f89be40a09ef8e26d9606ce890555e22502413ce9249d5f153fbd9d4": {
       "detections": {},
       "directives": {
@@ -680,9 +654,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 03:55:43+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 03:55:43+00:00",
-              "File:FileModifyDate": "2026:11:18 03:55:43+00:00",
+              "File:FileAccessDate": "2026:11:21 12:02:10+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 12:02:10+00:00",
+              "File:FileModifyDate": "2026:11:21 12:02:10+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -841,6 +815,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:9a42d1941becb986282162b4457bfef64ef8b854dc84e23102421c709e7c3769": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:331bbc4db116c378b57566005a5070982edc6206e29d7dd45e87603efe32936a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

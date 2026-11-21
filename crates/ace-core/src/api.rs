@@ -515,6 +515,10 @@ impl Api {
             .route("/api/worker/v1/actions/{id}/renew", post(renew_action))
             .route("/api/worker/v1/actions/{id}/upload", post(upload_action))
             .route(
+                "/api/worker/v1/actions/{id}/removal-covers",
+                post(removal_covers),
+            )
+            .route(
                 "/api/worker/v1/actions/{id}/end",
                 post(end_action).layer(axum::extract::DefaultBodyLimit::max(MAX_ACTION_END_BYTES)),
             )
@@ -1658,20 +1662,13 @@ impl Api {
                     for file in files {
                         bucket.put_in(tx, ALERT_FILES, file, Some(hold)).await?;
                     }
-                    let applied = crate::writes::apply(tx, stores, task, writes).await?;
-                    // the archive's id, which only the core knows, goes in the archiver's result
-                    let mut result = std::borrow::Cow::Borrowed(result);
-                    if let Some(archive_id) = applied.archive_id
-                        && let Some(details) = result.to_mut().details.as_object_mut()
-                    {
-                        details.insert("archive_id".to_owned(), archive_id.into());
-                    }
+                    crate::writes::apply(tx, stores, task, writes).await?;
                     orchestrator
                         .land_ending(
                             tx,
                             worker,
                             task,
-                            &result,
+                            result,
                             probes,
                             !writes.is_empty(),
                             incomplete,
@@ -2335,6 +2332,20 @@ async fn upload_action(
         .await
         .map_err(BucketError::from)?;
     Ok(Json(wire_presigned(presigned)))
+}
+
+/// Whether the remediation's own handler's latest remediation of another key, of the action's type,
+/// covers the message: ace3's `removal_covers`, which a remediator asks while it tries.
+async fn removal_covers(
+    State(api): State<Api>,
+    Path(id): Path<i64>,
+    headers: HeaderMap,
+    body: Result<Json<ace_sdk::actions::RemovalCoversRequest>, JsonRejection>,
+) -> Result<Json<ace_sdk::actions::RemovalCoversAnswer>, Failure> {
+    let Json(request) = body.map_err(|e| Failure::BadRequest(e.body_text()))?;
+    let (worker, _) = api.action_worker(&headers, None)?;
+    let covers = worker.removal_covers(id, &request.observable_value).await?;
+    Ok(Json(ace_sdk::actions::RemovalCoversAnswer { covers }))
 }
 
 /// How a try of an action went. A collected file is fetched from its upload and checked before the

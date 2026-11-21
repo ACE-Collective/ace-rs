@@ -1,23 +1,21 @@
 //! The email archive (PLAN.md 7.5 batch 9): ace3's `saq/email_archive/`, which keeps every email its
-//! `email_archiver` module archives, encrypted, findable by its Message-ID and the URLs below it, for
-//! `message_id_analyzer_v2` to pull back into another alert, `url_email_pivot_analyzer` to count, and
-//! the `email` API router to serve.
+//! `email_archiver` module archives, encrypted, findable by its Message-ID, for
+//! `message_id_analyzer_v2` to pull back into another alert and the `email` API router to serve.
 //!
 //! **Where it lives.** An archived email is one object in the bucket's `email_archive` pool: the
-//! email's bytes gzipped and then encrypted with ACE's key (`seal`). Migration 0041's tables find it:
-//! `archive` names the object by the email's SHA-256 and when it was archived, `archive_index` by the
-//! SHA-256 of its normalized Message-ID and of each URL below it, and `email_history` lists its
-//! envelope recipients, all as ace3's `email-archive` database has them. ace3 writes the file under
-//! its node's data directory and the rows in MySQL; one bucket is every node's here, so ace3's
-//! `archive_server` table and its hostname in the path go.
+//! email's bytes gzipped and then encrypted with ACE's key (`seal`). One table finds it, as ace3's
+//! `archived_messages` does since its 4f1fa192: each row of `email_archive.archive` (migration 0041,
+//! cut down by 0079) is the SHA-256 of a normalized Message-ID, the SHA-256 of the email's bytes
+//! (ace3's digest), the object and when it was archived. ace3 dropped its URL index, its
+//! `email_history` and its `archive_server` registration, and ace4 dropped the first two with it; one
+//! bucket is every node's here, so there never was a server.
 //!
 //! **How it's encrypted.** AES-256-GCM, as ace3's `saq.crypto`, under a 32-byte key the core reads
 //! from `ACE4_ENCRYPTION_KEY` (64 hex digits) and nothing else holds: workers never see it, since
 //! the core seals and opens for them (`reads.md`). The core writes ace3's `v1` layout, `ACE-GCM`, a
 //! version byte, an 8-byte key id, the plaintext's size and the nonce, all authenticated, with the
-//! tag at the end; it reads that and ace3's older `v0`, which ace3 still writes for its email archive,
-//! so a `.gz.e` file from ace3's archive opens with ace3's key. Nothing is released before the tag
-//! verifies. Without a key the core archives and opens nothing, and says so.
+//! tag at the end, and reads only that. Nothing is released before the tag verifies. Without a key
+//! the core archives and opens nothing, and says so.
 //!
 //! **Bounds.** ace3 streams and sets no size limit. Here sealing and opening are in memory, so an
 //! email is archived and opened only up to `MAX_EMAIL_BYTES`, and a gunzip stops past it.
@@ -50,10 +48,6 @@ pub mod partitions;
 pub const EMAIL_ARCHIVE: &str = "email_archive";
 /// The largest email the core archives or opens, and the most a gunzip writes.
 pub const MAX_EMAIL_BYTES: u64 = 64 * 1024 * 1024;
-/// The most URLs indexed for one archived email. ace3 indexes every one.
-pub const MAX_URLS_PER_EMAIL: i64 = 10_000;
-/// The most recipients one archive records.
-pub const MAX_RECIPIENTS: usize = 1000;
 /// The kind of the hold an archive's row keeps on its object.
 pub const HOLD_KIND: &str = "email_archive";
 
@@ -62,7 +56,6 @@ const FORMAT_V1: u8 = 1;
 const NONCE_SIZE: usize = 12;
 const TAG_SIZE: usize = 16;
 const KEY_ID_SIZE: usize = 8;
-const V0_HEADER: usize = 8 + NONCE_SIZE;
 const V1_HEADER: usize = MAGIC.len() + 1 + KEY_ID_SIZE + 8 + NONCE_SIZE;
 
 /// ACE's encryption key: 32 bytes, which only the core holds.
@@ -108,13 +101,11 @@ impl ArchiveKey {
 }
 
 /// The archive's settings: `ACE4_ENCRYPTION_KEY`, and ace3's `email_archive.partition_retention_days`
-/// and `email_history_retention_days` in `ACE4_EMAIL_ARCHIVE_RETENTION_DAYS` and
-/// `ACE4_EMAIL_HISTORY_RETENTION_DAYS`, 30 each by default.
+/// in `ACE4_EMAIL_ARCHIVE_RETENTION_DAYS`, 30 by default.
 #[derive(Debug, Clone)]
 pub struct ArchiveConfig {
     pub key: Option<ArchiveKey>,
     pub retention_days: u32,
-    pub history_retention_days: u32,
 }
 
 impl Default for ArchiveConfig {
@@ -122,7 +113,6 @@ impl Default for ArchiveConfig {
         ArchiveConfig {
             key: None,
             retention_days: 30,
-            history_retention_days: 30,
         }
     }
 }
@@ -136,22 +126,13 @@ impl ArchiveConfig {
         {
             config.key = Some(ArchiveKey::from_hex(&key)?);
         }
-        for (var, field) in [
-            (
-                "ACE4_EMAIL_ARCHIVE_RETENTION_DAYS",
-                &mut config.retention_days,
-            ),
-            (
-                "ACE4_EMAIL_HISTORY_RETENTION_DAYS",
-                &mut config.history_retention_days,
-            ),
-        ] {
-            if let Ok(days) = std::env::var(var) {
-                *field =
-                    days.parse::<u32>().ok().filter(|d| *d > 0).ok_or_else(|| {
-                        format!("{var} must be a whole number of days, not {days:?}")
-                    })?;
-            }
+        let var = "ACE4_EMAIL_ARCHIVE_RETENTION_DAYS";
+        if let Ok(days) = std::env::var(var) {
+            config.retention_days = days
+                .parse::<u32>()
+                .ok()
+                .filter(|d| *d > 0)
+                .ok_or_else(|| format!("{var} must be a whole number of days, not {days:?}"))?;
         }
         Ok(config)
     }
@@ -208,60 +189,50 @@ pub fn encrypt(key: &ArchiveKey, plaintext: &[u8]) -> Result<Vec<u8>, String> {
     Ok(out)
 }
 
-/// Decrypts ace3's `v0` or `v1` layout, as `saq.crypto.decrypt_stream` tells them apart. Nothing is
-/// returned unless the tag verifies.
+/// Decrypts ace3's `v1` layout. Nothing is returned unless the tag verifies.
 pub fn decrypt(key: &ArchiveKey, data: &[u8]) -> Result<Vec<u8>, String> {
-    let v1 = data.len() > MAGIC.len() && data.starts_with(MAGIC) && data[MAGIC.len()] != 0;
-    let (header_len, aad, expected_size): (usize, &[u8], Option<u64>) = if v1 {
-        let version = data[MAGIC.len()];
-        if version != FORMAT_V1 {
-            return Err(format!(
-                "unsupported encrypted file format version {version}"
-            ));
-        }
-        if data.len() < V1_HEADER {
-            return Err("encrypted data is truncated (shorter than a v1 header)".to_owned());
-        }
-        let key_id = &data[MAGIC.len() + 1..MAGIC.len() + 1 + KEY_ID_SIZE];
-        if key_id != key.id() {
-            return Err(format!(
-                "data was encrypted with key {} but the loaded key is {}",
-                hex::encode(key_id),
-                hex::encode(key.id())
-            ));
-        }
-        let size_at = MAGIC.len() + 1 + KEY_ID_SIZE;
-        let size = u64::from_le_bytes(data[size_at..size_at + 8].try_into().expect("8 bytes"));
-        (V1_HEADER, &data[..V1_HEADER], Some(size))
-    } else {
-        if data.len() < V0_HEADER {
-            return Err("encrypted data is truncated (shorter than a v0 header)".to_owned());
-        }
-        // v0's size field isn't authenticated and isn't used, as in ace3
-        (V0_HEADER, &[][..], None)
-    };
-    if data.len() < header_len + TAG_SIZE {
+    if data.len() <= MAGIC.len() || !data.starts_with(MAGIC) {
+        return Err("not an encrypted file in the v1 layout".to_owned());
+    }
+    let version = data[MAGIC.len()];
+    if version != FORMAT_V1 {
+        return Err(format!(
+            "unsupported encrypted file format version {version}"
+        ));
+    }
+    if data.len() < V1_HEADER {
+        return Err("encrypted data is truncated (shorter than a v1 header)".to_owned());
+    }
+    let key_id = &data[MAGIC.len() + 1..MAGIC.len() + 1 + KEY_ID_SIZE];
+    if key_id != key.id() {
+        return Err(format!(
+            "data was encrypted with key {} but the loaded key is {}",
+            hex::encode(key_id),
+            hex::encode(key.id())
+        ));
+    }
+    let size_at = MAGIC.len() + 1 + KEY_ID_SIZE;
+    let expected_size = u64::from_le_bytes(data[size_at..size_at + 8].try_into().expect("8 bytes"));
+    if data.len() < V1_HEADER + TAG_SIZE {
         return Err("encrypted data is truncated (no authentication tag)".to_owned());
     }
-    let nonce: [u8; NONCE_SIZE] = data[header_len - NONCE_SIZE..header_len]
+    let nonce: [u8; NONCE_SIZE] = data[V1_HEADER - NONCE_SIZE..V1_HEADER]
         .try_into()
         .expect("12 bytes");
     let tag_at = data.len() - TAG_SIZE;
     let tag: [u8; TAG_SIZE] = data[tag_at..].try_into().expect("16 bytes");
-    let mut body = data[header_len..tag_at].to_vec();
+    let mut body = data[V1_HEADER..tag_at].to_vec();
     key.cipher()
         .decrypt_inout_detached(
             (&nonce).into(),
-            aad,
+            &data[..V1_HEADER],
             body.as_mut_slice().into(),
             (&tag).into(),
         )
         .map_err(|_| "authentication tag verification failed".to_owned())?;
-    if let Some(size) = expected_size
-        && size != body.len() as u64
-    {
+    if expected_size != body.len() as u64 {
         return Err(format!(
-            "decrypted {} bytes but the header says {size}",
+            "decrypted {} bytes but the header says {expected_size}",
             body.len()
         ));
     }
@@ -336,7 +307,6 @@ pub struct Prepared {
     hash: Vec<u8>,
     object: PreparedObject,
     message_id: String,
-    recipients: Vec<String>,
     root: Uuid,
     observable: i64,
 }
@@ -422,12 +392,6 @@ impl EmailArchive {
                 task.id, task.observable.kind
             )));
         }
-        if record.recipients.len() > MAX_RECIPIENTS {
-            return Err(PrepareFailure::Refused(format!(
-                "email-archive records {} recipients, past its bound of {MAX_RECIPIENTS}",
-                record.recipients.len()
-            )));
-        }
         if email_message_id.map(str::trim) != Some(record.message_id.trim()) {
             return Err(PrepareFailure::Refused(format!(
                 "email-archive names the Message-ID {:?}, which isn't the task's email's",
@@ -489,27 +453,27 @@ impl EmailArchive {
             hash,
             object,
             message_id: normalize_message_id(&record.message_id),
-            recipients: record.recipients,
             root: task.root,
             observable: task.observable.id.0,
         })
     }
 
     /// Lands a prepared archive in the end's transaction, as ace3's `archive_email`: the object held
-    /// by its row until the row goes, the row, its Message-ID's index row and its recipients. Returns
-    /// the archive's id, a row already archived this second with the same hash's when there is one,
-    /// as ace3's `INSERT IGNORE`.
-    pub async fn land(&self, tx: &mut Tx<'_>, prepared: &Prepared) -> Result<i64, ArchiveError> {
+    /// by its row until the row goes, and the row, its normalized Message-ID to the email. A row of
+    /// the same Message-ID and email in the same second is the row that's there, as ace3's
+    /// `INSERT IGNORE`.
+    pub async fn land(&self, tx: &mut Tx<'_>, prepared: &Prepared) -> Result<(), ArchiveError> {
         let object_sha256 = match &prepared.object {
             PreparedObject::Existing(object) => *object,
             PreparedObject::New(spooled) => spooled.sha256,
         };
         let inserted = sqlx::query!(
             r#"INSERT INTO email_archive.archive
-                   (hash, object_sha256, insert_date, root_id, observable_id)
-               VALUES ($1, $2, date_trunc('second', now() AT TIME ZONE 'UTC'), $3, $4)
-               ON CONFLICT (hash, insert_date) DO NOTHING
+                   (message_id_hash, hash, object_sha256, insert_date, root_id, observable_id)
+               VALUES ($1, $2, $3, date_trunc('second', now() AT TIME ZONE 'UTC'), $4, $5)
+               ON CONFLICT (message_id_hash, hash, insert_date) DO NOTHING
                RETURNING archive_id, insert_date"#,
+            value_hash(&prepared.message_id),
             &prepared.hash,
             object_sha256.to_hex(),
             prepared.root,
@@ -517,72 +481,42 @@ impl EmailArchive {
         )
         .fetch_optional(tx.conn())
         .await?;
-        let (archive_id, insert_date) = match inserted {
-            Some(row) => {
-                let hold = Hold::new(HOLD_KIND, row.archive_id.to_string())
-                    .until(kept_until(row.insert_date, self.config.retention_days));
-                match &prepared.object {
-                    PreparedObject::Existing(object) => {
-                        self.bucket
-                            .hold_in(tx, EMAIL_ARCHIVE, object, &hold)
-                            .await?
-                    }
-                    PreparedObject::New(spooled) => {
-                        self.bucket
-                            .put_in(tx, EMAIL_ARCHIVE, spooled, Some(&hold))
-                            .await?;
-                    }
-                }
-                (row.archive_id, row.insert_date)
-            }
-            None => {
-                let row = sqlx::query!(
-                    "SELECT archive_id, insert_date FROM email_archive.archive
-                     WHERE hash = $1 AND insert_date = date_trunc('second', now() AT TIME ZONE 'UTC')",
-                    &prepared.hash,
-                )
-                .fetch_one(tx.conn())
-                .await?;
-                (row.archive_id, row.insert_date)
-            }
+        let Some(row) = inserted else {
+            tracing::info!(
+                hash = %hex::encode(&prepared.hash),
+                write = "email-archive",
+                "the email is archived under its Message-ID this second already"
+            );
+            return Ok(());
         };
-        sqlx::query!(
-            "INSERT INTO email_archive.archive_index (field, hash, archive_id, insert_date)
-             VALUES ('message_id', $1, $2, $3) ON CONFLICT DO NOTHING",
-            value_hash(&prepared.message_id),
-            archive_id,
-            insert_date,
-        )
-        .execute(tx.conn())
-        .await?;
-        for recipient in &prepared.recipients {
-            sqlx::query!(
-                "INSERT INTO email_archive.email_history
-                     (insert_date, message_id, message_id_hash, recipient, recipient_hash)
-                 VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING",
-                insert_date,
-                prepared.message_id,
-                value_hash(&prepared.message_id),
-                recipient,
-                value_hash(recipient),
-            )
-            .execute(tx.conn())
-            .await?;
+        let hold = Hold::new(HOLD_KIND, row.archive_id.to_string())
+            .until(kept_until(row.insert_date, self.config.retention_days));
+        match &prepared.object {
+            PreparedObject::Existing(object) => {
+                self.bucket
+                    .hold_in(tx, EMAIL_ARCHIVE, object, &hold)
+                    .await?
+            }
+            PreparedObject::New(spooled) => {
+                self.bucket
+                    .put_in(tx, EMAIL_ARCHIVE, spooled, Some(&hold))
+                    .await?;
+            }
         }
         tracing::info!(
-            archive_id,
+            archive_id = row.archive_id,
             hash = %hex::encode(&prepared.hash),
             object = %object_sha256,
-            recipients = prepared.recipients.len(),
             write = "email-archive",
             "archived an email"
         );
-        Ok(archive_id)
+        Ok(())
     }
 
     // ---- the reads ----
 
-    /// The newest archived email with this Message-ID, as ace3's `query_by_message_id`.
+    /// The newest archived email with this Message-ID whose object the bucket still has, as ace3's
+    /// `find_archived_email`.
     pub async fn find_by_message_id(
         &self,
         message_id: &str,
@@ -603,13 +537,6 @@ impl EmailArchive {
         self.open_bytes(sealed).await
     }
 
-    /// Opens a sealed file of a root (a `.gz.e` in the alert), as ace3's `EncryptedArchiveAnalyzer`.
-    pub async fn open_alert_file(&self, sha256: &Sha256) -> Result<Vec<u8>, ArchiveError> {
-        self.key()?;
-        let sealed = self.bytes(ALERT_FILES, sha256).await?;
-        self.open_bytes(sealed).await
-    }
-
     /// Puts an opened email in the root's files, held by the root, as a module's own output is.
     pub async fn put_in_root(
         &self,
@@ -625,17 +552,6 @@ impl EmailArchive {
             size: put.object.size,
         })
     }
-
-    /// How many archived emails are indexed with the URL, as ace3's `COUNT(DISTINCT archive_id)`.
-    pub async fn url_count(&self, url: &str) -> Result<i64, ArchiveError> {
-        Ok(sqlx::query_scalar!(
-            r#"SELECT COUNT(DISTINCT archive_id) AS "count!" FROM email_archive.archive_index
-               WHERE field = 'url' AND hash = $1"#,
-            value_hash(url),
-        )
-        .fetch_one(self.db.pool())
-        .await?)
-    }
 }
 
 /// An email to archive as of a given time, for tests and fixtures (`EmailArchive::seed`).
@@ -644,16 +560,14 @@ impl EmailArchive {
 pub struct Seed<'a> {
     pub email: &'a [u8],
     pub message_id: &'a str,
-    pub recipients: &'a [&'a str],
     pub insert_date: NaiveDateTime,
-    pub urls: &'a [&'a str],
 }
 
 #[cfg(any(test, feature = "testing"))]
 impl EmailArchive {
     /// Archives `seed` as the archiver's write would have at its `insert_date`, from a root and file
-    /// that needn't exist: sealed with the key, held by its row, its Message-ID, recipients and URLs
-    /// indexed. Returns the archive's id and its object's sha256.
+    /// that needn't exist: sealed with the key, held by its row, under its Message-ID. Returns the
+    /// archive's id and its object's sha256.
     pub async fn seed(&self, seed: &Seed<'_>) -> Result<(i64, Sha256), ArchiveError> {
         // checked when it runs, not when it builds: the offline query data is the crate's own build's,
         // which hasn't this feature
@@ -669,9 +583,10 @@ impl EmailArchive {
         let mut tx = self.db.begin().await?;
         let archive_id: i64 = sqlx::query_scalar(
             "INSERT INTO email_archive.archive
-                 (hash, object_sha256, insert_date, root_id, observable_id)
-             VALUES ($1, $2, $3, $4, 0) RETURNING archive_id",
+                 (message_id_hash, hash, object_sha256, insert_date, root_id, observable_id)
+             VALUES ($1, $2, $3, $4, $5, 0) RETURNING archive_id",
         )
+        .bind(value_hash(&normalize_message_id(seed.message_id)))
         .bind(&hash)
         .bind(spooled.sha256.to_hex())
         .bind(seed.insert_date)
@@ -683,35 +598,6 @@ impl EmailArchive {
         self.bucket
             .put_in(&mut tx, EMAIL_ARCHIVE, &spooled, Some(&hold))
             .await?;
-        let message_id = normalize_message_id(seed.message_id);
-        let indexed = std::iter::once(("message_id", message_id.as_str()))
-            .chain(seed.urls.iter().map(|url| ("url", *url)));
-        for (field, value) in indexed {
-            sqlx::query(
-                "INSERT INTO email_archive.archive_index (field, hash, archive_id, insert_date)
-                 VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
-            )
-            .bind(field)
-            .bind(value_hash(value))
-            .bind(archive_id)
-            .bind(seed.insert_date)
-            .execute(tx.conn())
-            .await?;
-        }
-        for recipient in seed.recipients {
-            sqlx::query(
-                "INSERT INTO email_archive.email_history
-                     (insert_date, message_id, message_id_hash, recipient, recipient_hash)
-                 VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING",
-            )
-            .bind(seed.insert_date)
-            .bind(&message_id)
-            .bind(value_hash(&message_id))
-            .bind(*recipient)
-            .bind(value_hash(recipient))
-            .execute(tx.conn())
-            .await?;
-        }
         tx.commit().await?;
         Ok((archive_id, spooled.sha256))
     }
@@ -726,20 +612,22 @@ pub enum PrepareFailure {
     Failed(ArchiveError),
 }
 
-/// The newest archived email with this Message-ID, normalized, as ace3's `query_by_message_id`
-/// (`ORDER BY insert_date DESC`).
+/// The newest archived email with this Message-ID, normalized, whose object the bucket still has, as
+/// ace3's `find_archived_email`: its rows newest first (`ORDER BY insert_date DESC`), the first whose
+/// email the pool has. A row outlives its object only when the object is gone some other way, since
+/// the row holds it.
 pub async fn find_by_message_id<'e>(
     executor: impl sqlx::PgExecutor<'e>,
     message_id: &str,
 ) -> Result<Option<Archived>, ArchiveError> {
     let row = sqlx::query!(
         r#"SELECT a.archive_id, a.hash, a.object_sha256, a.insert_date
-           FROM email_archive.archive_index i
-           JOIN email_archive.archive a
-             ON a.archive_id = i.archive_id AND a.insert_date = i.insert_date
-           WHERE i.field = 'message_id' AND i.hash = $1
+           FROM email_archive.archive a
+           JOIN store.objects o ON o.pool = $2 AND o.sha256 = a.object_sha256
+           WHERE a.message_id_hash = $1 AND o.state = 'present'
            ORDER BY a.insert_date DESC, a.archive_id DESC LIMIT 1"#,
         value_hash(&normalize_message_id(message_id)),
+        EMAIL_ARCHIVE,
     )
     .fetch_optional(executor)
     .await?;
@@ -749,68 +637,6 @@ pub async fn find_by_message_id<'e>(
         object_sha256: row.object_sha256,
         insert_date: row.insert_date,
     }))
-}
-
-/// ace3's post-analysis (`EmailArchiveAction.execute_post_analysis`): once a root's analysis is done,
-/// every URL below each email the root archived goes in the archive's index, in the archive's own
-/// week. A later pass adds what it found; one already indexed stays as it is. Called in the
-/// transaction that records the root's completion.
-pub async fn index_urls(tx: &mut Tx<'_>, root: Uuid) -> Result<u64, DbError> {
-    let archives = sqlx::query!(
-        "SELECT archive_id, insert_date, observable_id FROM email_archive.archive
-         WHERE root_id = $1 ORDER BY archive_id",
-        root,
-    )
-    .fetch_all(tx.conn())
-    .await?;
-    let mut indexed = 0;
-    for archive in archives {
-        let urls = sqlx::query_scalar!(
-            r#"WITH RECURSIVE below (observable_id) AS (
-                   SELECT $2::bigint
-                   UNION
-                   SELECT a.observable_id
-                   FROM below
-                   JOIN analysis.results r
-                     ON r.root_id = $1 AND r.observable_id = below.observable_id
-                   JOIN analysis.result_additions a ON a.result_id = r.id
-               )
-               SELECT o.value
-               FROM below JOIN analysis.observables o
-                 ON o.root_id = $1 AND o.id = below.observable_id
-               WHERE o.type = 'url'
-               ORDER BY o.id
-               LIMIT $3"#,
-            root,
-            archive.observable_id,
-            MAX_URLS_PER_EMAIL + 1,
-        )
-        .fetch_all(tx.conn())
-        .await?;
-        if urls.len() as i64 > MAX_URLS_PER_EMAIL {
-            tracing::warn!(
-                %root,
-                archive_id = archive.archive_id,
-                "more than {MAX_URLS_PER_EMAIL} URLs below an archived email; indexing the first"
-            );
-        }
-        for url in urls.iter().take(MAX_URLS_PER_EMAIL as usize) {
-            indexed += sqlx::query!(
-                "INSERT INTO email_archive.archive_index (field, hash, archive_id, insert_date)
-                 VALUES ('url', $1, $2, $3) ON CONFLICT DO NOTHING",
-                value_hash(url),
-                archive.archive_id,
-                archive.insert_date,
-            )
-            .execute(tx.conn())
-            .await?
-            .rows_affected();
-        }
-    }
-    if indexed > 0 {
-        tracing::info!(%root, indexed, "indexed the URLs of the root's archived emails");
-    }
-    Ok(indexed)
 }
 
 /// The first day of ISO week `week` of `year`.
@@ -859,24 +685,8 @@ mod tests {
     }
 
     #[test]
-    fn v0_opens_as_ace3_writes_it() {
-        // <Q size> || nonce || ciphertext || tag, with nothing authenticated
-        let nonce = [3u8; NONCE_SIZE];
-        let mut body = b"plain".to_vec();
-        let tag = key()
-            .cipher()
-            .encrypt_inout_detached((&nonce).into(), &[], body.as_mut_slice().into())
-            .expect("encrypts");
-        let mut v0 = 5u64.to_le_bytes().to_vec();
-        v0.extend_from_slice(&nonce);
-        v0.extend_from_slice(&body);
-        v0.extend_from_slice(tag.as_slice());
-        assert_eq!(decrypt(&key(), &v0).expect("opens"), b"plain");
-    }
-
-    #[test]
     fn truncated_data_says_so() {
-        assert!(decrypt(&key(), b"short").unwrap_err().contains("truncated"));
+        assert!(decrypt(&key(), b"short").unwrap_err().contains("v1 layout"));
         assert!(
             decrypt(&key(), b"ACE-GCM\x01abc")
                 .unwrap_err()

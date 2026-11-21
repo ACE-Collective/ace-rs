@@ -1,6 +1,6 @@
 # Differences from ace3's reference dumps
 
-`tests/reference.rs` runs the YARA module on `test.zip` with the fixture rules in `tools/ace3/dumps/fixtures/yara/` and the meta tags of each of the three dumps in `tools/ace3/dumps/reference/yara_scanner_v3_4/`, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit fe6da632. The same file also checks the Done condition directly: `ace4_fixture_zip_attachment` matches only when the file is tagged `type=email.attachment`.
+`tests/reference.rs` runs the YARA module on `test.zip` with the fixture rules in `tools/ace3/dumps/fixtures/yara/` and the meta tags of each of the three dumps in `tools/ace3/dumps/reference/yara_scanner_v3_4/`, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 85c8e9e5. The same file also checks the Done condition directly: `ace4_fixture_zip_attachment` matches only when the file is tagged `type=email.attachment`.
 
 In the Dumps column, `*` matches any text in a dump's name. In the Path column, a `*` segment matches one segment of the JSON pointer, `**` any number, and a `*` inside a segment any text.
 

@@ -217,6 +217,10 @@ pub(crate) struct AttemptBody {
     status: String,
     result: String,
     message: String,
+    /// What the remediator acted on when it wasn't the key, such as the mailbox that owns an alias
+    /// address (ace3's `resolved_target`); absent when it acted on the key.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    resolved_target: Option<String>,
 }
 
 impl From<ActionAttempt> for AttemptBody {
@@ -226,6 +230,7 @@ impl From<ActionAttempt> for AttemptBody {
             status: a.status,
             result: a.result,
             message: a.message,
+            resolved_target: a.resolved_target,
         }
     }
 }

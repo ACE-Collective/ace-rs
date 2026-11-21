@@ -2154,6 +2154,8 @@ fn an_alert_s_summary_is_chosen_by_its_type() {
         remediating: false,
         not_found: false,
         attempted: !sources.is_empty(),
+        undelivered: None,
+        not_delivered: false,
     };
     let coverage = ace_service::Coverage {
         targets: vec![
@@ -3346,7 +3348,6 @@ fn each_module_s_view_draws_its_fixture() {
         "network_two_networks",
         "parse_url_full",
         "idna_unicode",
-        "apex_domain_subdomain",
         "email_address_fqdn_plain",
         "protected_url_safelinks",
         "protected_url_one_drive",
@@ -3374,8 +3375,6 @@ fn each_module_s_view_draws_its_fixture() {
         "attachment_macro_attachment",
         "link_lure_button",
         "email_archive_o365_journaled",
-        "encrypted_archive_sealed_v0",
-        "url_pivot_shared",
         "message_id_archived_2",
         "pdftotext_qr_code_pdf",
         "pdf_link_text_links",
@@ -3476,15 +3475,21 @@ fn each_module_s_view_draws_its_fixture() {
                     "<pre class=\"wrap\">alert http $HOME_NET any -&#62; $EXTERNAL_NET any (msg:&#34;ACE4 TEST fixture beacon&#34;;",
                 ],
             ),
-            "nrd_fqdn_ace4_fresh_com" => contains_all(
-                &html,
-                &[
-                    "<tr><th>is_nrd</th><td>true</td></tr>",
-                    "<tr><th>datetime_created</th><td>2026-11-01 12:30:00+00:00</td></tr>",
-                    "<tr><th>age_created_in_days</th><td>16</td></tr>",
-                    "<tr><th>lookup_protocol</th><td>rdap</td></tr>",
-                ],
-            ),
+            "nrd_fqdn_ace4_fresh_com" => {
+                // the age is counted to the day the fixture was written, so it is read from it
+                let age = result.details["age_created_in_days"]
+                    .as_str()
+                    .expect("an age");
+                contains_all(
+                    &html,
+                    &[
+                        "<tr><th>is_nrd</th><td>true</td></tr>",
+                        "<tr><th>datetime_created</th><td>2026-11-01 12:30:00+00:00</td></tr>",
+                        &format!("<tr><th>age_created_in_days</th><td>{age}</td></tr>"),
+                        "<tr><th>lookup_protocol</th><td>rdap</td></tr>",
+                    ],
+                );
+            }
             "splunk_clicker_click_example_com" => contains_all(
                 &html,
                 &[
@@ -3655,10 +3660,6 @@ fn each_module_s_view_draws_its_fixture() {
             "idna_unicode" => {
                 contains_all(&html, &["<tr><th>idna</th><td>xn--mnchen-3ya.de</td></tr>"])
             }
-            "apex_domain_subdomain" => contains_all(
-                &html,
-                &["<tr><th>apex_domain</th><td>example.co.uk</td></tr>"],
-            ),
             "email_address_fqdn_plain" => {
                 contains_all(&html, &["<tr><th>domain</th><td>example.com</td></tr>"])
             }
@@ -3787,16 +3788,8 @@ fn each_module_s_view_draws_its_fixture() {
             | "message_id_archived_2" => contains_all(&html, &["No details"]),
             "email_archive_o365_journaled" => contains_all(
                 &html,
-                &[
-                    "<tr><th>archive_path</th><td>archive/email/c0/c09769d5f85a2ad6ec1e1cc8196b0c413fa45",
-                    "<tr><th>hash</th><td>c09769d5f85a2ad6ec1e1cc8196b0c413fa45",
-                ],
+                &["<tr><th>hash</th><td>c09769d5f85a2ad6ec1e1cc8196b0c413fa45"],
             ),
-            "encrypted_archive_sealed_v0" => contains_all(
-                &html,
-                &["<tr><th>decrypted_file</th><td>files/sealed_v0.rfc822</td></tr>"],
-            ),
-            "url_pivot_shared" => contains_all(&html, &["<tr><th>count</th><td>3</td></tr>"]),
             "pdftotext_qr_code_pdf" => contains_all(
                 &html,
                 &[
@@ -12670,6 +12663,8 @@ fn the_remediation_areas_draw_hostile_values_as_text() {
         status: "COMPLETED".to_owned(),
         result: "SUCCESS".to_owned(),
         message: HOSTILE.to_owned(),
+        // the mailbox an alias resolved to, which the history names (ace3's resolved_target)
+        resolved_target: Some(format!("owner{HOSTILE}@example.com")),
         created_at: "2026-11-01T10:01:00Z".parse().expect("a time"),
     };
     let html = drawn_safely(&RemediationPage {
@@ -12681,6 +12676,7 @@ fn the_remediation_areas_draw_hostile_values_as_text() {
         ),
     });
     assert!(html.contains("2026-11-01 10:01:00"), "{html}");
+    assert!(html.contains("<th>Acted on</th>"), "{html}");
     assert!(
         html.contains(r#"name="back" value="/remediations""#),
         "{html}"

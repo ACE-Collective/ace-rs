@@ -47,9 +47,7 @@ use ace_results::types::brocess::{
 use ace_results::types::dhash::DHashImageAnalysis;
 use ace_results::types::dns::FqdnAnalysis;
 use ace_results::types::email::EmailAnalysis;
-use ace_results::types::email_archive::{
-    EmailArchiveResults, EncryptedArchiveAnalysis, MessageIdAnalysis, UrlEmailPivotAnalysis,
-};
+use ace_results::types::email_archive::{EmailArchiveResults, MessageIdAnalysis};
 use ace_results::types::emailtree::{LureCandidate, LureUrlAnalysis, MailboxEmailAnalysis};
 use ace_results::types::encrypted::{
     PdfEncryptionAnalysis, RarEncryptionAnalysis, ZipEncryptionAnalysis,
@@ -96,9 +94,9 @@ use ace_results::types::tag::{
 use ace_results::types::url_extraction::UrlExtractionAnalysis;
 use ace_results::types::user::UserAnalysis;
 use ace_results::types::values::{
-    ApexDomainAnalysis, CommandLineAnalysis, EmailAddressFqdnAnalysis, FileLocationAnalysis,
-    FilePathAnalysis, IdnaAnalysis, NetworkIdentifierAnalysis, OneDriveUrlAnalysis,
-    ParseUrlAnalysis, ProtectedUrlAnalysis,
+    CommandLineAnalysis, EmailAddressFqdnAnalysis, FileLocationAnalysis, FilePathAnalysis,
+    IdnaAnalysis, NetworkIdentifierAnalysis, OneDriveUrlAnalysis, ParseUrlAnalysis,
+    ProtectedUrlAnalysis,
 };
 use ace_results::types::x509::{SerialNumber, X509Analysis};
 use ace_results::types::xlm::XlmDeobfuscatorAnalysis;
@@ -238,7 +236,6 @@ impl Views {
             .with(ViewEntry::of::<NetworkIdentifierAnalysis>())
             .with(ViewEntry::of::<ParseUrlAnalysis>())
             .with(ViewEntry::of::<IdnaAnalysis>())
-            .with(ViewEntry::of::<ApexDomainAnalysis>())
             .with(ViewEntry::of::<EmailAddressFqdnAnalysis>())
             .with(ViewEntry::of::<ProtectedUrlAnalysis>())
             .with(ViewEntry::of::<OneDriveUrlAnalysis>())
@@ -266,8 +263,6 @@ impl Views {
             .with(ViewEntry::of::<EmailConversationAttachmentAnalysis>())
             .with(ViewEntry::of::<EmailConversationLinkAnalysis>())
             .with(ViewEntry::of::<EmailArchiveResults>())
-            .with(ViewEntry::of::<EncryptedArchiveAnalysis>())
-            .with(ViewEntry::of::<UrlEmailPivotAnalysis>())
             .with(ViewEntry::of::<MessageIdAnalysis>())
             .with(ViewEntry::of::<PdfTextAnalysis>())
             .with(ViewEntry::of::<PdfLinkTextAnalysis>())
@@ -633,6 +628,9 @@ impl EmailView<'_> {
                 "Env Rcpt To",
                 (!email.env_rcpt_to.is_empty()).then(|| list(&email.env_rcpt_to)),
             ),
+            // ace3's "Delivered to" (aaeef15e): the journal's delivered mailboxes, then what happened
+            // to each address it didn't deliver to under that address
+            field("Delivered to", email.deliveries.as_ref().map(delivered_to)),
             field("From", email.from.as_ref()),
             field("To", (!email.to.is_empty()).then(|| list(&email.to))),
             field("Cc", email.cc.as_deref().map(list)),
@@ -695,6 +693,28 @@ impl EmailView<'_> {
                 .saturating_sub(MAX_ITEMS)
         })
     }
+}
+
+/// A journal report's deliveries, as ace3's Email Summary shows them: the delivered mailboxes, then
+/// `address: what happened` for each address the journal didn't deliver to under that address.
+fn delivered_to(
+    deliveries: &std::collections::BTreeMap<String, ace_results::types::email::Delivery>,
+) -> String {
+    use ace_results::types::email::DeliveryReason;
+    let delivered: Vec<&str> = deliveries
+        .iter()
+        .filter(|(_, d)| d.reason == DeliveryReason::Delivered)
+        .map(|(address, _)| address.as_str())
+        .collect();
+    let notes = deliveries
+        .iter()
+        .filter(|(_, d)| d.reason != DeliveryReason::Delivered)
+        .map(|(address, d)| format!("{address}: {}", d.reason.describe_undelivered(&d.mailboxes)));
+    std::iter::once(delivered.join(", "))
+        .filter(|line| !line.is_empty())
+        .chain(notes)
+        .collect::<Vec<_>>()
+        .join("; ")
 }
 
 impl AnalysisView for EmailAnalysis {
@@ -1814,32 +1834,14 @@ impl AnalysisView for DHashImageAnalysis {
 
 // ---- the email archive: ace3's default_template.html ----
 
-/// `email_archive_results`: where the archive keeps the email, and its row.
+/// `email_archive_results`: the archived email, by its hash.
 impl AnalysisView for EmailArchiveResults {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
         fields_view([
             field("message_id", self.message_id.as_ref()),
-            field("archive_id", self.archive_id),
-            field("archive_path", self.archive_path.as_ref()),
             field("hash", self.hash.as_ref()),
         ])
-    }
-}
-
-/// `encrypted_archive_analysis`: the decrypted email's path.
-impl AnalysisView for EncryptedArchiveAnalysis {
-    type View<'a> = FieldsView;
-    fn view(&self) -> FieldsView {
-        fields_view([field("decrypted_file", self.decrypted_file.as_ref())])
-    }
-}
-
-/// `url_email_pivot_analysis_v2`: how many archived emails held the URL.
-impl AnalysisView for UrlEmailPivotAnalysis {
-    type View<'a> = FieldsView;
-    fn view(&self) -> FieldsView {
-        fields_view([field("count", self.count)])
     }
 }
 
@@ -2301,14 +2303,6 @@ impl AnalysisView for IdnaAnalysis {
             field("idna", self.idna.as_ref()),
             field("unicode", self.unicode.as_ref()),
         ])
-    }
-}
-
-/// `apex_domain_analysis`: the subdomain's registrable domain.
-impl AnalysisView for ApexDomainAnalysis {
-    type View<'a> = FieldsView;
-    fn view(&self) -> FieldsView {
-        fields_view([field("apex_domain", self.apex_domain.as_ref())])
     }
 }
 

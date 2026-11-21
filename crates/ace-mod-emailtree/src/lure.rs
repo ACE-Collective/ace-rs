@@ -21,7 +21,7 @@ use std::sync::LazyLock;
 use ace_lxml::soup::{AttrValue, Node, StringKind, Tree};
 use ace_pycompat::parse::{parse_qsl, urlparse};
 use ace_pycompat::pystr;
-use ace_results::types::email::EmailAnalysis;
+use ace_results::types::email::{EmailAnalysis, EmailPart};
 use ace_results::types::emailtree::{LureCandidate, LureUrlAnalysis};
 use ace_results::types::pdf::PdfLinkTextAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ObservableRef, OtherAdditions, ResultEnvelope};
@@ -41,9 +41,10 @@ const SOURCE_BODY: &str = "body";
 const SOURCE_QR: &str = "qr";
 const SOURCE_ATTACHMENT: &str = "attachment";
 
-/// The email's body parts are the unnamed text parts the email module extracts.
-const BODY_PART_MARKERS: [&str; 2] = [".unknown_text_html", ".unknown_text_plain"];
-const HTML_BODY_MARKER: &str = ".unknown_text_html";
+/// The files read with the tree: the email's body parts are its unnamed text parts, which the email
+/// module names with these (its result records which are, and a result made before that is read by
+/// these names, as ace3's `_BODY_PART_MARKERS`).
+const BODY_PART_MARKERS: [&str; 2] = ["unknown_text_html", "unknown_text_plain"];
 const NON_PART_YARA_TYPES: [&str; 2] = ["email.headers", "email.combined"];
 /// The PDF module writes a PDF's link annotations, the PDF's `<a href>`, to a file of this type.
 const PDF_LINK_ANNOTATIONS_YARA_TYPE: &str = "document.pdf.annotation_uris";
@@ -364,7 +365,7 @@ impl Parser for LureUrlAnalyzer {
                 .and_then(|path| std::fs::read(path).ok())
         });
         let candidates: Vec<Candidate> = collector
-            .collect(email_result)
+            .collect(email_result, email.parts.as_deref())
             .into_iter()
             .filter(|c| is_http_url(&tree.observable(c.observable).value))
             .collect();
@@ -1289,8 +1290,9 @@ impl<'t, F: FnMut(&str) -> Option<Vec<u8>>> Collector<'t, F> {
         }
     }
 
-    /// `CandidateCollector.collect`.
-    fn collect(&mut self, email_result: usize) -> Vec<Candidate> {
+    /// `CandidateCollector.collect`. `recorded` is the email result's record of its parts, which
+    /// says which are its body (`EmailAnalysis.is_body_part`, ace3's 5474fd6b).
+    fn collect(&mut self, email_result: usize, recorded: Option<&[EmailPart]>) -> Vec<Candidate> {
         let tree = self.tree;
         let mut anchors: HashMap<String, Anchor> = HashMap::new();
         let mut text_urls: HashMap<String, (bool, bool)> = HashMap::new();
@@ -1326,14 +1328,16 @@ impl<'t, F: FnMut(&str) -> Option<Vec<u8>>> Collector<'t, F> {
             }
         }
 
-        for (part, path) in &parts {
+        let paths: Vec<&str> = parts.iter().map(|(_, path)| path.as_str()).collect();
+        let body_parts: HashMap<usize, bool> = EmailAnalysis::body_parts_in(recorded, &paths)
+            .into_iter()
+            .collect();
+        for (at, (part, path)) in parts.iter().enumerate() {
             let observable = tree.observable(*part);
             if inner_parts.contains(observable.value.as_str()) {
                 continue;
             }
-            let name = path.rsplit('/').next().unwrap_or_default();
-            if BODY_PART_MARKERS.iter().any(|m| name.contains(m)) {
-                let html = name.contains(HTML_BODY_MARKER);
+            if let Some(&html) = body_parts.get(&at) {
                 if let Some(content) = self.read_body(*part) {
                     let body = if html {
                         self.module.parse_html_body(&content, self.settings)
@@ -1359,6 +1363,7 @@ impl<'t, F: FnMut(&str) -> Option<Vec<u8>>> Collector<'t, F> {
                 }
                 self.walk(*part, Some(path), SOURCE_BODY, None, None, false);
             } else {
+                let name = path.rsplit('/').next().unwrap_or_default();
                 self.walk(
                     *part,
                     Some(path),
@@ -2360,7 +2365,7 @@ mod tests {
         let module = LureUrlAnalyzer::init(&settings).expect("builds");
         let index = TreeIndex::new(&tree);
         let mut collector = Collector::new(&tree, &index, &module, &settings, |_| None);
-        let candidates = collector.collect(0);
+        let candidates = collector.collect(0, None);
         assert_eq!(candidates.len(), 1);
         let candidate = &candidates[0];
         assert_eq!(candidate.pdf_name.as_deref(), Some("bid.pdf"));

@@ -180,39 +180,6 @@
       },
       "tags": {}
     },
-    "file:0891d2cb22b2dd5caac7142688324429e9f8c79722d3e6020401ce3a2ca90b10": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:26b576ee7cb5676afe1fa423d0d5cabc49a2e1d6198b56ea7118c0fb8552475b": {
       "detections": {},
       "directives": {},
@@ -476,7 +443,19 @@
               ]
             },
             "extraction_errors": [],
-            "parsing_error": null
+            "parsing_error": null,
+            "parts": [
+              {
+                "content_type": "text/plain",
+                "path": "email.rfc822.unknown_text_plain_000.txt",
+                "role": "body"
+              },
+              {
+                "content_type": "application/octet-stream",
+                "path": "invoice.ppt",
+                "role": "attachment"
+              }
+            ]
           },
           "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
           "tags": {}
@@ -532,6 +511,39 @@
         "email": true
       }
     },
+    "file:511a32b67680d740fd67bd21001cf48bfe4d630e1a37531a7fbcf9ce6d6a6cf5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": {
       "detections": {},
       "directives": {
@@ -551,9 +563,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 03:56:19+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 03:56:19+00:00",
-              "File:FileModifyDate": "2026:11:18 03:56:19+00:00",
+              "File:FileAccessDate": "2026:11:21 12:02:48+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 12:02:48+00:00",
+              "File:FileModifyDate": "2026:11:21 12:02:48+00:00",
               "File:FileName": "invoice.ppt",
               "File:FilePermissions": 100664,
               "File:FileSize": 2560,

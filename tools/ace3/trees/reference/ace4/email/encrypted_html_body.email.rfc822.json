@@ -512,7 +512,24 @@
               ]
             },
             "extraction_errors": [],
-            "parsing_error": null
+            "parsing_error": null,
+            "parts": [
+              {
+                "content_type": "text/plain",
+                "path": "email.rfc822.unknown_text_plain_000.txt",
+                "role": "body"
+              },
+              {
+                "content_type": "text/html",
+                "path": "email.rfc822.unknown_text_html_000.html",
+                "role": "body"
+              },
+              {
+                "content_type": "application/octet-stream",
+                "path": "invoice.docx",
+                "role": "attachment"
+              }
+            ]
           },
           "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
           "tags": {}
@@ -812,9 +829,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 03:54:34+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 03:54:34+00:00",
-              "File:FileModifyDate": "2026:11:18 03:54:34+00:00",
+              "File:FileAccessDate": "2026:11:21 12:01:06+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 12:01:06+00:00",
+              "File:FileModifyDate": "2026:11:21 12:01:06+00:00",
               "File:FileName": "invoice.docx.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 12529,
@@ -1056,7 +1073,7 @@
       },
       "tags": {}
     },
-    "file:7d3489263a5433986ece3395fb3e53bc3f3593dcc10bbbe87a72cab14a673665": {
+    "file:75cdee0252b19a93e0bb16851d3283964e371ea03d9549d63a8436535c70a418": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -1064,12 +1081,12 @@
         "file_type": true
       },
       "paths": {
-        "invoice.docx.exif/exiftool.out": {
+        "invoice.docx.decrypted.exif/exiftool.out": {
           "type=metadata.exif": true
         }
       },
       "relationships": {
-        "extracted_from file:b161b3f2d5fca3dd7b8ecb2986787f88d86d56e0ed107860b29cc4eb6d3085ec": true
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
       },
       "results": {
         "observable_detection": {
@@ -1264,39 +1281,6 @@
       },
       "tags": {}
     },
-    "file:a2a344de58daab9b693243dbd3c1e8ef78c06b104adbdb487c19542b0a5e019e": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:ad59db739609567920cdf1eb3d785107e043f25f8e8567338c03b9e50d85025f": {
       "detections": {},
       "directives": {},
@@ -1381,9 +1365,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 03:54:32+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 03:54:32+00:00",
-              "File:FileModifyDate": "2026:11:18 03:54:32+00:00",
+              "File:FileAccessDate": "2026:11:21 12:01:04+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 12:01:04+00:00",
+              "File:FileModifyDate": "2026:11:21 12:01:04+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -2287,6 +2271,39 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f68858425e7d10ac1ff776eca6e552ab29700421a74ed0292664e28bc9338e41": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b161b3f2d5fca3dd7b8ecb2986787f88d86d56e0ed107860b29cc4eb6d3085ec": true
+      },
+      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false

@@ -1,12 +1,24 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "email_analyzer",
     "file_type",
     "url_extraction"
   ],
   "analyses": [
+    {
+      "class": "EmailArchiveResults",
+      "details": {
+        "hash": "bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01",
+        "message_id": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.archive:EmailArchiveResults",
+      "observables": [],
+      "summary": "Archived Email: bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01",
+      "tags": []
+    },
     {
       "class": "EmailAnalysis",
       "details": {
@@ -123,7 +135,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 06:04:04.371778 +0000",
+            "date": "2026-11-21 14:50:11.866871 +0000",
             "dkim_result": "pass",
             "dmarc_result": "pass",
             "env_mail_from": null,
@@ -195,7 +207,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "application/vnd.ms-excel",
+            "path": "info_3805.xls",
+            "role": "attachment"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -379,14 +403,20 @@
     }
   ],
   "email_archive_after": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [
+      {
+        "digest": "bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01",
+        "insert_date": "2026-11-21 14:50:11",
+        "message_id_hash": "6AC06C46EC6F68AE4F6797F9CCA264F8E34F7AA109AC0ED65C0596D8B088D79F"
+      }
+    ],
+    "pool": [
+      "bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01"
+    ]
   },
   "email_archive_before": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [],
+    "pool": []
   },
   "email_archive_reads": [],
   "input": {
@@ -445,6 +475,25 @@
       {
         "detections": [],
         "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 932,
+        "tags": [],
+        "type": "file",
+        "value": "a0ed8009073f3abdc1dc979ef137f6d69c62d1920902a29cd3baad0a0c16e747"
+      },
+      {
+        "detections": [],
+        "directives": [
           "archive"
         ],
         "paths": [
@@ -461,6 +510,49 @@
         ],
         "type": "file",
         "value": "bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 2145,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "26c514a15652cb61afb1a63b00ebbb64b7c991cc0bd64b693c606ba11918eb6d"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "target@user.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Doc #848625: facsimile copy"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_dkim_signing_domain",
+        "value": "tovarioseni9.fun"
       },
       {
         "detections": [],
@@ -489,70 +581,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "noreply@tovarioseni9.fun"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 2145,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "26c514a15652cb61afb1a63b00ebbb64b7c991cc0bd64b693c606ba11918eb6d"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "Doc #848625: facsimile copy"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "message_id",
         "value": "<272b53ff0e5579755277c19266a3e9e5c7283287@tovarioseni9.fun>"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 932,
-        "tags": [],
-        "type": "file",
-        "value": "a0ed8009073f3abdc1dc979ef137f6d69c62d1920902a29cd3baad0a0c16e747"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "target@user.com"
       },
       {
         "detections": [],
@@ -578,52 +608,99 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_dkim_signing_domain",
-        "value": "tovarioseni9.fun"
+        "type": "email_conversation",
+        "value": "noreply@tovarioseni9.fun|target@user.com"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "noreply@tovarioseni9.fun|target@user.com"
+        "type": "email_from",
+        "value": "noreply@tovarioseni9.fun"
       }
     ],
     "results": [
       {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text, with CRLF, LF line terminators"
+        },
+        "module": "file_type",
+        "observable": 1,
+        "summary": "File Type Analysis: ASCII text, with CRLF, LF line terminators (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 1,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "EmailArchiveResults",
+        "details": {
+          "hash": "bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01",
+          "message_id": null
+        },
+        "module": "email_archiver",
+        "observable": 2,
+        "summary": "Archived Email: bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01",
+        "tags": []
+      },
+      {
         "added": [
-          {
-            "observable": 3
-          },
-          {
-            "observable": 8
-          },
           {
             "observable": 11
           },
           {
-            "observable": 5
-          },
-          {
-            "observable": 6
-          },
-          {
-            "observable": 0
+            "observable": 4
           },
           {
             "observable": 10
           },
           {
-            "observable": 7,
+            "observable": 5
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 0
+          },
+          {
+            "observable": 6
+          },
+          {
+            "observable": 1,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 2,
+            "observable": 7,
             "path": "info_3805.xls"
           },
           {
-            "observable": 4,
+            "observable": 3,
             "path": "email.rfc822.headers"
           },
           {
@@ -746,7 +823,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 06:04:04.371778 +0000",
+              "date": "2026-11-21 14:50:11.866871 +0000",
               "dkim_result": "pass",
               "dmarc_result": "pass",
               "env_mail_from": null,
@@ -818,10 +895,22 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "application/vnd.ms-excel",
+              "path": "info_3805.xls",
+              "role": "attachment"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 1,
+        "observable": 2,
         "summary": "Email Analysis: From Peachey Wexler <noreply@tovarioseni9.fun> To target@user.com Subject Doc #848625: facsimile copy",
         "tags": []
       },
@@ -844,7 +933,30 @@
           "type": "RFC 822 mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 1,
+        "observable": 2,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 3,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -867,66 +979,8 @@
           "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1"
         },
         "module": "file_type",
-        "observable": 2,
-        "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 2,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 4,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text, with CRLF, LF line terminators"
-        },
-        "module": "file_type",
         "observable": 7,
-        "summary": "File Type Analysis: ASCII text, with CRLF, LF line terminators (text/plain)",
+        "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file)",
         "tags": []
       },
       {

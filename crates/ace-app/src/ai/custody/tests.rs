@@ -133,7 +133,7 @@ fn the_encryption_key_in_the_environment_fails() {
 #[test]
 fn a_role_that_reads_the_email_archive_fails() {
     let mut failures = Vec::new();
-    let role = reading(&["email_archive.archive", "email_archive.email_history"]);
+    let role = reading(&["email_archive.archive"]);
     check_no_encryption_capability(&Environment::default(), &role, &mut failures);
     assert_eq!(failures.len(), 1, "{failures:?}");
     assert!(

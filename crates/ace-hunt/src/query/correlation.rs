@@ -288,13 +288,72 @@ pub fn details(
             submission.tags.push("warning:hunt_error".to_owned());
         }
     }
-    for submission in submissions.iter_mut() {
+    let originals =
+        original_events_by_submission(hunt, trace, original, &submission_origins, submissions);
+    for (submission, originals) in submissions.iter_mut().zip(originals) {
         submission.details.insert(
             "original_events".to_owned(),
-            Json::Array(original.iter().cloned().map(Json::Object).collect()),
+            Json::Array(originals.into_iter().map(Json::Object).collect()),
         );
         submission
             .details
             .insert("hunt_provenance".to_owned(), provenance.of(submission));
     }
+}
+
+/// The rows before correlation of each submission's own group, ace3's `_original_events_by_submission`
+/// (c0240f01, #1255): those its alerted events came from, and those whose `group_by` value is its group
+/// value, in their order. Never another group's: SVS attribution judges every marker in an alert's
+/// details against its hosts, so one group's marker would be a mismatch on every other group's alert.
+/// `group_by: ALL` gives every alert every row. After a stream reset the alerted events are indexed
+/// into the new stream, not the rows, so only the group's rows are taken.
+fn original_events_by_submission(
+    hunt: &HuntConfig,
+    trace: &CorrelationTrace,
+    original: &[JsonMap<String, Json>],
+    submission_origins: &[BTreeSet<usize>],
+    submissions: &[Submission],
+) -> Vec<Vec<JsonMap<String, Json>>> {
+    if hunt.group_by.as_deref() == Some("ALL") {
+        return submissions.iter().map(|_| original.to_vec()).collect();
+    }
+    let stream_reset = trace
+        .stream_events
+        .iter()
+        .any(|event| event.event_type == "stream_reset");
+    let mut indices: Vec<BTreeSet<usize>> = if stream_reset {
+        vec![BTreeSet::new(); submissions.len()]
+    } else {
+        submission_origins.to_vec()
+    };
+    if let Some(group_by) = hunt.group_by.as_deref() {
+        for (index, row) in original.iter().enumerate() {
+            let values = match row.get(group_by) {
+                Some(Json::Array(items)) => items.clone(),
+                Some(value) => vec![value.clone()],
+                None => continue,
+            };
+            for value in values {
+                // ace3 looks the value up in a dict: null is no submission's group value, and a list
+                // or an object is unhashable, so it can't be one either
+                if matches!(value, Json::Null | Json::Array(_) | Json::Object(_)) {
+                    continue;
+                }
+                for (at, submission) in submissions.iter().enumerate() {
+                    if submission.group_value.as_ref() == Some(&value) {
+                        indices[at].insert(index);
+                    }
+                }
+            }
+        }
+    }
+    indices
+        .into_iter()
+        .map(|found| {
+            found
+                .into_iter()
+                .filter_map(|i| original.get(i).cloned())
+                .collect()
+        })
+        .collect()
 }

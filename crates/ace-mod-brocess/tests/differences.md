@@ -4,7 +4,7 @@
 
 ## email_conversation_frequency_analyzer
 
-The test runs the conversation frequency module on each `email_conversation` value `tools/ace3/dumps/reference/email_conversation_frequency_analyzer/` has a dump for. ace3 counted from the smtplog rows in `tools/ace3/dumps/fixtures/brocess/smtplog.json` in place of brocess (`tools/ace3/dumps/run_module.py --brocess`, which sums them as ace3's SQL does). The test answers the module's `smtp-counts` read with the counts the core's query gives for those rows; ace-pool's `lease_api` test runs that query on the same rows in Postgres and checks it against the same dumps. Both results go into the normal form `ace_testkit::reference` describes, and the test fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit fe6da632.
+The test runs the conversation frequency module on each `email_conversation` value `tools/ace3/dumps/reference/email_conversation_frequency_analyzer/` has a dump for. ace3 counted from the smtplog rows in `tools/ace3/dumps/fixtures/brocess/smtplog.json` in place of brocess (`tools/ace3/dumps/run_module.py --brocess`, which sums them as ace3's SQL does). The test answers the module's `smtp-counts` read with the counts the core's query gives for those rows; ace-pool's `lease_api` test runs that query on the same rows in Postgres and checks it against the same dumps. Both results go into the normal form `ace_testkit::reference` describes, and the test fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 85c8e9e5.
 
 | Dumps | Path | Why |
 |---|---|---|
@@ -32,7 +32,7 @@ The test runs the email logger on each of its dumps: every email in the sample s
 These depart from ace3:
 
 - The email's URLs are the `url` observables below it. ace3 also adds every URL its `url_extraction` module found in a file, including those past the module's observable cap, from that module's details. `url_extraction` isn't ported (7.5 batch 1), so no URLs come from it, and none of the dumps has one.
-- `archive_path` is the archive's name for the email, `archive/email/<xx>/<sha256>.gz.e`, when the root's tree has the archiver's result on it, where ace3's is its file's path from its base directory, `data/archive/email/<hostname>/<xx>/<sha256>.gz.e` (`crates/ace-mod-emailarchive/tests/differences.md`). The dumps' archiver doesn't run, so it's null in each, as in ace3's.
+- `archive_hash` is the archived email's sha256 when the root's tree has the archiver's result on it, as ace3's is its result's `hash` since 6669e249. The dumps' archiver doesn't run, so it's null in each, as in ace3's.
 - ace3 keeps a socket to fluent-bit per tag for the life of the module and drops a record it can't send without a word. Here a task's records go over one connection, and a failure is logged, with how many were dropped.
 - ace3 sends each record as it makes it; here they go together at the end of the task, in the same order.
 - A domain's punycode form is the `idna` crate's UTS 46, strict, where ace3 uses the `idna` package's IDNA 2008. They differ only for names one of them refuses, which each then keeps as written.

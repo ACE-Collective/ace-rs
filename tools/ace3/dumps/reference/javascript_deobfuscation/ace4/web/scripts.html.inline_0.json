@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "html_js_extraction",
     "file_type"
@@ -228,60 +228,6 @@
     "observables": [
       {
         "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "deobfuscated-scripts_js_event_onclick_1_cd32f3aa.js",
-            "yara_meta": [
-              "type=script.javascript"
-            ]
-          },
-          {
-            "path": "deobfuscated-scripts_js_inline_1_a31bfe52.js",
-            "yara_meta": [
-              "type=script.javascript"
-            ]
-          },
-          {
-            "path": "deobfuscated-scripts_js_inline_3_7fadeacb.js",
-            "yara_meta": [
-              "type=script.javascript"
-            ]
-          },
-          {
-            "path": "deobfuscated-scripts_js_inline_0_f2dac8e8.js",
-            "yara_meta": [
-              "type=script.javascript"
-            ]
-          },
-          {
-            "path": "deobfuscated-scripts_js_event_onload_0_08cd18e2.js",
-            "yara_meta": [
-              "type=script.javascript"
-            ]
-          },
-          {
-            "path": "deobfuscated-scripts_js_inline_2_49db13ae.js",
-            "yara_meta": [
-              "type=script.javascript"
-            ]
-          },
-          {
-            "path": "deobfuscated-scripts_js_event_onerror_2_3e98d68f.js",
-            "yara_meta": [
-              "type=script.javascript"
-            ]
-          }
-        ],
-        "size": 284,
-        "tags": [],
-        "type": "file",
-        "value": "d1dd28965e1c479580738f8169722c4b19b5d2b39808beffd8fa3cf5ca99b0b0"
-      },
-      {
-        "detections": [],
         "directives": [],
         "paths": [
           {
@@ -298,6 +244,130 @@
         ],
         "type": "file",
         "value": "a31bfe5218c19f2fe76fbdac4fc1bd7341cce5c2ee8624f73540764d48d0eabc"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "deobfuscated-scripts_js_inline_0_f2dac8e8.js",
+            "yara_meta": [
+              "type=script.javascript"
+            ]
+          },
+          {
+            "path": "deobfuscated-scripts_js_event_onload_0_08cd18e2.js",
+            "yara_meta": [
+              "type=script.javascript"
+            ]
+          },
+          {
+            "path": "deobfuscated-scripts_js_event_onerror_2_3e98d68f.js",
+            "yara_meta": [
+              "type=script.javascript"
+            ]
+          },
+          {
+            "path": "deobfuscated-scripts_js_event_onclick_1_cd32f3aa.js",
+            "yara_meta": [
+              "type=script.javascript"
+            ]
+          },
+          {
+            "path": "deobfuscated-scripts_js_inline_2_49db13ae.js",
+            "yara_meta": [
+              "type=script.javascript"
+            ]
+          },
+          {
+            "path": "deobfuscated-scripts_js_inline_3_7fadeacb.js",
+            "yara_meta": [
+              "type=script.javascript"
+            ]
+          },
+          {
+            "path": "deobfuscated-scripts_js_inline_1_a31bfe52.js",
+            "yara_meta": [
+              "type=script.javascript"
+            ]
+          }
+        ],
+        "size": 284,
+        "tags": [],
+        "type": "file",
+        "value": "d1dd28965e1c479580738f8169722c4b19b5d2b39808beffd8fa3cf5ca99b0b0"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "scripts_js_event_onload_0_08cd18e2.js",
+            "yara_meta": [
+              "type=document.html",
+              "type=script.javascript"
+            ]
+          }
+        ],
+        "size": 16,
+        "tags": [
+          "js"
+        ],
+        "type": "file",
+        "value": "08cd18e251cc4e0c44f325f38076ae8568a0421f451b7e1dd54acb1634dd8410"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "//cdn2.example.net/x.js"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "scripts.html",
+            "yara_meta": [
+              "type=document.html"
+            ]
+          }
+        ],
+        "size": 10454,
+        "tags": [],
+        "type": "file",
+        "value": "2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "scripts_js_event_onclick_1_cd32f3aa.js",
+            "yara_meta": [
+              "type=document.html",
+              "type=script.javascript"
+            ]
+          }
+        ],
+        "size": 41,
+        "tags": [
+          "js"
+        ],
+        "type": "file",
+        "value": "cd32f3aa2a2385872d6e82fa2c34399e7e3c50f0fbf72663711851205c36812b"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://cdn.example.com/lib/jquery.min.js"
       },
       {
         "detections": [],
@@ -342,30 +412,6 @@
         "directives": [],
         "paths": [
           {
-            "path": "scripts.html",
-            "yara_meta": [
-              "type=document.html"
-            ]
-          }
-        ],
-        "size": 10454,
-        "tags": [],
-        "type": "file",
-        "value": "2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://cdn.example.com/lib/jquery.min.js"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
             "path": "scripts_js_inline_2_49db13ae.js",
             "yara_meta": [
               "type=document.html",
@@ -383,48 +429,10 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "scripts_js_event_onclick_1_cd32f3aa.js",
-            "yara_meta": [
-              "type=document.html",
-              "type=script.javascript"
-            ]
-          }
-        ],
-        "size": 41,
-        "tags": [
-          "js"
-        ],
-        "type": "file",
-        "value": "cd32f3aa2a2385872d6e82fa2c34399e7e3c50f0fbf72663711851205c36812b"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [],
         "tags": [],
         "type": "uri_path",
-        "value": "//cdn2.example.net/x.js"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "scripts_js_event_onload_0_08cd18e2.js",
-            "yara_meta": [
-              "type=document.html",
-              "type=script.javascript"
-            ]
-          }
-        ],
-        "size": 16,
-        "tags": [
-          "js"
-        ],
-        "type": "file",
-        "value": "08cd18e251cc4e0c44f325f38076ae8568a0421f451b7e1dd54acb1634dd8410"
+        "value": "/static/app.js"
       },
       {
         "detections": [],
@@ -444,14 +452,6 @@
         ],
         "type": "file",
         "value": "3e98d68fb8aba62096acae4f784c316b095b1c33d5f2dbf5eac2edd37210abab"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/static/app.js"
       }
     ],
     "results": [
@@ -471,40 +471,17 @@
           "is_x509": false,
           "is_zip_file": false,
           "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 0,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
           "type": "ASCII text, with no line terminators"
         },
         "module": "file_type",
-        "observable": 1,
+        "observable": 0,
         "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 0,
+            "observable": 1,
             "path": "deobfuscated-scripts_js_inline_1_a31bfe52.js"
           }
         ],
@@ -525,8 +502,31 @@
           "webcrack_status": "applied (cosmetic only)"
         },
         "module": "javascript_deobfuscation",
-        "observable": 1,
+        "observable": 0,
         "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_inline_1_a31bfe52.js (3 events, 0 secondary scripts)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 1,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
@@ -555,8 +555,8 @@
       {
         "added": [
           {
-            "observable": 0,
-            "path": "deobfuscated-scripts_js_inline_0_f2dac8e8.js"
+            "observable": 1,
+            "path": "deobfuscated-scripts_js_event_onload_0_08cd18e2.js"
           }
         ],
         "class": "JavaScriptDeobfuscationAnalysis",
@@ -567,7 +567,7 @@
           "event_count": 3,
           "exit_code": 0,
           "extracted_files": [
-            "deobfuscated-scripts_js_inline_0_f2dac8e8.js"
+            "deobfuscated-scripts_js_event_onload_0_08cd18e2.js"
           ],
           "secondary_script_count": 0,
           "stderr": "",
@@ -577,58 +577,7 @@
         },
         "module": "javascript_deobfuscation",
         "observable": 2,
-        "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_inline_0_f2dac8e8.js (3 events, 0 secondary scripts)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 3,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 0,
-            "path": "deobfuscated-scripts_js_inline_3_7fadeacb.js"
-          }
-        ],
-        "class": "JavaScriptDeobfuscationAnalysis",
-        "details": {
-          "dom_snapshot": true,
-          "dom_snapshot_source": null,
-          "error_type": null,
-          "event_count": 3,
-          "exit_code": 0,
-          "extracted_files": [
-            "deobfuscated-scripts_js_inline_3_7fadeacb.js"
-          ],
-          "secondary_script_count": 0,
-          "stderr": "",
-          "stdout": "{\"status\":\"ok\",\"event_count\":3,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":true}",
-          "webcrack_error": null,
-          "webcrack_status": "applied (cosmetic only)"
-        },
-        "module": "javascript_deobfuscation",
-        "observable": 3,
-        "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_inline_3_7fadeacb.js (3 events, 0 secondary scripts)",
+        "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_event_onload_0_08cd18e2.js (3 events, 0 secondary scripts)",
         "tags": []
       },
       {
@@ -657,40 +606,40 @@
       {
         "added": [
           {
-            "observable": 2,
+            "observable": 7,
             "path": "scripts_js_inline_0_f2dac8e8.js"
           },
           {
-            "observable": 1,
+            "observable": 0,
             "path": "scripts_js_inline_1_a31bfe52.js"
           },
           {
-            "observable": 6,
+            "observable": 9,
             "path": "scripts_js_inline_2_49db13ae.js"
           },
           {
-            "observable": 3,
+            "observable": 8,
             "path": "scripts_js_inline_3_7fadeacb.js"
           },
           {
-            "observable": 5
+            "observable": 6
           },
           {
-            "observable": 11
+            "observable": 10
           },
           {
-            "observable": 8
+            "observable": 3
           },
           {
-            "observable": 9,
+            "observable": 2,
             "path": "scripts_js_event_onload_0_08cd18e2.js"
           },
           {
-            "observable": 7,
+            "observable": 5,
             "path": "scripts_js_event_onclick_1_cd32f3aa.js"
           },
           {
-            "observable": 10,
+            "observable": 11,
             "path": "scripts_js_event_onerror_2_3e98d68f.js"
           }
         ],
@@ -752,65 +701,14 @@
           "type": "ASCII text, with no line terminators"
         },
         "module": "file_type",
-        "observable": 6,
+        "observable": 5,
         "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 0,
-            "path": "deobfuscated-scripts_js_inline_2_49db13ae.js"
-          }
-        ],
-        "class": "JavaScriptDeobfuscationAnalysis",
-        "details": {
-          "dom_snapshot": true,
-          "dom_snapshot_source": null,
-          "error_type": null,
-          "event_count": 3,
-          "exit_code": 0,
-          "extracted_files": [
-            "deobfuscated-scripts_js_inline_2_49db13ae.js"
-          ],
-          "secondary_script_count": 0,
-          "stderr": "",
-          "stdout": "{\"status\":\"ok\",\"event_count\":3,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":true}",
-          "webcrack_error": null,
-          "webcrack_status": "applied (cosmetic only)"
-        },
-        "module": "javascript_deobfuscation",
-        "observable": 6,
-        "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_inline_2_49db13ae.js (3 events, 0 secondary scripts)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text, with no line terminators"
-        },
-        "module": "file_type",
-        "observable": 7,
-        "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 0,
+            "observable": 1,
             "path": "deobfuscated-scripts_js_event_onclick_1_cd32f3aa.js"
           }
         ],
@@ -831,7 +729,7 @@
           "webcrack_status": "applied (cosmetic only)"
         },
         "module": "javascript_deobfuscation",
-        "observable": 7,
+        "observable": 5,
         "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_event_onclick_1_cd32f3aa.js (3 events, 0 secondary scripts)",
         "tags": []
       },
@@ -854,15 +752,15 @@
           "type": "ASCII text, with no line terminators"
         },
         "module": "file_type",
-        "observable": 9,
+        "observable": 7,
         "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 0,
-            "path": "deobfuscated-scripts_js_event_onload_0_08cd18e2.js"
+            "observable": 1,
+            "path": "deobfuscated-scripts_js_inline_0_f2dac8e8.js"
           }
         ],
         "class": "JavaScriptDeobfuscationAnalysis",
@@ -873,7 +771,7 @@
           "event_count": 3,
           "exit_code": 0,
           "extracted_files": [
-            "deobfuscated-scripts_js_event_onload_0_08cd18e2.js"
+            "deobfuscated-scripts_js_inline_0_f2dac8e8.js"
           ],
           "secondary_script_count": 0,
           "stderr": "",
@@ -882,8 +780,59 @@
           "webcrack_status": "applied (cosmetic only)"
         },
         "module": "javascript_deobfuscation",
-        "observable": 9,
-        "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_event_onload_0_08cd18e2.js (3 events, 0 secondary scripts)",
+        "observable": 7,
+        "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_inline_0_f2dac8e8.js (3 events, 0 secondary scripts)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 8,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 1,
+            "path": "deobfuscated-scripts_js_inline_3_7fadeacb.js"
+          }
+        ],
+        "class": "JavaScriptDeobfuscationAnalysis",
+        "details": {
+          "dom_snapshot": true,
+          "dom_snapshot_source": null,
+          "error_type": null,
+          "event_count": 3,
+          "exit_code": 0,
+          "extracted_files": [
+            "deobfuscated-scripts_js_inline_3_7fadeacb.js"
+          ],
+          "secondary_script_count": 0,
+          "stderr": "",
+          "stdout": "{\"status\":\"ok\",\"event_count\":3,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":true}",
+          "webcrack_error": null,
+          "webcrack_status": "applied (cosmetic only)"
+        },
+        "module": "javascript_deobfuscation",
+        "observable": 8,
+        "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_inline_3_7fadeacb.js (3 events, 0 secondary scripts)",
         "tags": []
       },
       {
@@ -905,14 +854,65 @@
           "type": "ASCII text, with no line terminators"
         },
         "module": "file_type",
-        "observable": 10,
+        "observable": 9,
         "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 0,
+            "observable": 1,
+            "path": "deobfuscated-scripts_js_inline_2_49db13ae.js"
+          }
+        ],
+        "class": "JavaScriptDeobfuscationAnalysis",
+        "details": {
+          "dom_snapshot": true,
+          "dom_snapshot_source": null,
+          "error_type": null,
+          "event_count": 3,
+          "exit_code": 0,
+          "extracted_files": [
+            "deobfuscated-scripts_js_inline_2_49db13ae.js"
+          ],
+          "secondary_script_count": 0,
+          "stderr": "",
+          "stdout": "{\"status\":\"ok\",\"event_count\":3,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":true}",
+          "webcrack_error": null,
+          "webcrack_status": "applied (cosmetic only)"
+        },
+        "module": "javascript_deobfuscation",
+        "observable": 9,
+        "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_inline_2_49db13ae.js (3 events, 0 secondary scripts)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text, with no line terminators"
+        },
+        "module": "file_type",
+        "observable": 11,
+        "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 1,
             "path": "deobfuscated-scripts_js_event_onerror_2_3e98d68f.js"
           }
         ],
@@ -933,7 +933,7 @@
           "webcrack_status": "applied (cosmetic only)"
         },
         "module": "javascript_deobfuscation",
-        "observable": 10,
+        "observable": 11,
         "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_event_onerror_2_3e98d68f.js (3 events, 0 secondary scripts)",
         "tags": []
       }

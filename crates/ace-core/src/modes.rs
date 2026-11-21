@@ -81,7 +81,6 @@ impl Modes {
                 group(
                     "correlation",
                     &[
-                        "apex_domain_analyzer",
                         "clicker_detection_splunk",
                         "email_thread_analyzer",
                         "fqdn_analyzer",
@@ -94,7 +93,6 @@ impl Modes {
                         "phishkit_analyzer",
                         "rdap_analyzer",
                         "snort_signature_analysis_v1",
-                        "url_email_pivot_analyzer",
                         "user_analyzer",
                     ],
                 ),
@@ -170,7 +168,6 @@ impl Modes {
                         "email_conversation_attachment_analyzer",
                         "email_conversation_frequency_analyzer",
                         "email_conversation_link_analyzer",
-                        "encrypted_archive_analyzer",
                         "mailbox_email_analyzer",
                     ],
                 ),

@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -92,7 +92,7 @@
             ],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 05:09:24.140025 +0000",
+            "date": "2026-11-21 13:56:03.746956 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -154,7 +154,14 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -504,7 +511,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-18T05:09:24.133434",
+        "timestamp": "2026-11-21T13:56:03.740388",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -514,7 +521,7 @@
         "header": "Return-Path: <sender@external.example>",
         "header_index": 0,
         "message_id": "<multi-recipient-test-12345@external.example>",
-        "timestamp": "1794978564.140025"
+        "timestamp": "1795269363.746956"
       },
       "tag": "phishfinder-headers"
     },
@@ -523,7 +530,7 @@
         "header": "Received: from mail.external.example (unknown [192.0.2.10])by mx.company.com (Postfix) with ESMTPS id 0123456789ABfor <alice@company.com>; Tue, 04 Mar 2025 14:00:00 -0500 (EST)",
         "header_index": 1,
         "message_id": "<multi-recipient-test-12345@external.example>",
-        "timestamp": "1794978564.140025"
+        "timestamp": "1795269363.746956"
       },
       "tag": "phishfinder-headers"
     },
@@ -532,7 +539,7 @@
         "header": "Content-Type: text/plain; charset=\"us-ascii\"",
         "header_index": 2,
         "message_id": "<multi-recipient-test-12345@external.example>",
-        "timestamp": "1794978564.140025"
+        "timestamp": "1795269363.746956"
       },
       "tag": "phishfinder-headers"
     },
@@ -541,7 +548,7 @@
         "header": "Subject: Re: Invoices 12927-12929",
         "header_index": 3,
         "message_id": "<multi-recipient-test-12345@external.example>",
-        "timestamp": "1794978564.140025"
+        "timestamp": "1795269363.746956"
       },
       "tag": "phishfinder-headers"
     },
@@ -550,7 +557,7 @@
         "header": "To: alice@company.com, Bob <bob@company.com>",
         "header_index": 4,
         "message_id": "<multi-recipient-test-12345@external.example>",
-        "timestamp": "1794978564.140025"
+        "timestamp": "1795269363.746956"
       },
       "tag": "phishfinder-headers"
     },
@@ -559,7 +566,7 @@
         "header": "CC: Carol <carol@company.com>,Outsider <outsider@external.example>,Dan <dan@company.com>",
         "header_index": 5,
         "message_id": "<multi-recipient-test-12345@external.example>",
-        "timestamp": "1794978564.140025"
+        "timestamp": "1795269363.746956"
       },
       "tag": "phishfinder-headers"
     },
@@ -568,7 +575,7 @@
         "header": "From: External Sender <sender@external.example>",
         "header_index": 6,
         "message_id": "<multi-recipient-test-12345@external.example>",
-        "timestamp": "1794978564.140025"
+        "timestamp": "1795269363.746956"
       },
       "tag": "phishfinder-headers"
     },
@@ -577,7 +584,7 @@
         "header": "MIME-Version: 1.0",
         "header_index": 7,
         "message_id": "<multi-recipient-test-12345@external.example>",
-        "timestamp": "1794978564.140025"
+        "timestamp": "1795269363.746956"
       },
       "tag": "phishfinder-headers"
     },
@@ -586,7 +593,7 @@
         "header": "Message-ID: <multi-recipient-test-12345@external.example>",
         "header_index": 8,
         "message_id": "<multi-recipient-test-12345@external.example>",
-        "timestamp": "1794978564.140025"
+        "timestamp": "1795269363.746956"
       },
       "tag": "phishfinder-headers"
     },
@@ -595,13 +602,13 @@
         "header": "Date: Tue, 04 Mar 2025 14:00:00 -0500",
         "header_index": 9,
         "message_id": "<multi-recipient-test-12345@external.example>",
-        "timestamp": "1794978564.140025"
+        "timestamp": "1795269363.746956"
       },
       "tag": "phishfinder-headers"
     },
     {
       "record": {
-        "archive_path": null,
+        "archive_hash": null,
         "attachment_count": 1,
         "attachment_hashes": [
           "592af3b0c943dc7535b8a0ffbdbf95b7475f1e66ec933d8f7b2463b63b395012"
@@ -624,7 +631,7 @@
         ],
         "compauth_reason": null,
         "compauth_result": null,
-        "date": "2026-11-18 05:09:24.140025 +0000",
+        "date": "2026-11-21 13:56:03.746956 +0000",
         "dkim_result": null,
         "dmarc_result": null,
         "env_mail_from": null,
@@ -654,7 +661,7 @@
         "subject_raw": "Re: Invoices 12927-12929",
         "thread_index": null,
         "thread_topic": null,
-        "timestamp": "1794978564.140025",
+        "timestamp": "1795269363.746956",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -691,7 +698,7 @@
         "thread_id": "<multi-recipient-test-12345@external.example>",
         "thread_message_count": 0,
         "thread_method": "self",
-        "timestamp": "1794978564.140025"
+        "timestamp": "1795269363.746956"
       },
       "tag": "phishfinder-lookalike"
     },
@@ -713,53 +720,53 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "e95b91e2-468f-48bb-a33b-4cb45be04fb3",
-        "timestamp": "2026-11-18 05:09:24.797133",
-        "total_analysis_time_seconds": 0.040316,
-        "total_time_seconds": 0.6898670196533203
+        "root_uuid": "f4cadf10-6ba7-4eb6-a469-5cda5872ebc5",
+        "timestamp": "2026-11-21 13:56:04.143420",
+        "total_analysis_time_seconds": 0.031184999999999997,
+        "total_time_seconds": 0.42340993881225586
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.004853,
+        "analysis_time_seconds": 0.004595,
         "event_type": "module",
         "exec_count": 2,
         "module": "email_analyzer",
-        "percentage": 0.7034689094774792,
-        "root_uuid": "e95b91e2-468f-48bb-a33b-4cb45be04fb3",
-        "timestamp": "2026-11-18 05:09:24.797133"
+        "percentage": 1.0852366887961664,
+        "root_uuid": "f4cadf10-6ba7-4eb6-a469-5cda5872ebc5",
+        "timestamp": "2026-11-21 13:56:04.143420"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.003747,
-        "event_type": "module",
-        "exec_count": 18,
-        "module": "email_logger",
-        "percentage": 0.5431481565654471,
-        "root_uuid": "e95b91e2-468f-48bb-a33b-4cb45be04fb3",
-        "timestamp": "2026-11-18 05:09:24.797133"
-      },
-      "tag": "metrics"
-    },
-    {
-      "record": {
-        "analysis_time_seconds": 0.031716,
+        "analysis_time_seconds": 0.023708999999999997,
         "event_type": "module",
         "exec_count": 4,
         "module": "file_type",
-        "percentage": 4.597407775188076,
-        "root_uuid": "e95b91e2-468f-48bb-a33b-4cb45be04fb3",
-        "timestamp": "2026-11-18 05:09:24.797133"
+        "percentage": 5.59953790090714,
+        "root_uuid": "f4cadf10-6ba7-4eb6-a469-5cda5872ebc5",
+        "timestamp": "2026-11-21 13:56:04.143420"
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.002881,
+        "event_type": "module",
+        "exec_count": 18,
+        "module": "email_logger",
+        "percentage": 0.6804280523224713,
+        "root_uuid": "f4cadf10-6ba7-4eb6-a469-5cda5872ebc5",
+        "timestamp": "2026-11-21 13:56:04.143420"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-18T05:09:24.797533",
+        "timestamp": "2026-11-21T13:56:04.143830",
         "value": 0
       },
       "tag": "monitoring"
@@ -767,7 +774,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-18T05:09:24.797550",
+        "timestamp": "2026-11-21T13:56:04.143847",
         "value": 1
       },
       "tag": "monitoring"

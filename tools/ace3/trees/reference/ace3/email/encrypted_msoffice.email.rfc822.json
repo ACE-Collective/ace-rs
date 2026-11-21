@@ -1013,39 +1013,6 @@
       },
       "tags": {}
     },
-    "file:6f47397d263de031f0e5e9aec6c4a9087fe16ab3bb46580a937563ff4c072675": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "info_3805.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:774137008718d77966b5cb59c8ba08bfb1f42261f5ea37fe0ce7d0ba8bf0581c": {
       "detections": {},
       "directives": {
@@ -1093,6 +1060,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:7a9d3bf4cb3290ece0aa7b5f6df3aea80c5b47a458202960cd0a75747d49d61d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "info_3805.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -1229,39 +1229,6 @@
       "tags": {
         "email": true
       }
-    },
-    "file:bf8c96a72446776c36375546befecf71930c3c0d5c0ae0a7fcf0771cdb406a96": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "info_3805.xls.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01": {
       "detections": {},
@@ -1460,7 +1427,19 @@
               ]
             },
             "extraction_errors": [],
-            "parsing_error": null
+            "parsing_error": null,
+            "parts": [
+              {
+                "content_type": "text/plain",
+                "path": "email.rfc822.unknown_text_plain_000.txt",
+                "role": "body"
+              },
+              {
+                "content_type": "application/vnd.ms-excel",
+                "path": "info_3805.xls",
+                "role": "attachment"
+              }
+            ]
           },
           "summary": "Email Analysis: From Peachey Wexler <noreply@tovarioseni9.fun> To target@user.com Subject Doc #848625: facsimile copy",
           "tags": {}
@@ -1600,9 +1579,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 03:48:47+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 03:48:47+00:00",
-              "File:FileModifyDate": "2026:11:18 03:48:47+00:00",
+              "File:FileAccessDate": "2026:11:21 11:55:18+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 11:55:18+00:00",
+              "File:FileModifyDate": "2026:11:21 11:55:18+00:00",
               "File:FileName": "info_3805.xls.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 69125,
@@ -1793,9 +1772,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 03:48:47+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 03:48:47+00:00",
-              "File:FileModifyDate": "2026:11:18 03:48:47+00:00",
+              "File:FileAccessDate": "2026:11:21 11:55:17+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 11:55:17+00:00",
+              "File:FileModifyDate": "2026:11:21 11:55:17+00:00",
               "File:FileName": "info_3805.xls",
               "File:FilePermissions": 100664,
               "File:FileSize": 69125,
@@ -2927,6 +2906,39 @@
         "xlm4:error": true,
         "xlm4:no_cells": true
       }
+    },
+    "file:f065092d0f24bb39e37eefa67de60a9b6310f3ee9901330f44a2da7dadfec62a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "info_3805.xls.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "fqdn:component.pw": {
       "detections": {},

@@ -231,67 +231,6 @@
       },
       "tags": {}
     },
-    "file:476267576fa3bc652bffd0e1422c41bfe88a25efab08ac541d898d3795bc9f3b": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "javascript_deobfuscation": true
-      },
-      "paths": {
-        "deobfuscated-encrypted_truncated.pdf.js_________I_______N______5dL5_V_q_.js": {
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:24c17eb8ee168ce44e1f370d93c5bb6f2c0c83c273ad19a47875914393cfbab0": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "data"
-          },
-          "summary": "File Type Analysis: data (application/octet-stream)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:4819c64fe46e97077206d13fbf82e369944f231e46805223d97e92c5f59c7f7c": {
       "detections": {},
       "directives": {
@@ -363,7 +302,101 @@
       },
       "tags": {}
     },
-    "file:7044ca32476931282fcdc6352f63b6ac35d8aa474d31a473987107444d2c580a": {
+    "file:634c40809c981ec198980e228fb939cc14a57c1102c11459a07d42d55e820aa7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_truncated.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e2e708bda0b103f72bbc5973455e7e1772f472071b252ed569af431f99328060": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:93446b60368aca7d708ee87c5bff43f0004efb4c14cf0dae32d90187700976f9": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "deobfuscated-encrypted_truncated.pdf.js_________I_______N______5dL5_V_q_.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:24c17eb8ee168ce44e1f370d93c5bb6f2c0c83c273ad19a47875914393cfbab0": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ad2101a519ffff9ea7b248b8acf2a80e2c0fc5bdca7c972259c40f6ac5716901": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -519,39 +552,6 @@
       },
       "tags": {}
     },
-    "file:cf217d5c2a07fd6f2e54090bd998b66740befc46671bdad0e123cd50eb3b5ccc": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_truncated.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:e2e708bda0b103f72bbc5973455e7e1772f472071b252ed569af431f99328060": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:e2e708bda0b103f72bbc5973455e7e1772f472071b252ed569af431f99328060": {
       "detections": {},
       "directives": {},
@@ -570,8 +570,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:43:50+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:43:50+00:00",
+              "File:FileAccessDate": "2026:11:21 12:55:03+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 12:55:03+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_truncated.pdf",
               "File:FilePermissions": 100644,
@@ -683,9 +683,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:7044ca32476931282fcdc6352f63b6ac35d8aa474d31a473987107444d2c580a",
+      "redirection": "file:ad2101a519ffff9ea7b248b8acf2a80e2c0fc5bdca7c972259c40f6ac5716901",
       "relationships": {
-        "extracted_from file:7044ca32476931282fcdc6352f63b6ac35d8aa474d31a473987107444d2c580a": true
+        "extracted_from file:ad2101a519ffff9ea7b248b8acf2a80e2c0fc5bdca7c972259c40f6ac5716901": true
       },
       "results": {
         "file_type": {

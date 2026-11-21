@@ -421,7 +421,19 @@
               ]
             },
             "extraction_errors": [],
-            "parsing_error": null
+            "parsing_error": null,
+            "parts": [
+              {
+                "content_type": "text/plain",
+                "path": "email.rfc822.unknown_text_plain_000.txt",
+                "role": "body"
+              },
+              {
+                "content_type": "application/octet-stream",
+                "path": "Hello __ World .txt",
+                "role": "attachment"
+              }
+            ]
           },
           "summary": "Email Analysis: From External Sender <sender@external.example> To alice@company.com Subject Test multi-chunk RFC 2047 attachment filename",
           "tags": {}

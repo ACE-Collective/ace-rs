@@ -1,12 +1,24 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "email_analyzer",
     "file_type",
     "url_extraction"
   ],
   "analyses": [
+    {
+      "class": "EmailArchiveResults",
+      "details": {
+        "hash": "eebd080c8748bc2d19a0273ac2f84bb8222e8b1e9fef26f08933053cb9e94218",
+        "message_id": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.archive:EmailArchiveResults",
+      "observables": [],
+      "summary": "Archived Email: eebd080c8748bc2d19a0273ac2f84bb8222e8b1e9fef26f08933053cb9e94218",
+      "tags": []
+    },
     {
       "class": "EmailAnalysis",
       "details": {
@@ -76,7 +88,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 06:04:47.555913 +0000",
+            "date": "2026-11-21 14:50:56.002857 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -131,7 +143,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "application/octet-stream",
+            "path": "invoice.doc",
+            "role": "attachment"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -296,14 +320,20 @@
     }
   ],
   "email_archive_after": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [
+      {
+        "digest": "eebd080c8748bc2d19a0273ac2f84bb8222e8b1e9fef26f08933053cb9e94218",
+        "insert_date": "2026-11-21 14:50:56",
+        "message_id_hash": "01A829B0FBE5285CE9018AB2FC63FFD8CCF5F4DDF5CCEA132F2068FE9B6B36D4"
+      }
+    ],
+    "pool": [
+      "eebd080c8748bc2d19a0273ac2f84bb8222e8b1e9fef26f08933053cb9e94218"
+    ]
   },
   "email_archive_before": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [],
+    "pool": []
   },
   "email_archive_reads": [],
   "input": {
@@ -364,8 +394,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "sender@example.com"
+        "type": "email_subject",
+        "value": "the attached file"
       },
       {
         "detections": [],
@@ -385,14 +415,6 @@
         "tags": [],
         "type": "file",
         "value": "283b1396b1f2df6f102be289de48537a5077be826ec492daa3b83a2a5baaab4a"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<encrypted_cryptoapi_doc.email.rfc822@example.com>"
       },
       {
         "detections": [],
@@ -418,6 +440,25 @@
       },
       {
         "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 305,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "17a196ee56a4691a39416757a87948677c1b9a238add433fa236a0ba696e7b46"
+      },
+      {
+        "detections": [],
         "directives": [
           "archive"
         ],
@@ -439,41 +480,6 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "recipient@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 305,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "17a196ee56a4691a39416757a87948677c1b9a238add433fa236a0ba696e7b46"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "the attached file"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [
           {
             "path": "email.rfc822.headers",
@@ -489,6 +495,30 @@
         ],
         "type": "file",
         "value": "ddb98d820e68b8febcdcba141c197d26d8837b0169ede894ea9df2be70d9dbc0"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<encrypted_cryptoapi_doc.email.rfc822@example.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sender@example.com"
       }
     ],
     "results": [
@@ -546,7 +576,7 @@
           "type": "Composite Document File V2 Document, Little Endian, Os: MacOS, Version 15.10, Code page: 10000, Author: Anderson, Anthony, Template: Normal.dotm, Last Saved By: Anderson, Anthony, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Apr 29 15:40:00 2021, Last Saved Time/Date: Thu Apr 29 15:40:00 2021, Number of Pages: 1, Number of Words: 0, Number of Characters: 0, Security: 0"
         },
         "module": "file_type",
-        "observable": 4,
+        "observable": 3,
         "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: MacOS, Version 15.10, Code page: 10000, Author: Anderson, Anthony, Template: Normal.dotm, Last Saved By: Anderson, Anthony, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Apr 29 15:40:00 2021, Last Saved Time/Date: Thu Apr 29 15:40:00 2021, Number of Pages: 1, Number of Words: 0, Number of Characters: 0, Security: 0 (application/msword) (ms office document) (ole compound file)",
         "tags": []
       },
@@ -558,41 +588,76 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 4,
+        "observable": 3,
         "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 4,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "EmailArchiveResults",
+        "details": {
+          "hash": "eebd080c8748bc2d19a0273ac2f84bb8222e8b1e9fef26f08933053cb9e94218",
+          "message_id": null
+        },
+        "module": "email_archiver",
+        "observable": 5,
+        "summary": "Archived Email: eebd080c8748bc2d19a0273ac2f84bb8222e8b1e9fef26f08933053cb9e94218",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 1
-          },
-          {
-            "observable": 6
-          },
-          {
-            "observable": 0
+            "observable": 9
           },
           {
             "observable": 8
           },
           {
-            "observable": 3
+            "observable": 0
+          },
+          {
+            "observable": 1
+          },
+          {
+            "observable": 7
           },
           {
             "observable": 2,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 4,
+            "observable": 3,
             "path": "invoice.doc"
           },
           {
-            "observable": 9,
+            "observable": 6,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 7,
+            "observable": 4,
             "path": "email.rfc822.combined"
           }
         ],
@@ -664,7 +729,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 06:04:47.555913 +0000",
+              "date": "2026-11-21 14:50:56.002857 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -719,7 +784,19 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "application/octet-stream",
+              "path": "invoice.doc",
+              "role": "attachment"
+            }
+          ]
         },
         "module": "email_analyzer",
         "observable": 5,
@@ -768,30 +845,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 7,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 9,
+        "observable": 6,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       }

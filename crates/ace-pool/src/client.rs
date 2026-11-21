@@ -280,6 +280,23 @@ impl LeaseClient {
         answer(response, action).await
     }
 
+    /// Whether the remediation's handler's latest remediation of `observable_value` covers the message
+    /// (ace3's `removal_covers`).
+    pub async fn removal_covers(
+        &self,
+        action: i64,
+        observable_value: &str,
+    ) -> Result<bool, ClientError> {
+        let request = self
+            .post(&ace_sdk::actions::paths::action(action, "removal-covers"))
+            .json(&ace_sdk::actions::RemovalCoversRequest {
+                observable_value: observable_value.to_owned(),
+            });
+        let response = self.http.send(request).await?;
+        let answer: ace_sdk::actions::RemovalCoversAnswer = answer(response, action).await?;
+        Ok(answer.covers)
+    }
+
     /// Ends a try of an action. A collected file must have been uploaded first.
     pub async fn end_action(
         &self,

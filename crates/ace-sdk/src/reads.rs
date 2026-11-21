@@ -357,61 +357,6 @@ pub struct ArchivedEmailAnswer {
     pub error: Option<String>,
 }
 
-/// `decrypted-archive`: the task's own file, an archived email (`.gz.e`), decrypted and gunzipped
-/// in the core and put in the task's root (`encrypted_archive_analyzer`).
-pub struct DecryptedArchive;
-
-impl ReadKind for DecryptedArchive {
-    const READ: Read = Read {
-        name: "decrypted-archive",
-    };
-    type Request = DecryptedArchiveRequest;
-    type Answer = DecryptedArchiveAnswer;
-}
-
-/// The subject of a `decrypted-archive` read: only the task's own file, which None names.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct DecryptedArchiveRequest {
-    #[serde(default)]
-    pub subject: Option<ObservableRef>,
-}
-
-/// The answer to a `decrypted-archive` read: the email, or why the file couldn't be opened.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct DecryptedArchiveAnswer {
-    pub email: Option<ReadFile>,
-    pub error: Option<String>,
-}
-
-/// `archived-url-count`: how many archived emails are indexed with the task's URL
-/// (`url_email_pivot_analyzer`).
-pub struct ArchivedUrlCount;
-
-impl ReadKind for ArchivedUrlCount {
-    const READ: Read = Read {
-        name: "archived-url-count",
-    };
-    type Request = ArchivedUrlCountRequest;
-    type Answer = ArchivedUrlCountAnswer;
-}
-
-/// An `archived-url-count` read's subject is only the task's own `url` observable, which None names.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ArchivedUrlCountRequest {
-    #[serde(default)]
-    pub subject: Option<ObservableRef>,
-}
-
-/// The answer to an `archived-url-count` read: ace3's `COUNT(DISTINCT archive_id)`, 0 for none.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ArchivedUrlCountAnswer {
-    pub count: i64,
-}
-
 /// `observable-tags`: the tags analysts mapped to the task's own observable, by its type and the
 /// sha256 of its value (`user_defined_tagging`).
 pub struct ObservableTags;
@@ -569,12 +514,10 @@ pub const ALL: &[Read] = &[
     EmailThread::READ,
     NewlyRegistered::READ,
     ArchivedEmail::READ,
-    DecryptedArchive::READ,
-    ArchivedUrlCount::READ,
     ObservableTags::READ,
     SvsCaptureState::READ,
     RecordedMessageIds::READ,
 ];
 
 /// The reads that put a file in the task's root, which a result may add without uploading it.
-pub const FILE_READS: &[Read] = &[ArchivedEmail::READ, DecryptedArchive::READ];
+pub const FILE_READS: &[Read] = &[ArchivedEmail::READ];

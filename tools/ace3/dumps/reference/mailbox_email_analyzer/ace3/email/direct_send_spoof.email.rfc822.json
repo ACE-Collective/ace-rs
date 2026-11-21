@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "file_type",
     "email_analyzer"
@@ -118,7 +118,7 @@
             "cc": [],
             "compauth_reason": "000",
             "compauth_result": "fail",
-            "date": "2026-11-18 05:51:16.498045 +0000",
+            "date": "2026-11-21 14:38:04.921235 +0000",
             "dkim_result": "none",
             "dmarc_result": "fail",
             "env_mail_from": null,
@@ -178,7 +178,14 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -481,7 +488,7 @@
           "cc": [],
           "compauth_reason": "000",
           "compauth_result": "fail",
-          "date": "2026-11-18 05:51:16.498045 +0000",
+          "date": "2026-11-21 14:38:04.921235 +0000",
           "dkim_result": "none",
           "dmarc_result": "fail",
           "env_mail_from": null,
@@ -541,7 +548,14 @@
         ]
       },
       "extraction_errors": [],
-      "parsing_error": null
+      "parsing_error": null,
+      "parts": [
+        {
+          "content_type": "text/plain",
+          "role": "body",
+          "uuid": "a1f51233-0782-4baf-b3af-744c41206ce3"
+        }
+      ]
     }
   },
   "tree_view": {
@@ -555,27 +569,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "ceo@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 1182,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "40d9aecb6fd9faa25e4d25dc16838dcc526fb237d5689ed8170f9b34427aa10c"
+        "type": "email_conversation",
+        "value": "ceo@company.com|user@company.com"
       },
       {
         "detections": [],
@@ -584,6 +579,51 @@
         "tags": [],
         "type": "email_subject",
         "value": "Task Submission Confirmation"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "tracked"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<direct-send-spoof-test@company.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "user@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "ceo@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 1121,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "1d1a1213cfa072ec3cf3f64b6e52ba459be7ea70f454878a9a3d6781aab2a5c5"
       },
       {
         "detections": [],
@@ -609,53 +649,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "ceo@company.com|user@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "user@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_first_hop_ip",
+        "type": "email_first_hop_helo",
         "value": "203.0.113.10"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "tracked"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<direct-send-spoof-test@company.com>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 1121,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "1d1a1213cfa072ec3cf3f64b6e52ba459be7ea70f454878a9a3d6781aab2a5c5"
       },
       {
         "detections": [],
@@ -684,8 +679,27 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_first_hop_helo",
+        "type": "email_first_hop_ip",
         "value": "203.0.113.10"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 1182,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "40d9aecb6fd9faa25e4d25dc16838dcc526fb237d5689ed8170f9b34427aa10c"
       }
     ],
     "results": [
@@ -708,7 +722,7 @@
           "type": "RFC 822 mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 1,
+        "observable": 5,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -731,31 +745,8 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 3,
+        "observable": 6,
         "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 8,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
       {
@@ -763,43 +754,43 @@
         "class": "MailboxEmailAnalysis",
         "details": {},
         "module": "mailbox_email_analyzer",
-        "observable": 9,
+        "observable": 8,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
+            "observable": 4
+          },
+          {
+            "observable": 3
+          },
+          {
             "observable": 0
           },
           {
-            "observable": 5
-          },
-          {
-            "observable": 4
+            "observable": 1
           },
           {
             "observable": 2
           },
           {
+            "observable": 9
+          },
+          {
             "observable": 7
           },
           {
-            "observable": 6
-          },
-          {
-            "observable": 10
-          },
-          {
-            "observable": 3,
+            "observable": 6,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 8,
+            "observable": 5,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 1,
+            "observable": 10,
             "path": "email.rfc822.combined"
           }
         ],
@@ -905,7 +896,7 @@
               "cc": [],
               "compauth_reason": "000",
               "compauth_result": "fail",
-              "date": "2026-11-18 05:51:16.498045 +0000",
+              "date": "2026-11-21 14:38:04.921235 +0000",
               "dkim_result": "none",
               "dmarc_result": "fail",
               "env_mail_from": null,
@@ -965,10 +956,17 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 9,
+        "observable": 8,
         "summary": "Email Analysis: From \"Chief Executive\" <ceo@company.com> To user@company.com Subject Task Submission Confirmation",
         "tags": []
       },
@@ -991,7 +989,30 @@
           "type": "RFC 822 mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 9,
+        "observable": 8,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 10,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       }

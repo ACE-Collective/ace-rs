@@ -1,59 +1,31 @@
 {
-  "about": "The emails ace3's email archive starts with for the message_id_analyzer_v2 and url_email_pivot_analyzer dumps (run_module.py --email-archive-store), each archived with ace3's archive_email at its insert_date under the key in ./key, with its URLs indexed. archived-2 is archived twice, so a lookup finds the newer; missing-object's file is removed once archived.",
+  "about": "The emails ace3's email archive starts with for the message_id_analyzer_v2 dumps (run_module.py --email-archive-store), each archived with ace3's archive_email at its insert_date under the key in ./key. archived-2 is archived twice, so a lookup finds the newer; missing-object's object is removed from the pool once archived.",
   "emails": [
     {
       "file": "archived_1.email.rfc822",
       "message_id": "<archived-1@example.com>",
-      "recipients": [
-        "alice@example.com",
-        "Alice Two <ALICE2@Example.com>"
-      ],
-      "insert_date": "2026-11-01 10:00:00",
-      "urls": [
-        "http://example.com/a",
-        "http://example.com/shared"
-      ]
+      "insert_date": "2026-11-01 10:00:00"
     },
     {
       "file": "archived_2.email.rfc822",
       "message_id": "<archived-2@example.com>",
-      "recipients": [
-        "bob@example.com"
-      ],
-      "insert_date": "2026-11-02 10:00:00",
-      "urls": [
-        "http://example.com/shared"
-      ]
+      "insert_date": "2026-11-02 10:00:00"
     },
     {
       "file": "archived_2_resent.email.rfc822",
       "message_id": "<archived-2@example.com>",
-      "recipients": [
-        "bob@example.com"
-      ],
-      "insert_date": "2026-11-03 10:00:00",
-      "urls": [
-        "http://example.com/shared"
-      ]
+      "insert_date": "2026-11-03 10:00:00"
     },
     {
       "file": "missing_object.email.rfc822",
       "message_id": "missing-object@example.com",
-      "recipients": [
-        "carol@example.com"
-      ],
       "insert_date": "2026-11-04 10:00:00",
-      "urls": [],
       "delete_file": true
     },
     {
       "file": "empty.email.rfc822",
       "message_id": "<empty@example.com>",
-      "recipients": [
-        "dave@example.com"
-      ],
-      "insert_date": "2026-11-05 10:00:00",
-      "urls": []
+      "insert_date": "2026-11-05 10:00:00"
     }
   ]
 }

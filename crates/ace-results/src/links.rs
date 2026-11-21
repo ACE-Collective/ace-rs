@@ -83,6 +83,9 @@ pub enum RelationshipKind {
     IsHashOf,
     LoggedInto,
     RedirectedFrom,
+    /// Mail to this address went to that mailbox instead: a forward or a list expansion (ace3's
+    /// `R_DELIVERED_TO`, 0b42ba1e).
+    DeliveredTo,
 }
 
 /// A relationship from the observable that carries it to `target`.
@@ -117,6 +120,7 @@ mod tests {
             (RelationshipKind::IsHashOf, "is_hash_of"),
             (RelationshipKind::LoggedInto, "logged_into"),
             (RelationshipKind::RedirectedFrom, "redirected_from"),
+            (RelationshipKind::DeliveredTo, "delivered_to"),
         ];
         for (kind, name) in kinds {
             assert_eq!(serde_json::to_value(kind).expect("serializes"), json!(name));

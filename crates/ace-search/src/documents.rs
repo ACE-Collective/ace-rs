@@ -359,9 +359,19 @@ fn pieces(row: &ResultRow, added: &[Added]) -> Vec<Piece> {
                         .filter(|s| !s.is_empty())
                 })
                 .map(str::to_owned);
-            let names: Vec<&str> = added.iter().map(Added::name).collect();
-            let body = EmailAnalysis::body_of(&names)
-                .map(|at| (at, names[at].contains("unknown_text_html")));
+            // the parts the result records say which file is the body and whether it's HTML; a
+            // result made before it recorded them is read by its files' names
+            let parts: Option<Vec<ace_results::types::email::EmailPart>> = details
+                .get("parts")
+                .filter(|parts| !parts.is_null())
+                .and_then(|parts| serde_json::from_value(parts.clone()).ok());
+            let paths: Vec<&str> = added.iter().map(|a| a.path.as_str()).collect();
+            let body = EmailAnalysis::body_in(parts.as_deref(), &paths).map(|at| {
+                let html = EmailAnalysis::body_parts_in(parts.as_deref(), &paths)
+                    .into_iter()
+                    .any(|(index, html)| index == at && html);
+                (at, html)
+            });
             vec![Piece::Email(title, email_headers(email), body)]
         }
         "command_line_analysis" => {

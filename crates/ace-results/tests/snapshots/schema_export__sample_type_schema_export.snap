@@ -520,6 +520,11 @@ expression: text
           "const": "extracted_from",
           "description": "A file taken out of another file, such as an archive member.",
           "type": "string"
+        },
+        {
+          "const": "delivered_to",
+          "description": "Mail to this address went to that mailbox instead: a forward or a list expansion (ace3's\n`R_DELIVERED_TO`, 0b42ba1e).",
+          "type": "string"
         }
       ]
     },

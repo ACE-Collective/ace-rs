@@ -288,6 +288,7 @@ async fn run_traced(
                 handler.clone(),
                 action.clone(),
                 dir.path().to_owned(),
+                client.clone(),
             ));
             tokio::select! {
                 () = stop.cancelled() => None,
@@ -373,14 +374,45 @@ fn keep_lease(
     })
 }
 
+/// What a remediator asks the core during one try, through the pool's lease client.
+struct ClientCore {
+    client: LeaseClient,
+    action: i64,
+}
+
+impl ace_sdk::actions::ActionCore for ClientCore {
+    fn removal_covers<'a>(
+        &'a self,
+        observable_value: &'a str,
+    ) -> ace_sdk::actions::ActionFuture<'a, Result<bool, String>> {
+        Box::pin(async move {
+            self.client
+                .removal_covers(self.action, observable_value)
+                .await
+                .map_err(|e| e.to_string())
+        })
+    }
+}
+
 /// One try of the handler, as its end.
-async fn try_handler(handler: Handler, action: LeasedAction, dir: std::path::PathBuf) -> ActionEnd {
+async fn try_handler(
+    handler: Handler,
+    action: LeasedAction,
+    dir: std::path::PathBuf,
+    client: LeaseClient,
+) -> ActionEnd {
     match handler {
         Handler::Remediator(remediator) => {
+            let core = ClientCore {
+                client,
+                action: action.id,
+            };
             let result = match action.action {
                 Some(RemediationAction::Restore) => remediator.restore(&action).await,
                 // a remediation always has its action; a row without one is a remove, as ace3's default
-                Some(RemediationAction::Remove) | None => remediator.remove(&action).await,
+                Some(RemediationAction::Remove) | None => {
+                    remediator.remove_with(&action, &core).await
+                }
             };
             ActionEnd::Remediation { result }
         }

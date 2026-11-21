@@ -289,11 +289,6 @@ pub enum Field {
     True,
     /// A string that passes the test.
     Text(Text),
-    /// A string ace3's fqdn observable takes as its value: `validators.domain`
-    /// (`ace_pycompat::validators::domain`), as a module's `add_observable_by_spec` of an fqdn
-    /// checks it. So a module that records a name and adds it as an fqdn only when this holds added
-    /// it, as the apex module does with its apex.
-    Fqdn,
 }
 
 /// A test on a string, after the case rule.
@@ -496,15 +491,6 @@ impl Condition {
         }
     }
 
-    /// The dependency's string field is a value an fqdn observable takes (`Field::Fqdn`).
-    pub fn result_fqdn(module: &str, field: &str) -> Condition {
-        Condition::Result {
-            module: module.to_owned(),
-            field: field.to_owned(),
-            test: Field::Fqdn,
-        }
-    }
-
     /// The dependency's string field passes `text`.
     pub fn result_text(module: &str, field: &str, text: Text) -> Condition {
         Condition::Result {
@@ -598,7 +584,6 @@ impl Condition {
                 .is_some_and(|value| match (test, value) {
                     (Field::True, Value::Bool(b)) => *b,
                     (Field::Text(text), Value::String(s)) => text.matches(s),
-                    (Field::Fqdn, Value::String(s)) => ace_pycompat::validators::domain(s),
                     _ => false,
                 }),
             Condition::All(_)
@@ -863,27 +848,6 @@ mod tests {
                 .holds(&facts)
         );
         assert!(Condition::HasResult("file_type".to_owned()).holds(&facts));
-    }
-
-    #[test]
-    fn an_fqdn_field_is_one_an_fqdn_observable_takes() {
-        let results = BTreeMap::from([(
-            "apex".to_owned(),
-            json!({"good": "example.co.uk", "bad": "-bad.com", "flag": true}),
-        )]);
-        let facts = file_facts("a", 1, &results, &[]);
-        assert!(Condition::result_fqdn("apex", "good").holds(&facts));
-        // a label may not start with a hyphen
-        assert!(!Condition::result_fqdn("apex", "bad").holds(&facts));
-        // not a string, no such field, no such result
-        assert!(!Condition::result_fqdn("apex", "flag").holds(&facts));
-        assert!(!Condition::result_fqdn("apex", "missing").holds(&facts));
-        assert!(!Condition::result_fqdn("other", "good").holds(&facts));
-        assert!(
-            Condition::result_fqdn("other", "good")
-                .negated()
-                .holds(&facts)
-        );
     }
 
     #[test]

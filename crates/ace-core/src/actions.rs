@@ -750,6 +750,43 @@ impl ActionWorker {
         Ok((kind, roots))
     }
 
+    /// `removal_covers` for a remediation the worker holds: whether its own handler's latest
+    /// remediation of `observable_value`, of the action's own type, covers it. A remediator asks while
+    /// it tries, with the key it resolved its own to.
+    pub async fn removal_covers(
+        &self,
+        id: i64,
+        observable_value: &str,
+    ) -> Result<bool, ActionError> {
+        let row = sqlx::query!(
+            r#"SELECT kind::text AS "kind!", handler, observable_type FROM queue.actions
+               WHERE id = $1 AND lease_owner = $2"#,
+            id,
+            self.name,
+        )
+        .fetch_optional(self.db.pool())
+        .await?
+        .ok_or(ActionError::LeaseLost(id))?;
+        if row.kind != ActionKind::Remediation.as_str() {
+            return Err(ActionError::Invalid(format!(
+                "action {id} is a {}, and only a remediation asks what a removal covers",
+                row.kind
+            )));
+        }
+        if observable_value.is_empty() || observable_value.len() > 4096 {
+            return Err(ActionError::Invalid(
+                "a target's value is 1 to 4096 bytes".to_owned(),
+            ));
+        }
+        Ok(removal_covers(
+            &self.db,
+            &row.handler,
+            &row.observable_type,
+            observable_value,
+        )
+        .await?)
+    }
+
     /// Ends a try of an action the worker holds, inside `tx`: records it, and either completes the action
     /// or sets when it's tried again, as ace3's workers decide. A collected file must already be in the
     /// bucket, held by the collection; the caller holds it for the alerts this returns.
@@ -841,16 +878,49 @@ async fn record(tx: &mut Tx<'_>, id: i64, decided: &Decided) -> Result<(), Actio
     .execute(tx.conn())
     .await?;
     sqlx::query!(
-        "INSERT INTO queue.action_attempts (action_id, status, result, message)
-             VALUES ($1, $2, $3, $4)",
+        "INSERT INTO queue.action_attempts (action_id, status, result, message, resolved_target)
+             VALUES ($1, $2, $3, $4, $5)",
         id,
         decided.status,
         decided.attempt_result,
         message.as_deref().unwrap_or_default(),
+        decided.resolved_target.as_deref(),
     )
     .execute(tx.conn())
     .await?;
+    if let Some(resolved) = &decided.resolved_target {
+        tracing::info!(action = id, result = %decided.attempt_result, "acted on {resolved}");
+    }
     Ok(())
+}
+
+/// Whether `handler`'s latest remediation of this target is a removal that is under way or found
+/// nothing left to remove: ace3's `removal_covers` (aaeef15e). A remediator that resolves its key to
+/// another target, an alias to the mailbox that owns it, leaves the message to that target's own
+/// removal instead of acting twice. A removal that failed, errored or was cancelled leaves the message
+/// where it was, and a restore put it back, so neither covers.
+pub async fn removal_covers(
+    db: &Db,
+    handler: &str,
+    observable_type: &str,
+    observable_value: &str,
+) -> Result<bool, DbError> {
+    let latest = sqlx::query!(
+        "SELECT action, status, result FROM queue.actions
+         WHERE kind = 'remediation' AND handler = $1 AND observable_type = $2
+           AND observable_value = $3
+         ORDER BY id DESC LIMIT 1",
+        handler,
+        observable_type,
+        observable_value,
+    )
+    .fetch_optional(db.pool())
+    .await?;
+    Ok(latest.is_some_and(|row| {
+        row.action.as_deref() == Some(RemediationAction::Remove.as_str())
+            && (row.status != COMPLETED
+                || matches!(row.result.as_deref(), Some("SUCCESS" | "NOT_FOUND")))
+    }))
 }
 
 enum Claim {
@@ -869,6 +939,8 @@ struct Decided {
     message: Option<String>,
     retry_in: Duration,
     restore_key: Option<String>,
+    /// What a remediator acted on in place of the key (ace3's `resolved_target`).
+    resolved_target: Option<String>,
     events: Option<Value>,
     last_error: Option<String>,
     file: Option<CollectedFile>,
@@ -889,6 +961,7 @@ fn decide(
         message: None,
         retry_in: Duration::ZERO,
         restore_key: None,
+        resolved_target: None,
         events: None,
         last_error: None,
         file: None,
@@ -905,6 +978,11 @@ fn decide(
                 message: result.message.clone(),
                 retry_in: retry.delay(0),
                 restore_key: result.restore_key.clone(),
+                resolved_target: result
+                    .resolved_target
+                    .as_deref()
+                    .filter(|t| !t.is_empty())
+                    .map(bounded),
                 ..blank(status, result.status.as_str())
             }
         }

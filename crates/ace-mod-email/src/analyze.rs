@@ -1,10 +1,14 @@
 //! `EmailAnalyzer.analyze_rfc822` (`saq/modules/email/rfc822.py:1019`): the headers and
 //! addresses of a message, as details and observables.
 
+use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
-use ace_results::types::email::{EmailAnalysis, EmailDetails, LogEntry};
-use ace_results::{NewObservable, ObservableAdditions, ObservableKind, ResultEnvelope};
+use ace_results::types::email::{Delivery, DeliveryReason, EmailAnalysis, EmailDetails, LogEntry};
+use ace_results::{
+    NewObservable, ObservableAdditions, ObservableKind, ObservableRef, Relationship,
+    RelationshipKind, ResultEnvelope,
+};
 use ace_sdk::InputFile;
 use chrono::{DateTime, Utc};
 use regex::Regex;
@@ -28,13 +32,16 @@ static O365_META: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?ms)^Sender: (.+?)^Subject: (.+?)^Message-Id: (.+?)^Recipient: ")
         .expect("valid regex")
 });
+/// A `Recipient:` line, whole: the mailbox, then any `, Forwarded: ...` or `, Expanded: ...`
+/// annotations (ace3's aaeef15e).
 static O365_META_RECIPIENT: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?m)^Recipient: ([^,\n]+)").expect("valid regex"));
+    LazyLock::new(|| Regex::new(r"(?m)^Recipient: (.+)$").expect("valid regex"));
 
 /// What the journal report's meta block says.
 #[derive(Debug, Default)]
 struct MetaBlock {
     sender: String,
+    /// Each `Recipient:` line after its name, stripped.
     recipients: Vec<String>,
 }
 
@@ -110,6 +117,69 @@ fn meta_block(part: &Node<'_>) -> Option<MetaBlock> {
     })
 }
 
+/// Where each address went, from the `Recipient:` lines of an Office 365 journal report: ace3's
+/// `parse_journal_deliveries`. A line names the mailbox that received the message, then optional
+/// annotations: `Recipient: b@x, Forwarded: a@x` (mail to a was forwarded to b) or
+/// `Recipient: b@x, Expanded: dl@x` (b got it as a member of the list dl). Every address a line
+/// names and every header address is in the answer; a header address no line accounts for is
+/// `not_journaled`.
+pub fn parse_journal_deliveries(
+    recipient_lines: &[String],
+    header_addresses: &[String],
+) -> BTreeMap<String, Delivery> {
+    let mut parsed = Vec::new();
+    for line in recipient_lines {
+        let mut pieces = line.split(',');
+        let mailbox = pieces.next().and_then(normalize_email_address);
+        if let Some(mailbox) = mailbox {
+            parsed.push((mailbox, pieces.collect::<Vec<_>>()));
+        }
+    }
+    let mut deliveries: BTreeMap<String, Delivery> = parsed
+        .iter()
+        .map(|(mailbox, _)| {
+            (
+                mailbox.clone(),
+                Delivery {
+                    reason: DeliveryReason::Delivered,
+                    mailboxes: vec![mailbox.clone()],
+                },
+            )
+        })
+        .collect();
+    for (mailbox, annotations) in &parsed {
+        for annotation in annotations {
+            let (name, value) = annotation.split_once(':').unwrap_or((annotation, ""));
+            let reason = match py_strip(name).to_lowercase().as_str() {
+                "forwarded" => Some(DeliveryReason::Forwarded),
+                "expanded" => Some(DeliveryReason::Expanded),
+                _ => None,
+            };
+            let (Some(reason), Some(address)) = (reason, normalize_email_address(value)) else {
+                tracing::info!(
+                    "unrecognized journal recipient annotation [{}] on {mailbox}",
+                    py_strip(annotation)
+                );
+                continue;
+            };
+            let entry = deliveries.entry(address).or_insert(Delivery {
+                reason,
+                mailboxes: Vec::new(),
+            });
+            if entry.reason != DeliveryReason::Delivered && !entry.mailboxes.contains(mailbox) {
+                entry.mailboxes.push(mailbox.clone());
+            }
+        }
+    }
+    for address in header_addresses {
+        deliveries.entry(address.clone()).or_insert(Delivery {
+            reason: DeliveryReason::NotJournaled,
+            mailboxes: Vec::new(),
+        });
+    }
+    deliveries
+}
+
 /// An outbound journaled message with `scan_inbound_only` set, whose email analysis ace3 skips: the
 /// file keeps only its `outbound_email` tag, and every other module still analyzes it (ace3
 /// 8617ba8e).
@@ -155,10 +225,11 @@ pub fn analyze_headers<'a, 'm>(
 
     if let Some(meta) = &target.meta {
         if !meta.recipients.is_empty() {
+            // the mailbox comes before any ", Forwarded: ..." or ", Expanded: ..." annotation
             env_rcpt_to = meta
                 .recipients
                 .iter()
-                .map(|r| py::parseaddr(r).1)
+                .map(|r| py::parseaddr(r.split(',').next().unwrap_or_default()).1)
                 .filter(|a| !a.is_empty())
                 .collect();
         }
@@ -279,27 +350,51 @@ pub fn analyze_headers<'a, 'm>(
         // a delivery for every local recipient, so remediation knows where the message went;
         // ace3 copies a remediate directive from the message_id observable to these, which
         // needs the rest of the alert and waits for the core
-        let mut seen = Vec::new();
+        let mut delivery_recipients: Vec<String> = Vec::new();
         for raw in env_rcpt_to
             .iter()
             .chain(&email.to_addresses)
             .chain(&cc)
             .chain(&bcc)
         {
-            if seen.contains(raw) {
-                continue;
-            }
-            seen.push(raw.clone());
             let Some(recipient) = normalize_email_address(raw) else {
                 continue;
             };
-            if is_local_email_domain(&recipient, &settings.local_email_domains) {
-                observables.add(
-                    ObservableKind::EmailDelivery,
-                    &format!("{}|{}", py_strip(&message_id), py_strip(&recipient)),
-                );
+            if is_local_email_domain(&recipient, &settings.local_email_domains)
+                && !delivery_recipients.contains(&recipient)
+            {
+                delivery_recipients.push(recipient);
             }
         }
+        // a journal report records where each copy went; header recipients are only where the
+        // sender addressed it
+        let deliveries = target
+            .meta
+            .as_ref()
+            .map(|meta| parse_journal_deliveries(&meta.recipients, &delivery_recipients));
+        let delivery =
+            |recipient: &str| format!("{}|{}", py_strip(&message_id), py_strip(recipient));
+        for recipient in &delivery_recipients {
+            let mut observable =
+                NewObservable::new(ObservableKind::EmailDelivery, delivery(recipient));
+            let journal = deliveries.as_ref().and_then(|d| d.get(recipient));
+            // still remediated, but a removal that finds nothing there is not a failure
+            if let Some(tag) = journal.and_then(|d| d.reason.tag()) {
+                observable.tags.push(tag.to_owned());
+            }
+            // a forwarded or expanded address points at the deliveries of the mailboxes that got
+            // its mail, so the remediation timeline can name them from the tree
+            for mailbox in journal.map(|d| d.mailboxes.as_slice()).unwrap_or_default() {
+                if mailbox != recipient && delivery_recipients.contains(mailbox) {
+                    observable.relationships.push(Relationship::new(
+                        RelationshipKind::DeliveredTo,
+                        ObservableRef::new(ObservableKind::EmailDelivery, delivery(mailbox)),
+                    ));
+                }
+            }
+            observables.push(observable);
+        }
+        email.deliveries = deliveries;
         email.message_id = Some(message_id);
     }
 
@@ -528,6 +623,7 @@ pub fn analyze_headers<'a, 'm>(
         parsing_error: None,
         extraction_errors: Vec::new(),
         email: Some(email),
+        parts: None,
     });
     result.observables = observables.list;
     Ok(HeaderAnalysis {

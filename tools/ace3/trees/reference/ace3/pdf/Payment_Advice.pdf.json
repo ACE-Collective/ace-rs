@@ -61,39 +61,6 @@
       },
       "tags": {}
     },
-    "file:1cad6e85ae064442fe6628e47d1e8084fc6f8b4283a744f0a36f1451af06dddd": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "Payment_Advice.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:34b87382f46ecef6f616dae7a57b7d09175a59d500a4fc61638ddb6993fbe0cb": {
       "detections": {},
       "directives": {
@@ -160,7 +127,7 @@
       },
       "tags": {}
     },
-    "file:d08c83192f759554f2ac67439c88a9eaabba4acc83f62807cc435e2b3db093bb": {
+    "file:63f3ec43ac1680202c95de00bdeed34d12e5d25fe86c533df5d559e7fe6b98c7": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -256,6 +223,39 @@
         "pdf": true
       }
     },
+    "file:ee0fbee399bceaca11ff856d87b5aef10156c833b977427ead8f61461208fd30": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Payment_Advice.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},
       "directives": {},
@@ -270,9 +270,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:d08c83192f759554f2ac67439c88a9eaabba4acc83f62807cc435e2b3db093bb",
+      "redirection": "file:63f3ec43ac1680202c95de00bdeed34d12e5d25fe86c533df5d559e7fe6b98c7",
       "relationships": {
-        "extracted_from file:d08c83192f759554f2ac67439c88a9eaabba4acc83f62807cc435e2b3db093bb": true,
+        "extracted_from file:63f3ec43ac1680202c95de00bdeed34d12e5d25fe86c533df5d559e7fe6b98c7": true,
         "extracted_from file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
       },
       "results": {
@@ -406,8 +406,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 03:53:24+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 03:53:24+00:00",
+              "File:FileAccessDate": "2026:11:21 12:00:00+00:00",
+              "File:FileInodeChangeDate": "2026:11:21 12:00:00+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "Payment_Advice.pdf",
               "File:FilePermissions": 100644,
@@ -751,7 +751,7 @@
       },
       "tags": {}
     },
-    "fqdn:williamtoms.com": {
+    "fqdn:www.williamtoms.com": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
@@ -781,7 +781,7 @@
           "details": {
             "dispatch_state": "DONE",
             "gui_link": null,
-            "query": "index=proxy hostname=\"williamtoms.com\"",
+            "query": "index=proxy hostname=\"www.williamtoms.com\"",
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -836,84 +836,6 @@
             "whois_raw_text": null
           },
           "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/williamtoms.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/williamtoms.com; whois: no WHOIS in a replay",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "fqdn:www.williamtoms.com": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "relationships": {},
-      "results": {
-        "apex_domain_analyzer": {
-          "details": {
-            "apex_domain": "williamtoms.com"
-          },
-          "summary": "Apex Domain: williamtoms.com",
-          "tags": {}
-        },
-        "fqdn_analyzer": {
-          "details": {
-            "aliaslist": [],
-            "all_resolutions": [],
-            "ip_address": null,
-            "mx": null,
-            "resolution_count": null,
-            "status": "nxdomain",
-            "wildcard_dns": null
-          },
-          "summary": "DNS Analysis: does not exist (nxdomain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "proxy_domain_splunk": {
-          "details": {
-            "dispatch_state": "DONE",
-            "gui_link": null,
-            "query": "index=proxy hostname=\"www.williamtoms.com\"",
-            "query_results": [
-              {
-                "_time": "2026-10-30T14:02:11.000+00:00",
-                "dest_ip": "198.51.100.20",
-                "full_url": "https://www.example.com/login",
-                "src_ip": "192.0.2.10",
-                "src_translated_ip": "198.51.100.7",
-                "user": "alice@example.com"
-              },
-              {
-                "_time": "2026-10-30T14:05:42.000+00:00",
-                "dest_ip": "198.51.100.20",
-                "full_url": "http://www.example.com/",
-                "src_ip": "192.0.2.11",
-                "src_translated_ip": "198.51.100.7",
-                "user": "bob@example.com"
-              },
-              {
-                "_time": "2026-10-30T14:09:03.000+00:00",
-                "dest_ip": "198.51.100.21",
-                "full_url": "https://www.example.com/static/app.js",
-                "src_ip": "192.0.2.12"
-              }
-            ],
-            "query_summary": "Proxy correlation",
-            "question": "Was this domain seen in proxy logs?"
-          },
-          "summary": "Proxy correlation: (3 results)",
           "tags": {}
         },
         "user_defined_tagging": {

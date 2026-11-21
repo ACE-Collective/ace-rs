@@ -1,12 +1,24 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "email_analyzer",
     "file_type",
     "url_extraction"
   ],
   "analyses": [
+    {
+      "class": "EmailArchiveResults",
+      "details": {
+        "hash": "43cd67834ed3a745948301637e2854cbf927ed86fcffc6e53db70066516d10a5",
+        "message_id": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.archive:EmailArchiveResults",
+      "observables": [],
+      "summary": "Archived Email: 43cd67834ed3a745948301637e2854cbf927ed86fcffc6e53db70066516d10a5",
+      "tags": []
+    },
     {
       "class": "EmailAnalysis",
       "details": {
@@ -76,7 +88,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 06:05:15.063024 +0000",
+            "date": "2026-11-21 14:51:23.761161 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -131,7 +143,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "application/octet-stream",
+            "path": "invoice.ppt",
+            "role": "attachment"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -296,14 +320,20 @@
     }
   ],
   "email_archive_after": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [
+      {
+        "digest": "43cd67834ed3a745948301637e2854cbf927ed86fcffc6e53db70066516d10a5",
+        "insert_date": "2026-11-21 14:51:23",
+        "message_id_hash": "20D7AC110A256B7B9909373709206AA3831F1D8A1FE65389BFB93911564B509F"
+      }
+    ],
+    "pool": [
+      "43cd67834ed3a745948301637e2854cbf927ed86fcffc6e53db70066516d10a5"
+    ]
   },
   "email_archive_before": {
-    "archive": [],
-    "archive_index": [],
-    "email_history": []
+    "archived_messages": [],
+    "pool": []
   },
   "email_archive_reads": [],
   "input": {
@@ -397,24 +427,43 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "sender@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "the attached file"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "message_id",
         "value": "<encrypted_ppt_wrong.email.rfc822@example.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 271,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "2cd28e84606f1354655ad59a833fe37c6550dcfb12cfd10ca924b8ab92db8a98"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sender@example.com"
       },
       {
         "detections": [],
@@ -458,21 +507,10 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 271,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "2cd28e84606f1354655ad59a833fe37c6550dcfb12cfd10ca924b8ab92db8a98"
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "the attached file"
       },
       {
         "detections": [],
@@ -481,14 +519,6 @@
         "tags": [],
         "type": "email_conversation",
         "value": "sender@example.com|recipient@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "recipient@example.com"
       }
     ],
     "results": [
@@ -554,6 +584,29 @@
         "added": [],
         "class": "FileTypeAnalysis",
         "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 3,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
           "is_email_file": false,
           "is_jar_file": false,
           "is_lnk_file": false,
@@ -569,7 +622,7 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 5,
+        "observable": 6,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
@@ -581,14 +634,29 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 5,
+        "observable": 6,
         "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "EmailArchiveResults",
+        "details": {
+          "hash": "43cd67834ed3a745948301637e2854cbf927ed86fcffc6e53db70066516d10a5",
+          "message_id": null
+        },
+        "module": "email_archiver",
+        "observable": 7,
+        "summary": "Archived Email: 43cd67834ed3a745948301637e2854cbf927ed86fcffc6e53db70066516d10a5",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 2
+            "observable": 5
+          },
+          {
+            "observable": 4
           },
           {
             "observable": 9
@@ -597,13 +665,10 @@
             "observable": 8
           },
           {
-            "observable": 3
+            "observable": 2
           },
           {
-            "observable": 4
-          },
-          {
-            "observable": 5,
+            "observable": 6,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
@@ -611,7 +676,7 @@
             "path": "invoice.ppt"
           },
           {
-            "observable": 7,
+            "observable": 3,
             "path": "email.rfc822.headers"
           },
           {
@@ -687,7 +752,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-18 06:05:15.063024 +0000",
+              "date": "2026-11-21 14:51:23.761161 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -742,34 +807,23 @@
             ]
           },
           "extraction_errors": [],
-          "parsing_error": null
+          "parsing_error": null,
+          "parts": [
+            {
+              "content_type": "text/plain",
+              "path": "email.rfc822.unknown_text_plain_000.txt",
+              "role": "body"
+            },
+            {
+              "content_type": "application/octet-stream",
+              "path": "invoice.ppt",
+              "role": "attachment"
+            }
+          ]
         },
         "module": "email_analyzer",
-        "observable": 6,
+        "observable": 7,
         "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 6,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
       {

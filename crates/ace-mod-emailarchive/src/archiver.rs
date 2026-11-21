@@ -1,19 +1,19 @@
 //! The email archiver, a port of ace3's `EmailArchiveAction` (`saq/modules/email/archive.py`).
 //!
 //! For an email file with the `archive` directive, which ace3's collectors give the email an alert
-//! came in as, it hands the email to the archive with its Message-ID and envelope recipients, as the
-//! `email-archive` write. The core reads the file from the bucket, gzips and encrypts it with ACE's
-//! key, and writes the archive's rows in the task's end, which also lands this result with the
-//! archive's id; once the root's analysis is done, it indexes the URLs below the email, as ace3's
-//! post-analysis does. As in ace3, it's off until a site turns it on, and runs only in the `email`
-//! mode.
+//! came in as, it hands the email to the archive with its Message-ID, as the `email-archive` write.
+//! The core reads the file from the bucket, gzips and encrypts it with ACE's key, and writes the
+//! archive's row, the Message-ID to the email, in the task's end, which also lands this result. Since
+//! ace3's 4f1fa192 the archive is found only by Message-ID: no URL index, no recipients, and an email
+//! without envelope recipients is archived too. As in ace3, it's off until a site turns it on, and
+//! runs only in the `email` mode.
 //!
-//! ace3 copies an email it can't archive, for a missing Message-ID or envelope recipient, to
-//! `review/rfc822/` on its node. ace4 keeps no file outside an alert, so it logs that and stores
-//! nothing; the email is still the root's file.
+//! ace3 copies an email it can't archive, for a missing Message-ID, to `review/rfc822/` on its node.
+//! ace4 keeps no file outside an alert, so it logs that and stores nothing; the email is still the
+//! root's file.
 
 use ace_results::types::email::EmailAnalysis;
-use ace_results::types::email_archive::{EmailArchiveResults, archive_path};
+use ace_results::types::email_archive::EmailArchiveResults;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
 use ace_sdk::writes::{ArchivedEmailRecord, EmailArchive, Write, WriteKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
@@ -94,39 +94,25 @@ impl Lookup for EmailArchiver {
             }
             return Ok(Outcome::Skipped("no email analysis".to_owned()));
         };
-        let email = analysis.email.as_ref();
         // ace3's EmailAnalysis.message_id strips the header's value
-        let message_id = email
+        let message_id = analysis
+            .email
+            .as_ref()
             .and_then(|e| e.message_id.as_deref())
             .map(|id| id.trim_matches(char::is_whitespace))
             .filter(|id| !id.is_empty());
-        let recipients = email.map(|e| e.env_rcpt_to.as_slice()).unwrap_or_default();
-        let missing = match message_id {
-            None => Some("missing message-id header"),
-            Some(_) if recipients.is_empty() => Some("missing envelope recipients"),
-            Some(_) => None,
-        };
-        let (Some(message_id), None) = (message_id, missing) else {
-            let missing = missing.unwrap_or_default();
-            tracing::error!("unable to archive {observable} - {missing}");
-            return Ok(Outcome::Skipped(missing.to_owned()));
+        // the archive is found by Message-ID, so an email without one could never be found again
+        let Some(message_id) = message_id else {
+            tracing::error!("unable to archive {observable} - missing message-id header");
+            return Ok(Outcome::Skipped("missing message-id header".to_owned()));
         };
         ctx.write::<EmailArchive>(&ArchivedEmailRecord {
             message_id: message_id.to_owned(),
-            // ace3 inserts a recipient it can't parse as NULL, which fails and is passed over
-            recipients: recipients
-                .iter()
-                .filter_map(|r| ace_mod_email::py::normalize_email_address(r))
-                .collect(),
         })?;
         let hash = observable.value.to_ascii_lowercase();
-        let path = archive_path(&hash);
-        let summary = format!("Archive Path: {path}");
+        let summary = format!("Archived Email: {hash}");
         let mut result = ResultEnvelope::new(EmailArchiveResults {
             message_id: None,
-            // the core gives the archive's id when the archive lands
-            archive_id: None,
-            archive_path: Some(path),
             hash: Some(hash),
         });
         result.summary = Some(summary);

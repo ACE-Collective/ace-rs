@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "fe6da632",
+  "ace3_commit": "85c8e9e5",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -75,7 +75,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-18 05:11:25.813364 +0000",
+            "date": "2026-11-21 13:57:44.904719 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -130,7 +130,19 @@
           ]
         },
         "extraction_errors": [],
-        "parsing_error": null
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "application/octet-stream",
+            "path": "invoice.doc",
+            "role": "attachment"
+          }
+        ]
       },
       "detections": [],
       "module_path": "saq.modules.email.rfc822:EmailAnalysis",
@@ -359,7 +371,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-18T05:11:25.807999",
+        "timestamp": "2026-11-21T13:57:44.899820",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -369,7 +381,7 @@
         "header": "From: sender@example.com",
         "header_index": 0,
         "message_id": "<encrypted_rc4_wrong.email.rfc822@example.com>",
-        "timestamp": "1794978685.813364"
+        "timestamp": "1795269464.904719"
       },
       "tag": "phishfinder-headers"
     },
@@ -378,7 +390,7 @@
         "header": "To: recipient@example.com",
         "header_index": 1,
         "message_id": "<encrypted_rc4_wrong.email.rfc822@example.com>",
-        "timestamp": "1794978685.813364"
+        "timestamp": "1795269464.904719"
       },
       "tag": "phishfinder-headers"
     },
@@ -387,7 +399,7 @@
         "header": "Subject: the attached file",
         "header_index": 2,
         "message_id": "<encrypted_rc4_wrong.email.rfc822@example.com>",
-        "timestamp": "1794978685.813364"
+        "timestamp": "1795269464.904719"
       },
       "tag": "phishfinder-headers"
     },
@@ -396,7 +408,7 @@
         "header": "Date: Fri, 06 Nov 2026 12:00:00 +0000",
         "header_index": 3,
         "message_id": "<encrypted_rc4_wrong.email.rfc822@example.com>",
-        "timestamp": "1794978685.813364"
+        "timestamp": "1795269464.904719"
       },
       "tag": "phishfinder-headers"
     },
@@ -405,7 +417,7 @@
         "header": "Message-ID: <encrypted_rc4_wrong.email.rfc822@example.com>",
         "header_index": 4,
         "message_id": "<encrypted_rc4_wrong.email.rfc822@example.com>",
-        "timestamp": "1794978685.813364"
+        "timestamp": "1795269464.904719"
       },
       "tag": "phishfinder-headers"
     },
@@ -414,7 +426,7 @@
         "header": "MIME-Version: 1.0",
         "header_index": 5,
         "message_id": "<encrypted_rc4_wrong.email.rfc822@example.com>",
-        "timestamp": "1794978685.813364"
+        "timestamp": "1795269464.904719"
       },
       "tag": "phishfinder-headers"
     },
@@ -423,13 +435,13 @@
         "header": "Content-Type: multipart/mixed; boundary=\"===============6626638047896469485==\"",
         "header_index": 6,
         "message_id": "<encrypted_rc4_wrong.email.rfc822@example.com>",
-        "timestamp": "1794978685.813364"
+        "timestamp": "1795269464.904719"
       },
       "tag": "phishfinder-headers"
     },
     {
       "record": {
-        "archive_path": null,
+        "archive_hash": null,
         "attachment_count": 2,
         "attachment_hashes": [
           "fa91ec23df742219008373502c4990082536e23154bbd51e9f35e07148973e33",
@@ -452,7 +464,7 @@
         "cc": [],
         "compauth_reason": null,
         "compauth_result": null,
-        "date": "2026-11-18 05:11:25.813364 +0000",
+        "date": "2026-11-21 13:57:44.904719 +0000",
         "dkim_result": null,
         "dmarc_result": null,
         "env_mail_from": null,
@@ -480,7 +492,7 @@
         "subject_raw": "the attached file",
         "thread_index": null,
         "thread_topic": null,
-        "timestamp": "1794978685.813364",
+        "timestamp": "1795269464.904719",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -510,7 +522,7 @@
         "thread_id": "<encrypted_rc4_wrong.email.rfc822@example.com>",
         "thread_message_count": 0,
         "thread_method": "self",
-        "timestamp": "1794978685.813364"
+        "timestamp": "1795269464.904719"
       },
       "tag": "phishfinder-lookalike"
     },
@@ -530,53 +542,53 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "774d45e3-d555-417f-8bab-47f008978657",
-        "timestamp": "2026-11-18 05:11:26.489225",
-        "total_analysis_time_seconds": 0.028761000000000002,
-        "total_time_seconds": 0.6993026733398438
+        "root_uuid": "1c617313-9047-429d-97aa-c9521e8eb3a2",
+        "timestamp": "2026-11-21 13:57:45.297272",
+        "total_analysis_time_seconds": 0.027981000000000002,
+        "total_time_seconds": 0.4145662784576416
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.023350000000000003,
-        "event_type": "module",
-        "exec_count": 5,
-        "module": "file_type",
-        "percentage": 3.3390405743025786,
-        "root_uuid": "774d45e3-d555-417f-8bab-47f008978657",
-        "timestamp": "2026-11-18 05:11:26.489225"
-      },
-      "tag": "metrics"
-    },
-    {
-      "record": {
-        "analysis_time_seconds": 0.004084,
-        "event_type": "module",
-        "exec_count": 3,
-        "module": "email_analyzer",
-        "percentage": 0.5840103514112089,
-        "root_uuid": "774d45e3-d555-417f-8bab-47f008978657",
-        "timestamp": "2026-11-18 05:11:26.489225"
-      },
-      "tag": "metrics"
-    },
-    {
-      "record": {
-        "analysis_time_seconds": 0.001327,
+        "analysis_time_seconds": 0.0016000000000000003,
         "event_type": "module",
         "exec_count": 10,
         "module": "email_logger",
-        "percentage": 0.18976046432974394,
-        "root_uuid": "774d45e3-d555-417f-8bab-47f008978657",
-        "timestamp": "2026-11-18 05:11:26.489225"
+        "percentage": 0.385945525032249,
+        "root_uuid": "1c617313-9047-429d-97aa-c9521e8eb3a2",
+        "timestamp": "2026-11-21 13:57:45.297272"
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.022397,
+        "event_type": "module",
+        "exec_count": 5,
+        "module": "file_type",
+        "percentage": 5.402513702592049,
+        "root_uuid": "1c617313-9047-429d-97aa-c9521e8eb3a2",
+        "timestamp": "2026-11-21 13:57:45.297272"
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.0039840000000000006,
+        "event_type": "module",
+        "exec_count": 3,
+        "module": "email_analyzer",
+        "percentage": 0.9610043573302999,
+        "root_uuid": "1c617313-9047-429d-97aa-c9521e8eb3a2",
+        "timestamp": "2026-11-21 13:57:45.297272"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-18T05:11:26.489566",
+        "timestamp": "2026-11-21T13:57:45.297683",
         "value": 0
       },
       "tag": "monitoring"
@@ -584,7 +596,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-18T05:11:26.489579",
+        "timestamp": "2026-11-21T13:57:45.297711",
         "value": 1
       },
       "tag": "monitoring"
