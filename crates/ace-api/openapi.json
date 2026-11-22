@@ -4101,6 +4101,99 @@
         }
       }
     },
+    "/api/file-collections/v1/collections/{id}/file": {
+      "get": {
+        "tags": [
+          "file_collections"
+        ],
+        "summary": "A collection's file, once it succeeded, as a zip encrypted with AES-256 and the password\n`infected`, as an alert's file downloads are, holding the file under the name its collector gave\nit. It is the file as the collector stored it: a Endpoint collection's is endpoint collection's 7z\ncontainer, itself encrypted with the password `infected`. Audited as a read of the file.",
+        "operationId": "file",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The collection's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The zip",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZipBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold file_collection:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It hasn't collected a file: it is still trying, or it failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Its file is no longer kept",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/file-collections/v1/collections/{id}/history": {
       "get": {
         "tags": [

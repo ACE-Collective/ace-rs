@@ -207,6 +207,21 @@ pub struct RootChanges {
     /// `dict.update`. The root's details are the `details` its submitter gave, if it gave any.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub details: Option<serde_json::Map<String, serde_json::Value>>,
+    /// Links out of ACE added to the root's own, which the alert's summary shows, as ace3's
+    /// `pivot_links` with `target: root` add them to the `RootAnalysis` (PLAN.md decision 53). A
+    /// link the root has already is added once; past `MAX_PIVOT_LINKS` on the root, the rest are
+    /// dropped. Only a module that declares `Module::ADDS_ROOT_PIVOT_LINKS` sends them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(length(max = 100))]
+    pub pivot_links: Vec<PivotLink>,
+}
+
+impl RootChanges {
+    /// Whether it changes the root's description or details, which only a module that declares
+    /// `Module::SETS_ROOT` does.
+    pub fn sets_root(&self) -> bool {
+        self.description.is_some() || self.details.is_some()
+    }
 }
 
 impl<D: AnalysisType> ResultEnvelope<D> {
@@ -331,6 +346,11 @@ pub struct NewObservable {
     /// Modules that must not analyze this observable, as ace3's `exclude_analysis`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub exclude_modules: Vec<String>,
+    /// When not empty, the only modules that may analyze this observable, whatever the root's mode
+    /// runs, as ace3's `limit_analysis` (PLAN.md decision 48). The result's module must declare
+    /// each name (`Module::LIMITS_ANALYSIS_TO`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub limit_modules: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub detections: Vec<Detection>,
     /// Relationships from this observable to others, such as a file `extracted_from` the archive
@@ -358,6 +378,7 @@ impl NewObservable {
             tags: Vec::new(),
             directives: Vec::new(),
             exclude_modules: Vec::new(),
+            limit_modules: Vec::new(),
             detections: Vec::new(),
             relationships: Vec::new(),
             redirection: None,
@@ -472,6 +493,7 @@ mod tests {
             tags: vec![],
             directives: vec![],
             exclude_modules: vec!["email_analyzer".to_owned()],
+            limit_modules: vec![],
             detections: vec![],
             relationships: vec![Relationship::new(
                 RelationshipKind::ExtractedFrom,

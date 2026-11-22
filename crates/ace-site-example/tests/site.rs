@@ -2498,3 +2498,49 @@ fn the_site_binary_draws_the_summary_a_hunt_names() {
         Some("example/ticket.html")
     );
 }
+
+/// PLAN.md decision 52: the Splunk module takes every type of the binary, so an overlay instance on
+/// the site's own type loads, and a module that takes only its inputs still refuses another type.
+#[test]
+fn a_splunk_instance_takes_a_site_s_own_type() {
+    ace_results::install_types(ace_site_example::OBSERVABLE_TYPES).expect("the site's types");
+    let app = ace_site_example::app();
+    let overlay = ace_sdk::Overlay::from_yaml(
+        "modules:
+  splunk_api:
+    instances:
+      tickets_seen:
+        inputs: [example_ticket]
+        groups: [correlation]
+        settings:
+          query: index=example <O_VALUE> <TIMESPEC>
+          time_ranges:
+            TIMESPEC: {duration_before: '07:00:00:00', duration_after: '00:00:01:00'}
+          required_directives: [pivot_on_ticket]
+          pivot_links:
+            - {url: '{{ link }}', text: '{{ ticket }}', icon: example_portal, limit: 5,
+               overflow: {url: '{{ search_link }}', text: '{{ overflow_count }} more'}}
+",
+    )
+    .expect("parses");
+    assert_eq!(app.check_overlay(&overlay), Ok(()));
+    let manifests = [ace_mod_splunk::MANIFEST];
+    let components = overlay.components(&manifests).expect("components");
+    let instance = &components[0];
+    assert_eq!(instance.key, "tickets_seen");
+    assert!(instance.accepts(ace_site_example::TICKET));
+    assert!(!instance.accepts(ace_results::ObservableKind::Fqdn));
+    assert!(!instance.takes.is_everything(), "its required directive");
+    // the module as itself takes the site's type too
+    assert!(ace_sdk::Component::of(manifests[0]).accepts(ace_site_example::TICKET));
+    // a module that takes only its inputs refuses a type it doesn't take
+    let refused = ace_sdk::Overlay::from_yaml(
+        "modules:\n  example_ticket_lookup:\n    instances:\n      on_hosts:\n        inputs: [hostname]\n",
+    )
+    .expect("parses")
+    .components(&[ace_sdk::Manifest::lookup::<ace_site_example::TicketLookup>()]);
+    assert!(
+        matches!(refused, Err(ace_sdk::OverlayError::Input { .. })),
+        "{refused:?}"
+    );
+}

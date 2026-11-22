@@ -1826,6 +1826,247 @@ async fn a_task_walks_its_roots_tree_and_a_result_changes_others_and_its_root() 
     );
 }
 
+/// PLAN.md decision 48: a result limits what analyzes an observable or a file it adds to modules it
+/// declares, which then run on it whether the root's mode runs them or not, and nothing else does; a
+/// second result adding the file without a limit doesn't lift it.
+#[tokio::test]
+async fn a_result_limits_what_analyzes_what_it_adds() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let email = "a".repeat(64);
+    let (root, ids) = root_with(db, "test", &[(ObservableKind::File, email.as_str())]).await;
+    let orchestrator = Orchestrator::new(
+        // two stubs that share a type would fail check_result's registry
+        Catalog::new([
+            common::stubs::SETS_ROOT,
+            ace_mod_archive::MANIFEST,
+            common::stubs::ALERT_ADDED_TO_EVENT,
+        ]),
+        modes(),
+    );
+    let container = "b".repeat(64);
+    let limited = |limit: serde_json::Value| {
+        json!({
+            "analysis_type": "test_sets_root", "schema_version": 1, "details": {},
+            "files": [{"path": "container.7z", "sha256": container, "size": 3,
+                       "limit_modules": limit}],
+            "observables": [{"type": "fqdn", "value": "limited.example",
+                             "limit_modules": ["alert_added_to_event"]}],
+        })
+    };
+    let changes = limited(json!(["alert_added_to_event"]));
+    if let Err(e) = orchestrator.check_result("test_sets_root", &changes) {
+        panic!("{} {:?}", e.error, e.fields);
+    }
+    // a name the module doesn't declare, and a module that declares none, are refused
+    let refused = orchestrator
+        .check_result("test_sets_root", &limited(json!(["archive"])))
+        .expect_err("refused");
+    assert!(
+        refused.error.contains("\"archive\"") && refused.error.contains("LIMITS_ANALYSIS_TO"),
+        "{}",
+        refused.error
+    );
+    let refused = orchestrator
+        .check_result(
+            "archive",
+            &json!({"analysis_type": "archive_analysis", "schema_version": 1, "details": {},
+                    "observables": [{"type": "fqdn", "value": "x.example",
+                                     "limit_modules": ["archive"]}]}),
+        )
+        .expect_err("refused");
+    assert!(
+        refused.error.contains("LIMITS_ANALYSIS_TO"),
+        "{}",
+        refused.error
+    );
+
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::enqueue(&mut tx, root, ids[0], "test_sets_root")
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    let limiter = worker(
+        &test_db,
+        "limiter",
+        &["test_sets_root"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = limiter.claim().await.expect("claims").expect("a task");
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .land_result(&mut tx, &limiter, &task, &result(changes))
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+    let limits: Vec<(String, Vec<String>)> = sqlx::query_as(
+        "SELECT value, limit_modules FROM analysis.observables
+         WHERE root_id = $1 AND limit_modules <> '{}' ORDER BY value",
+    )
+    .bind(root)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads the limits");
+    assert_eq!(
+        limits,
+        [
+            (container.clone(), strings(&["alert_added_to_event"])),
+            (
+                "limited.example".to_owned(),
+                strings(&["alert_added_to_event"])
+            ),
+        ]
+    );
+    // the mode runs archive on a file, and not alert_added_to_event; on these two only
+    // alert_added_to_event runs
+    let tasks = tasks_of(db, root).await;
+    let modules_on = |value: &str| {
+        tasks
+            .iter()
+            .filter(|(_, v, _)| v == value)
+            .map(|(module, _, _)| module.as_str())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(modules_on(&container), ["alert_added_to_event"]);
+    assert_eq!(modules_on("limited.example"), ["alert_added_to_event"]);
+
+    // another result adding the same file without a limit keeps it
+    let mut tx = db.begin().await.expect("begins");
+    let mut again = ace_results::NewObservable::new(ObservableKind::File, container.clone());
+    again.tags = strings(&["again"]);
+    tree::upsert_observable(&mut tx, root, &again)
+        .await
+        .expect("adds it again");
+    tx.commit().await.expect("commits");
+    let kept: Vec<String> = sqlx::query_scalar(
+        "SELECT unnest(limit_modules) FROM analysis.observables WHERE root_id = $1 AND value = $2",
+    )
+    .bind(root)
+    .bind(&container)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads the limit");
+    assert_eq!(kept, ["alert_added_to_event"]);
+}
+
+/// PLAN.md decision 53: a result adds links to its root's own, each once, when its module declares
+/// it may; another module's root links, and root links that change the description from a module
+/// that may only add links, are refused.
+#[tokio::test]
+async fn a_result_adds_links_to_its_root_once_each() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, ids) = root_with(db, "test", &[(ObservableKind::File, &"a".repeat(64))]).await;
+    let orchestrator = Orchestrator::new(
+        Catalog::new([common::stubs::SETS_ROOT, ace_mod_archive::MANIFEST]),
+        modes(),
+    );
+    let link = |n: u32| {
+        json!({"url": format!("https://tickets.example/{n}"), "text": format!("Ticket {n}"),
+                              "icon": "servicenow"})
+    };
+    let with_links = |links: Vec<serde_json::Value>| {
+        json!({"analysis_type": "test_sets_root", "schema_version": 1, "details": {},
+               "root": {"pivot_links": links}})
+    };
+    let refused = orchestrator
+        .check_result(
+            "archive",
+            &json!({"analysis_type": "archive_analysis", "schema_version": 1, "details": {},
+                    "root": {"pivot_links": [link(1)]}}),
+        )
+        .expect_err("refused");
+    assert!(
+        refused.error.contains("ADDS_ROOT_PIVOT_LINKS"),
+        "{}",
+        refused.error
+    );
+    sqlx::query(
+        "UPDATE analysis.roots SET pivot_links = $2, description = 'as submitted' WHERE id = $1",
+    )
+    .bind(root)
+    .bind(json!([link(1)]))
+    .execute(db.pool())
+    .await
+    .expect("the submission's link");
+    let land = |links: Vec<serde_json::Value>| {
+        let orchestrator = &orchestrator;
+        let test_db = &test_db;
+        let changes = with_links(links);
+        let on = ids[0];
+        async move {
+            if let Err(e) = orchestrator.check_result("test_sets_root", &changes) {
+                panic!("{} {:?}", e.error, e.fields);
+            }
+            let db = test_db.db();
+            let mut tx = db.begin().await.expect("begins");
+            ace_core::queue::enqueue(&mut tx, root, on, "test_sets_root")
+                .await
+                .expect("queues");
+            tx.commit().await.expect("commits");
+            let linker = worker(
+                test_db,
+                "linker",
+                &["test_sets_root"],
+                Duration::from_secs(60),
+            )
+            .await;
+            let task = linker.claim().await.expect("claims").expect("a task");
+            let mut tx = db.begin().await.expect("begins");
+            orchestrator
+                .land_result(&mut tx, &linker, &task, &result(changes))
+                .await
+                .expect("lands");
+            tx.commit().await.expect("commits");
+        }
+    };
+    land(vec![link(1), link(2), link(2), link(3)]).await;
+    let links = || async {
+        let links: serde_json::Value =
+            sqlx::query_scalar("SELECT pivot_links FROM analysis.roots WHERE id = $1")
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads the root");
+        links
+            .as_array()
+            .expect("a list")
+            .iter()
+            .map(|l| l["text"].as_str().unwrap_or_default().to_owned())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(links().await, ["Ticket 1", "Ticket 2", "Ticket 3"]);
+    // a later result's links join them once each, up to the root's bound
+    // 100 more, 2 of them the root's already: the root keeps its bound
+    let many: Vec<serde_json::Value> = (2..102).map(link).collect();
+    sqlx::query("DELETE FROM queue.tasks WHERE root_id = $1")
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("clears the first task");
+    sqlx::query("DELETE FROM analysis.results WHERE root_id = $1")
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("clears the first result");
+    land(many).await;
+    let kept = links().await;
+    assert_eq!(kept.len(), ace_results::MAX_PIVOT_LINKS);
+    assert_eq!(kept[..4], ["Ticket 1", "Ticket 2", "Ticket 3", "Ticket 4"]);
+    let description: Option<String> =
+        sqlx::query_scalar("SELECT description FROM analysis.roots WHERE id = $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads the root");
+    assert_eq!(
+        description.as_deref(),
+        Some("as submitted"),
+        "links alone leave the description"
+    );
+}
+
 /// PLAN.md 7.6: the core's hooks, `observable_modifier` and `configuration_defined_tagging`
 /// (`ace_core::hooks`), from an overlay's `hooks:` section.
 fn hooked(yaml: &str) -> Orchestrator {

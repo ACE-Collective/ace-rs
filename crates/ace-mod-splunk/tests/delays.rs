@@ -468,3 +468,295 @@ async fn an_expired_session_logs_in_again_once() {
         ]
     );
 }
+
+// ---- named time ranges, pivot links and required directives (PLAN.md decisions 52 and 53) ----
+
+/// Where the hand-written recordings reach Splunk.
+const EXAMPLE_SPLUNKD: &str = "https://splunk.example.com:8089";
+
+/// The hand-written recordings in `tests/recordings/`, made up in the shape of splunkd's answers.
+async fn example(name: &str) -> HttpReplay {
+    HttpReplay::start(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("tests/recordings/{name}.http")),
+        &[],
+    )
+    .await
+    .expect("the recording loads")
+}
+
+/// An example instance's settings on the replay's Splunk, its time range `before` the anchor and a
+/// minute after, on the index's time.
+fn example_search(replay: &HttpReplay, query: &str, before: &str) -> Value {
+    json!({
+        "splunk": {
+            "host": "splunk.example.com",
+            "base_url": replay.local_url(EXAMPLE_SPLUNKD),
+            "timezone": "GMT",
+            "request_timeout_seconds": 10,
+        },
+        "question": "Are there any recent tickets?",
+        "summary": "Example tickets",
+        "query": query,
+        "time_ranges": {"TIMESPEC": {"duration_before": before, "duration_after": "00:00:01:00"}},
+        "use_index_time": true,
+    })
+}
+
+/// The harness on a token, with the root's event time the recordings were written for.
+fn example_harness(settings: &Value) -> Harness<SplunkAnalyzer> {
+    let event_time = chrono::DateTime::parse_from_rfc3339("2026-11-02T12:00:00Z")
+        .expect("a time")
+        .with_timezone(&chrono::Utc);
+    common::connected(
+        Harness::with_settings(settings.clone())
+            .expect("harness")
+            .event_time(event_time),
+        settings,
+        TOKEN,
+        "example-token",
+    )
+}
+
+/// The `search` field of the job a replay was sent.
+fn job_search(replay: &HttpReplay) -> String {
+    let sent = replay.requests();
+    let job = sent
+        .iter()
+        .find(|r| r.method == "POST" && r.url.ends_with("/search/v2/jobs/"))
+        .expect("a job was submitted");
+    form_urlencoded::parse(&job.body)
+        .find(|(key, _)| key == "search")
+        .map(|(_, value)| value.into_owned())
+        .expect("a search")
+}
+
+/// The line the recording says the module should have sent, under its `NNN.request`.
+fn recorded_search(name: &str, request: &str) -> String {
+    let text = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join(format!("tests/recordings/{name}.http/{request}")),
+    )
+    .expect("the request reads");
+    let lines: Vec<&str> = text.lines().collect();
+    // the first line says how it's sent, and a line about the headers may close it
+    lines[1..]
+        .iter()
+        .take_while(|line| !line.starts_with("headers:"))
+        .copied()
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+const TICKETS_QUERY: &str = "index=example sourcetype=example:tickets <TIMESPEC> \"<O_VALUE>\"\n\
+                             | dedup ticket\n\
+                             | table ticket assigned_to description updated link search_link term\n\
+                             | sort -updated";
+
+#[tokio::test]
+async fn a_time_range_is_filled_once_and_ticket_links_go_on_the_alert_up_to_their_limit() {
+    let replay = example("tickets_overflow").await;
+    let mut settings = example_search(&replay, TICKETS_QUERY, "07:00:00:00");
+    settings["pivot_links"] = json!([{
+        "url": "{{ link }}",
+        "text": "Ticket {{ ticket }} on {{ term }} ({{ description | truncate(80) }})",
+        "icon": "servicenow",
+        "limit": 5,
+        "overflow": {
+            "url": "{{ search_link }}",
+            "text": "More ticket results ({{ overflow_count }} more)",
+        },
+    }]);
+    let harness = example_harness(&settings);
+    let (delays, outcome) = run_through_delays(
+        &harness,
+        harness.observable(ObservableKind::EmailAddress, "alice@example.com"),
+    )
+    .await;
+    assert!(!delays.is_empty(), "the job runs on the first poll");
+    // the query, with the window around the root's event time, kept in the delay's state
+    for delay in &delays {
+        let Outcome::Delay(delay) = delay else {
+            panic!("a delay");
+        };
+        assert!(
+            delay.state["query"]
+                .as_str()
+                .is_some_and(|q| q.contains("_index_earliest = 10/26/2026:12:00:00")),
+            "{}",
+            delay.state
+        );
+    }
+    assert_eq!(
+        job_search(&replay),
+        recorded_search("tickets_overflow", "002.request")
+    );
+    let Outcome::Done(result) = outcome else {
+        panic!("expected a result, got {outcome:?}");
+    };
+    assert_eq!(
+        result.summary.as_deref(),
+        Some("Example tickets: (8 results)")
+    );
+    assert!(result.pivot_links.is_empty(), "the links go on the alert");
+    let root = result.root.expect("links on the root");
+    assert!(root.description.is_none() && root.details.is_none());
+    let links: Vec<String> = root
+        .pivot_links
+        .iter()
+        .map(|l| format!("{} | {} | {:?}", l.url, l.text, l.icon))
+        .collect();
+    let ticket = |id: &str, text: &str| {
+        format!(
+            "https://tickets.example.com/ticket.do?id=0000000000000000000000000000{id} | {text} | Some(\"servicenow\")"
+        )
+    };
+    // row 3 repeats row 1, and row 5's http:// link is dropped before the limit counts it
+    assert_eq!(
+        links,
+        [
+            ticket(
+                "03e9",
+                "Ticket TKT0001001 on alice (Laptop replacement for alice)"
+            ),
+            ticket(
+                "03ea",
+                "Ticket TKT0001002 on alice (Password reset after lockout)"
+            ),
+            ticket(
+                "03eb",
+                "Ticket TKT0001003 on alice (VPN access request with a long justification that runs past eighty...)"
+            ),
+            links[3].clone(),
+            links[4].clone(),
+            "https://tickets.example.com/search.do?q=alice | More ticket results (1 more) | Some(\"servicenow\")"
+                .to_owned(),
+        ]
+    );
+    assert!(
+        !links[3].contains("03ec") && !links[4].contains("03ec"),
+        "{links:#?}"
+    );
+    assert!(replay.unmatched().is_empty(), "{:?}", replay.unmatched());
+}
+
+#[tokio::test]
+async fn a_time_range_on_a_site_s_type_maps_its_rows_and_no_rows_give_no_links() {
+    let replay = example("risk_mapping").await;
+    let mut settings = example_search(
+        &replay,
+        "index=example sourcetype=example:risk <TIMESPEC> <O_VALUE> (riskLevel IN (\"low\",\"medium\",\"high\"))\n\
+         | table _time userPrincipalName ipAddress related_client_ip user_agent riskLevel riskEventType",
+        "30:00:00:00",
+    );
+    settings["observable_mapping"] = json!([
+        {"field": "userPrincipalName", "type": "email_address", "ignored_values": [""]},
+        {"field": "ipAddress", "type": "ip", "ignored_values": [""]},
+        {"field": "related_client_ip", "type": "ip", "ignored_values": [""]},
+        {"field": "user_agent", "type": "user_agent", "ignored_values": [""]},
+    ]);
+    let harness = example_harness(&settings);
+    let (_, outcome) = run_through_delays(
+        &harness,
+        harness.observable(ObservableKind::User, "0b6c2c56-1d1e-4f7a-9d3e-6a2f00000001"),
+    )
+    .await;
+    assert_eq!(
+        job_search(&replay),
+        recorded_search("risk_mapping", "002.request")
+    );
+    let Outcome::Done(result) = outcome else {
+        panic!("expected a result, got {outcome:?}");
+    };
+    assert_eq!(
+        result.summary.as_deref(),
+        Some("Example tickets: (3 results)")
+    );
+    let observables: Vec<String> = result
+        .observables
+        .iter()
+        .map(|o| format!("{}:{}", o.kind, o.value))
+        .collect();
+    assert_eq!(
+        observables,
+        [
+            "email_address:alice@example.com",
+            "ip:203.0.113.45",
+            "user_agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "ip:198.51.100.77",
+            "ip:198.51.100.78",
+            "user_agent:curl/8.5.0",
+        ]
+    );
+
+    let replay = example("asset_no_rows").await;
+    let mut settings = example_search(
+        &replay,
+        "index=example sourcetype=example:tickets <TIMESPEC>\n    [ | makeresults\n      | eval search = \"\\\"\" . mvindex(split(\"<O_VALUE>\",\".\"),0) . \"\\\"\"\n      | fields search ]\n| eval term=mvindex(split(\"<O_VALUE>\",\".\"),0)\n| where len(term) > 4\n| dedup ticket\n| table ticket assigned_to description updated link search_link term",
+        "30:00:00:00",
+    );
+    settings["pivot_links"] = json!([{"url": "{{ link }}", "text": "{{ ticket }}", "limit": 5,
+                                     "overflow": {"url": "{{ search_link }}", "text": "more"}}]);
+    let harness = example_harness(&settings);
+    let (_, outcome) = run_through_delays(
+        &harness,
+        harness.observable(ObservableKind::Hostname, "ws01.example.com"),
+    )
+    .await;
+    assert_eq!(
+        job_search(&replay),
+        recorded_search("asset_no_rows", "002.request")
+    );
+    let Outcome::Done(result) = outcome else {
+        panic!("expected a result, got {outcome:?}");
+    };
+    assert_eq!(result.summary, None, "no rows, no summary");
+    assert!(result.root.is_none() && result.pivot_links.is_empty());
+}
+
+#[test]
+fn an_instance_takes_any_type_needs_its_directives_and_refuses_what_it_cant_fill() {
+    use ace_sdk::Module;
+    let manifest = ace_mod_splunk::MANIFEST;
+    assert!(manifest.any_input && manifest.accepts(ObservableKind::FileLocation));
+    assert!(manifest.adds_root_pivot_links && manifest.reads_event_time);
+    let settings = |extra: Value| {
+        let mut settings = json!({
+            "splunk": {"host": "splunk.example.com"},
+            "query": "index=x <O_VALUE> <TIMESPEC>",
+            "time_ranges": {"TIMESPEC": "01:00:00"},
+        });
+        for (key, value) in extra.as_object().expect("an object") {
+            settings[key] = value.clone();
+        }
+        serde_json::from_value::<ace_mod_splunk::SplunkSettings>(settings).expect("settings")
+    };
+    assert!(SplunkAnalyzer::init(&settings(json!({}))).is_ok());
+    let refused = |extra: Value| match SplunkAnalyzer::init(&settings(extra)) {
+        Err(e) => e.to_string(),
+        Ok(_) => panic!("refused"),
+    };
+    assert!(refused(json!({"time_ranges": {}})).contains("<TIMESPEC>"));
+    assert!(refused(json!({"query": "index=x <O_TIMESPEC>"})).contains("<O_TIMESPEC>"));
+    assert!(refused(json!({"time_ranges": {"TIMESPEC": "soon"}})).contains("TIMESPEC"));
+    assert!(
+        refused(json!({"pivot_links": [{"url": "{{ a }}", "text": "a",
+                                        "icon": "data:image/png;base64,AA=="}]}))
+        .contains("App::pivot_link_icon")
+    );
+
+    // required_directives: its declaration declines an observable without each of them
+    let declaration = manifest
+        .declaration(Some(
+            &json!({"query": "x", "required_directives": ["pivot_on_ip"]}),
+        ))
+        .expect("a declaration");
+    assert!(!declaration.is_everything());
+    let described = declaration.describe().to_string();
+    assert!(described.contains("pivot_on_ip"), "{described}");
+    assert!(
+        manifest
+            .declaration(Some(&json!({"query": "x"})))
+            .expect("a declaration")
+            .is_everything()
+    );
+}

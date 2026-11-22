@@ -49,6 +49,8 @@ ace-core = { path = "../ace-core", features = ["testing"] }
 libc = "0.2.191"
 # A site module's run with the facts a lease carries (the event time test).
 ace-testkit = { path = "../ace-testkit" }
+# The Splunk module's manifest, which takes the site's own type (PLAN.md decision 52).
+ace-mod-splunk = { path = "../ace-mod-splunk" }
 reqwest = { version = "0.13.5", default-features = false, features = ["json"] }
 sqlx = { version = "0.9.0", default-features = false, features = ["json", "postgres", "runtime-tokio", "uuid"] }
 tempfile = "3.27.0"

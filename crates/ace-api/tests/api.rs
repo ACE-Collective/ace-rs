@@ -888,6 +888,7 @@ const COLLECTION: &str = "/api/file-collections/v1/collections/{id}";
 const COLLECTION_HISTORY: &str = "/api/file-collections/v1/collections/{id}/history";
 const COLLECTION_CANCEL: &str = "/api/file-collections/v1/collections/{id}/cancel";
 const COLLECTION_RETRY: &str = "/api/file-collections/v1/collections/{id}/retry";
+const COLLECTION_FILE: &str = "/api/file-collections/v1/collections/{id}/file";
 const HUNTS: &str = "/api/hunts/v1/hunts";
 const HUNT: &str = "/api/hunts/v1/hunts/{uuid}";
 const SUPPRESSIONS: &str = "/api/hunts/v1/hunts/{uuid}/suppressions";
@@ -1072,7 +1073,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 246, "{routes:?}");
+    assert_eq!(routes.len(), 247, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -9722,6 +9723,90 @@ async fn remediation_routers(client: &mut Client<'_>) {
         rows + 3,
         "nothing refused has a row"
     );
+    // a collection's file (PLAN.md decision 49): a conflict until it has one, the file in a zip with
+    // ace3's password once it does, under the name its collector gave it, audited, and gone once
+    // nothing holds it
+    client
+        .json(
+            M::GET,
+            COLLECTION_FILE,
+            &at(COLLECTION_FILE, &made[0]),
+            a,
+            Send::Nothing,
+            S::CONFLICT,
+        )
+        .await;
+    let collected = b"collected from h";
+    let object = stack
+        .bucket
+        .put_bytes(ace_core::bucket::ALERT_FILES, collected, None)
+        .await
+        .expect("puts")
+        .object;
+    sqlx::query(
+        "UPDATE queue.actions SET status = 'COMPLETED', result = 'SUCCESS', file_sha256 = $2,
+                file_size = $3, file_name = 'a.exe'
+         WHERE id = $1",
+    )
+    .bind(made[0].as_i64())
+    .bind(object.sha256.to_hex())
+    .bind(i64::try_from(object.size).expect("a size"))
+    .execute(db.pool())
+    .await
+    .expect("collects it");
+    sqlx::query(
+        "INSERT INTO store.holds (pool, sha256, holder_kind, holder_id)
+         VALUES ('alert_files', $1, 'file_collection', $2)",
+    )
+    .bind(object.sha256.to_hex())
+    .bind(made[0].to_string())
+    .execute(db.pool())
+    .await
+    .expect("its hold");
+    let rows = audit_count(stack).await;
+    let response = client
+        .call(
+            M::GET,
+            COLLECTION_FILE,
+            &at(COLLECTION_FILE, &made[0]),
+            a,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    assert_eq!(response.headers()["content-type"], "application/zip");
+    assert_eq!(
+        response.headers()["content-disposition"],
+        format!("attachment; filename=\"file-collection-{}.zip\"", made[0])
+    );
+    let zipped = response.bytes().await.expect("the zip");
+    let (names, mut read) = unzip(&zipped);
+    assert_eq!(names, BTreeSet::from(["a.exe".to_owned()]));
+    assert_eq!(read("a.exe"), collected);
+    assert_eq!(audit_count(stack).await, rows + 1);
+    for (path, status) in [
+        (at(COLLECTION_FILE, &json!(i64::MAX)), S::NOT_FOUND),
+        (at(COLLECTION_FILE, &json!("x")), S::BAD_REQUEST),
+    ] {
+        client
+            .json(M::GET, COLLECTION_FILE, &path, a, Send::Nothing, status)
+            .await;
+    }
+    sqlx::query("DELETE FROM store.holds WHERE sha256 = $1")
+        .bind(object.sha256.to_hex())
+        .execute(db.pool())
+        .await
+        .expect("lets go of it");
+    client
+        .json(
+            M::GET,
+            COLLECTION_FILE,
+            &at(COLLECTION_FILE, &made[0]),
+            a,
+            Send::Nothing,
+            S::GONE,
+        )
+        .await;
 }
 
 /// `good_body`'s JSON, for a route that takes one.
@@ -19551,7 +19636,7 @@ async fn a_key_scoped_to_the_ai_api_reaches_nothing_else() {
         );
         checked += 1;
     }
-    assert_eq!(checked, 242, "every other route was swept");
+    assert_eq!(checked, 243, "every other route was swept");
     assert_eq!(
         (audit_count(&stack).await, root_count(&stack).await),
         before,

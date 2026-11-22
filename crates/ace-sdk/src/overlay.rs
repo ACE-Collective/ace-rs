@@ -1133,7 +1133,7 @@ impl Component {
         Component {
             key: manifest.name.to_owned(),
             manifest,
-            inputs: manifest.inputs.to_vec(),
+            inputs: manifest.input_kinds(),
             settings: None,
             groups: Vec::new(),
             takes: manifest.declaration(None).unwrap_or_default(),
@@ -1159,7 +1159,7 @@ impl Component {
         Ok(Component {
             key,
             manifest,
-            inputs: manifest.inputs.to_vec(),
+            inputs: manifest.input_kinds(),
             settings,
             groups: Vec::new(),
             takes,
@@ -1745,7 +1745,7 @@ impl Overlay {
                 )?;
                 check(path.clone(), settings.as_ref())?;
                 let inputs = match &instance.inputs {
-                    None => manifest.inputs.to_vec(),
+                    None => manifest.input_kinds(),
                     Some(inputs) => {
                         if let Some(&kind) = inputs.iter().find(|&&k| !manifest.accepts(k)) {
                             return Err(OverlayError::Input {

@@ -4,8 +4,9 @@
 //! `api.rs` checks the caller, the lease and that the task's module declares the read. Each read
 //! here then finds its subject in the task's root and answers. Built so far: `snort-signature`,
 //! `smtp-counts`, `email-thread-domains`, `email-thread` and `newly-registered` (PLAN.md 7.4), the email
-//! archive's `archived-email` (7.5 batch 9), `observable-tags` (7.6), `svs-capture-state` (7.10 batch 2) and
-//! `recorded-message-ids` (a site's batch D1, PLAN.md decision 29).
+//! archive's `archived-email` (7.5 batch 9), `observable-tags` (7.6), `svs-capture-state` (7.10 batch 2),
+//! `recorded-message-ids` (a site's batch D1, PLAN.md decision 29), `file-collection` (decision 49) and
+//! `sandbox-submission` (decision 50).
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
@@ -15,15 +16,18 @@ use std::time::SystemTime;
 use ace_results::AnalysisType;
 use ace_results::types::email::EmailAnalysis;
 use ace_results::{ObservableKind, ObservableRef};
+use ace_sdk::actions::ActionKind;
 use ace_sdk::email_threads;
 use ace_sdk::reads::{
-    ArchivedEmailAnswer, ArchivedEmailRequest, Conversation, ConversationMessage,
-    EmailThreadAnswer, EmailThreadDomainsAnswer, EmailThreadDomainsRequest, EmailThreadRequest,
-    EstablishedDomain, MAX_OBSERVABLE_TAGS, MAX_RECORDED_MESSAGE_IDS, MAX_SVS_DETECTIONS,
-    MessageParticipant, NewlyRegisteredAnswer, NewlyRegisteredRequest, ObservableTagsAnswer,
-    ObservableTagsRequest, RecordedMessageIdsAnswer, RecordedMessageIdsRequest, SmtpCountsAnswer,
-    SmtpCountsRequest, SnortSignatureAnswer, SnortSignatureRequest, SvsCaptureRow,
-    SvsCaptureStateAnswer, SvsCaptureStateRequest, SvsDetection, SvsFilePath,
+    ArchivedEmailAnswer, ArchivedEmailRequest, CollectedFile, CollectionState, Conversation,
+    ConversationMessage, EmailThreadAnswer, EmailThreadDomainsAnswer, EmailThreadDomainsRequest,
+    EmailThreadRequest, EstablishedDomain, FileCollectionStateAnswer, FileCollectionStateRequest,
+    MAX_OBSERVABLE_TAGS, MAX_RECORDED_MESSAGE_IDS, MAX_SVS_DETECTIONS, MessageParticipant,
+    NewlyRegisteredAnswer, NewlyRegisteredRequest, ObservableTagsAnswer, ObservableTagsRequest,
+    RecordedMessageIdsAnswer, RecordedMessageIdsRequest, SandboxSubmissionAnswer,
+    SandboxSubmissionRequest, SandboxSubmissionRow, SmtpCountsAnswer, SmtpCountsRequest,
+    SnortSignatureAnswer, SnortSignatureRequest, SvsCaptureRow, SvsCaptureStateAnswer,
+    SvsCaptureStateRequest, SvsDetection, SvsFilePath,
 };
 use regex::Regex;
 use serde_json::Value;
@@ -111,11 +115,20 @@ pub async fn answer(
     db: &Db,
     stores: &ReadStores,
     catalog: &crate::eligibility::Catalog,
+    actions: &crate::actions::ActionCatalog,
     task: &Task,
     read: &str,
     request: Value,
 ) -> Result<Value, ReadFailure> {
     let answer = match read {
+        "sandbox-submission" => {
+            let request: SandboxSubmissionRequest = parse(request)?;
+            serde_json::to_value(sandbox_submission(db, task, request).await?)
+        }
+        "file-collection" => {
+            let request: FileCollectionStateRequest = parse(request)?;
+            serde_json::to_value(file_collection(db, actions, task, request).await?)
+        }
         "snort-signature" => {
             let request: SnortSignatureRequest = parse(request)?;
             serde_json::to_value(snort_signature(db, stores, task, request).await?)
@@ -998,6 +1011,140 @@ async fn recorded_message_ids(
     );
     Ok(RecordedMessageIdsAnswer {
         recorded: recorded.into_iter().collect(),
+    })
+}
+
+/// `file-collection` (PLAN.md decision 49): the root's latest collection of the subject by the
+/// collector, as ace3's module reads its row with `get_file_collection`. Only a collection the root
+/// asked for, joined or got, and hasn't let go of, so it answers nothing of another alert's.
+async fn file_collection(
+    db: &Db,
+    actions: &crate::actions::ActionCatalog,
+    task: &Task,
+    request: FileCollectionStateRequest,
+) -> Result<FileCollectionStateAnswer, ReadFailure> {
+    let Some(spec) = actions.get(ActionKind::FileCollection, &request.collector) else {
+        return Err(ReadFailure::Forbidden(format!(
+            "the collector {:?} isn't one this core has",
+            request.collector
+        )));
+    };
+    let subject = subject_in_root(db, task, request.subject).await?;
+    if subject.kind.as_str() != spec.observable_type {
+        return Err(ReadFailure::Forbidden(format!(
+            "{} collects a {}, not {}:{}",
+            spec.name, spec.observable_type, subject.kind, subject.value
+        )));
+    }
+    let row = sqlx::query!(
+        "SELECT a.id, a.status, a.result, a.result_message, a.attempts, a.max_attempts,
+                a.file_sha256, a.file_size, a.file_name
+         FROM queue.actions a
+         JOIN queue.action_roots r ON r.action_id = a.id AND r.root_id = $4
+         WHERE a.kind = 'file_collection' AND a.handler = $1 AND a.observable_type = $2
+           AND a.observable_value = $3
+         ORDER BY a.id DESC LIMIT 1",
+        spec.name,
+        subject.kind.as_str(),
+        subject.value,
+        task.root,
+    )
+    .fetch_optional(db.pool())
+    .await?;
+    tracing::info!(
+        task = task.id.0,
+        root = %task.root,
+        read = "file-collection",
+        collector = spec.name,
+        collection = row.as_ref().map(|r| r.id),
+        "read"
+    );
+    Ok(FileCollectionStateAnswer {
+        collection: row.map(|row| CollectionState {
+            id: row.id,
+            status: row.status,
+            result: row.result,
+            result_message: row.result_message,
+            attempts: row.attempts,
+            max_attempts: row.max_attempts,
+            file: match (row.file_sha256, row.file_size, row.file_name) {
+                (Some(sha256), Some(size), Some(name)) => Some(CollectedFile {
+                    sha256,
+                    size: u64::try_from(size).unwrap_or_default(),
+                    name,
+                }),
+                _ => None,
+            },
+        }),
+    })
+}
+
+/// A sandbox's name, as `analysis.sandbox_submissions` takes it: 1 to 64 of a-z, 0-9, `_` and `-`.
+pub fn is_sandbox_type(name: &str) -> bool {
+    ace_results::is_icon_name(name)
+}
+
+/// The task's own file, for the sandbox submission read and write: its sha256.
+pub fn own_file<'t>(task: &'t Task, what: &str) -> Result<&'t str, String> {
+    if task.observable.kind != ObservableKind::File {
+        return Err(format!(
+            "{what} is about a file, and task {}'s observable is a {}",
+            task.id, task.observable.kind
+        ));
+    }
+    Ok(&task.observable.value)
+}
+
+/// `sandbox-submission` (PLAN.md decision 50): the task's own file's row for the sandbox, from
+/// any alert, as a site's `get_existing_submission`, and how many files were sent to it since
+/// midnight UTC, as its `check_daily_submission_count`, counting only what was sent.
+async fn sandbox_submission(
+    db: &Db,
+    task: &Task,
+    request: SandboxSubmissionRequest,
+) -> Result<SandboxSubmissionAnswer, ReadFailure> {
+    if !is_sandbox_type(&request.sandbox_type) {
+        return Err(ReadFailure::Forbidden(format!(
+            "{:?} isn't a sandbox's name: 1 to 64 of a-z, 0-9, _ and -",
+            request.sandbox_type
+        )));
+    }
+    let sha256 = own_file(task, "sandbox-submission").map_err(ReadFailure::Forbidden)?;
+    let row = sqlx::query!(
+        "SELECT external_id, verdict, score, submitted, submitted_at, completed_at
+         FROM analysis.sandbox_submissions WHERE sha256 = $1 AND sandbox_type = $2",
+        sha256,
+        request.sandbox_type,
+    )
+    .fetch_optional(db.pool())
+    .await?;
+    let submitted_today = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "count!" FROM analysis.sandbox_submissions
+           WHERE sandbox_type = $1 AND submitted
+             AND submitted_at >= date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'"#,
+        request.sandbox_type,
+    )
+    .fetch_one(db.pool())
+    .await?;
+    tracing::info!(
+        task = task.id.0,
+        root = %task.root,
+        read = "sandbox-submission",
+        sandbox = %request.sandbox_type,
+        found = row.is_some(),
+        submitted_today,
+        "read"
+    );
+    Ok(SandboxSubmissionAnswer {
+        submission: row.map(|row| SandboxSubmissionRow {
+            external_id: row.external_id,
+            verdict: row.verdict,
+            score: row.score,
+            submitted: row.submitted,
+            submitted_at: row.submitted_at,
+            completed_at: row.completed_at,
+        }),
+        submitted_today,
     })
 }
 

@@ -1,0 +1,59 @@
+{
+  "about": "Written by hand for ace-mod-splunk's tests of PLAN.md decisions 52 and 53, in the shape of splunkd's REST answers as ace4's tools/ace3/dumps/fake_splunk.py serves them and ace-mod-splunk reads them (server info, a v2 search job, its status, its JSON results, its deletion). No Splunk was asked; host, sid, rows, ticket numbers and links are made up. The instance is example_tickets_on_user (an example in the shape of a site's) on alice@example.com with the root's event time 2026-11-02T12:00:00Z, use_index_time true, a 7-day-before, 1-minute-after <TIMESPEC>, timezone GMT, a token (no login). Rows: 8, of which row 3 renders the same link and text as row 1 (deduplicated), row 5's link is http:// (ace3 keeps it; ace4's link rules refuse it). Pivot links: limit 5, overflow 'More ticket results ({{ overflow_count }} more)'.",
+  "exchanges": [
+    {
+      "method": "GET",
+      "url": "https://splunk.example.com:8089/services/server/info",
+      "status": 200,
+      "response_headers": {
+        "Content-Type": "text/xml; charset=UTF-8"
+      },
+      "body_file": "001.body"
+    },
+    {
+      "method": "POST",
+      "url": "https://splunk.example.com:8089/services/search/v2/jobs/",
+      "status": 201,
+      "response_headers": {
+        "Content-Type": "text/xml; charset=UTF-8"
+      },
+      "body_file": "002.body"
+    },
+    {
+      "method": "GET",
+      "url": "https://splunk.example.com:8089/services/search/v2/jobs/1793620800.7",
+      "status": 200,
+      "response_headers": {
+        "Content-Type": "text/xml; charset=UTF-8"
+      },
+      "body_file": "003.body"
+    },
+    {
+      "method": "GET",
+      "url": "https://splunk.example.com:8089/services/search/v2/jobs/1793620800.7",
+      "status": 200,
+      "response_headers": {
+        "Content-Type": "text/xml; charset=UTF-8"
+      },
+      "body_file": "004.body"
+    },
+    {
+      "method": "POST",
+      "url": "https://splunk.example.com:8089/servicesNS/nobody/search/search/v2/jobs/1793620800.7/results",
+      "status": 200,
+      "response_headers": {
+        "Content-Type": "application/json; charset=UTF-8"
+      },
+      "body_file": "005.body"
+    },
+    {
+      "method": "DELETE",
+      "url": "https://splunk.example.com:8089/servicesNS/nobody/search/search/v2/jobs/1793620800.7/",
+      "status": 200,
+      "response_headers": {
+        "Content-Type": "text/xml; charset=UTF-8"
+      },
+      "body_file": "006.body"
+    }
+  ]
+}

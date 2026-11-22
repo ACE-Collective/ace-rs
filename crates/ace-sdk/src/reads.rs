@@ -506,6 +506,114 @@ pub struct RecordedMessageIdsAnswer {
 /// The most Message-IDs a `recorded-message-ids` read asks about.
 pub const MAX_RECORDED_MESSAGE_IDS: usize = 500;
 
+/// `file-collection`: where the root's latest collection of an observable by a collector stands
+/// (PLAN.md decision 49), as ace3's module reads its `file_collection` row
+/// (`get_file_collection`) on each run after it queued one. Its file, once collected, is held by
+/// each root the collection is for, so a result adds it by its sha256 and size with no upload.
+pub struct FileCollectionState;
+
+impl ReadKind for FileCollectionState {
+    const READ: Read = Read {
+        name: "file-collection",
+    };
+    type Request = FileCollectionStateRequest;
+    type Answer = FileCollectionStateAnswer;
+}
+
+/// A `file-collection` read: the collector, a file collection handler of the core's catalog, and the
+/// observable it collects, of its type: the task's own when None, else one in the task's root.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FileCollectionStateRequest {
+    pub collector: String,
+    #[serde(default)]
+    pub subject: Option<ObservableRef>,
+}
+
+/// The answer to a `file-collection` read: None when the root has no collection of the subject by
+/// the collector, or let go of the one it had (`file-collection-release`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FileCollectionStateAnswer {
+    pub collection: Option<CollectionState>,
+}
+
+/// A file collection as a module reads it, in ace3's words.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CollectionState {
+    pub id: i64,
+    /// `NEW`, `IN_PROGRESS` (waiting to be tried again) or `COMPLETED`.
+    pub status: String,
+    /// How its latest try ended, such as `SUCCESS`, `HOST_OFFLINE` or `CANCELLED`.
+    pub result: Option<String>,
+    pub result_message: Option<String>,
+    /// The tries so far.
+    pub attempts: i32,
+    pub max_attempts: Option<i32>,
+    /// The file, once collected.
+    pub file: Option<CollectedFile>,
+}
+
+/// A collected file, which the root holds: a result adds it as a `NewFile` with no upload.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CollectedFile {
+    pub sha256: String,
+    pub size: u64,
+    /// Its name as the collector saved it: one plain name.
+    pub name: String,
+}
+
+/// `sandbox-submission`: what ace3's `sandbox_submissions` table holds of the task's own file for a
+/// sandbox, and how many files were sent to that sandbox today (PLAN.md decision 50), as a site's
+/// ExampleSandbox module reads `get_existing_submission` and `check_daily_submission_count` before it
+/// submits.
+pub struct SandboxSubmissionState;
+
+impl ReadKind for SandboxSubmissionState {
+    const READ: Read = Read {
+        name: "sandbox-submission",
+    };
+    type Request = SandboxSubmissionRequest;
+    type Answer = SandboxSubmissionAnswer;
+}
+
+/// A `sandbox-submission` read, or write: the sandbox, such as `example_sandbox`, 1 to 64 of a-z, 0-9, `_`
+/// and `-`. It is about the task's own file, which the task's observable must be.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SandboxSubmissionRequest {
+    pub sandbox_type: String,
+}
+
+/// The answer to a `sandbox-submission` read.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SandboxSubmissionAnswer {
+    /// The file's row for the sandbox, from any alert, or None.
+    pub submission: Option<SandboxSubmissionRow>,
+    /// How many files were sent to the sandbox since midnight UTC: only rows recorded as sent
+    /// (`SandboxSubmissionRow::submitted`), as the owner decided, where ace3 counts every row from
+    /// the node's local midnight.
+    pub submitted_today: i64,
+}
+
+/// A file's row in `sandbox_submissions`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SandboxSubmissionRow {
+    /// The sandbox's id for it, such as ExampleSandbox's sample id.
+    pub external_id: Option<String>,
+    /// None until the analysis finished, as ace3 waits on a row without one.
+    pub verdict: Option<String>,
+    pub score: Option<i32>,
+    /// True when this ACE sent the file, false when the sandbox already knew it.
+    pub submitted: bool,
+    pub submitted_at: chrono::DateTime<chrono::Utc>,
+    pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
 /// Every read a module can declare, by name.
 pub const ALL: &[Read] = &[
     SnortSignature::READ,
@@ -517,7 +625,9 @@ pub const ALL: &[Read] = &[
     ObservableTags::READ,
     SvsCaptureState::READ,
     RecordedMessageIds::READ,
+    FileCollectionState::READ,
+    SandboxSubmissionState::READ,
 ];
 
 /// The reads that put a file in the task's root, which a result may add without uploading it.
-pub const FILE_READS: &[Read] = &[ArchivedEmail::READ];
+pub const FILE_READS: &[Read] = &[ArchivedEmail::READ, FileCollectionState::READ];

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM queue.action_roots WHERE action_id = $1 AND root_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "437b7ea8f3d28c21b8680b8eba23f9dbe87924ab63e02e2a7f88e8bb5fecdd62"
+}

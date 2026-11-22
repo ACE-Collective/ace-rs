@@ -2,7 +2,14 @@
 //! `BaseAPIAnalyzer.build_target_query` and `extract_result_observables`
 //! (`saq/modules/api_analysis.py`), `SplunkQueryObject.queue` (`saq/splunk.py`) and the shared
 //! extraction in `saq/query/extraction.py`, for the mapping options the port reads.
+//!
+//! The source-independent parts are public (PLAN.md decision 51), so a site's port of another of
+//! ace3's `BaseAPIAnalyzer`s, such as a site's LogScale analyzer, maps its rows and fills its time
+//! ranges as this module does: [`ObservableMapping`] and [`Mapping`], [`add_observables`], which
+//! takes the time a row's mapped observables get from its caller, [`whole_value_patterns`],
+//! [`parse_timespec`], and the named time ranges ([`TimeRange`], [`time_spec`]).
 
+use std::collections::BTreeMap;
 use std::net::IpAddr;
 use std::sync::LazyLock;
 use std::time::Duration;
@@ -41,13 +48,14 @@ pub struct ObservableMapping {
 }
 
 /// A mapping with its patterns compiled.
-pub(crate) struct Mapping {
-    pub(crate) spec: ObservableMapping,
+pub struct Mapping {
+    pub spec: ObservableMapping,
     ignored: Vec<Regex>,
 }
 
 impl Mapping {
-    pub(crate) fn new(spec: &ObservableMapping) -> Result<Mapping, String> {
+    /// The mapping, or why one of its `ignored_values` isn't a pattern.
+    pub fn new(spec: &ObservableMapping) -> Result<Mapping, String> {
         Ok(Mapping {
             spec: spec.clone(),
             ignored: whole_value_patterns(&spec.ignored_values)?,
@@ -56,7 +64,7 @@ impl Mapping {
 }
 
 /// Patterns that match a whole value, as Python's `re.fullmatch`.
-pub(crate) fn whole_value_patterns(patterns: &[String]) -> Result<Vec<Regex>, String> {
+pub fn whole_value_patterns(patterns: &[String]) -> Result<Vec<Regex>, String> {
     patterns
         .iter()
         .map(|p| {
@@ -72,12 +80,102 @@ static UNFILLED_TOKEN: LazyLock<Regex> = LazyLock::new(|| {
         .expect("a valid pattern")
 });
 
-/// The first token in `query` the port doesn't fill, such as `<O_TIMESPEC>`.
-pub(crate) fn unfilled_token(query: &str) -> Option<&str> {
+/// The first token in `query` the port doesn't fill, such as `<O_TIMESPEC>`, or a `<…TIMESPEC…>`
+/// token that `time_ranges` doesn't name.
+pub(crate) fn unfilled_token<'q>(
+    query: &'q str,
+    time_ranges: &BTreeMap<String, TimeRange>,
+) -> Option<&'q str> {
     UNFILLED_TOKEN
         .find_iter(query)
         .map(|m| m.as_str())
-        .find(|token| !matches!(*token, "<O_VALUE>" | "<O_TYPE>"))
+        .find(|token| match *token {
+            "<O_VALUE>" | "<O_TYPE>" => false,
+            // ace3 fills it with the narrow window around the observable's own time
+            "<O_TIMESPEC>" => true,
+            token => !time_ranges.contains_key(&token[1..token.len() - 1]),
+        })
+}
+
+/// A named time range of ace3's `time_ranges` (`TimeRangeConfig`): a window around the search's
+/// anchor, which the query's `<NAME>` token becomes. A bare duration is `duration_before` alone, as
+/// ace3's `normalize_time_ranges` reads it. Durations are ace3's `DD:HH:MM:SS`, read from the
+/// right; a missing or empty one is none.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum TimeRange {
+    Before(String),
+    Window(TimeWindow),
+}
+
+/// A time range's two durations.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct TimeWindow {
+    #[serde(default)]
+    pub duration_before: Option<String>,
+    #[serde(default)]
+    pub duration_after: Option<String>,
+}
+
+impl TimeRange {
+    /// How long before and after the anchor the range reaches.
+    pub fn durations(&self) -> Result<(Duration, Duration), String> {
+        let read = |text: Option<&str>| match text {
+            Some(text) if !text.is_empty() => parse_timespec(text),
+            _ => Ok(Duration::ZERO),
+        };
+        match self {
+            TimeRange::Before(before) => Ok((read(Some(before))?, Duration::ZERO)),
+            TimeRange::Window(window) => Ok((
+                read(window.duration_before.as_deref())?,
+                read(window.duration_after.as_deref())?,
+            )),
+        }
+    }
+}
+
+/// A time as splunkd's search language writes it in the instance's timezone,
+/// `%m/%d/%Y:%H:%M:%S`.
+pub fn wall(time: DateTime<Utc>, tz: chrono_tz::Tz) -> String {
+    time.with_timezone(&tz)
+        .format("%m/%d/%Y:%H:%M:%S")
+        .to_string()
+}
+
+/// A time range's text in a Splunk query, as ace3's `SplunkAPIAnalyzer.fill_additional_timespecs`
+/// writes it: `earliest = A latest = B`, or `_index_earliest = A _index_latest = B` with
+/// `use_index_time`, the times `before` and `after` the anchor in the instance's timezone.
+pub fn time_spec(
+    anchor: DateTime<Utc>,
+    (before, after): (Duration, Duration),
+    tz: chrono_tz::Tz,
+    use_index_time: bool,
+) -> Result<String, String> {
+    let span = |d: Duration| chrono::Duration::from_std(d).map_err(|e| e.to_string());
+    let earliest = wall(anchor - span(before)?, tz);
+    let latest = wall(anchor + span(after)?, tz);
+    Ok(if use_index_time {
+        format!("_index_earliest = {earliest} _index_latest = {latest}")
+    } else {
+        format!("earliest = {earliest} latest = {latest}")
+    })
+}
+
+/// `query` with each of `ranges`' tokens replaced by its window around `anchor` (`time_spec`).
+pub fn fill_time_ranges(
+    query: &str,
+    ranges: &BTreeMap<String, TimeRange>,
+    anchor: DateTime<Utc>,
+    tz: chrono_tz::Tz,
+    use_index_time: bool,
+) -> Result<String, String> {
+    let mut query = query.to_owned();
+    for (name, range) in ranges {
+        let spec = time_spec(anchor, range.durations()?, tz, use_index_time)?;
+        query = query.replace(&format!("<{name}>"), &spec);
+    }
+    Ok(query)
 }
 
 /// The query with the observable in it: `<O_TYPE>` is its type and `<O_VALUE>` its value, with
@@ -125,7 +223,7 @@ pub(crate) fn table_columns(query: &str) -> Option<Vec<String>> {
 
 /// A duration in ace3's `DD:HH:MM:SS` form, read from the right, so `30` is 30 seconds and
 /// `1:00:00` an hour (`saq.util.time.create_timedelta`).
-pub(crate) fn parse_timespec(text: &str) -> Result<Duration, String> {
+pub fn parse_timespec(text: &str) -> Result<Duration, String> {
     let parts: Vec<&str> = text.split(':').collect();
     if parts.len() > 4 {
         return Err(format!("{text:?} has more parts than DD:HH:MM:SS"));
@@ -141,9 +239,9 @@ pub(crate) fn parse_timespec(text: &str) -> Result<Duration, String> {
     Ok(Duration::from_secs(seconds))
 }
 
-/// A row's `_time`, read as UTC from its first 19 characters, or `now` when it has none
+/// A Splunk row's `_time`, read as UTC from its first 19 characters, or `now` when it has none
 /// (`saq.splunk.extract_event_timestamp`).
-pub(crate) fn event_time(row: &Map<String, Value>, now: DateTime<Utc>) -> DateTime<Utc> {
+pub fn event_time(row: &Map<String, Value>, now: DateTime<Utc>) -> DateTime<Utc> {
     row.get("_time")
         .and_then(Value::as_str)
         .and_then(|t| t.get(..19))
@@ -182,17 +280,18 @@ fn valid_value(kind: ObservableKind, value: &str) -> bool {
     !kind.is_subtype_of(ObservableKind::Ip) || value.trim().parse::<IpAddr>().is_ok()
 }
 
-/// The observables a row's mapped fields give, added to `out` in mapping order. One with the
-/// type, value and time of an observable already there is merged into it, as ace3's analysis
-/// keeps one of each.
-pub(crate) fn add_observables(
+/// The observables a row's mapped fields give, added to `out` in mapping order, as ace3's
+/// `extract_result_observables`: a mapping with `time: true` gives its observables `time`, the
+/// row's event time as its source reads it (Splunk's `_time` through [`event_time`], LogScale's
+/// `@timestamp`). One with the type, value and time of an observable already there is merged into
+/// it, as ace3's analysis keeps one of each.
+pub fn add_observables(
     row: &Map<String, Value>,
     mappings: &[Mapping],
     ignored: &[Regex],
-    now: DateTime<Utc>,
+    time: DateTime<Utc>,
     out: &mut Vec<NewObservable>,
 ) {
-    let time = event_time(row, now);
     for mapping in mappings {
         let spec = &mapping.spec;
         let Some(value) = row.get(&spec.field).filter(|v| !is_blank(v)) else {
@@ -260,18 +359,39 @@ mod tests {
 
     #[test]
     fn unfilled_tokens_are_found() {
-        assert_eq!(unfilled_token("x=<O_VALUE> <O_TYPE>"), None);
+        let none = BTreeMap::new();
+        assert_eq!(unfilled_token("x=<O_VALUE> <O_TYPE>", &none), None);
         assert_eq!(
-            unfilled_token("x=<O_VALUE> <O_TIMESPEC>"),
+            unfilled_token("x=<O_VALUE> <O_TIMESPEC>", &none),
             Some("<O_TIMESPEC>")
         );
-        assert_eq!(unfilled_token("x=<O_VALUE1>"), Some("<O_VALUE1>"));
+        assert_eq!(unfilled_token("x=<O_VALUE1>", &none), Some("<O_VALUE1>"));
         assert_eq!(
-            unfilled_token("x=<observable.value>"),
+            unfilled_token("x=<observable.value>", &none),
             Some("<observable.value>")
         );
-        assert_eq!(unfilled_token("x <TIMESPEC>"), Some("<TIMESPEC>"));
-        assert_eq!(unfilled_token("x | where a<b> c"), None);
+        assert_eq!(unfilled_token("x <TIMESPEC>", &none), Some("<TIMESPEC>"));
+        assert_eq!(unfilled_token("x | where a<b> c", &none), None);
+        // a time range fills its own token, and nothing fills <O_TIMESPEC>
+        let named = BTreeMap::from([
+            (
+                "TIMESPEC".to_owned(),
+                TimeRange::Before("1:00:00".to_owned()),
+            ),
+            (
+                "O_TIMESPEC".to_owned(),
+                TimeRange::Before("1:00:00".to_owned()),
+            ),
+        ]);
+        assert_eq!(unfilled_token("x <TIMESPEC>", &named), None);
+        assert_eq!(
+            unfilled_token("x <OTHER_TIMESPEC>", &named),
+            Some("<OTHER_TIMESPEC>")
+        );
+        assert_eq!(
+            unfilled_token("x <O_TIMESPEC>", &named),
+            Some("<O_TIMESPEC>")
+        );
     }
 
     #[test]
@@ -308,6 +428,79 @@ mod tests {
     }
 
     #[test]
+    fn time_ranges_read_both_forms_and_fill_their_tokens_as_ace3_writes_them() {
+        let ranges: BTreeMap<String, TimeRange> = serde_json::from_value(json!({
+            "TIMESPEC": {"duration_before": "07:00:00:00", "duration_after": "00:00:01:00"},
+            "LOOKBACK": "01:00:00",
+            "NOTHING": {},
+        }))
+        .expect("reads");
+        assert_eq!(
+            ranges["LOOKBACK"].durations(),
+            Ok((Duration::from_secs(3600), Duration::ZERO))
+        );
+        assert_eq!(
+            ranges["NOTHING"].durations(),
+            Ok((Duration::ZERO, Duration::ZERO))
+        );
+        let anchor = DateTime::parse_from_rfc3339("2026-11-22T15:30:00Z")
+            .expect("a time")
+            .with_timezone(&Utc);
+        let query = "index=x <TIMESPEC> | append [search index=y <LOOKBACK>]";
+        assert_eq!(
+            fill_time_ranges(query, &ranges, anchor, chrono_tz::UTC, false),
+            Ok(
+                "index=x earliest = 11/15/2026:15:30:00 latest = 11/22/2026:15:31:00 | append \
+                [search index=y earliest = 11/22/2026:14:30:00 latest = 11/22/2026:15:30:00]"
+                    .to_owned()
+            )
+        );
+        // the instance's timezone, and the index's time
+        assert_eq!(
+            fill_time_ranges(
+                "<LOOKBACK>",
+                &ranges,
+                anchor,
+                chrono_tz::America::New_York,
+                true
+            ),
+            Ok(
+                "_index_earliest = 11/22/2026:09:30:00 _index_latest = 11/22/2026:10:30:00"
+                    .to_owned()
+            )
+        );
+        // an unknown key is refused
+        assert!(
+            serde_json::from_value::<TimeRange>(json!({"duration_before": "1", "after": "2"}))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn a_mapping_stamps_the_time_its_caller_gives() {
+        let mapping = Mapping::new(
+            &serde_json::from_value(json!({"field": "dev", "type": "fqdn", "time": true}))
+                .expect("a mapping"),
+        )
+        .expect("compiles");
+        let when = DateTime::from_timestamp(1_700_000_000, 0).expect("a time");
+        let row = json!({"_time": "2026-10-30T14:02:11.000+00:00", "dev": "usb.example"});
+        let mut out = Vec::new();
+        add_observables(
+            row.as_object().expect("a row"),
+            &[mapping],
+            &[],
+            when,
+            &mut out,
+        );
+        assert_eq!(
+            out[0].time,
+            Some(when),
+            "the caller's time, not the row's _time"
+        );
+    }
+
+    #[test]
     fn rows_give_observables_once_each() {
         let mappings: Vec<Mapping> = [
             json!({"field": "src_ip", "type": "ip", "tags": ["proxy"], "display_type": "Source IP"}),
@@ -328,13 +521,8 @@ mod tests {
         let now = DateTime::from_timestamp(1_767_225_600, 0).expect("a time");
         let mut out = Vec::new();
         for row in &rows {
-            add_observables(
-                row.as_object().expect("an object"),
-                &mappings,
-                &[],
-                now,
-                &mut out,
-            );
+            let row = row.as_object().expect("an object");
+            add_observables(row, &mappings, &[], event_time(row, now), &mut out);
         }
         let seen: Vec<String> = out
             .iter()

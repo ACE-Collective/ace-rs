@@ -65,6 +65,7 @@ impl From<ServiceError> for ApiError {
             | ServiceError::NoUser(_)
             | ServiceError::Orchestrator(OrchestratorError::NoRoot(_)) => StatusCode::NOT_FOUND,
             ServiceError::TooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
+            ServiceError::Gone(_) => StatusCode::GONE,
             // a write made from a row that changed since it was read (an `If-Match` that no longer
             // holds): the client reads the row again
             ServiceError::StaleWrite(_) => StatusCode::PRECONDITION_FAILED,

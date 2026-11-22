@@ -282,10 +282,40 @@ impl Orchestrator {
                 }
             }
         }
-        if result.get("root").is_some_and(|root| !root.is_null()) && !manifest.sets_root {
-            return Err(rejected(format!(
-                "{module} doesn't declare that it changes its root (Module::SETS_ROOT)"
-            )));
+        // what a result limits the analysis of what it adds to is only what it declares (PLAN.md
+        // decision 48)
+        let limits = ["observables", "files"]
+            .into_iter()
+            .filter_map(|key| result.get(key).and_then(Value::as_array))
+            .flatten()
+            .filter_map(|added| added.get("limit_modules").and_then(Value::as_array))
+            .flatten();
+        for limit in limits {
+            let name = limit.as_str().unwrap_or_default();
+            if !manifest.limits_analysis_to.contains(&name) {
+                return Err(rejected(format!(
+                    "{module} doesn't declare that it limits what it adds to {limit} \
+                     (Module::LIMITS_ANALYSIS_TO)"
+                )));
+            }
+        }
+        if let Some(root) = result.get("root").filter(|root| !root.is_null()) {
+            let changes = |key: &str| root.get(key).is_some_and(|v| !v.is_null());
+            if (changes("description") || changes("details")) && !manifest.sets_root {
+                return Err(rejected(format!(
+                    "{module} doesn't declare that it changes its root (Module::SETS_ROOT)"
+                )));
+            }
+            let links = root
+                .get("pivot_links")
+                .and_then(Value::as_array)
+                .is_some_and(|links| !links.is_empty());
+            if links && !manifest.adds_root_pivot_links {
+                return Err(rejected(format!(
+                    "{module} doesn't declare that it adds links to its root \
+                     (Module::ADDS_ROOT_PIVOT_LINKS)"
+                )));
+            }
         }
         let registry = self
             .registry
@@ -1585,6 +1615,7 @@ impl Orchestrator {
             observable.tags = file.tags.clone();
             observable.directives = file.directives.clone();
             observable.exclude_modules = file.exclude_modules.clone();
+            observable.limit_modules = file.limit_modules.clone();
             observable.relationships = file.relationships.clone();
             observable.redirection = file.redirection.clone();
             let id = tree::upsert_observable_at(tx, root, &observable, depth)

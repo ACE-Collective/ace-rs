@@ -147,6 +147,12 @@ pub struct ActionSpec {
     /// writes to another system, such as a mailbox. Off, `ace serve`'s catalog leaves it out, so
     /// nobody is offered it or can queue it, and no pool builds it.
     pub enabled_by_default: bool,
+    /// A file collector only: the most unfinished collections one person or caller may have asked
+    /// it for through the API at once, as a site's `max_pending_per_user` (PLAN.md decision 49).
+    /// A request past it that would queue a new collection is refused (429); one that joins a
+    /// pending collection isn't. None, the default, has no limit. A module's request is never
+    /// counted.
+    pub max_pending_per_requester: Option<u32>,
 }
 
 impl ActionSpec {
@@ -179,7 +185,15 @@ impl ActionSpec {
                 _ => 0,
             },
             enabled_by_default: true,
+            max_pending_per_requester: None,
         }
+    }
+
+    /// A file collector that takes at most `limit` unfinished requests from one person or caller
+    /// at once (`max_pending_per_requester`).
+    pub const fn max_pending_per_requester(mut self, limit: u32) -> ActionSpec {
+        self.max_pending_per_requester = Some(limit);
+        self
     }
 
     /// Off unless the overlay has an entry for it (`enabled_by_default`).
@@ -778,6 +792,7 @@ pub static TEST_REMEDIATOR: ActionSpec = ActionSpec {
     retry: Retry::REMEDIATION,
     supersede_grace_seconds: 0,
     enabled_by_default: true,
+    max_pending_per_requester: None,
 };
 
 impl TestRemediator {

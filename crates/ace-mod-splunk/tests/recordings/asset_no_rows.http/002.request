@@ -1,0 +1,9 @@
+form (url-encoded): search=<the line below>&max_count=1000&exec_mode=normal
+search index=example sourcetype=example:tickets _index_earliest = 10/03/2026:12:00:00 _index_latest = 11/02/2026:12:01:00
+    [ | makeresults
+      | eval search = "\"" . mvindex(split("ws01.example.com","."),0) . "\""
+      | fields search ]
+| eval term=mvindex(split("ws01.example.com","."),0)
+| where len(term) > 4
+| dedup ticket
+| table ticket assigned_to description updated link search_link term

@@ -7150,3 +7150,791 @@ async fn a_done_end_that_says_not_to_keep_is_landed_and_not_kept() {
     .expect("counts");
     assert_eq!(landed, 2, "both land in their root");
 }
+
+// ---- a module's file collections and sandbox submissions (PLAN.md decisions 49 and 50) ----
+
+mod asks {
+    use ace_results::ObservableKind;
+    use ace_sdk::example::LineStats;
+    use ace_sdk::reads::{FileCollectionState, Read, ReadKind, SandboxSubmissionState};
+    use ace_sdk::writes::{
+        FileCollection, FileCollectionRelease, SandboxSubmission, Write, WriteKind,
+    };
+    use ace_sdk::{Lookup, Module, ModuleError, Outcome, TaskContext};
+
+    /// A stand-in for a site's `endpoint_file_collector`, whose tasks the tests end themselves.
+    pub struct AsksForAFile;
+
+    impl Module for AsksForAFile {
+        const NAME: &'static str = "test_file_collection";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::FileLocation];
+        const READS: &'static [Read] = &[FileCollectionState::READ];
+        const WRITES: &'static [Write] = &[FileCollection::WRITE, FileCollectionRelease::WRITE];
+        type Output = LineStats;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(AsksForAFile)
+        }
+    }
+
+    impl Lookup for AsksForAFile {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<LineStats>, ModuleError> {
+            Err(ModuleError::other("the tests end its tasks themselves"))
+        }
+    }
+
+    #[derive(
+        Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
+    )]
+    #[serde(deny_unknown_fields)]
+    pub struct SandboxNote {}
+
+    impl ace_results::AnalysisType for SandboxNote {
+        const NAME: &'static str = "test_sandbox_note";
+        const VERSION: u32 = 1;
+        const MODULE: &'static str = "test_sandbox";
+    }
+
+    /// A stand-in for a site's `example_sandbox_file_analyzer`.
+    pub struct Sandboxes;
+
+    impl Module for Sandboxes {
+        const NAME: &'static str = "test_sandbox";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File, ObservableKind::Fqdn];
+        const READS: &'static [Read] = &[SandboxSubmissionState::READ];
+        const WRITES: &'static [Write] = &[SandboxSubmission::WRITE];
+        type Output = SandboxNote;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(Sandboxes)
+        }
+    }
+
+    impl Lookup for Sandboxes {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<SandboxNote>, ModuleError> {
+            Err(ModuleError::other("the tests end its tasks themselves"))
+        }
+    }
+}
+
+/// A core whose catalog has the test modules that ask for a file and record a sandbox submission,
+/// archive, which declares neither, and the fake collector; a second pool's token for the reads'
+/// refusals.
+async fn asks_core() -> Core {
+    let names = ["test_file_collection", "test_sandbox", "archive"];
+    let mut entries: Vec<String> = names.iter().map(|n| (*n).to_owned()).collect();
+    entries.push(FAKE_COLLECTOR.pool_entry());
+    let entries: Vec<&str> = entries.iter().map(String::as_str).collect();
+    let catalog =
+        ace_core::actions::ActionCatalog::new(&[&FAKE_COLLECTOR, &FAKE_PROBE]).expect("a catalog");
+    let modules: Vec<String> = names.iter().map(|n| (*n).to_owned()).collect();
+    Core::start_configured(
+        ace_core::eligibility::Catalog::new([
+            ace_sdk::Manifest::lookup::<asks::AsksForAFile>(),
+            ace_sdk::Manifest::lookup::<asks::Sandboxes>(),
+            ace_mod_archive::MANIFEST,
+        ]),
+        ace_core::modes::Modes::ace3(),
+        &entries,
+        Duration::from_secs(30),
+        move |mut config| {
+            config.pools.push(ace_core::api::PoolAccess::new(
+                "other",
+                OTHER_TOKEN,
+                modules,
+            ));
+            config.actions(catalog)
+        },
+    )
+    .await
+}
+
+const LOCATION: &str = "host1@C:\\Users\\bob\\evil.ps1";
+
+fn write(name: &str, body: serde_json::Value) -> ace_sdk::writes::WireWrite {
+    ace_sdk::writes::WireWrite {
+        write: name.to_owned(),
+        body,
+    }
+}
+
+fn delay_with(writes: Vec<ace_sdk::writes::WireWrite>) -> ace_sdk::wire::TaskEnd {
+    ace_sdk::wire::TaskEnd::Delay {
+        after_seconds: 0.0,
+        state: serde_json::Value::Null,
+        scan: None,
+        writes,
+    }
+}
+
+fn skip_with(writes: Vec<ace_sdk::writes::WireWrite>) -> ace_sdk::wire::TaskEnd {
+    ace_sdk::wire::TaskEnd::Skipped {
+        reason: "asked".to_owned(),
+        writes,
+    }
+}
+
+/// The collections of the fake collector: id, status, result and the roots each is for.
+async fn collections(core: &Core) -> Vec<(i64, String, Option<String>, Vec<uuid::Uuid>)> {
+    sqlx::query_as(
+        "SELECT a.id, a.status, a.result,
+                array(SELECT r.root_id FROM queue.action_roots r WHERE r.action_id = a.id
+                      ORDER BY r.created_at, r.root_id)
+         FROM queue.actions a WHERE a.handler = 'fake_edr' ORDER BY a.id",
+    )
+    .fetch_all(core.test_db.db().pool())
+    .await
+    .expect("reads")
+}
+
+/// A task of `module` on `value` in `root`, which it adds to the root if it isn't there.
+async fn queue_on(
+    core: &Core,
+    root: uuid::Uuid,
+    kind: ace_results::ObservableKind,
+    value: &str,
+    module: &str,
+) {
+    let mut tx = core.test_db.db().begin().await.expect("begins");
+    let id = ace_core::tree::upsert_observable(
+        &mut tx,
+        root,
+        &ace_results::NewObservable::new(kind, value),
+    )
+    .await
+    .expect("adds")
+    .id;
+    ace_core::queue::enqueue(&mut tx, root, id, module)
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+}
+
+/// PLAN.md decision 49: a module's `file-collection` queues a collection of its own observable for
+/// its root, with a delay as with a skip, and another root's joins it; the `file-collection` read
+/// says where the root's stands; `file-collection-release` takes a root off it, cancelling it only
+/// once nobody else waits, a person who asked included; and a collected file, which the root holds,
+/// is added with no upload. One task is pending at a time, so each lease is the one meant.
+#[tokio::test]
+async fn a_module_asks_for_a_file_reads_its_collection_and_lets_go_of_it() {
+    let core = asks_core().await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let kind = ace_results::ObservableKind::FileLocation;
+    let module = "test_file_collection";
+    let ask = || {
+        write(
+            "file-collection",
+            serde_json::json!({"collector": "fake_edr"}),
+        )
+    };
+    let read = serde_json::json!({"collector": "fake_edr"});
+    let release = |value: &str| {
+        write(
+            "file-collection-release",
+            serde_json::json!({"collector": "fake_edr",
+                               "observables": [{"type": "file_location", "value": value}]}),
+        )
+    };
+    let on_location = serde_json::json!({"collector": "fake_edr",
+                                         "subject": {"type": "file_location", "value": LOCATION}});
+
+    let first = root_of(&core, kind, &[LOCATION], module).await;
+    let task = lease_one(&client, module).await;
+    assert_eq!(
+        client
+            .read(task.id, "file-collection", &read, false)
+            .await
+            .expect("answers"),
+        serde_json::json!({"collection": null}),
+        "nothing asked yet"
+    );
+    client
+        .end(task.id, &delay_with(vec![ask()]))
+        .await
+        .expect("the delay lands with its write");
+    let queued = collections(&core).await;
+    assert_eq!(queued.len(), 1);
+    let (id, state, _, roots) = queued[0].clone();
+    assert_eq!((state.as_str(), roots.as_slice()), ("NEW", &[first][..]));
+    let task = lease_one(&client, module).await;
+    let answer = client
+        .read(task.id, "file-collection", &read, false)
+        .await
+        .expect("answers");
+    assert_eq!(answer["collection"]["id"], id);
+    assert_eq!(answer["collection"]["status"], "NEW");
+    assert_eq!(answer["collection"]["file"], serde_json::Value::Null);
+    // asking again on the next run is the same collection
+    client
+        .end(task.id, &skip_with(vec![ask()]))
+        .await
+        .expect("ends");
+    assert_eq!(collections(&core).await.len(), 1);
+
+    // another root's module joins it
+    let second = root_of(&core, kind, &[LOCATION], module).await;
+    let task = lease_one(&client, module).await;
+    assert_eq!(task.root, second);
+    client
+        .end(task.id, &skip_with(vec![ask()]))
+        .await
+        .expect("ends");
+    assert_eq!(collections(&core).await[0].3, [first, second]);
+
+    // the first lets go of it: the second still waits, so it isn't cancelled, and the first reads
+    // nothing
+    queue_on(&core, first, kind, "release1@C:\\x", module).await;
+    let task = lease_one(&client, module).await;
+    assert_eq!(task.root, first);
+    client
+        .end(task.id, &skip_with(vec![release(LOCATION)]))
+        .await
+        .expect("ends");
+    let after = collections(&core).await;
+    assert_eq!(
+        (after[0].1.as_str(), after[0].3.as_slice()),
+        ("NEW", &[second][..])
+    );
+    queue_on(&core, first, kind, "read1@C:\\x", module).await;
+    let task = lease_one(&client, module).await;
+    assert_eq!(
+        client
+            .read(task.id, "file-collection", &on_location, false)
+            .await
+            .expect("answers"),
+        serde_json::json!({"collection": null})
+    );
+    client
+        .end(task.id, &skip_with(Vec::new()))
+        .await
+        .expect("ends");
+
+    // a person joins it through the API: when the second lets go, it isn't cancelled either
+    let db = core.test_db.db();
+    let catalog =
+        ace_core::actions::ActionCatalog::new(&[&FAKE_COLLECTOR, &FAKE_PROBE]).expect("a catalog");
+    let analyst = serde_json::json!({"kind": "user", "id": uuid::Uuid::new_v4(), "name": "alice"});
+    let mut tx = db.begin().await.expect("begins");
+    let (joined, _) = ace_core::actions::ask_for_collection(
+        &mut tx,
+        &catalog,
+        &ace_core::actions::CollectionRequest {
+            handler: "fake_edr",
+            observable_type: "file_location",
+            observable_value: LOCATION,
+            roots: &[],
+            requested_by: &analyst,
+            user: None,
+        },
+    )
+    .await
+    .expect("joins");
+    tx.commit().await.expect("commits");
+    assert_eq!(joined, ace_core::actions::Requested::Joined(id));
+    queue_on(&core, second, kind, "release2@C:\\x", module).await;
+    let task = lease_one(&client, module).await;
+    assert_eq!(task.root, second);
+    client
+        .end(task.id, &skip_with(vec![release(LOCATION)]))
+        .await
+        .expect("ends");
+    let after = collections(&core).await;
+    assert_eq!(
+        (after[0].1.as_str(), after[0].3.len()),
+        ("NEW", 0),
+        "the person still waits"
+    );
+
+    // nobody waits on a module's own collection once its root lets go: it's cancelled
+    let other = "host2@C:\\x.ps1";
+    let third = root_of(&core, kind, &[other], module).await;
+    let task = lease_one(&client, module).await;
+    assert_eq!(task.root, third);
+    client
+        .end(task.id, &delay_with(vec![ask()]))
+        .await
+        .expect("delays");
+    let task = lease_one(&client, module).await;
+    client
+        .end(task.id, &skip_with(vec![release(other)]))
+        .await
+        .expect("ends");
+    let cancelled = collections(&core).await;
+    assert_eq!(
+        (cancelled[1].1.as_str(), cancelled[1].2.as_deref()),
+        ("COMPLETED", Some("CANCELLED"))
+    );
+
+    // a collected file the root holds: the read gives it, and the result adds it with no upload
+    let fourth = root_of(&core, kind, &["host3@C:\\y.ps1"], module).await;
+    let task = lease_one(&client, module).await;
+    assert_eq!(task.root, fourth);
+    client
+        .end(task.id, &delay_with(vec![ask()]))
+        .await
+        .expect("delays");
+    let held = core
+        .bucket
+        .put_bytes(
+            ALERT_FILES,
+            b"collected from host3",
+            Some(&ace_core::bucket::Hold::root(fourth)),
+        )
+        .await
+        .expect("puts")
+        .object;
+    sqlx::query(
+        "UPDATE queue.actions SET status = 'COMPLETED', result = 'SUCCESS', file_sha256 = $1,
+                file_size = $2, file_name = 'y.ps1'
+         WHERE handler = 'fake_edr' AND observable_value = 'host3@C:\\y.ps1'",
+    )
+    .bind(held.sha256.to_hex())
+    .bind(i64::try_from(held.size).expect("a size"))
+    .execute(db.pool())
+    .await
+    .expect("collects it");
+    let task = lease_one(&client, module).await;
+    let answer = client
+        .read(task.id, "file-collection", &read, false)
+        .await
+        .expect("answers");
+    assert_eq!(answer["collection"]["result"], "SUCCESS");
+    assert_eq!(
+        answer["collection"]["file"],
+        serde_json::json!({"sha256": held.sha256.to_hex(), "size": held.size, "name": "y.ps1"})
+    );
+    let mut result = ace_results::ResultEnvelope::new(ace_sdk::example::LineStats {
+        lines: 1,
+        longest_line: 20,
+        first_line: ace_results::Bytes::new(b"collected from host3".to_vec()),
+        truncated: false,
+    });
+    result.files.push(ace_results::NewFile::new(
+        ace_results::AlertPath::new("y.ps1").expect("a path"),
+        held.sha256,
+        held.size,
+    ));
+    client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Done {
+                result: result.to_raw().expect("JSON"),
+                writes: Vec::new(),
+                probes: Default::default(),
+                keep: true,
+            },
+        )
+        .await
+        .expect("the collected file lands with no upload");
+    let files: i64 = sqlx::query_scalar("SELECT count(*) FROM analysis.files WHERE root_id = $1")
+        .bind(fourth)
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(files, 1);
+
+    // the read's refusals: a collector the core hasn't, a subject of another type or another root
+    root_of(&core, kind, &["host9@C:\\z.ps1"], module).await;
+    root_of(&core, kind, &["host9@C:\\z.ps1"], "archive").await;
+    let task = lease_one(&client, module).await;
+    let archive_task = lease_one(&client, "archive").await;
+    for refused in [
+        serde_json::json!({"collector": "no_such_edr"}),
+        serde_json::json!({"collector": "fake_vendor"}),
+    ] {
+        assert_eq!(
+            status(
+                &client
+                    .read(task.id, "file-collection", &refused, false)
+                    .await
+            ),
+            Some(403),
+            "{refused}"
+        );
+    }
+    assert_refusals(
+        &core,
+        task.id,
+        "file-collection",
+        read,
+        on_location,
+        archive_task.id,
+    )
+    .await;
+}
+
+/// The file collection writes are refused, failing the task with nothing written, from a module
+/// that doesn't declare them (403), with a body that doesn't read (400), naming a collector the core
+/// hasn't or a handler that isn't a collector (403), twice in one end (403), past the release's
+/// bound or naming another type (403), and for an observable of another type than the collector's
+/// (403).
+#[tokio::test]
+async fn the_file_collection_writes_are_refused_as_the_contract_says() {
+    let core = asks_core().await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let ask = |collector: serde_json::Value| {
+        write(
+            "file-collection",
+            serde_json::json!({"collector": collector}),
+        )
+    };
+    let release = |observables: serde_json::Value| {
+        write(
+            "file-collection-release",
+            serde_json::json!({"collector": "fake_edr", "observables": observables}),
+        )
+    };
+    let many: Vec<serde_json::Value> = (0..=ace_sdk::writes::MAX_RELEASED)
+        .map(|n| serde_json::json!({"type": "file_location", "value": format!("h{n}@c:\\x")}))
+        .collect();
+    let refusals = [
+        ("archive", vec![ask(serde_json::json!("fake_edr"))], 403),
+        ("test_file_collection", vec![ask(serde_json::json!(5))], 400),
+        (
+            "test_file_collection",
+            vec![ask(serde_json::json!("no_such_edr"))],
+            403,
+        ),
+        (
+            "test_file_collection",
+            vec![ask(serde_json::json!("fake_vendor"))],
+            403,
+        ),
+        (
+            "test_file_collection",
+            vec![
+                ask(serde_json::json!("fake_edr")),
+                ask(serde_json::json!("fake_edr")),
+            ],
+            403,
+        ),
+        (
+            "test_file_collection",
+            vec![release(serde_json::json!(many))],
+            403,
+        ),
+        (
+            "test_file_collection",
+            vec![release(
+                serde_json::json!([{"type": "fqdn", "value": "example.com"}]),
+            )],
+            403,
+        ),
+    ];
+    for (module, writes, expected) in refusals {
+        let root = root_of(
+            &core,
+            ace_results::ObservableKind::FileLocation,
+            &[LOCATION],
+            module,
+        )
+        .await;
+        let task = lease_one(&client, module).await;
+        let refused = client.end(task.id, &delay_with(writes)).await;
+        assert!(
+            matches!(&refused, Err(ace_pool::client::ClientError::Api { status, .. }) if *status == expected),
+            "{module}: {refused:?}"
+        );
+        let (state, error) = common::task_of(&core, root, module).await;
+        assert_eq!(state, "failed", "{module}");
+        assert!(error.is_some(), "{module}");
+        assert!(collections(&core).await.is_empty(), "{module}");
+    }
+    // a collector of another type than the task's observable's
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::Hostname,
+        &["host1"],
+        "test_file_collection",
+    )
+    .await;
+    let task = lease_one(&client, "test_file_collection").await;
+    let refused = client
+        .end(
+            task.id,
+            &delay_with(vec![ask(serde_json::json!("fake_edr"))]),
+        )
+        .await;
+    assert!(
+        matches!(
+            &refused,
+            Err(ace_pool::client::ClientError::Api { status: 403, .. })
+        ),
+        "{refused:?}"
+    );
+    assert_eq!(
+        common::task_of(&core, root, "test_file_collection").await.0,
+        "failed"
+    );
+    assert!(collections(&core).await.is_empty());
+}
+
+/// A root whose file, `bytes`, the bucket holds for it, with a task of `module` on it.
+async fn sandbox_root(core: &Core, bytes: &[u8], module: &str) -> uuid::Uuid {
+    use ace_core::tree;
+    let db = core.test_db.db();
+    let root = tree::NewRoot::new("analysis");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    tx.commit().await.expect("commits");
+    let sha256 = core
+        .bucket
+        .put_bytes(
+            ALERT_FILES,
+            bytes,
+            Some(&ace_core::bucket::Hold::root(root.id)),
+        )
+        .await
+        .expect("puts the file")
+        .object
+        .sha256;
+    let mut tx = db.begin().await.expect("begins");
+    let observable =
+        ace_results::NewObservable::new(ace_results::ObservableKind::File, sha256.to_hex());
+    let id = tree::upsert_observable(&mut tx, root.id, &observable)
+        .await
+        .expect("adds")
+        .id;
+    tree::add_file(&mut tx, root.id, id, "sample.exe", &[])
+        .await
+        .expect("records the file");
+    ace_core::queue::enqueue(&mut tx, root.id, id, module)
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    root.id
+}
+
+/// PLAN.md decision 50: `sandbox-submission` records the task's own file for a sandbox once, from
+/// any root, its verdict later, and the read gives the row and how many files were sent today, a
+/// file the sandbox already knew not counted; the read and the write refuse what the contract says.
+/// One task of the module is pending at a time, so each lease is the one meant.
+#[tokio::test]
+async fn a_sandbox_submission_is_recorded_once_and_counts_only_what_was_sent() {
+    let core = asks_core().await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let module = "test_sandbox";
+    let (sent, known) = (
+        b"a sample to send".as_slice(),
+        b"a sample ExampleSandbox knows".as_slice(),
+    );
+    let record = |body: serde_json::Value| write("sandbox-submission", body);
+    let read = serde_json::json!({"sandbox_type": "example_sandbox"});
+
+    sandbox_root(&core, sent, module).await;
+    let task = lease_one(&client, module).await;
+    assert_eq!(
+        client
+            .read(task.id, "sandbox-submission", &read, false)
+            .await
+            .expect("answers"),
+        serde_json::json!({"submission": null, "submitted_today": 0})
+    );
+    client
+        .end(
+            task.id,
+            &delay_with(vec![record(
+                serde_json::json!({"sandbox_type": "example_sandbox", "external_id": "7001", "submitted": true}),
+            )]),
+        )
+        .await
+        .expect("the delay lands with its write");
+    let task = lease_one(&client, module).await;
+    client
+        .end(task.id, &skip_with(Vec::new()))
+        .await
+        .expect("ends");
+    // another root with the same file reads the row, and its verdict lands on it
+    sandbox_root(&core, sent, module).await;
+    let task = lease_one(&client, module).await;
+    let answer = client
+        .read(task.id, "sandbox-submission", &read, false)
+        .await
+        .expect("answers");
+    assert_eq!(answer["submitted_today"], 1);
+    assert_eq!(answer["submission"]["external_id"], "7001");
+    assert_eq!(answer["submission"]["verdict"], serde_json::Value::Null);
+    assert_eq!(answer["submission"]["submitted"], true);
+    client
+        .end(
+            task.id,
+            &skip_with(vec![record(serde_json::json!({
+                "sandbox_type": "example_sandbox", "external_id": "9999", "submitted": false,
+                "verdict": "malicious", "score": 87,
+            }))]),
+        )
+        .await
+        .expect("ends");
+    let row: (Option<String>, bool, Option<String>, Option<i32>, bool) = sqlx::query_as(
+        "SELECT external_id, submitted, verdict, score, completed_at IS NOT NULL
+         FROM analysis.sandbox_submissions WHERE sha256 = $1 AND sandbox_type = 'example_sandbox'",
+    )
+    .bind(
+        sha2::Sha256::digest(sent)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>(),
+    )
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("reads");
+    assert_eq!(
+        row,
+        (
+            Some("7001".to_owned()),
+            true,
+            Some("malicious".to_owned()),
+            Some(87),
+            true
+        ),
+        "the first record's row, with the verdict"
+    );
+    // a file the sandbox already knew is recorded and not counted; another sandbox counts apart
+    sandbox_root(&core, known, module).await;
+    let task = lease_one(&client, module).await;
+    client
+        .end(
+            task.id,
+            &skip_with(vec![record(serde_json::json!({
+                "sandbox_type": "example_sandbox", "external_id": "7002", "submitted": false,
+                "verdict": "clean", "score": 0,
+            }))]),
+        )
+        .await
+        .expect("ends");
+    sandbox_root(&core, known, module).await;
+    let task = lease_one(&client, module).await;
+    let answer = client
+        .read(task.id, "sandbox-submission", &read, false)
+        .await
+        .expect("answers");
+    assert_eq!(answer["submitted_today"], 1);
+    assert_eq!(answer["submission"]["submitted"], false);
+    assert_eq!(
+        client
+            .read(
+                task.id,
+                "sandbox-submission",
+                &serde_json::json!({"sandbox_type": "other"}),
+                false
+            )
+            .await
+            .expect("answers")["submitted_today"],
+        0
+    );
+    client
+        .end(task.id, &skip_with(Vec::new()))
+        .await
+        .expect("ends");
+
+    // the write's refusals, each failing its task with nothing written
+    let rows = || async {
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM analysis.sandbox_submissions")
+            .fetch_one(core.test_db.db().pool())
+            .await
+            .expect("counts")
+    };
+    let before = rows().await;
+    let long = "x".repeat(257);
+    let refusals = [
+        (
+            "archive",
+            vec![record(
+                serde_json::json!({"sandbox_type": "example_sandbox", "submitted": true}),
+            )],
+            403,
+        ),
+        (
+            module,
+            vec![record(serde_json::json!({"sandbox_type": "example_sandbox"}))],
+            400,
+        ),
+        (
+            module,
+            vec![record(
+                serde_json::json!({"sandbox_type": "ExampleSandbox", "submitted": true}),
+            )],
+            403,
+        ),
+        (
+            module,
+            vec![record(
+                serde_json::json!({"sandbox_type": "example_sandbox", "external_id": long, "submitted": true}),
+            )],
+            403,
+        ),
+        (
+            module,
+            vec![
+                record(serde_json::json!({"sandbox_type": "example_sandbox", "submitted": true})),
+                record(serde_json::json!({"sandbox_type": "example_sandbox", "submitted": true})),
+            ],
+            403,
+        ),
+    ];
+    for (module, writes, expected) in refusals {
+        let root = sandbox_root(&core, b"a sample refused", module).await;
+        let task = lease_one(&client, module).await;
+        let refused = client.end(task.id, &skip_with(writes)).await;
+        assert!(
+            matches!(&refused, Err(ace_pool::client::ClientError::Api { status, .. }) if *status == expected),
+            "{module}: {refused:?}"
+        );
+        assert_eq!(common::task_of(&core, root, module).await.0, "failed");
+        assert_eq!(rows().await, before, "{module}: nothing written");
+    }
+    // about anything but a file
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::Fqdn,
+        &["example.com"],
+        module,
+    )
+    .await;
+    let task = lease_one(&client, module).await;
+    assert_eq!(
+        status(
+            &client
+                .read(task.id, "sandbox-submission", &read, false)
+                .await
+        ),
+        Some(403)
+    );
+    let refused = client
+        .end(
+            task.id,
+            &skip_with(vec![record(
+                serde_json::json!({"sandbox_type": "example_sandbox", "submitted": true}),
+            )]),
+        )
+        .await;
+    assert!(
+        matches!(
+            &refused,
+            Err(ace_pool::client::ClientError::Api { status: 403, .. })
+        ),
+        "{refused:?}"
+    );
+    assert_eq!(common::task_of(&core, root, module).await.0, "failed");
+    assert_eq!(rows().await, before);
+
+    // the read's shared refusals, last, since they end the lease
+    sandbox_root(&core, known, module).await;
+    sandbox_root(&core, b"for the archive", "archive").await;
+    let task = lease_one(&client, module).await;
+    let archive_task = lease_one(&client, "archive").await;
+    assert_refusals(
+        &core,
+        task.id,
+        "sandbox-submission",
+        read,
+        serde_json::json!({"sandbox_type": "Not A Name"}),
+        archive_task.id,
+    )
+    .await;
+}

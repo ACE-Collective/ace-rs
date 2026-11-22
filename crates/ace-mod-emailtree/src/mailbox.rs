@@ -61,7 +61,7 @@ impl Parser for MailboxEmailAnalyzer {
         let Some(email) = email else {
             result.root = Some(RootChanges {
                 description: Some(format!("{MAILBOX_ALERT_PREFIX} unparsable email")),
-                details: None,
+                ..RootChanges::default()
             });
             return Ok(Outcome::Done(result));
         };
@@ -86,6 +86,7 @@ impl Parser for MailboxEmailAnalyzer {
         result.root = Some(RootChanges {
             description: Some(description),
             details: Some(merged),
+            ..RootChanges::default()
         });
         // the Message-IDs the email's analysis added are tracked across analysis
         let email_results = tree

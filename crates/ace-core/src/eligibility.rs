@@ -98,7 +98,8 @@ pub struct Facts<'a> {
     pub directives: &'a [String],
     pub exclude_modules: &'a [String],
     /// When not empty, the only modules that may analyze it, mode or not, as ace3's
-    /// `limited_analysis`, which an observable modifier rule sets.
+    /// `limited_analysis`, which an observable modifier rule or the result that added it sets
+    /// (PLAN.md decision 48).
     pub limit_modules: &'a [String],
 }
 

@@ -15,7 +15,11 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use ace_core::bucket::{ALERT_FILES, BucketError};
+use ace_results::Sha256;
+
 use crate::Web;
+use crate::alerts::{ZipBody, zipped_file};
 use crate::auth::Authenticated;
 use crate::error::{ApiError, ErrorBody};
 use crate::export::{self, EXPORT_PAGE, ExportRow, Format, time_cell};
@@ -410,6 +414,56 @@ pub(crate) async fn history(
     Ok(Json(HistoryBody::of(
         attempts.into_iter().map(AttemptBody::from).collect(),
     )))
+}
+
+/// A collection's file, once it succeeded, as a zip encrypted with AES-256 and the password
+/// `infected`, as an alert's file downloads are, holding the file under the name its collector gave
+/// it. It is the file as the collector stored it: a Endpoint collection's is endpoint collection's 7z
+/// container, itself encrypted with the password `infected`. Audited as a read of the file.
+#[utoipa::path(
+    get,
+    path = "/api/file-collections/v1/collections/{id}/file",
+    tag = "file_collections",
+    params(("id" = i64, Path, description = "The collection's id")),
+    responses(
+        (status = 200, description = "The zip", content_type = "application/zip", body = ZipBody),
+        (status = 400, description = "An id that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold file_collection:read", body = ErrorBody),
+        (status = 404, description = "No such collection", body = ErrorBody),
+        (status = 409, description = "It hasn't collected a file: it is still trying, or it failed", body = ErrorBody),
+        (status = 410, description = "Its file is no longer kept", body = ErrorBody),
+    )
+)]
+pub(crate) async fn file(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    id: Result<Path<i64>, PathRejection>,
+) -> Result<Response, ApiError> {
+    let Path(id) = id?;
+    let download = web.service.download_file_collection(&actor, id).await?;
+    let sha256: Sha256 = download.sha256.parse().map_err(ApiError::internal)?;
+    let cached = match web.bucket.get(ALERT_FILES, &sha256).await {
+        Ok(cached) => cached,
+        Err(BucketError::NotFound { .. }) => {
+            return Err(ApiError::from(ace_service::ServiceError::Gone(format!(
+                "file collection {id}'s file is no longer kept"
+            ))));
+        }
+        Err(e) => return Err(ApiError::internal(e)),
+    };
+    let name = if ace_core::actions::is_file_name(&download.name) {
+        download.name
+    } else {
+        "file".to_owned()
+    };
+    zipped_file(
+        cached.file,
+        cached.size,
+        name,
+        &format!("file-collection-{id}"),
+    )
+    .await
 }
 
 /// Stops a collection that hasn't completed; it completes `CANCELLED`. Audited.

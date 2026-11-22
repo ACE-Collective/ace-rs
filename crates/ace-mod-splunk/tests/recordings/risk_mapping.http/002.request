@@ -1,0 +1,3 @@
+form (url-encoded): search=<the line below>&max_count=1000&exec_mode=normal
+search index=example sourcetype=example:risk _index_earliest = 10/03/2026:12:00:00 _index_latest = 11/02/2026:12:01:00 0b6c2c56-1d1e-4f7a-9d3e-6a2f00000001 (riskLevel IN ("low","medium","high"))
+| table _time userPrincipalName ipAddress related_client_ip user_agent riskLevel riskEventType

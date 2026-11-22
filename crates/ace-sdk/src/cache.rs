@@ -216,6 +216,10 @@ pub fn refusal(manifest: &Manifest) -> Option<String> {
         ),
         (manifest.sets_root, "changes to its root (SETS_ROOT)"),
         (
+            manifest.adds_root_pivot_links,
+            "links on its root (ADDS_ROOT_PIVOT_LINKS)",
+        ),
+        (
             manifest.adds_stored_files,
             "files another result stored in its root (ADDS_STORED_FILES)",
         ),
@@ -525,6 +529,7 @@ mod tests {
         assert!(refused(&|m| m.reads_event_time = true).contains("READS_EVENT_TIME"));
         assert!(refused(&|m| m.runs_last = true).contains("RUNS_LAST"));
         assert!(refused(&|m| m.sets_root = true).contains("SETS_ROOT"));
+        assert!(refused(&|m| m.adds_root_pivot_links = true).contains("ADDS_ROOT_PIVOT_LINKS"));
         assert!(refused(&|m| m.adds_stored_files = true).contains("ADDS_STORED_FILES"));
         assert!(refused(&|m| m.stores_results = false).contains("STORES_RESULTS"));
         const LIST: ListSpec = ListSpec {

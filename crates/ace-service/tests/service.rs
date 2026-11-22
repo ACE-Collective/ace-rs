@@ -1613,6 +1613,7 @@ async fn every_write_function_has_an_audit_test() {
         restore_remediation_records_its_row(db).await,
         delete_remediation_records_its_row(db).await,
         request_file_collection_records_its_row(db).await,
+        download_file_collection_records_its_row(db).await,
         cancel_file_collection_records_its_row(db).await,
         retry_file_collection_records_its_row(db).await,
         delete_file_collection_records_its_row(db).await,
@@ -4222,6 +4223,14 @@ async fn every_write_fails_when_its_audit_fails() {
             "request_file_collection",
             service
                 .request_file_collection(&actor, &collection_ask("h9@C:\\z.exe", &[]))
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "download_file_collection",
+            service
+                .download_file_collection(&actor, acted.collected)
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -15106,6 +15115,8 @@ struct ActionFixtures {
     pending: i64,
     removed: i64,
     collection: i64,
+    /// A collection that succeeded with a file it holds.
+    collected: i64,
 }
 
 /// A pending remediation, a removal that succeeded, a pending collection, and a collection past its
@@ -15122,11 +15133,11 @@ async fn action_fixtures(db: &Db, service: &Service, actor: &Actor) -> ActionFix
     complete(db, queued[1].id, "SUCCESS").await;
     let collection = collection(db, None, "h1@C:\\a.exe").await;
     let old = collection_with_file(db, "h2@C:\\b.exe", &"c".repeat(64), 8).await;
-    let _ = old;
     ActionFixtures {
         pending: queued[0].id,
         removed: queued[1].id,
         collection,
+        collected: old,
     }
 }
 
@@ -15670,6 +15681,191 @@ async fn request_file_collection_records_its_row(db: &Db) -> String {
             .expect("reads");
     assert_eq!(attached, 1, "a refused request attached nothing");
     row.action
+}
+
+/// PLAN.md decision 49: a collection's file is downloaded once it succeeded and while something
+/// holds it, audited as a read of it; one still trying is a conflict, one whose file was let go of is
+/// gone, and a refusal has no row.
+async fn download_file_collection_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let sha256 = "d".repeat(64);
+    let id = collection_with_file(db, "h6@C:\\d.exe", &sha256, 0).await;
+    let download = service
+        .download_file_collection(&actor, id)
+        .await
+        .expect("may download");
+    assert_eq!(
+        download,
+        ace_service::CollectedDownload {
+            id,
+            sha256: sha256.clone(),
+            name: "b.exe".to_owned(),
+        }
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "download_file_collection".to_owned(),
+            target: ("action".to_owned(), id.to_string()),
+            before: None,
+            after: None,
+            details: json!({"collector": "edr", "sha256": sha256, "name": "b.exe"}),
+        }
+    );
+
+    let rows = audit_rows(db).await.len();
+    let pending = collection(db, None, "h6@C:\\e.exe").await;
+    assert!(
+        matches!(
+            service.download_file_collection(&actor, pending).await,
+            Err(ServiceError::Conflict(why)) if why.contains("hasn't collected a file: it is NEW")
+        ),
+        "a collection still trying"
+    );
+    assert!(matches!(
+        service.download_file_collection(&actor, id + 1000).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    let reader = UserId(Uuid::from_u128(0x5E));
+    grant(db, &Holder::User(reader), "alert", "read", Effect::Allow).await;
+    assert!(matches!(
+        service.download_file_collection(&user(reader), id).await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "file_collection:read"
+    ));
+    sqlx::query("DELETE FROM store.holds WHERE sha256 = $1")
+        .bind(&sha256)
+        .execute(db.pool())
+        .await
+        .expect("lets go of the file");
+    assert!(matches!(
+        service.download_file_collection(&actor, id).await,
+        Err(ServiceError::Gone(_))
+    ));
+    assert_eq!(
+        audit_rows(db).await.len(),
+        rows,
+        "nothing refused has a row"
+    );
+    row.action
+}
+
+/// A collector with a limit on unfinished requests per requester, as a site's
+/// `max_pending_per_user`.
+static CAPPED_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec::new(
+    ace_sdk::actions::ActionKind::FileCollection,
+    "capped_edr",
+    "Capped EDR",
+    "Collects files in tests, two pending per requester.",
+    "file_location",
+)
+.max_pending_per_requester(2);
+
+/// PLAN.md decision 49: a collector's `max_pending_per_requester` refuses a request that would queue
+/// a third unfinished collection for one person (429, nothing written), lets a request that joins a
+/// pending one through, counts a key with no owner on its own, and doesn't count a module's or a
+/// finished collection.
+#[tokio::test]
+async fn a_collector_s_limit_refuses_a_requester_past_it() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = Service::new(db.clone(), orchestrator()).with_actions(
+        ace_core::actions::ActionCatalog::new(&[&CAPPED_COLLECTOR]).expect("a catalog"),
+    );
+    let actor = admin(db).await;
+    let ask = |value: &str| ace_service::CollectionAsk {
+        collector: "capped_edr".to_owned(),
+        ..collection_ask(value, &[])
+    };
+    for value in ["c1@C:\\a", "c2@C:\\a"] {
+        assert!(
+            service
+                .request_file_collection(&actor, &ask(value))
+                .await
+                .expect("queues")
+                .queued
+        );
+    }
+    let rows = audit_rows(db).await.len();
+    let refused = service
+        .request_file_collection(&actor, &ask("c3@C:\\a"))
+        .await;
+    assert!(
+        matches!(&refused, Err(ServiceError::RateLimited { detail, retry_after_seconds })
+            if detail.contains("you already have 2 unfinished capped_edr collections (the limit is 2)")
+               && *retry_after_seconds == ace_service::PAST_LIMIT_RETRY_SECONDS),
+        "{refused:?}"
+    );
+    assert_eq!(audit_rows(db).await.len(), rows, "refused, with no row");
+    // a module's pending collection isn't counted, and joining it is let through
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::actions::request_collection(
+        &mut tx,
+        service.actions(),
+        &ace_core::actions::NewCollection {
+            handler: "capped_edr",
+            observable_type: "file_location",
+            observable_value: "m1@C:\\a",
+            root: None,
+            requested_by: None,
+            user: None,
+        },
+    )
+    .await
+    .expect("a module's request");
+    tx.commit().await.expect("commits");
+    let joined = service
+        .request_file_collection(&actor, &ask("m1@C:\\a"))
+        .await
+        .expect("joins");
+    assert!(!joined.queued);
+    // a key with no owner counts on its own
+    let key = service
+        .create_api_key(&actor, "collector client", None, &[])
+        .await
+        .expect("makes a key");
+    grant(
+        db,
+        &Holder::ApiKey(key.id),
+        "file_collection",
+        "create",
+        Effect::Allow,
+    )
+    .await;
+    let keyed = Actor::ApiKey {
+        id: key.id,
+        name: "collector client".to_owned(),
+        owner: None,
+    };
+    for value in ["k1@C:\\a", "k2@C:\\a"] {
+        service
+            .request_file_collection(&keyed, &ask(value))
+            .await
+            .expect("queues");
+    }
+    assert!(matches!(
+        service
+            .request_file_collection(&keyed, &ask("k3@C:\\a"))
+            .await,
+        Err(ServiceError::RateLimited { .. })
+    ));
+    // once one of the person's finishes, they may ask again
+    let first: i64 =
+        sqlx::query_scalar("SELECT id FROM queue.actions WHERE observable_value = 'c1@C:\\a'")
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    complete(db, first, "SUCCESS").await;
+    assert!(
+        service
+            .request_file_collection(&actor, &ask("c3@C:\\a"))
+            .await
+            .expect("queues")
+            .queued
+    );
 }
 
 async fn cancel_file_collection_records_its_row(db: &Db) -> String {

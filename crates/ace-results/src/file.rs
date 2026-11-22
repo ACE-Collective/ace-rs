@@ -338,6 +338,12 @@ pub struct NewFile {
     /// module on the `.headers` file it wrote itself.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub exclude_modules: Vec<String>,
+    /// When not empty, the only modules that may analyze this file, whatever the root's mode runs,
+    /// as ace3's `limit_analysis`: a container a lookup fetched goes only to the contained parser
+    /// that unpacks it (PLAN.md decision 48). The result's module must declare each name
+    /// (`Module::LIMITS_ANALYSIS_TO`), or the core refuses the result.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub limit_modules: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub detections: Vec<Detection>,
     /// Relationships from this file to other observables, such as `extracted_from` the archive
@@ -362,6 +368,7 @@ impl NewFile {
             tags: Vec::new(),
             directives: Vec::new(),
             exclude_modules: Vec::new(),
+            limit_modules: Vec::new(),
             detections: Vec::new(),
             relationships: Vec::new(),
             redirection: None,

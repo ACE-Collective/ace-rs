@@ -246,8 +246,8 @@ pub use events::{
     MalwareChoice, NewEvent, RemovedAlerts, Threat, ThreatType,
 };
 pub use file_collections::{
-    CollectionAsk, CollectionRequested, CollectionsPruned, FileCollection, FileCollectionPage,
-    MAX_COLLECTION_ALERTS,
+    CollectedDownload, CollectionAsk, CollectionRequested, CollectionsPruned, FileCollection,
+    FileCollectionPage, MAX_COLLECTION_ALERTS, PAST_LIMIT_RETRY_SECONDS,
 };
 pub use filters::events::{
     EventFilters, EventOwnerFilter, EventQuery, EventSort, MAX_EVENT_FILTER_IDS,
@@ -447,6 +447,10 @@ pub enum ServiceError {
     /// What a request names isn't there, or isn't what it says, such as a root that isn't an alert.
     #[error("{0}")]
     NotFound(String),
+    /// What a request names was there and is gone for good, such as a collected file the bucket no
+    /// longer holds: HTTP's 410.
+    #[error("{0}")]
+    Gone(String),
     /// A request for more than a limit allows at once, such as a download of too many files. Nothing was
     /// written.
     #[error("{0}")]
@@ -510,6 +514,7 @@ impl Retryable for ServiceError {
             | ServiceError::InvalidRequest(_)
             | ServiceError::FilterRefused(_)
             | ServiceError::NotFound(_)
+            | ServiceError::Gone(_)
             | ServiceError::TooLarge(_)
             | ServiceError::Forbidden(_)
             | ServiceError::Conflict(_)

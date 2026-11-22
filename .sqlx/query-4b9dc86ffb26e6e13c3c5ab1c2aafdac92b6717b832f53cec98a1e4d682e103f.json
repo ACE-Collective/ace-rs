@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pivot_links FROM analysis.roots WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pivot_links",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "pivot_links"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4b9dc86ffb26e6e13c3c5ab1c2aafdac92b6717b832f53cec98a1e4d682e103f"
+}

@@ -205,8 +205,10 @@ pub async fn root<'e>(executor: impl PgExecutor<'e>, id: Uuid) -> Result<Option<
 }
 
 /// Adds an observable to a root, or merges it into the one with the same type and value: the
-/// stored time is kept if it has one, and tags, directives, excluded modules and relationships it
-/// lacks are added. A display type replaces the stored one, as ace3's setter does on the one
+/// stored time is kept if it has one, and tags, directives, excluded modules, the modules its
+/// analysis is limited to (PLAN.md decision 48) and relationships it lacks are added. A limit
+/// stays once given, as ace3's `limit_analysis` appends to the one observable, so a second result
+/// that adds the file without one doesn't lift it. A display type replaces the stored one, as ace3's setter does on the one
 /// observable it keeps per type and value, so the last result to land with one names it. Of two redirections the lowest is kept, so a tree doesn't depend on which task
 /// ended first: a macro in a `.docm` is in the `.docm` and in the `vbaProject.bin` taken out of it,
 /// each redirecting to where it was found.
@@ -229,8 +231,8 @@ pub async fn upsert_observable_at(
     let row = sqlx::query!(
         r#"INSERT INTO analysis.observables AS o
                (root_id, type, value, time, tags, directives, exclude_modules, redirection_type,
-                redirection_value, display_type, depth)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                redirection_value, display_type, depth, limit_modules)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            ON CONFLICT (root_id, type, value_hash) DO UPDATE SET
                time = COALESCE(o.time, EXCLUDED.time),
                depth = LEAST(o.depth, EXCLUDED.depth),
@@ -247,7 +249,8 @@ pub async fn upsert_observable_at(
                    THEN EXCLUDED.redirection_value ELSE o.redirection_value END,
                tags = analysis.merged(o.tags, EXCLUDED.tags),
                directives = analysis.merged(o.directives, EXCLUDED.directives),
-               exclude_modules = analysis.merged(o.exclude_modules, EXCLUDED.exclude_modules)
+               exclude_modules = analysis.merged(o.exclude_modules, EXCLUDED.exclude_modules),
+               limit_modules = analysis.merged(o.limit_modules, EXCLUDED.limit_modules)
            RETURNING id AS "id: ObservableId", (xmax = 0) AS "inserted!""#,
         root,
         observable.kind.as_str(),
@@ -260,6 +263,7 @@ pub async fn upsert_observable_at(
         observable.redirection.as_ref().map(|r| r.value.as_str()),
         observable.display_type,
         depth,
+        &observable.limit_modules,
     )
     .fetch_one(tx.conn())
     .await?;
@@ -1588,8 +1592,8 @@ pub async fn tree_view(
     ))
 }
 
-/// What a result changes about its root (`ResultEnvelope::root`): its description, and keys merged
-/// into its details, as Python's `dict.update` merges them. A root's details are the `details` its
+/// What a result changes about its root (`ResultEnvelope::root`): its description, keys merged
+/// into its details, as Python's `dict.update` merges them, and links added to its own. A root's details are the `details` its
 /// submitter gave in its origin; one with none gets them.
 pub async fn change_root(
     tx: &mut Tx<'_>,
@@ -1614,5 +1618,44 @@ pub async fn change_root(
     )
     .execute(tx.conn())
     .await?;
+    if !changes.pivot_links.is_empty() {
+        add_root_pivot_links(tx, root, &changes.pivot_links).await?;
+    }
+    Ok(())
+}
+
+/// Adds `links` to the root's own (PLAN.md decision 53), each once, by its url, icon and text, as
+/// ace3's `process_pivot_links` skips a link its target already has, up to `MAX_PIVOT_LINKS`. The
+/// caller holds the root's row lock, so two results' links don't race.
+async fn add_root_pivot_links(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    links: &[ace_results::PivotLink],
+) -> Result<(), DbError> {
+    let had = sqlx::query_scalar!("SELECT pivot_links FROM analysis.roots WHERE id = $1", root)
+        .fetch_one(tx.conn())
+        .await?;
+    let mut kept: Vec<ace_results::PivotLink> = serde_json::from_value(had)
+        .map_err(|e| DbError::Decode(format!("root {root}'s pivot links: {e}")))?;
+    let before = kept.len();
+    for link in links {
+        if kept.len() >= ace_results::MAX_PIVOT_LINKS {
+            tracing::warn!(%root, "the root has {} pivot links; the rest are dropped", kept.len());
+            break;
+        }
+        if !kept.contains(link) {
+            kept.push(link.clone());
+        }
+    }
+    if kept.len() > before {
+        sqlx::query!(
+            "UPDATE analysis.roots SET pivot_links = $2 WHERE id = $1",
+            root,
+            serde_json::to_value(&kept)
+                .map_err(|e| DbError::Decode(format!("root {root}'s pivot links: {e}")))?,
+        )
+        .execute(tx.conn())
+        .await?;
+    }
     Ok(())
 }

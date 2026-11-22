@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:s="http://dev.splunk.com/ns/rest" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">
+  <title>server-info</title>
+  <id>https://splunk.example.com:8089/services/server/info</id>
+  <updated>2026-11-02T12:00:01.000+00:00</updated>
+  <generator build="example" version="9.3.2"/>
+  <entry>
+    <title>server-info</title>
+    <id>https://splunk.example.com:8089/services/server/info/server-info</id>
+    <content type="text/xml">
+      <s:dict>
+        <s:key name="build">example</s:key>
+        <s:key name="serverName">splunk-example</s:key>
+        <s:key name="product_type">enterprise</s:key>
+        <s:key name="version">9.3.2</s:key>
+      </s:dict>
+    </content>
+  </entry>
+</feed>

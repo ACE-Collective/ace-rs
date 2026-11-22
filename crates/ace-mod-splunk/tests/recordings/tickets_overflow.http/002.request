@@ -1,0 +1,6 @@
+form (url-encoded): search=<the line below>&max_count=1000&exec_mode=normal
+search index=example sourcetype=example:tickets _index_earliest = 10/26/2026:12:00:00 _index_latest = 11/02/2026:12:01:00 "alice@example.com"
+| dedup ticket
+| table ticket assigned_to description updated link search_link term
+| sort -updated
+headers: Authorization: Bearer <the token secret splunk_default_token>

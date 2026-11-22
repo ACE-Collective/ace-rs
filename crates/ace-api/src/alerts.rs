@@ -1101,13 +1101,23 @@ pub(crate) async fn file(
         .filter(|name| !name.is_empty())
         .unwrap_or("file")
         .to_owned();
-    let mut source = cached.file;
+    zipped_file(cached.file, cached.size, name, &sha256.to_string()).await
+}
+
+/// A file from the bucket as a zip encrypted with AES-256 and the password `infected`, holding it
+/// as `name`, downloaded as `<download>.zip`.
+pub(crate) async fn zipped_file(
+    mut source: std::fs::File,
+    size: u64,
+    name: String,
+    download: &str,
+) -> Result<Response, ApiError> {
     let zipped = tokio::task::spawn_blocking(move || -> std::io::Result<std::fs::File> {
         let out = tempfile::tempfile()?;
         let mut zip = zip::ZipWriter::new(out);
         let options = zip::write::SimpleFileOptions::default()
             .compression_method(zip::CompressionMethod::Deflated)
-            .large_file(cached.size >= u64::from(u32::MAX))
+            .large_file(size >= u64::from(u32::MAX))
             .with_aes_encryption(zip::AesMode::Aes256, ZIP_PASSWORD);
         zip.start_file(name, options)
             .map_err(std::io::Error::other)?;
@@ -1130,7 +1140,7 @@ pub(crate) async fn file(
             (header::CONTENT_LENGTH, length.to_string()),
             (
                 header::CONTENT_DISPOSITION,
-                format!("attachment; filename=\"{sha256}.zip\""),
+                format!("attachment; filename=\"{download}.zip\""),
             ),
             (header::X_CONTENT_TYPE_OPTIONS, "nosniff".to_owned()),
             (header::CACHE_CONTROL, "private, no-store".to_owned()),

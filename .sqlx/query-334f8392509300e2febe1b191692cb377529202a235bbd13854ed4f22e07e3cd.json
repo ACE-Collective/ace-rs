@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.sandbox_submissions\n                         SET verdict = $3, score = $4, completed_at = now()\n                         WHERE sha256 = $1 AND sandbox_type = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "334f8392509300e2febe1b191692cb377529202a235bbd13854ed4f22e07e3cd"
+}

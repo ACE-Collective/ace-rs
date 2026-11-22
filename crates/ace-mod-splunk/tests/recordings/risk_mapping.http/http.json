@@ -1,0 +1,50 @@
+{
+  "about": "Written by hand for ace-mod-splunk's tests of PLAN.md decisions 52 and 53 (see tickets_overflow's about). The instance is example_user_risk_detections on the azure_user_id 0b6c2c56-1d1e-4f7a-9d3e-6a2f00000001 (made up) with the root's event time 2026-11-02T12:00:00Z, use_index_time true, a 30-day-before, 1-minute-after <TIMESPEC>. Its observable_mapping: userPrincipalName -> email_address, ipAddress and related_client_ip -> ip, user_agent -> user_agent, each with ignored_values: [\"\"]. Expected observables: email_address alice@example.com; ip 203.0.113.45 (once, from two rows and two fields), 198.51.100.77, 198.51.100.78; user_agent 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' and 'curl/8.5.0'. The blank values give none, nor does 'not-an-ip' (not an IP address). Summary 'Example Risk Detections: (3 results)'.",
+  "exchanges": [
+    {
+      "method": "GET",
+      "url": "https://splunk.example.com:8089/services/server/info",
+      "status": 200,
+      "response_headers": {
+        "Content-Type": "text/xml; charset=UTF-8"
+      },
+      "body_file": "001.body"
+    },
+    {
+      "method": "POST",
+      "url": "https://splunk.example.com:8089/services/search/v2/jobs/",
+      "status": 201,
+      "response_headers": {
+        "Content-Type": "text/xml; charset=UTF-8"
+      },
+      "body_file": "002.body"
+    },
+    {
+      "method": "GET",
+      "url": "https://splunk.example.com:8089/services/search/v2/jobs/1793620800.7",
+      "status": 200,
+      "response_headers": {
+        "Content-Type": "text/xml; charset=UTF-8"
+      },
+      "body_file": "003.body"
+    },
+    {
+      "method": "POST",
+      "url": "https://splunk.example.com:8089/servicesNS/nobody/search/search/v2/jobs/1793620800.7/results",
+      "status": 200,
+      "response_headers": {
+        "Content-Type": "application/json; charset=UTF-8"
+      },
+      "body_file": "004.body"
+    },
+    {
+      "method": "DELETE",
+      "url": "https://splunk.example.com:8089/servicesNS/nobody/search/search/v2/jobs/1793620800.7/",
+      "status": 200,
+      "response_headers": {
+        "Content-Type": "text/xml; charset=UTF-8"
+      },
+      "body_file": "005.body"
+    }
+  ]
+}

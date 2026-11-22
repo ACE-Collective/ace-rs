@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO analysis.sandbox_submissions\n                         (sha256, sandbox_type, external_id, submitted)\n                     VALUES ($1, $2, $3, $4)\n                     ON CONFLICT (sha256, sandbox_type) DO NOTHING\n                     RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.sandbox_submissions",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6994574861016fe2240c8fa654762d38bd0fc68f6a76b1197f8379d0a96c8c2d"
+}

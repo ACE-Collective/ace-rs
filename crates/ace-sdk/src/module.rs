@@ -34,6 +34,11 @@ pub trait Module: Sized + Send + Sync + 'static {
     const NAME: &'static str;
     /// The observable types the module takes. Types that extend these are taken too.
     const INPUTS: &'static [ObservableKind];
+    /// True for a module that takes every observable type of its binary, a site's own included, as
+    /// the Splunk module, whose instances search for whatever type the overlay names (PLAN.md
+    /// decision 52): `INPUTS` is then ignored, and an instance's `inputs:` may name any installed
+    /// type. A module without it takes only its `INPUTS` and the types that extend them.
+    const ANY_INPUT: bool = false;
     /// Modules that run on the observable before this one, whose results its task carries
     /// (`TaskContext::dependency`). The core holds the module back until each of them won't store
     /// a result for the observable, as ace3 counts a declared dependency met: it stored one, its
@@ -139,6 +144,12 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// True for a module that changes its root's description and details, as ace3's mailbox module
     /// does (`ResultEnvelope::root`). The core refuses a result that changes them from any other.
     const SETS_ROOT: bool = false;
+    /// True for a module that adds links out of ACE to its root's own (`RootChanges::pivot_links`),
+    /// which the alert's summary shows, as ace3's `pivot_links` with `target: root` do, such as a
+    /// Splunk search's links to the tickets it found (PLAN.md decision 53). The core refuses root
+    /// links from any other, so a parser's hostile input can't put a link on the alert's summary
+    /// unless its module says it may.
+    const ADDS_ROOT_PIVOT_LINKS: bool = false;
     /// True for a module that adds files another module's result stored for the root without
     /// adding them (`ResultEnvelope::stored`), as ace3's pcap_files adds the objects pcap_analyzer
     /// carved. Such a module depends on the one that stores them, and adds each by its sha256 and
@@ -164,6 +175,13 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// its docs should say where it goes. Only a lookup may declare it: a parser always reads its
     /// input.
     const READS_INPUT_FILE: bool = false;
+    /// The modules a result of this module may limit the analysis of what it adds to, as ace3's
+    /// `Observable.limit_analysis` (PLAN.md decision 48): a `NewFile` or `NewObservable` whose
+    /// `limit_modules` names some of these is analyzed by those alone, whatever the root's mode
+    /// runs, so a lookup that fetches a container hands it to the contained parser that unpacks it
+    /// and to nothing else. Each is a module's or an instance's name. The core refuses a result
+    /// that limits to a name this doesn't list, or limits anything from a module that lists none.
+    const LIMITS_ANALYSIS_TO: &'static [&'static str] = &[];
     /// The analyst-edited lists the module reads (PLAN.md 5.14), such as `observable_detection`'s
     /// observables enabled for detection. The core adds each to the module's tasks as it is when the task is leased, and
     /// the module reads it with `TaskContext::list`. The lists a binary knows are its modules'.

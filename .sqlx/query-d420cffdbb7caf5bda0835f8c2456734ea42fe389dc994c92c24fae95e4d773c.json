@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id FROM queue.actions a\n         JOIN queue.action_roots r ON r.action_id = a.id AND r.root_id = $4\n         WHERE a.kind = 'file_collection' AND a.handler = $1 AND a.observable_type = $2\n           AND a.observable_value = $3 AND a.status <> 'COMPLETED'\n         ORDER BY a.id LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d420cffdbb7caf5bda0835f8c2456734ea42fe389dc994c92c24fae95e4d773c"
+}

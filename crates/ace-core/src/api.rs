@@ -2845,6 +2845,7 @@ impl Api {
             &self.inner.db,
             &self.inner.stores,
             catalog,
+            &self.inner.config.actions,
             task,
             read,
             request,

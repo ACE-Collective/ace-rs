@@ -1291,6 +1291,10 @@ impl Web {
                 get(file_collections::history),
             )
             .route(
+                "/api/file-collections/v1/collections/{id}/file",
+                get(file_collections::file),
+            )
+            .route(
                 "/api/file-collections/v1/collections/{id}/cancel",
                 post(file_collections::cancel),
             )
@@ -1608,6 +1612,7 @@ impl Web {
         file_collections::export_ndjson,
         file_collections::one,
         file_collections::history,
+        file_collections::file,
         file_collections::cancel,
         file_collections::retry,
         file_collections::delete,

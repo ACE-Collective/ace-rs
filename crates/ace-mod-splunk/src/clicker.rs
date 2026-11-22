@@ -33,6 +33,12 @@
 //! than `<observable.value>` and `<observable.type>`:
 //! a search using one fails the task. ace3 also clears a skipped Phishkit analysis when it crawls,
 //! which ace4 has no Phishkit for. `tests/clicker_differences.md` lists the rest.
+//!
+//! What doesn't depend on Splunk is public (PLAN.md decision 51), for a site's clicker on another
+//! source, such as a site's LogScale one: the watched config ([`ClickerConfig`]), the searches that
+//! apply ([`searches_for`]), the values a search matches ([`match_values`]), a time range's
+//! durations ([`durations`]), what a search's rows add ([`collect`], into [`Findings`], with the
+//! search's console link and each row's time from the caller) and the summary ([`summary_text`]).
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -47,7 +53,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-use crate::mapping::{Mapping, ObservableMapping, add_observables, parse_timespec};
+use crate::mapping::{Mapping, ObservableMapping, add_observables, event_time, parse_timespec};
 use crate::{Connection, Failure, Search, Splunkd, Step, connection};
 
 /// The module's manifest.
@@ -114,7 +120,58 @@ struct Loaded {
 }
 
 /// A value of the config, as PyYAML loads it, its mappings in the file's order.
-type Yaml = ace_hunt::value::Value;
+pub type Yaml = ace_hunt::value::Value;
+
+/// ace3's clicker config file, read again whenever its modification time or size changes, as
+/// ace3's `watch_file` does.
+#[derive(Default)]
+pub struct ClickerConfig {
+    loaded: Mutex<Loaded>,
+}
+
+impl ClickerConfig {
+    pub fn new() -> ClickerConfig {
+        ClickerConfig::default()
+    }
+
+    /// The config at `path`, read as PyYAML's `safe_load` reads it, again when the file changed.
+    /// None, a missing file or one that doesn't load is no config, which is no searches.
+    pub fn get(&self, path: Option<&Path>) -> Option<Yaml> {
+        let path = path?;
+        let version = std::fs::metadata(path)
+            .ok()
+            .map(|m| (m.modified().unwrap_or(SystemTime::UNIX_EPOCH), m.len()));
+        let mut loaded = self.loaded.lock().ok()?;
+        if loaded.version.is_some() && loaded.version == version {
+            return loaded.config.clone();
+        }
+        let config = match std::fs::read_to_string(path) {
+            Ok(text) => {
+                let mut budget = ace_hunt::yaml::Budget::new(ace_hunt::yaml::Limits::default());
+                match ace_hunt::yaml::load(&text, &path.display().to_string(), &mut budget) {
+                    Ok(value) => Some(value),
+                    Err(e) => {
+                        tracing::warn!(
+                            "failed to load clicker detection config {}: {e:?}",
+                            path.display()
+                        );
+                        None
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::debug!(
+                    "clicker detection config not found: {}: {e}",
+                    path.display()
+                );
+                None
+            }
+        };
+        loaded.version = version;
+        loaded.config = config.clone();
+        config
+    }
+}
 
 /// The clicker detection module.
 pub struct ClickerDetection {
@@ -123,7 +180,7 @@ pub struct ClickerDetection {
     /// The web links. host: the instance.s.
     host: String,
     correlation_delay: Option<Duration>,
-    loaded: Mutex<Loaded>,
+    config: ClickerConfig,
 }
 
 impl Module for ClickerDetection {
@@ -163,7 +220,7 @@ impl Module for ClickerDetection {
             tz,
             host,
             correlation_delay,
-            loaded: Mutex::default(),
+            config: ClickerConfig::new(),
         })
     }
 }
@@ -178,17 +235,25 @@ fn app_context(settings: &ClickerSettings) -> Option<&str> {
         .or(settings.app_context.as_deref())
 }
 
+/// What the searches found so far: their events, the observables their rows and clicks add, the
+/// detections their hits raise, and whether a hit crawls the URL.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Findings {
+    pub events: Vec<ClickerEvent>,
+    pub observables: Vec<NewObservable>,
+    pub detections: Vec<Detection>,
+    pub crawl: bool,
+}
+
 /// What the runs before this one left, as ace3 keeps it in the analysis's details.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct Progress {
     plan: Vec<String>,
     index: usize,
-    events: Vec<ClickerEvent>,
     error: Option<String>,
     gui_link: Option<String>,
-    observables: Vec<NewObservable>,
-    detections: Vec<Detection>,
-    crawl: bool,
+    #[serde(flatten)]
+    found: Findings,
     /// The job of the search running now.
     job: Option<Search>,
     /// Waiting out `correlation_delay`.
@@ -200,11 +265,11 @@ struct Progress {
 }
 
 /// One search of the config, as `get_searches_for` lists it.
-type SearchDef = Map<String, Value>;
+pub type SearchDef = Map<String, Value>;
 
 /// `get_searches_for`: every enabled search of `source` whose `observable_types` has the type, in
 /// the config's order.
-fn searches_for(config: Option<&Yaml>, source: &str, kind: &str) -> Vec<(String, SearchDef)> {
+pub fn searches_for(config: Option<&Yaml>, source: &str, kind: &str) -> Vec<(String, SearchDef)> {
     let Some(Yaml::Map(config)) = config else {
         return Vec::new();
     };
@@ -234,7 +299,7 @@ fn searches_for(config: Option<&Yaml>, source: &str, kind: &str) -> Vec<(String,
 }
 
 /// Python's truth of a YAML value.
-fn truthy(value: Option<&Value>) -> bool {
+pub fn truthy(value: Option<&Value>) -> bool {
     match value {
         None | Some(Value::Null) => false,
         Some(Value::Bool(b)) => *b,
@@ -263,7 +328,7 @@ fn value_clause(values: &[String]) -> String {
 }
 
 /// Python's `urllib.parse.quote(value, safe="")`.
-fn quote_all(value: &str) -> String {
+pub fn quote_all(value: &str) -> String {
     let mut out = String::new();
     for b in value.bytes() {
         match b {
@@ -278,7 +343,7 @@ fn quote_all(value: &str) -> String {
 
 /// `clicker_match_values`: the values a search matches, with their percent-encoded forms after
 /// them when it sets `match_url_encoded`. A URL's child URLs aren't found (the module's docs).
-fn match_values(value: &str, def: &SearchDef) -> Vec<String> {
+pub fn match_values(value: &str, def: &SearchDef) -> Vec<String> {
     let values = vec![value.to_owned()];
     if !truthy(def.get("match_url_encoded")) {
         return values;
@@ -299,7 +364,7 @@ fn match_values(value: &str, def: &SearchDef) -> Vec<String> {
 
 /// A time range's two durations, as `_prepare_search` reads `time_ranges`: a mapping with
 /// `duration_before` and `duration_after`, or a bare `duration_before`.
-fn durations(range: &Value) -> Result<(Duration, Duration), ModuleError> {
+pub fn durations(range: &Value) -> Result<(Duration, Duration), ModuleError> {
     let read = |v: Option<&Value>| -> Result<Duration, ModuleError> {
         match v {
             Some(Value::String(s)) if !s.is_empty() => {
@@ -319,43 +384,6 @@ fn durations(range: &Value) -> Result<(Duration, Duration), ModuleError> {
 }
 
 impl ClickerDetection {
-    /// The config, read again when the file changed.
-    fn config(&self, path: Option<&Path>) -> Option<Yaml> {
-        let path = path?;
-        let version = std::fs::metadata(path)
-            .ok()
-            .map(|m| (m.modified().unwrap_or(SystemTime::UNIX_EPOCH), m.len()));
-        let mut loaded = self.loaded.lock().ok()?;
-        if loaded.version.is_some() && loaded.version == version {
-            return loaded.config.clone();
-        }
-        let config = match std::fs::read_to_string(path) {
-            Ok(text) => {
-                let mut budget = ace_hunt::yaml::Budget::new(ace_hunt::yaml::Limits::default());
-                match ace_hunt::yaml::load(&text, &path.display().to_string(), &mut budget) {
-                    Ok(value) => Some(value),
-                    Err(e) => {
-                        tracing::warn!(
-                            "failed to load clicker detection config {}: {e:?}",
-                            path.display()
-                        );
-                        None
-                    }
-                }
-            }
-            Err(e) => {
-                tracing::debug!(
-                    "clicker detection config not found: {}: {e}",
-                    path.display()
-                );
-                None
-            }
-        };
-        loaded.version = version;
-        loaded.config = config.clone();
-        config
-    }
-
     /// `_prepare_search` and `build_target_query`: the search with its values, its type and its
     /// time ranges filled in.
     fn query(
@@ -383,27 +411,13 @@ impl ClickerDetection {
         let use_index_time = truthy(def.get("use_index_time"));
         if let Some(ranges) = def.get("time_ranges").and_then(Value::as_object) {
             for (token, range) in ranges {
-                let (before, after) = durations(range)?;
-                let earliest = self
-                    .wall(anchor - chrono::Duration::from_std(before).map_err(ModuleError::other)?);
-                let latest = self
-                    .wall(anchor + chrono::Duration::from_std(after).map_err(ModuleError::other)?);
-                let spec = if use_index_time {
-                    format!("_index_earliest = {earliest} _index_latest = {latest}")
-                } else {
-                    format!("earliest = {earliest} latest = {latest}")
-                };
+                let spec =
+                    crate::mapping::time_spec(anchor, durations(range)?, self.tz, use_index_time)
+                        .map_err(ModuleError::other)?;
                 query = query.replace(&format!("<{token}>"), &spec);
             }
         }
         Ok(query)
-    }
-
-    /// A time in the instance's timezone, `%m/%d/%Y:%H:%M:%S`.
-    fn wall(&self, time: DateTime<Utc>) -> String {
-        time.with_timezone(&self.tz)
-            .format("%m/%d/%Y:%H:%M:%S")
-            .to_string()
     }
 
     /// `encoded_query_link(target_query)`: a Splunk web link with the query and no time range.
@@ -463,7 +477,7 @@ impl Lookup for ClickerDetection {
         let settings = ctx.settings();
         let observable = ctx.observable();
         let kind = observable.kind.as_str();
-        let config = self.config(settings.config_path.as_deref());
+        let config = self.config.get(settings.config_path.as_deref());
         let now = ctx.now();
         let started = ctx.delayed().map_or(now, |d| d.first_delayed_at);
         let elapsed = (now - started).to_std().unwrap_or_default();
@@ -559,7 +573,22 @@ impl Lookup for ClickerDetection {
                         .unwrap_or_default();
                     progress.error = Some(format!("{previous}{name}: {error}"));
                 }
-                Ok(rows) => collect(&mut progress, ctx, &def, &name, &query, &rows, self)?,
+                Ok(rows) => {
+                    let portal_url = Some(self.link(&query, app_context(settings)));
+                    collect(
+                        &mut progress.found,
+                        Clicked {
+                            kind: observable.kind,
+                            value: &observable.value,
+                            source: &settings.source,
+                            name: &name,
+                            portal_url,
+                        },
+                        &def,
+                        &rows,
+                        &|row| event_time(row, now),
+                    )?;
+                }
             }
             progress.index += 1;
         }
@@ -585,7 +614,7 @@ impl Lookup for ClickerDetection {
             clicker_plan: Some(progress.plan.clone()),
             clicker_index: Some(progress.index),
             clicker_source: Some(settings.source.clone()),
-            clicker_events: Some(progress.events.clone()),
+            clicker_events: Some(progress.found.events.clone()),
             matched_url_count: Some(1),
         };
         let summary = summary(&details, progress.error.as_deref());
@@ -593,27 +622,43 @@ impl Lookup for ClickerDetection {
         result.summary = Some(summary);
         // a search that never answered: the clicks the others found are kept beside it
         result.error = progress.error.clone().filter(|e| !e.trim().is_empty());
-        result.observables = progress.observables;
-        result.detections = progress.detections;
-        if progress.crawl {
+        result.observables = progress.found.observables;
+        result.detections = progress.found.detections;
+        if progress.found.crawl {
             result.analyzed.directives.push(CRAWL.to_owned());
         }
         Ok(Outcome::Done(result))
     }
 }
 
-/// `_collect_search_events`, with the rows' observables: what one search's rows add.
-fn collect(
-    progress: &mut Progress,
-    ctx: &TaskContext<ClickerSettings>,
+/// Which search's rows `collect` reads: the observable searched for, the source and the search's
+/// name (an event's `source` is `<source>:<name>`), and the search's console link, each event's
+/// `portal_url`.
+pub struct Clicked<'a> {
+    pub kind: ObservableKind,
+    pub value: &'a str,
+    pub source: &'a str,
+    pub name: &'a str,
+    pub portal_url: Option<String>,
+}
+
+/// `_collect_search_events`, with the rows' observables: what one search's rows add to `found`. A
+/// mapping with `time: true` gives its observables `row_time` of their row, the row's event time as
+/// the source reads it.
+pub fn collect(
+    found: &mut Findings,
+    clicked: Clicked<'_>,
     def: &SearchDef,
-    name: &str,
-    query: &str,
     rows: &[Map<String, Value>],
-    module: &ClickerDetection,
+    row_time: &dyn Fn(&Map<String, Value>) -> DateTime<Utc>,
 ) -> Result<(), ModuleError> {
-    let settings = ctx.settings();
-    let observable = ctx.observable();
+    let Clicked {
+        kind,
+        value,
+        source,
+        name,
+        portal_url,
+    } = clicked;
     // extract_result_observables, with this search's mappings
     let specs: Vec<ObservableMapping> = match def.get("observable_mapping") {
         Some(Value::Array(_)) => serde_json::from_value(def["observable_mapping"].clone())
@@ -626,12 +671,11 @@ fn collect(
         .collect::<Result<Vec<_>, _>>()
         .map_err(ModuleError::other)?;
     for row in rows {
-        add_observables(row, &mappings, &[], ctx.now(), &mut progress.observables);
+        add_observables(row, &mappings, &[], row_time(row), &mut found.observables);
     }
 
     let event_mapping = def.get("event_mapping").and_then(Value::as_object);
-    let portal_url = Some(module.link(query, app_context(settings)));
-    let source = format!("{}:{name}", settings.source);
+    let source = format!("{source}:{name}");
     let events: Vec<ClickerEvent> = rows
         .iter()
         .map(|row| ClickerEvent {
@@ -641,11 +685,11 @@ fn collect(
             user: mapped(row, event_mapping, "user"),
             action_type: mapped(row, event_mapping, "action_type"),
             url: mapped(row, event_mapping, "url"),
-            searched_value: observable.value.clone(),
+            searched_value: value.to_owned(),
             network_message_id: mapped(row, event_mapping, "network_message_id"),
         })
         .collect();
-    progress.events.extend(events.iter().cloned());
+    found.events.extend(events.iter().cloned());
 
     let on_hit = def.get("on_hit").and_then(Value::as_object);
     let flag = |key: &str| truthy(on_hit.and_then(|o| o.get(key)));
@@ -688,11 +732,11 @@ fn collect(
         };
         let mut detection = Detection::new(format!("URL clicker identified via {name} ({who})"));
         detection.signature_uuid = Some(URL_CLICKER.to_owned());
-        progress.detections.push(detection);
+        found.detections.push(detection);
     }
     if flag("crawl_clicked_url") {
-        if observable.kind.is_subtype_of(ObservableKind::Url) {
-            progress.crawl = true;
+        if kind.is_subtype_of(ObservableKind::Url) {
+            found.crawl = true;
         } else {
             // a busy domain's clicked URLs would flood the crawler, so they're added uncrawled
             let mut seen = BTreeSet::new();
@@ -701,12 +745,12 @@ fn collect(
                     continue;
                 }
                 let added = NewObservable::new(ObservableKind::Url, url);
-                if !progress
+                if !found
                     .observables
                     .iter()
                     .any(|o| o.kind == added.kind && o.value == added.value)
                 {
-                    progress.observables.push(added);
+                    found.observables.push(added);
                 }
             }
         }
@@ -715,7 +759,7 @@ fn collect(
 }
 
 /// Python's `str.capitalize`.
-fn capitalize(text: &str) -> String {
+pub fn capitalize(text: &str) -> String {
     let mut chars = text.chars();
     match chars.next() {
         Some(first) => first
@@ -728,15 +772,29 @@ fn capitalize(text: &str) -> String {
 
 /// `ClickerDetectionAnalysisMixin.generate_summary`, with the result's error.
 fn summary(details: &SplunkClickerDetectionAnalysis, error: Option<&str>) -> String {
-    let mut label = details
-        .query_summary
-        .clone()
+    summary_text(
+        details.query_summary.as_deref(),
+        details.clicker_source.as_deref(),
+        details.clicker_events.as_ref().map_or(0, Vec::len),
+        error,
+    )
+}
+
+/// `ClickerDetectionAnalysisMixin.generate_summary` over a clicker result's summary, source and
+/// count of events, with its error: `URL Clicks (Splunk): 2 clicks found, ERROR: ...`.
+pub fn summary_text(
+    query_summary: Option<&str>,
+    source: Option<&str>,
+    count: usize,
+    error: Option<&str>,
+) -> String {
+    let mut label = query_summary
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "URL Clicks".to_owned());
-    if let Some(source) = details.clicker_source.as_deref().filter(|s| !s.is_empty()) {
+        .unwrap_or("URL Clicks")
+        .to_owned();
+    if let Some(source) = source.filter(|s| !s.is_empty()) {
         label = format!("{label} ({})", capitalize(source));
     }
-    let count = details.clicker_events.as_ref().map_or(0, Vec::len);
     let found = match count {
         0 => "no clicks found".to_owned(),
         1 => "1 click found".to_owned(),

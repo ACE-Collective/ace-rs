@@ -15,6 +15,7 @@
 //! The pool sends what the task wrote with its end, when that end is a result or a skip. A parser
 //! can't declare one, as it can't declare a read.
 
+use ace_results::ObservableRef;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -201,12 +202,107 @@ pub struct CheckRequest {
 /// The most bytes a check's context takes, as JSON.
 pub const MAX_CHECK_CONTEXT_BYTES: usize = 16 * 1024;
 
-/// Whether a write lands with a delay as well as with a result or a skip: only `remediation-check`,
-/// since ace3's module queues its check and records its answer before it waits, and the core reuses
-/// the pending check on the next run, as ace3's does. Every other write lands only with a result or
-/// a skip, so a task that delays writes nothing else.
+/// `file-collection`: a file collection of the task's own observable by one of the core's
+/// collectors, for the task's root (PLAN.md decision 49). ace3's module joins a pending collection of
+/// the same target by the same collector (`get_pending_file_collection_by_observable`,
+/// `wait_on_file_collection`), or queues one (`queue_file_collection`), and then waits; the core does
+/// the same in the end's transaction (`ace_core::actions::request_collection`): it joins a pending
+/// one, from any alert or person, takes the root's own earlier success, or queues a new one. The
+/// module reads where it stands with the `file-collection` read. No module of ace4's makes it:
+/// a site's Endpoint modules do.
+pub struct FileCollection;
+
+impl WriteKind for FileCollection {
+    const WRITE: Write = Write {
+        name: "file-collection",
+    };
+    type Body = CollectionAsk;
+}
+
+/// A file collection a module asks for.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CollectionAsk {
+    /// The collector's name, such as a site's `endpoint_file_collection`: a file collection handler
+    /// the core's catalog has (`crate::actions::ActionSpec`), which acts on the task's observable's
+    /// type.
+    pub collector: String,
+}
+
+/// `file-collection-release`: the task's root stops waiting on collections it no longer needs, as
+/// ace3's `endpoint_file_collector` cancels its siblings' once the identical file is in the alert
+/// (`_cancel_sibling_collections`) (PLAN.md decision 49). For each named observable of the root, its
+/// unfinished collection by the collector stops being the root's; it is cancelled only when no
+/// other root waits on it and no person or caller asked for it, where ace3 cancels it whoever else
+/// waits.
+pub struct FileCollectionRelease;
+
+impl WriteKind for FileCollectionRelease {
+    const WRITE: Write = Write {
+        name: "file-collection-release",
+    };
+    type Body = CollectionRelease;
+}
+
+/// The collections a module lets go of.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CollectionRelease {
+    /// The collector, as `CollectionAsk::collector`.
+    pub collector: String,
+    /// The targets, each an observable of the root of the collector's type, the task's own among
+    /// them or not; at most `MAX_RELEASED`.
+    pub observables: Vec<ObservableRef>,
+}
+
+/// The most targets one `file-collection-release` names.
+pub const MAX_RELEASED: usize = 100;
+
+/// `sandbox-submission`: the task's own file's row in ace3's `sandbox_submissions` for a sandbox
+/// (PLAN.md decision 50), as a site's ExampleSandbox module calls `record_submission` when it submits a file
+/// or finds the sandbox already knows it, and `update_submission_result` once the analysis ends.
+pub struct SandboxSubmission;
+
+impl WriteKind for SandboxSubmission {
+    const WRITE: Write = Write {
+        name: "sandbox-submission",
+    };
+    type Body = SandboxSubmissionRecord;
+}
+
+/// What a module records of its file in a sandbox. The first record of a file for a sandbox makes
+/// its row, and a later one keeps it, as ace3's unique key does (where ace3's second insert
+/// raises); a verdict, in either, sets the row's verdict, score and completion time.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SandboxSubmissionRecord {
+    /// As `SandboxSubmissionRequest::sandbox_type`.
+    pub sandbox_type: String,
+    /// The sandbox's id for the file, at most 256 characters.
+    #[serde(default)]
+    pub external_id: Option<String>,
+    /// True when the module sent the file, so it counts toward a daily cap; false when the sandbox
+    /// already knew it.
+    pub submitted: bool,
+    /// The analysis's verdict, at most 64 characters, once it finished.
+    #[serde(default)]
+    pub verdict: Option<String>,
+    #[serde(default)]
+    pub score: Option<i32>,
+}
+
+/// Whether a write lands with a delay as well as with a result or a skip: `remediation-check`, since
+/// ace3's module queues its check and records its answer before it waits, and the core reuses the
+/// pending check on the next run, as ace3's does; and `file-collection` and
+/// `file-collection-release`, since ace3's module queues or joins a collection, or cancels its
+/// siblings', and then waits; and `sandbox-submission`, since a site's sandbox module records the
+/// file it sent and then waits for the analysis. Every other write lands only with a result or a skip, so a task that
+/// delays writes nothing else.
 pub fn lands_on_delay(write: &str) -> bool {
     write == RemediationCheck::WRITE.name
+        || write == FileCollection::WRITE.name
+        || write == FileCollectionRelease::WRITE.name
+        || write == SandboxSubmission::WRITE.name
 }
 
 /// Every write a module can declare, by name.
@@ -216,4 +312,7 @@ pub const ALL: &[Write] = &[
     EmailArchive::WRITE,
     SvsCapture::WRITE,
     RemediationCheck::WRITE,
+    FileCollection::WRITE,
+    FileCollectionRelease::WRITE,
+    SandboxSubmission::WRITE,
 ];

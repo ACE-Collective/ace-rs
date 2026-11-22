@@ -130,6 +130,23 @@ fn file_location(value: &str) -> Result<(), String> {
     }
 }
 
+/// A collected file to download: the collection, the file's sha256 and its name.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CollectedDownload {
+    pub id: i64,
+    pub sha256: String,
+    pub name: String,
+}
+
+#[derive(Serialize)]
+struct CollectedRead<'a> {
+    collector: &'a str,
+    sha256: &'a str,
+    name: &'a str,
+}
+
+impl Recorded for CollectedRead<'_> {}
+
 /// What a prune let go of.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
 pub struct CollectionsPruned {
@@ -190,6 +207,51 @@ fn params(query: &ActionQuery) -> Result<Params, ServiceError> {
         [c1, c2, c3, c4],
     ))
 }
+
+/// A collector's `max_pending_per_requester` (PLAN.md decision 49), a site's `max_pending_per_user`:
+/// a request that would queue a new collection is refused when the actor already has that many
+/// unfinished ones of the collector's. One that joins a pending collection isn't.
+async fn refuse_past_limit(
+    tx: &mut ace_core::db::Tx<'_>,
+    spec: &ace_sdk::actions::ActionSpec,
+    value: &str,
+    requested_by: &serde_json::Value,
+    actor: &Actor,
+    limit: u32,
+) -> Result<(), ServiceError> {
+    if core_actions::pending_collection(tx, spec.name, spec.observable_type, value)
+        .await?
+        .is_some()
+    {
+        return Ok(());
+    }
+    let id = match &requested_by["id"] {
+        serde_json::Value::String(id) => id.clone(),
+        other => other.to_string(),
+    };
+    let requester = match crate::remediation::person(actor) {
+        Ok(user) => core_actions::Requester::Person(user),
+        Err(_) => core_actions::Requester::Caller {
+            kind: requested_by["kind"].as_str().unwrap_or_default(),
+            id: &id,
+        },
+    };
+    let pending = core_actions::pending_requested_by(tx, spec.name, requester).await?;
+    if pending >= i64::from(limit) {
+        return Err(ServiceError::RateLimited {
+            detail: format!(
+                "you already have {pending} unfinished {} collections (the limit is {limit}); \
+                 wait for one to finish",
+                spec.name
+            ),
+            retry_after_seconds: PAST_LIMIT_RETRY_SECONDS,
+        });
+    }
+    Ok(())
+}
+
+/// The `Retry-After` of a request past a collector's limit: a collection takes minutes.
+pub const PAST_LIMIT_RETRY_SECONDS: u64 = 60;
 
 impl Service {
     /// A page of file collections, newest first, of up to `limit` (100 when None, at most
@@ -388,6 +450,9 @@ impl Service {
                                 return Err(crate::alerts::no_alert(*alert));
                             }
                         }
+                        if let Some(limit) = spec.max_pending_per_requester {
+                            refuse_past_limit(tx, spec, value, requested_by, actor, limit).await?;
+                        }
                         let new = core_actions::CollectionRequest {
                             handler: spec.name,
                             observable_type: spec.observable_type,
@@ -456,6 +521,70 @@ impl Service {
             .collections
             .pop()
             .ok_or_else(|| no_action(ActionKind::FileCollection, id))
+    }
+
+    /// A collection's file to download (PLAN.md decision 49), as a site's
+    /// `GET /endpoint/browser-history/{id}/download` gives its zip: once the collection succeeded, and
+    /// while the bucket still has the file and something holds it, a collection's own hold or an
+    /// alert's. Not yet collected is a conflict, and a file let go of is gone (ace3's `expired`).
+    /// The download is in the audit record, as a read of the file.
+    pub async fn download_file_collection(
+        &self,
+        actor: &Actor,
+        id: i64,
+    ) -> Result<CollectedDownload, ServiceError> {
+        self.gate
+            .write(
+                actor,
+                "download_file_collection",
+                &FILE_COLLECTION_READ,
+                &|tx| {
+                    Box::pin(async move {
+                        let row = sqlx::query!(
+                            r#"SELECT a.handler, a.status, a.result, a.file_sha256, a.file_name,
+                                      EXISTS (SELECT FROM store.objects o
+                                              WHERE o.pool = 'alert_files'
+                                                AND o.sha256 = a.file_sha256
+                                                AND o.state = 'present'
+                                                AND EXISTS (SELECT FROM store.holds h
+                                                            WHERE h.pool = o.pool
+                                                              AND h.sha256 = o.sha256))
+                                          AS "present!"
+                               FROM queue.actions a
+                               WHERE a.id = $1 AND a.kind = 'file_collection'"#,
+                            id,
+                        )
+                        .fetch_optional(tx.conn())
+                        .await?
+                        .ok_or_else(|| no_action(ActionKind::FileCollection, id))?;
+                        let (Some(sha256), Some(name)) = (row.file_sha256, row.file_name) else {
+                            return Err(ServiceError::Conflict(format!(
+                                "file collection {id} hasn't collected a file: it is {}{}",
+                                row.status,
+                                row.result.map(|r| format!(" {r}")).unwrap_or_default()
+                            )));
+                        };
+                        if !row.present {
+                            return Err(ServiceError::Gone(format!(
+                                "file collection {id}'s file is no longer kept"
+                            )));
+                        }
+                        let change = Change::read(
+                            Target::action(id),
+                            &CollectedRead {
+                                collector: &row.handler,
+                                sha256: &sha256,
+                                name: &name,
+                            },
+                        )?;
+                        Ok(Audited::changed(
+                            CollectedDownload { id, sha256, name },
+                            change,
+                        ))
+                    })
+                },
+            )
+            .await
     }
 
     /// A collection's tries, newest first, up to `limit`.

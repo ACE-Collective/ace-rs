@@ -114,8 +114,9 @@ pub mod stubs {
         const MODULE: &'static str = "test_sets_root";
     }
 
-    /// A module that changes its root, as ace3's mailbox module does, walks the tree, and may add the
-    /// tag `x` and the directive `crawl` to other observables.
+    /// A module that changes its root, as ace3's mailbox module does, walks the tree, may add the
+    /// tag `x` and the directive `crawl` to other observables, and may limit what it adds to
+    /// `alert_added_to_event`, and adds links to its root's.
     pub struct SetsRoot;
 
     impl Module for SetsRoot {
@@ -123,6 +124,8 @@ pub mod stubs {
         const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
         const READS_TREE: bool = true;
         const SETS_ROOT: bool = true;
+        const LIMITS_ANALYSIS_TO: &'static [&'static str] = &["alert_added_to_event"];
+        const ADDS_ROOT_PIVOT_LINKS: bool = true;
         const ADDS_TO_OTHERS: Option<ace_sdk::OtherAdditionsAllowed> =
             Some(ace_sdk::OtherAdditionsAllowed {
                 tags: &["x"],

@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"count!\" FROM queue.actions\n           WHERE kind = 'file_collection' AND handler = $1 AND status <> 'COMPLETED'\n             AND (($2::uuid IS NOT NULL AND user_id = $2)\n                  OR ($3::text IS NOT NULL AND user_id IS NULL\n                      AND requested_by ->> 'kind' = $3 AND requested_by ->> 'id' = $4))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "724f383f2674c1815faef35aaf48eb501ba667a10241e76c21f003816a4423e5"
+}

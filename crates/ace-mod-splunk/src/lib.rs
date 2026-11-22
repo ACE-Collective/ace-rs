@@ -13,10 +13,20 @@
 //! deletion, at the same paths. ace3 reads a job's status three times a poll; the port reads it
 //! once.
 //!
-//! What isn't ported: the `<O_TIMESPEC>`, `<O_VALUEn>` and `<observable.*>` tokens and named
-//! time ranges, with the `gui_link` they set; pivot links and summary details; and most
-//! observable mapping options (see `ObservableMapping`). A query with an unfilled token fails at
-//! init.
+//! A query's named time ranges are ace3's `time_ranges` (PLAN.md decision 52): each `<NAME>` token
+//! becomes `earliest = A latest = B`, or `_index_earliest = A _index_latest = B` with
+//! `use_index_time`, a window around the observable's time, else the root's event time, else the
+//! first run's clock, in the instance's timezone, filled once at the first run. Its `pivot_links`
+//! render against the rows, beside the result or on the alert ([`pivot`]); `required_directives`
+//! keeps it off an observable without them. The module takes every type of its binary, a site's
+//! own included (`Module::ANY_INPUT`), so an instance should always name its `inputs:`.
+//!
+//! What isn't ported: the `<O_TIMESPEC>`, `<O_VALUEn>` and `<observable.*>` tokens, with the
+//! `gui_link` the first sets; summary details; `default_collapsed`; and most observable mapping
+//! options (see `ObservableMapping`). A query with an unfilled token fails at init.
+//!
+//! [`mapping`]'s observable mapping and time ranges, and [`clicker`]'s source-independent parts,
+//! are public for a site's port of another of ace3's API analyzers (PLAN.md decision 51).
 //!
 //! Its Splunk instance is a shared connection of type `splunk` (PLAN.md decision 41, [`connection`]),
 //! which an instance's `connections: {splunk: <instance>}` binds, as ace3's `api_name` names a
@@ -26,7 +36,8 @@
 
 pub mod clicker;
 pub mod connection;
-mod mapping;
+pub mod mapping;
+pub mod pivot;
 mod rest;
 pub mod search;
 
@@ -48,9 +59,10 @@ use serde_json::{Map, Value};
 pub use crate::clicker::ClickerDetection;
 pub use crate::mapping::ObservableMapping;
 use crate::mapping::{
-    Mapping, add_observables, fill_query, parse_timespec, search_text, table_columns,
-    unfilled_token, whole_value_patterns,
+    Mapping, TimeRange, add_observables, event_time, fill_query, fill_time_ranges, parse_timespec,
+    search_text, table_columns, unfilled_token, whole_value_patterns,
 };
+use crate::pivot::PivotLinkSetting;
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::lookup::<SplunkAnalyzer>();
@@ -94,6 +106,16 @@ pub struct SplunkSettings {
     /// How long to wait before submitting the search, in ace3's `DD:HH:MM:SS` form read from
     /// the right, so `30` is 30 seconds.
     pub correlation_delay: Option<String>,
+    /// Named time ranges: the query's `<NAME>` token becomes a window around the observable's
+    /// time, else the root's event time, else the first run's clock (`mapping::TimeRange`).
+    pub time_ranges: std::collections::BTreeMap<String, TimeRange>,
+    /// The time ranges search the time splunkd indexed an event (`_index_earliest`), not its own.
+    pub use_index_time: bool,
+    /// Links rendered against the rows, beside the result or on the alert ([`pivot`]).
+    pub pivot_links: Vec<PivotLinkSetting>,
+    /// Directives an observable must have for the search to run on it, as ace3's
+    /// `required_directives` on a module's section.
+    pub required_directives: Vec<String>,
 }
 
 impl Default for SplunkSettings {
@@ -113,6 +135,10 @@ impl Default for SplunkSettings {
             query_timeout: 300,
             async_delay: 1,
             correlation_delay: None,
+            time_ranges: std::collections::BTreeMap::new(),
+            use_index_time: false,
+            pivot_links: Vec::new(),
+            required_directives: Vec::new(),
         }
     }
 }
@@ -123,12 +149,20 @@ pub struct SplunkAnalyzer {
     mappings: Vec<Mapping>,
     ignored: Vec<Regex>,
     correlation_delay: Option<Duration>,
+    tz: chrono_tz::Tz,
+    renderer: ace_hunt::render::Renderer,
 }
 
 impl Module for SplunkAnalyzer {
     const NAME: &'static str = "splunk_api";
-    /// Every type: `valid_observable_types` narrows it, as in ace3.
-    const INPUTS: &'static [ObservableKind] = ObservableKind::BUILTIN;
+    /// Every type of the binary, a site's own included (PLAN.md decision 52): an instance's
+    /// `inputs:` narrows it, as ace3's `valid_observable_types` does.
+    const INPUTS: &'static [ObservableKind] = &[];
+    const ANY_INPUT: bool = true;
+    /// A search's time ranges are around the root's event time when the observable has no time.
+    const READS_EVENT_TIME: bool = true;
+    /// Its `pivot_links` with `target: root` go on the alert, as ace3's default.
+    const ADDS_ROOT_PIVOT_LINKS: bool = true;
     const CONNECTIONS: &'static [ace_sdk::ConnectionSlot] = &[connection::SLOT];
     /// A search needs its query, so the module runs only as the overlay's instances, as ace3's
     /// `SplunkAPIAnalyzer` runs only as its configured sections.
@@ -144,7 +178,7 @@ impl Module for SplunkAnalyzer {
         if settings.query.trim().is_empty() {
             return Err(ModuleError::other("the Splunk module has no query"));
         }
-        if let Some(token) = unfilled_token(&settings.query) {
+        if let Some(token) = unfilled_token(&settings.query, &settings.time_ranges) {
             return Err(ModuleError::other(format!(
                 "the query uses {token}, which the Splunk module doesn't fill"
             )));
@@ -168,12 +202,35 @@ impl Module for SplunkAnalyzer {
             .map(parse_timespec)
             .transpose()
             .map_err(ModuleError::other)?;
+        for (name, range) in &settings.time_ranges {
+            range
+                .durations()
+                .map_err(|e| ModuleError::other(format!("time range {name}: {e}")))?;
+        }
+        let tz = settings.splunk.tz().map_err(ModuleError::other)?;
+        let renderer = ace_hunt::render::Renderer::default();
+        pivot::check(&settings.pivot_links, &renderer).map_err(ModuleError::other)?;
         Ok(SplunkAnalyzer {
             splunkd,
             mappings,
             ignored,
             correlation_delay,
+            tz,
+            renderer,
         })
+    }
+
+    /// An observable without each of `required_directives` isn't taken.
+    fn takes(settings: &SplunkSettings) -> ace_sdk::takes::Takes {
+        settings.required_directives.iter().fold(
+            ace_sdk::takes::Takes::everything(),
+            |takes, directive| {
+                takes.and(
+                    ace_sdk::takes::Condition::directive(directive),
+                    format!("no {directive} directive"),
+                )
+            },
+        )
     }
 }
 
@@ -303,8 +360,29 @@ impl Lookup for SplunkAnalyzer {
         let mut search = match ctx.delay_state::<Search>()? {
             Some(search) => search,
             None => {
+                let mut query = fill_query(&settings.query, observable.kind, &observable.value);
+                if !settings.time_ranges.is_empty() {
+                    // ace3's `source_event_time or observable.time or get_root().event_time`,
+                    // and its clock, with an error, when there is neither
+                    let anchor = observable.time.or(ctx.event_time()).unwrap_or_else(|| {
+                        tracing::error!(
+                            root = %ctx.root(),
+                            observable = %observable,
+                            "event_time is None! Using current time for TIMESPEC tokens instead"
+                        );
+                        now
+                    });
+                    query = fill_time_ranges(
+                        &query,
+                        &settings.time_ranges,
+                        anchor,
+                        self.tz,
+                        settings.use_index_time,
+                    )
+                    .map_err(ModuleError::other)?;
+                }
                 let search = Search {
-                    query: fill_query(&settings.query, observable.kind, &observable.value),
+                    query,
                     ..Search::default()
                 };
                 if let Some(wait) = self.correlation_delay {
@@ -379,6 +457,7 @@ impl SplunkAnalyzer {
             ..SplunkApiAnalysis::default()
         };
         let mut observables = Vec::new();
+        let mut links = pivot::Links::default();
         let mut failure = None;
         // BaseAPIAnalysis.generate_summary: no summary for no rows
         let summary = match ending {
@@ -394,10 +473,16 @@ impl SplunkAnalyzer {
                         row,
                         &self.mappings,
                         &self.ignored,
-                        ctx.now(),
+                        event_time(row, ctx.now()),
                         &mut observables,
                     );
                 }
+                links = pivot::render(
+                    &settings.pivot_links,
+                    &rows,
+                    &self.renderer,
+                    &settings.summary,
+                );
                 let summary = (!rows.is_empty())
                     .then(|| format!("{}: ({} results)", settings.summary, rows.len()));
                 details.query_results = Some(rows);
@@ -408,6 +493,13 @@ impl SplunkAnalyzer {
         result.summary = summary;
         result.error = failure;
         result.observables = observables;
+        result.pivot_links = links.analysis;
+        if !links.root.is_empty() {
+            result.root = Some(ace_results::RootChanges {
+                pivot_links: links.root,
+                ..ace_results::RootChanges::default()
+            });
+        }
         result
     }
 }

@@ -72,6 +72,8 @@ pub struct Manifest {
     pub kind: ModuleKind,
     /// The observable types the module takes. A type that extends one of these is taken too.
     pub inputs: &'static [ObservableKind],
+    /// The module takes every installed type (`Module::ANY_INPUT`).
+    pub any_input: bool,
     pub output: AnalysisTypeInfo,
     /// Modules that run on the observable before this one (`Module::DEPENDS_ON`).
     pub depends_on: &'static [&'static str],
@@ -118,6 +120,8 @@ pub struct Manifest {
     pub adds_to_others: Option<OtherAdditionsAllowed>,
     /// The module changes its root's description and details (`Module::SETS_ROOT`).
     pub sets_root: bool,
+    /// The module adds links to its root's (`Module::ADDS_ROOT_PIVOT_LINKS`).
+    pub adds_root_pivot_links: bool,
     /// The module adds files a module it depends on stored for the root
     /// (`Module::ADDS_STORED_FILES`).
     pub adds_stored_files: bool,
@@ -125,6 +129,8 @@ pub struct Manifest {
     pub adds_fetched_files: bool,
     /// The lookup reads its input file's bytes (`Module::READS_INPUT_FILE`).
     pub reads_input_file: bool,
+    /// The modules its results may limit what they add to (`Module::LIMITS_ANALYSIS_TO`).
+    pub limits_analysis_to: &'static [&'static str],
     /// The analyst-edited lists the module reads (`Module::LISTS`).
     pub lists: &'static [ListSpec],
     /// The reads of ACE's own data the module makes (`Module::READS`).
@@ -202,6 +208,7 @@ impl Manifest {
             name: M::NAME,
             kind,
             inputs: M::INPUTS,
+            any_input: M::ANY_INPUT,
             output: AnalysisTypeInfo::of::<M::Output>(),
             depends_on: M::DEPENDS_ON,
             reads_dependencies: M::READS_DEPENDENCIES,
@@ -226,9 +233,11 @@ impl Manifest {
             reads_tree_details: M::READS_TREE_DETAILS,
             adds_to_others: M::ADDS_TO_OTHERS,
             sets_root: M::SETS_ROOT,
+            adds_root_pivot_links: M::ADDS_ROOT_PIVOT_LINKS,
             adds_stored_files: M::ADDS_STORED_FILES,
             adds_fetched_files: M::ADDS_FETCHED_FILES,
             reads_input_file: M::READS_INPUT_FILE,
+            limits_analysis_to: M::LIMITS_ANALYSIS_TO,
             lists: M::LISTS,
             reads: M::READS,
             writes: M::WRITES,
@@ -285,9 +294,21 @@ impl Manifest {
         crate::cache::refusal(self)
     }
 
-    /// True when the module takes observables of `kind`, directly or through a parent type.
+    /// True when the module takes observables of `kind`, directly or through a parent type, or
+    /// takes every type (`Module::ANY_INPUT`).
     pub fn accepts(&self, kind: ObservableKind) -> bool {
-        self.inputs.iter().any(|&input| kind.is_subtype_of(input))
+        self.any_input || self.inputs.iter().any(|&input| kind.is_subtype_of(input))
+    }
+
+    /// The types it takes as itself: its `INPUTS`, or every type the binary installed
+    /// (`ObservableKind::all`) for a module that takes any. Read once the binary installed its
+    /// types, as `ace_app` does first.
+    pub fn input_kinds(&self) -> Vec<ObservableKind> {
+        if self.any_input {
+            ObservableKind::all().to_vec()
+        } else {
+            self.inputs.to_vec()
+        }
     }
 
     /// The first of `directives` that keeps the module off an observable: `exclude_all`, or one
@@ -335,7 +356,7 @@ impl Manifest {
                 ModuleKind::Parser => "parser",
                 ModuleKind::Lookup => "lookup",
             },
-            "inputs": self.inputs,
+            "inputs": self.input_kinds(),
             "output": {"analysis_type": self.output.name, "schema_version": self.output.version},
             "depends_on": self.depends_on,
             "skip_directives": self.skip_directives,

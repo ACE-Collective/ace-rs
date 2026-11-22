@@ -10,8 +10,10 @@
 //! (7.10 batch 2, `svs_yara_sample_capture`), whose bytes `svs::samples::prepare` reads in `check` and
 //! `svs::samples::land` puts in the `svs_samples` pool in `apply`; and `remediation-check` (PLAN.md
 //! decision 32, for a site's module), which queues a remediation check through `actions` and records
-//! the module's own answer as a try. It alone lands with a delay too
-//! (`ace_sdk::writes::lands_on_delay`).
+//! the module's own answer as a try; and `file-collection` and `file-collection-release` (PLAN.md
+//! decision 49, for a site's module), which ask for a file collection and let go of one through
+//! `actions`; and `sandbox-submission` (decision 50), ace3's `sandbox_submissions`. These four land
+//! with a delay too (`ace_sdk::writes::lands_on_delay`).
 
 use ace_results::AnalysisType;
 use ace_results::types::email::{EmailAnalysis, EmailDetails};
@@ -19,8 +21,9 @@ use ace_sdk::Manifest;
 use ace_sdk::actions::{ActionKind, ProbeOutcome};
 use ace_sdk::email_threads;
 use ace_sdk::writes::{
-    ArchivedEmailRecord, CheckRequest, MAX_CHECK_CONTEXT_BYTES, MAX_SVS_CAPTURES, SmtpLogRows,
-    SvsCaptures, ThreadRecord, WireWrite,
+    ArchivedEmailRecord, CheckRequest, CollectionAsk, CollectionRelease, MAX_CHECK_CONTEXT_BYTES,
+    MAX_RELEASED, MAX_SVS_CAPTURES, SandboxSubmissionRecord, SmtpLogRows, SvsCaptures,
+    ThreadRecord, WireWrite,
 };
 use chrono::NaiveDateTime;
 use sha2::{Digest, Sha256};
@@ -31,6 +34,10 @@ use crate::db::{Db, DbError, Tx};
 use crate::email_archive::{EmailArchive, PrepareFailure};
 use crate::queue::Task;
 
+/// ace3's `sandbox_submissions.external_id` is a string of 256.
+pub const MAX_SANDBOX_ID_CHARS: usize = 256;
+/// ace3's `sandbox_submissions.verdict` is a string of 64.
+pub const MAX_VERDICT_CHARS: usize = 64;
 /// The most rows one `smtp-log` write adds: ace3 writes one per recipient, with no bound.
 pub const MAX_SMTP_ROWS: usize = 1000;
 /// The most participants one `email-thread` write records.
@@ -76,6 +83,18 @@ pub enum Checked {
         context: Option<serde_json::Value>,
         outcome: Option<ProbeOutcome>,
     },
+    /// A file collection of the task's own observable by `collector`, for the task's root (PLAN.md
+    /// decision 49).
+    FileCollection {
+        collector: &'static str,
+    },
+    /// The root lets go of its unfinished collections of these targets by `collector`.
+    FileCollectionRelease {
+        collector: &'static str,
+        observables: Vec<ace_results::ObservableRef>,
+    },
+    /// The task's own file's row for a sandbox (PLAN.md decision 50).
+    SandboxSubmission(SandboxSubmissionRecord),
 }
 
 /// What the core checks a task's writes against besides the task: its email archive, its bucket,
@@ -218,6 +237,90 @@ pub async fn check(
                 }
                 checked.push(check);
             }
+            "sandbox-submission" => {
+                let record: SandboxSubmissionRecord = parse(write.body)?;
+                crate::reads::own_file(task, "sandbox-submission")
+                    .map_err(WriteFailure::Forbidden)?;
+                let refused = if !crate::reads::is_sandbox_type(&record.sandbox_type) {
+                    Some(format!(
+                        "{:?} isn't a sandbox's name: 1 to 64 of a-z, 0-9, _ and -",
+                        record.sandbox_type
+                    ))
+                } else if record
+                    .external_id
+                    .as_ref()
+                    .is_some_and(|id| id.chars().count() > MAX_SANDBOX_ID_CHARS)
+                {
+                    Some(format!(
+                        "sandbox-submission's external_id is past its bound of \
+                         {MAX_SANDBOX_ID_CHARS} characters"
+                    ))
+                } else if record
+                    .verdict
+                    .as_ref()
+                    .is_some_and(|v| v.chars().count() > MAX_VERDICT_CHARS)
+                {
+                    Some(format!(
+                        "sandbox-submission's verdict is past its bound of {MAX_VERDICT_CHARS} \
+                         characters"
+                    ))
+                } else if checked
+                    .iter()
+                    .any(|c| matches!(c, Checked::SandboxSubmission(_)))
+                {
+                    Some("a task records its file in a sandbox once".to_owned())
+                } else {
+                    None
+                };
+                if let Some(why) = refused {
+                    return Err(WriteFailure::Forbidden(why));
+                }
+                checked.push(Checked::SandboxSubmission(record));
+            }
+            "file-collection" => {
+                let ask: CollectionAsk = parse(write.body)?;
+                let collector = collector(stores.actions, &ask.collector, task)?;
+                if checked.iter().any(
+                    |c| matches!(c, Checked::FileCollection { collector: c } if *c == collector),
+                ) {
+                    return Err(WriteFailure::Forbidden(format!(
+                        "a task asks for one file collection by {collector}"
+                    )));
+                }
+                checked.push(Checked::FileCollection { collector });
+            }
+            "file-collection-release" => {
+                let release: CollectionRelease = parse(write.body)?;
+                let collector = collector(stores.actions, &release.collector, task)?;
+                if release.observables.len() > MAX_RELEASED {
+                    return Err(WriteFailure::Forbidden(format!(
+                        "file-collection-release names {} observables, past its bound of \
+                         {MAX_RELEASED}",
+                        release.observables.len()
+                    )));
+                }
+                if let Some(other) = release
+                    .observables
+                    .iter()
+                    .find(|o| o.kind != task.observable.kind)
+                {
+                    return Err(WriteFailure::Forbidden(format!(
+                        "file-collection-release: {collector} collects a {}, not {}:{}",
+                        task.observable.kind, other.kind, other.value
+                    )));
+                }
+                if checked.iter().any(|c| {
+                    matches!(c, Checked::FileCollectionRelease { collector: c, .. } if *c == collector)
+                }) {
+                    return Err(WriteFailure::Forbidden(format!(
+                        "a task lets go of {collector}'s collections once"
+                    )));
+                }
+                checked.push(Checked::FileCollectionRelease {
+                    collector,
+                    observables: release.observables,
+                });
+            }
             other => {
                 return Err(WriteFailure::Forbidden(format!(
                     "write {other} isn't served by this core"
@@ -226,6 +329,31 @@ pub async fn check(
         }
     }
     Ok(checked)
+}
+
+/// A file collection write's collector, once it's a file collection handler of the core's catalog
+/// (so not one the overlay leaves off, PLAN.md decision 28) that collects the task's observable's
+/// type.
+fn collector(
+    actions: &ActionCatalog,
+    name: &str,
+    task: &Task,
+) -> Result<&'static str, WriteFailure> {
+    let Some(spec) = actions.get(ActionKind::FileCollection, name) else {
+        return Err(WriteFailure::Forbidden(format!(
+            "the collector {name:?} isn't one this core has"
+        )));
+    };
+    if spec.observable_type != task.observable.kind.as_str() {
+        return Err(WriteFailure::Forbidden(format!(
+            "{} collects a {}, and task {}'s observable is a {}",
+            spec.name,
+            spec.observable_type,
+            task.id,
+            task.observable.kind.as_str()
+        )));
+    }
+    Ok(spec.name)
 }
 
 /// The candidates of an `svs-capture` write, once each is the task's own file, for a rule uuid ace3
@@ -501,9 +629,121 @@ pub async fn apply(
                     "write"
                 );
             }
+            Checked::SandboxSubmission(record) => {
+                let inserted = sqlx::query_scalar!(
+                    "INSERT INTO analysis.sandbox_submissions
+                         (sha256, sandbox_type, external_id, submitted)
+                     VALUES ($1, $2, $3, $4)
+                     ON CONFLICT (sha256, sandbox_type) DO NOTHING
+                     RETURNING id",
+                    task.observable.value,
+                    record.sandbox_type,
+                    record.external_id,
+                    record.submitted,
+                )
+                .fetch_optional(tx.conn())
+                .await?
+                .is_some();
+                if let Some(verdict) = &record.verdict {
+                    sqlx::query!(
+                        "UPDATE analysis.sandbox_submissions
+                         SET verdict = $3, score = $4, completed_at = now()
+                         WHERE sha256 = $1 AND sandbox_type = $2",
+                        task.observable.value,
+                        record.sandbox_type,
+                        verdict,
+                        record.score,
+                    )
+                    .execute(tx.conn())
+                    .await?;
+                }
+                tracing::info!(
+                    task = task.id.0,
+                    root = %task.root,
+                    write = "sandbox-submission",
+                    sandbox = %record.sandbox_type,
+                    inserted,
+                    submitted = record.submitted,
+                    verdict = record.verdict.as_deref(),
+                    "write"
+                );
+            }
+            Checked::FileCollection { collector } => {
+                request_collection(tx, stores.actions, task, collector).await?;
+            }
+            Checked::FileCollectionRelease {
+                collector,
+                observables,
+            } => {
+                for observable in observables {
+                    let released = crate::actions::release_collection(
+                        tx,
+                        stores.actions,
+                        collector,
+                        task.root,
+                        observable.kind.as_str(),
+                        &observable.value,
+                    )
+                    .await
+                    .map_err(|e| collection_failed(task, collector, e))?;
+                    tracing::info!(
+                        task = task.id.0,
+                        root = %task.root,
+                        write = "file-collection-release",
+                        collector,
+                        target = %observable.value,
+                        released = ?released,
+                        "write"
+                    );
+                }
+            }
         }
     }
     Ok(())
+}
+
+/// Lands a `file-collection` write: `actions::request_collection` for the task's own observable and
+/// root, which joins a pending collection, takes the root's own success, or queues one.
+async fn request_collection(
+    tx: &mut Tx<'_>,
+    actions: &ActionCatalog,
+    task: &Task,
+    collector: &str,
+) -> Result<(), DbError> {
+    let requested = crate::actions::request_collection(
+        tx,
+        actions,
+        &crate::actions::NewCollection {
+            handler: collector,
+            observable_type: task.observable.kind.as_str(),
+            observable_value: &task.observable.value,
+            root: Some(task.root),
+            requested_by: None,
+            user: None,
+        },
+    )
+    .await
+    .map_err(|e| collection_failed(task, collector, e))?;
+    tracing::info!(
+        task = task.id.0,
+        root = %task.root,
+        write = "file-collection",
+        collector,
+        collection = requested.id(),
+        requested = ?requested,
+        "write"
+    );
+    Ok(())
+}
+
+fn collection_failed(task: &Task, collector: &str, e: crate::actions::ActionError) -> DbError {
+    match e {
+        crate::actions::ActionError::Db(e) => e,
+        other => DbError::Decode(format!(
+            "task {}'s file collection by {collector}: {other}",
+            task.id
+        )),
+    }
 }
 
 /// ace3's `record_thread`: the message, then each participant, each left as it was when it's

@@ -469,15 +469,25 @@ pub async fn ask_for_collection(
     .fetch_optional(tx.conn())
     .await?;
     let (requested, before) = match pending {
-        Some(id) => (Requested::Joined(id), roots_in(tx, id).await?),
+        Some(id) => {
+            // a module's collection someone joins is theirs too, so letting go of it for its alerts
+            // doesn't cancel it (`release_collection`)
+            sqlx::query!(
+                "UPDATE queue.actions SET asked_through_api = true WHERE id = $1",
+                id,
+            )
+            .execute(tx.conn())
+            .await?;
+            (Requested::Joined(id), roots_in(tx, id).await?)
+        }
         None => (
             Requested::Queued(
                 sqlx::query_scalar!(
                     "INSERT INTO queue.actions
                      (kind, handler, observable_type, observable_value, max_attempts, deadline_at,
-                      requested_by, user_id)
+                      requested_by, user_id, asked_through_api)
                  VALUES ('file_collection', $1, $2, $3, $4, now() + make_interval(secs => $5),
-                         $6::jsonb, $7)
+                         $6::jsonb, $7, true)
                  RETURNING id",
                     spec.name,
                     new.observable_type,
@@ -497,6 +507,135 @@ pub async fn ask_for_collection(
         attach(tx, requested.id(), *root).await?;
     }
     Ok((requested, before))
+}
+
+/// Who asked for a collection through the API, as `pending_requested_by` counts them: a person by
+/// their user's id, any other caller by its kind and id in `requested_by`.
+#[derive(Debug, Clone, Copy)]
+pub enum Requester<'a> {
+    Person(Uuid),
+    Caller { kind: &'a str, id: &'a str },
+}
+
+/// Whether `handler` has a pending collection of the target, which a request would join.
+pub async fn pending_collection(
+    tx: &mut Tx<'_>,
+    handler: &str,
+    observable_type: &str,
+    observable_value: &str,
+) -> Result<Option<i64>, DbError> {
+    Ok(sqlx::query_scalar!(
+        "SELECT id FROM queue.actions
+         WHERE kind = 'file_collection' AND handler = $1 AND observable_type = $2
+           AND observable_value = $3 AND status <> 'COMPLETED'
+         ORDER BY id LIMIT 1",
+        handler,
+        observable_type,
+        observable_value,
+    )
+    .fetch_optional(tx.conn())
+    .await?)
+}
+
+/// How many unfinished collections by `handler` the requester asked for through the API, for a
+/// collector's `ActionSpec::max_pending_per_requester` (PLAN.md decision 49), a site's
+/// `max_pending_per_user`. A module's collection has no requester and isn't counted.
+pub async fn pending_requested_by(
+    tx: &mut Tx<'_>,
+    handler: &str,
+    requester: Requester<'_>,
+) -> Result<i64, DbError> {
+    let (person, kind, id) = match requester {
+        Requester::Person(user) => (Some(user), None, None),
+        Requester::Caller { kind, id } => (None, Some(kind), Some(id)),
+    };
+    Ok(sqlx::query_scalar!(
+        r#"SELECT count(*) AS "count!" FROM queue.actions
+           WHERE kind = 'file_collection' AND handler = $1 AND status <> 'COMPLETED'
+             AND (($2::uuid IS NOT NULL AND user_id = $2)
+                  OR ($3::text IS NOT NULL AND user_id IS NULL
+                      AND requested_by ->> 'kind' = $3 AND requested_by ->> 'id' = $4))"#,
+        handler,
+        person,
+        kind,
+        id,
+    )
+    .fetch_one(tx.conn())
+    .await?)
+}
+
+/// What letting go of a root's collection did.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Released {
+    /// The root had no unfinished collection of the target by the handler.
+    Nothing,
+    /// The collection is no longer the root's, and another root, a person or a caller still waits.
+    Left(i64),
+    /// Nobody else waited, so it was cancelled.
+    Cancelled(i64),
+}
+
+/// A root lets go of its unfinished collection of a target by `handler` (PLAN.md decision 49,
+/// `file-collection-release`): the collection stops being the root's, and is cancelled when no
+/// other root is on it and nobody asked for it through the API (`asked_through_api`, migration
+/// 0084), whether they queued it or joined it. ace3's `endpoint_file_collector`
+/// cancels a sibling's collection outright (`cancel_file_collection`), though another alert may
+/// wait on it; here that alert keeps it.
+pub async fn release_collection(
+    tx: &mut Tx<'_>,
+    catalog: &ActionCatalog,
+    handler: &str,
+    root: Uuid,
+    observable_type: &str,
+    observable_value: &str,
+) -> Result<Released, ActionError> {
+    let spec = catalog.require(ActionKind::FileCollection, handler)?;
+    let target = NewCollection {
+        handler: spec.name,
+        observable_type,
+        observable_value,
+        root: Some(root),
+        requested_by: None,
+        user: None,
+    };
+    check_target(spec, observable_type, observable_value)?;
+    lock_target(tx, ActionKind::FileCollection, spec.name, &target).await?;
+    let Some(id) = sqlx::query_scalar!(
+        "SELECT a.id FROM queue.actions a
+         JOIN queue.action_roots r ON r.action_id = a.id AND r.root_id = $4
+         WHERE a.kind = 'file_collection' AND a.handler = $1 AND a.observable_type = $2
+           AND a.observable_value = $3 AND a.status <> 'COMPLETED'
+         ORDER BY a.id LIMIT 1",
+        spec.name,
+        observable_type,
+        observable_value,
+        root,
+    )
+    .fetch_optional(tx.conn())
+    .await?
+    else {
+        return Ok(Released::Nothing);
+    };
+    sqlx::query!(
+        "DELETE FROM queue.action_roots WHERE action_id = $1 AND root_id = $2",
+        id,
+        root,
+    )
+    .execute(tx.conn())
+    .await?;
+    let waited = sqlx::query_scalar!(
+        r#"SELECT (EXISTS (SELECT FROM queue.action_roots WHERE action_id = $1)
+                   OR asked_through_api) AS "waited!"
+           FROM queue.actions WHERE id = $1"#,
+        id,
+    )
+    .fetch_one(tx.conn())
+    .await?;
+    if waited {
+        return Ok(Released::Left(id));
+    }
+    cancel_in(tx, id, "no alert waits on it any more").await?;
+    Ok(Released::Cancelled(id))
 }
 
 /// Something with a target, for `lock_target`.
