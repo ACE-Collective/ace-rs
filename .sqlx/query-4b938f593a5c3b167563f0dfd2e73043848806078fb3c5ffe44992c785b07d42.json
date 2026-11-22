@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.value, o.tags,\n                  coalesce(array_agg(r.target_value ORDER BY r.target_value)\n                           FILTER (WHERE r.target_value IS NOT NULL), '{}') AS \"delivered_to!\"\n           FROM analysis.observables o\n           LEFT JOIN analysis.relationships r\n             ON r.root_id = o.root_id AND r.observable_id = o.id\n            AND r.kind = 'delivered_to' AND r.target_type = $2\n           WHERE o.root_id = $1 AND o.type = $2\n           GROUP BY o.id, o.value, o.tags",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "tags",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "tags"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "delivered_to!",
+        "type_info": "TextArray",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "4b938f593a5c3b167563f0dfd2e73043848806078fb3c5ffe44992c785b07d42"
+}

@@ -589,6 +589,11 @@ table.alerts tbody tr:hover {
   background: var(--surface);
 }
 
+/* the alert's remediation timeline: a row still under way reads quieter than what happened */
+table.timeline tr.pending td {
+  color: var(--muted);
+}
+
 /* a table of facts, name then value: the name is the row's header */
 table.keys tbody th {
   width: 1%;

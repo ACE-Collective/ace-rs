@@ -136,6 +136,7 @@ mod ownership;
 mod permission;
 mod preferences;
 mod remediation;
+mod remediation_timeline;
 pub mod routing;
 mod saved_filters;
 pub mod search;
@@ -295,6 +296,11 @@ pub use remediation::{
     CoverageRemediation, CoverageState, MAX_ACTIONS_PAGE, MAX_HISTORY, MAX_TARGET_ALERTS,
     MAX_TARGETS, Remediation, RemediationPage, RemediationTarget, TOOLTIP_TARGET_LIMIT,
     TargetCoverage, TargetKey, assemble_coverage, journal_explains,
+};
+pub use remediation_timeline::{
+    MAX_TIMELINE_EVENTS, MAX_TIMELINE_TRIES, RemediationTimeline, TimelineCheck, TimelineDelivery,
+    TimelineEvent, TimelineInput, TimelineRemediation, TimelineTry, assemble_timeline,
+    format_duration, upper_first,
 };
 pub use saved_filters::{
     MAX_SAVED_FILTER_DESCRIPTION_CHARS, MAX_SAVED_FILTER_NAME_CHARS, MAX_SAVED_FILTERS,

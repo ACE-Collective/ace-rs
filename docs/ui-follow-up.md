@@ -54,6 +54,12 @@ The owner's direction, which every item here is measured against:
   a failure only on an observable it already draws, so an alert whose modules failed on a branch with
   no detection says nothing until the whole tree is opened; and the top of the page doesn't count
   failures.
+- [ ] **The remediation timeline** (PLAN.md decision 38) is the Remediation panel's table: when,
+  target, source, action, how long after the message, and a link. Built from fixtures and not looked at
+  in a browser. To check with analysts: whether the remediator's message belongs in the row rather
+  than its tooltip (it says why an alias was removed through its owner); whether dropping ace3's Event
+  Time column for the duration's tooltip loses anything; whether the panel should start open on an
+  email alert; and how an alert with hundreds of deliveries reads.
 - [ ] **Add Directive is a page of its own** (PLAN.md decision 31), as Add Comment is: the observable's
   Actions menu links to a form of every directive the binary lists, the five built in (those of ace3's `GUI_DIRECTIVES` an ace4 module reads) and the site's, as boxes
   to tick, and the form goes back to the observable in the whole tree. ace3 takes them in its Add

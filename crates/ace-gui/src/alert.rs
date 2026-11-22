@@ -59,8 +59,9 @@
 //!   those that carry a detection, at most `MAX_KEY_OBSERVABLES`.
 //! - Collapsed panels, each a `<details>` whose summary line says what it holds: what SVS makes of the
 //!   alert (PLAN.md 7.10 batch 7b, `crate::svs_alert`), the detections with their verdicts and the
-//!   forms that change them (PLAN.md 7.14, `crate::verdicts`), remediation's coverage of the alert
-//!   for a viewer with `remediation:read`, the alert's details, and the observable modifier rules.
+//!   forms that change them (PLAN.md 7.14, `crate::verdicts`), remediation's coverage and timeline
+//!   for a viewer with `remediation:read` (`RemediationPanel`, PLAN.md decision 38), the alert's
+//!   details, and the observable modifier rules.
 //!   Each has the viewer's pin (`SECTIONS`), which opens it on every alert they look at.
 //! - The analysis tree, which starts at the branches that carry a detection (`TreeMode::Detections`):
 //!   each observable with one, the result of the module that raised it, and what leads down to them
@@ -138,7 +139,7 @@ use crate::verdicts::VerdictsView;
 const MIN_REDRAW: Duration = Duration::from_millis(250);
 
 /// The sections this page has, ace3's ids, and whether each starts open for an analyst who hasn't
-/// chosen.
+/// chosen. Remediation also starts open when its timeline has rows (`AlertPage::with`).
 pub const SECTIONS: &[(&str, &str, bool)] = &[
     ("svs", "SVS", false),
     ("detections", "Detection Verdicts", false),
@@ -896,30 +897,90 @@ pub struct KeyObservable {
     pub tags: Vec<String>,
 }
 
-/// The alert's remediation, as its panel shows it: ace3's remediation badge and its targets.
+/// The alert's remediation, as its panel shows it: ace3's Remediation Timeline, with the coverage
+/// badge on its summary line (PLAN.md decision 38).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RemediationPanel {
-    pub badge: crate::remediation::CoverageBadge,
-    /// Each target and what became of it, in ace3's words.
-    pub targets: Vec<(String, String)>,
-    pub more: usize,
+    /// None when the coverage counts nothing, as ace3 shows no badge then.
+    pub badge: Option<crate::remediation::CoverageBadge>,
+    /// The timeline's rows, in ace3's order.
+    pub events: Vec<TimelineRow>,
+    /// How many rows happened, and how many are still pending.
+    pub event_count: usize,
+    pub pending_count: usize,
+    /// Some rows were left out (`ace_service::MAX_TIMELINE_EVENTS`).
+    pub truncated: bool,
     /// The page that finds the alert's targets, where one is removed or restored.
     pub href: String,
 }
 
+/// One row of the timeline, as the panel draws it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TimelineRow {
+    /// When it happened, or a pending row's latest activity, UTC.
+    pub when: String,
+    /// What was acted on: a recipient, or `alias → owner`.
+    pub target: String,
+    /// A pending row's `email_delivery` value, since two emails to one recipient read the same.
+    pub delivery: Option<String>,
+    /// How long after the message it came, and the message's time, which a row without a duration
+    /// doesn't show.
+    pub duration: String,
+    pub event_time: Option<String>,
+    /// Who acted, ace3's first letter upper-cased.
+    pub source: String,
+    pub description: String,
+    /// The remediator's or vendor's own words.
+    pub message: Option<String>,
+    pub pending: bool,
+    /// ACE's remediation's page, or a vendor's `https://` link to the event.
+    pub link: Option<(String, &'static str)>,
+}
+
+impl TimelineRow {
+    fn of(event: &ace_service::TimelineEvent) -> Self {
+        let format = |at: chrono::DateTime<chrono::Utc>| at.format("%Y-%m-%d %H:%M:%S").to_string();
+        // a vendor's link is drawn only when it's a plain https:// one, as a pivot link must be
+        let portal = event.portal_url.as_ref().filter(|url| {
+            ace_results::PivotLink::new(url.as_str(), "event")
+                .refusal()
+                .is_none()
+        });
+        let link = match (event.remediation, portal) {
+            (Some(id), _) => Some((format!("/remediations/{id}"), "history")),
+            (None, Some(url)) => Some((url.clone(), "open")),
+            (None, None) => None,
+        };
+        TimelineRow {
+            when: format(event.timestamp),
+            target: event.target.clone().unwrap_or_default(),
+            delivery: event.delivery.clone(),
+            duration: event.duration_display().unwrap_or_default(),
+            // a pending row has no duration, so nothing to count from
+            event_time: event.duration().and(event.event_time).map(format),
+            source: ace_service::upper_first(&event.source),
+            description: event.description.clone(),
+            message: event.message.clone(),
+            pending: event.pending,
+            link,
+        }
+    }
+}
+
 impl RemediationPanel {
-    /// The panel of an alert's coverage, or None when there's nothing to show for it.
-    pub fn of(alert: Uuid, coverage: &ace_service::Coverage) -> Option<Self> {
-        let badge = crate::remediation::coverage_badge(coverage)?;
+    /// The panel of an alert's remediation, or None when there's nothing to show for it: no badge
+    /// and no row.
+    pub fn of(alert: Uuid, timeline: &ace_service::RemediationTimeline) -> Option<Self> {
+        let badge = crate::remediation::coverage_badge(&timeline.coverage);
+        if badge.is_none() && timeline.events.is_empty() {
+            return None;
+        }
         Some(RemediationPanel {
             badge,
-            targets: coverage
-                .targets
-                .iter()
-                .take(MAX_KEY_OBSERVABLES)
-                .map(|target| (target.recipient().to_owned(), target.status_display()))
-                .collect(),
-            more: coverage.targets.len().saturating_sub(MAX_KEY_OBSERVABLES),
+            events: timeline.events.iter().map(TimelineRow::of).collect(),
+            event_count: timeline.event_count(),
+            pending_count: timeline.pending_count(),
+            truncated: timeline.truncated,
             href: format!("/remediations/targets?alert={alert}"),
         })
     }
@@ -936,8 +997,8 @@ pub struct PageOptions<'a> {
     pub summaries: Option<&'a Summaries>,
     /// None draws a disposition as ace3's set does.
     pub dispositions: Option<&'a ace_service::Dispositions>,
-    /// The alert's remediation coverage, when the viewer may read it.
-    pub remediation: Option<&'a ace_service::Coverage>,
+    /// The alert's remediation coverage and timeline, when the viewer may read them.
+    pub remediation: Option<&'a ace_service::RemediationTimeline>,
     /// None draws pivot links with ace4's own icons, which are none.
     pub icons: Option<&'a crate::icons::PivotIcons>,
 }
@@ -1270,7 +1331,7 @@ impl AlertPage {
                 alert_type: kind,
                 origin: &tree.origin,
                 tree,
-                remediation: options.remediation,
+                remediation: options.remediation.map(|timeline| &timeline.coverage),
             })
         });
         let (key_observables, more_observables) = key_observables(tree);
@@ -1306,7 +1367,16 @@ impl AlertPage {
             more_observables,
             svs_section: section("svs"),
             verdicts_section: section("detections"),
-            remediation_section: section("remediation"),
+            // open by default when it has timeline rows (the owner, 2026-11-21), unless the analyst
+            // closed it
+            remediation_section: Section {
+                open: sections.get("remediation").copied().unwrap_or_else(|| {
+                    options
+                        .remediation
+                        .is_some_and(|timeline| !timeline.events.is_empty())
+                }),
+                ..section("remediation")
+            },
             details_section: section("alert_details"),
             rules_section: section("modifier_rules"),
             tree_section,
@@ -1327,7 +1397,7 @@ impl AlertPage {
             dispositions: Vec::new(),
             remediation: options
                 .remediation
-                .and_then(|coverage| RemediationPanel::of(summary.id, coverage)),
+                .and_then(|timeline| RemediationPanel::of(summary.id, timeline)),
         })
     }
 
@@ -1488,13 +1558,13 @@ pub(crate) async fn page(
                 .is_some_and(|owner| Some(owner.id) == viewer_id),
             users: choices.iter().map(crate::list::owner_option).collect(),
         });
-    // what remediation did with the alert's targets, for a viewer who may read it; without it the
-    // page has no remediation panel and an email's summary no delivered copies
-    let remediation = match gui.service.remediation_coverage(actor, &[id]).await {
-        Ok(mut coverage) => coverage.remove(&id),
+    // what remediation did with the alert's targets, and when, for a viewer who may read it;
+    // without it the page has no remediation panel and an email's summary no delivered copies
+    let remediation = match gui.service.remediation_timeline(actor, id).await {
+        Ok(timeline) => Some(timeline),
         Err(ServiceError::PermissionDenied { .. }) => None,
         Err(error) => {
-            tracing::warn!(%actor, "reading an alert's remediation coverage failed: {error}");
+            tracing::warn!(%actor, "reading an alert's remediation timeline failed: {error}");
             None
         }
     };

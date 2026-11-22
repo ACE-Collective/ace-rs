@@ -1124,7 +1124,7 @@ pub struct CoverageCheck {
     pub events: Option<Value>,
 }
 
-async fn coverage_in(
+pub(crate) async fn coverage_in(
     tx: &mut Tx<'_>,
     alerts: &[Uuid],
 ) -> Result<BTreeMap<Uuid, Coverage>, ServiceError> {
@@ -1330,11 +1330,7 @@ fn apply_check(target: &mut TargetCoverage, check: &CoverageCheck) {
         return;
     }
     if check.result.as_deref() == Some("CONFIRMED") {
-        let sources: BTreeSet<String> = check
-            .events
-            .clone()
-            .and_then(|events| serde_json::from_value::<Vec<RemediationEvent>>(events).ok())
-            .unwrap_or_default()
+        let sources: BTreeSet<String> = confirmed_events(check.events.as_ref())
             .into_iter()
             .map(|event| event.source)
             .filter(|source| !source.is_empty())
@@ -1344,5 +1340,17 @@ fn apply_check(target: &mut TargetCoverage, check: &CoverageCheck) {
         } else {
             target.sources.extend(sources);
         }
+    }
+}
+
+/// The events a confirmed check stored, each read on its own so one that doesn't parse leaves out
+/// only itself, as ace3's `events_from_check`.
+pub(crate) fn confirmed_events(events: Option<&Value>) -> Vec<RemediationEvent> {
+    match events {
+        Some(Value::Array(events)) => events
+            .iter()
+            .filter_map(|event| serde_json::from_value::<RemediationEvent>(event.clone()).ok())
+            .collect(),
+        _ => Vec::new(),
     }
 }

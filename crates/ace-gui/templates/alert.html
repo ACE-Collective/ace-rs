@@ -125,15 +125,29 @@
   {%- include "alert_verdicts.html" %}
   {%- endif %}
   {%- if let Some(remediation) = remediation %}
+  {#- ace3's Remediation Timeline (src/alert.rs's RemediationPanel, PLAN.md decision 38): the coverage
+      badge, then what each remediator and vendor did, oldest first, and what is still pending -#}
   <details class="section remediation" id="remediation" data-section-id="{{ remediation_section.id }}"{% if remediation_section.open %} open{% endif %}>
-    <summary>{{ remediation_section.title }} <span class="badge {{ remediation.badge.class }}" title="{{ remediation.badge.tooltip }}">{{ remediation.badge.label }}</span></summary>
-    <ul class="plain">
-      {%- for target in remediation.targets %}
-      <li>{{ target.0 }} <span class="muted">{{ target.1 }}</span></li>
-      {%- endfor %}
-    </ul>
-    {%- if remediation.more > 0 %}
-    <p class="muted">{{ remediation.more }} more targets.</p>
+    <summary>{{ remediation_section.title }}{% if let Some(badge) = remediation.badge %} <span class="badge {{ badge.class }}" title="{{ badge.tooltip }}">{{ badge.label }}</span>{% endif %} <span class="hint">({{ remediation.event_count }} event{% if remediation.event_count != 1 %}s{% endif %}{% if remediation.pending_count > 0 %}, {{ remediation.pending_count }} pending{% endif %})</span></summary>
+    {%- if remediation.events.is_empty() %}
+    <p class="muted">No remediation events have been confirmed yet.</p>
+    {%- else %}
+    <div class="table-wrap"><table class="keys timeline">
+      <thead><tr><th>When (UTC)</th><th>Target</th><th>Source</th><th>Action</th><th>After</th><th></th></tr></thead>
+      <tbody>
+        {%- for row in remediation.events %}
+        <tr{% if row.pending %} class="pending"{% endif %}><td class="nowrap">{{ row.when }}</td>
+          <td{% if let Some(delivery) = row.delivery %} title="{{ delivery }}"{% endif %}>{{ row.target }}</td>
+          <td>{{ row.source }}</td>
+          <td{% if let Some(message) = row.message %} title="{{ message }}"{% endif %}>{% if row.pending %}<span class="badge">pending</span> {% endif %}{{ row.description }}</td>
+          <td class="nowrap"{% if let Some(at) = row.event_time %} title="after the message's time, {{ at }} UTC"{% endif %}>{{ row.duration }}</td>
+          <td>{% if let Some(link) = row.link %}<a href="{{ link.0 }}"{% if link.1 == "open" %} rel="noreferrer noopener" target="_blank"{% endif %}>{{ link.1 }}</a>{% endif %}</td></tr>
+        {%- endfor %}
+      </tbody>
+    </table></div>
+    {%- if remediation.truncated %}
+    <p class="muted">Only the newest tries are shown; each remediation's page has all of its own.</p>
+    {%- endif %}
     {%- endif %}
     <p><a href="{{ remediation.href }}">Find this alert's remediation targets</a></p>
     <form method="post" action="/preferences/alert-section" class="pin">

@@ -2157,11 +2157,14 @@ fn an_alert_s_summary_is_chosen_by_its_type() {
         undelivered: None,
         not_delivered: false,
     };
-    let coverage = ace_service::Coverage {
-        targets: vec![
-            target("pat@example.com", &["ACE"]),
-            target("<u>sam</u>@example.com", &[]),
-        ],
+    let coverage = ace_service::RemediationTimeline {
+        coverage: ace_service::Coverage {
+            targets: vec![
+                target("pat@example.com", &["ACE"]),
+                target("<u>sam</u>@example.com", &[]),
+            ],
+        },
+        ..ace_service::RemediationTimeline::default()
     };
     let page = page_of(
         &mail,
@@ -13203,6 +13206,290 @@ async fn remediations_and_collections_are_worked_through_the_gui() {
     .await;
     assert!(!hidden.contains("coverage-"), "{hidden}");
     assert!(!hidden.contains("/remediations/targets"), "{hidden}");
+}
+
+// PLAN.md decision 38: the alert's remediation timeline, ace3's Remediation Timeline.
+
+/// The panel draws ace3's timeline rows: an alias's removal names its owner, a delivery the journal
+/// says wasn't made and a forward read as the journal's wording, a removal the owner's own covered
+/// reads NOT_FOUND through the owner, a pending row is marked, ACE's rows link their remediation and a
+/// vendor's its https:// link only; every value a vendor or an attacker sets is escaped.
+#[test]
+fn the_alert_page_draws_its_remediation_timeline() {
+    use ace_service::{RemediationTimeline, TimelineEvent};
+    let (tree, comments) = fixture_tree();
+    let at = |s: &str| {
+        chrono::DateTime::parse_from_rfc3339(s)
+            .expect("a time")
+            .with_timezone(&chrono::Utc)
+    };
+    let event = |target: &str, description: &str, after: &str| TimelineEvent {
+        source: "ACE".to_owned(),
+        description: description.to_owned(),
+        timestamp: at(after),
+        event_time: Some(at("2026-11-01T11:58:30Z")),
+        target: Some(target.to_owned()),
+        message: None,
+        portal_url: None,
+        remediation: Some(41),
+        delivery: None,
+        pending: false,
+    };
+    let hostile_mailbox = format!("owner{HOSTILE}@example.com");
+    let timeline = RemediationTimeline {
+        coverage: ace_service::Coverage {
+            targets: vec![ace_service::TargetCoverage {
+                target: "<m1@example.net>|alias@example.com".to_owned(),
+                sources: ["ACE".to_owned()].into(),
+                attempted: true,
+                ..ace_service::TargetCoverage::default()
+            }],
+        },
+        events: vec![
+            TimelineEvent {
+                message: Some(format!(
+                    "alias@example.com is an alias of {hostile_mailbox}: {HOSTILE}"
+                )),
+                ..event(
+                    &format!("alias@example.com \u{2192} {hostile_mailbox}"),
+                    &format!("Remove (Success) via {hostile_mailbox}"),
+                    "2026-11-01T12:00:30Z",
+                )
+            },
+            event(
+                "other@example.com \u{2192} owner@example.com",
+                "Remove (Not_found) via owner@example.com",
+                "2026-11-01T12:00:40Z",
+            ),
+            event(
+                "fwd@example.com",
+                "Remove (not delivered to this address; forwarded to owner@example.com)",
+                "2026-11-01T12:00:50Z",
+            ),
+            event(
+                "ghost@example.com",
+                "Remove (no journal record of a copy delivered to this address)",
+                "2026-11-01T12:01:00Z",
+            ),
+            TimelineEvent {
+                source: format!("vendor{HOSTILE}"),
+                portal_url: Some("https://portal.example/m?a=1&b=2".to_owned()),
+                remediation: None,
+                ..event("owner@example.com", HOSTILE, "2026-11-01T13:00:00Z")
+            },
+            TimelineEvent {
+                source: "Vendor".to_owned(),
+                portal_url: Some("javascript:alert(1)".to_owned()),
+                remediation: None,
+                ..event("owner@example.com", "moved to junk", "2026-11-01T13:00:01Z")
+            },
+            TimelineEvent {
+                source: "Vendor".to_owned(),
+                remediation: None,
+                pending: true,
+                delivery: Some(format!("<m{HOSTILE}@example.net>|late@example.com")),
+                ..event("late@example.com", "Watching", "2026-11-01T12:01:00Z")
+            },
+        ],
+        truncated: false,
+    };
+    let html = drawn_safely(
+        &AlertPage::with(
+            Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
+            &tree,
+            &comments,
+            &ObservableActions::empty(),
+            &std::collections::BTreeMap::new(),
+            PageOptions {
+                remediation: Some(&timeline),
+                ..PageOptions::default()
+            },
+        )
+        .expect("a page"),
+    );
+    let page: String = html.lines().map(str::trim).collect();
+    let hostile_mailbox_escaped = format!("owner{HOSTILE_ESCAPED}@example.com");
+    contains_all(
+        &page,
+        &[
+            r#"<summary>Remediation <span class="badge coverage-remediated" title="alias@example.com: ACE">remediated 1/1 · ACE</span> <span class="hint">(6 events, 1 pending)</span></summary>"#,
+            "<thead><tr><th>When (UTC)</th><th>Target</th><th>Source</th><th>Action</th><th>After</th><th></th></tr></thead>",
+            // an alias's removal, through its owner, with the remediator's words as its tooltip
+            &format!(
+                r#"<td>alias@example.com → {hostile_mailbox_escaped}</td><td>ACE</td><td title="alias@example.com is an alias of {hostile_mailbox_escaped}: {HOSTILE_ESCAPED}">Remove (Success) via {hostile_mailbox_escaped}</td><td class="nowrap" title="after the message's time, 2026-11-01 11:58:30 UTC">2m</td><td><a href="/remediations/41">history</a></td></tr>"#
+            ),
+            "<td>other@example.com → owner@example.com</td><td>ACE</td><td>Remove (Not_found) via owner@example.com</td>",
+            "<td>fwd@example.com</td><td>ACE</td><td>Remove (not delivered to this address; forwarded to owner@example.com)</td>",
+            "<td>ghost@example.com</td><td>ACE</td><td>Remove (no journal record of a copy delivered to this address)</td>",
+            // a vendor's event: its words escaped, its https link opened apart
+            &format!(
+                r#"<td>Vendor{HOSTILE_ESCAPED}</td><td>{HOSTILE_ESCAPED}</td><td class="nowrap" title="after the message's time, 2026-11-01 11:58:30 UTC">1h 1m</td><td><a href="https://portal.example/m?a=1&#38;b=2" rel="noreferrer noopener" target="_blank">open</a></td></tr>"#
+            ),
+            // a link that isn't https:// isn't drawn
+            r#"<td>moved to junk</td><td class="nowrap" title="after the message's time, 2026-11-01 11:58:30 UTC">1h 1m</td><td></td></tr>"#,
+            // a pending row: marked, no duration, its delivery as the target's tooltip
+            &format!(
+                r#"<tr class="pending"><td class="nowrap">2026-11-01 12:01:00</td><td title="&#60;m{HOSTILE_ESCAPED}@example.net&#62;|late@example.com">late@example.com</td><td>Vendor</td><td><span class="badge">pending</span> Watching</td><td class="nowrap"></td><td></td></tr>"#
+            ),
+            &format!(
+                r#"<a href="/remediations/targets?alert={}">Find this alert's remediation targets</a>"#,
+                tree.alert.summary.id
+            ),
+        ],
+    );
+    assert!(!page.contains("javascript:"), "{page}");
+
+    // rows with no badge (every target had nothing to remove) still draw the panel
+    let explained = RemediationTimeline {
+        events: vec![event(
+            "fwd@example.com",
+            "Remove (not delivered to this address; forwarded to another mailbox)",
+            "2026-11-01T12:00:50Z",
+        )],
+        ..RemediationTimeline::default()
+    };
+    let page = AlertPage::with(
+        Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
+        &tree,
+        &comments,
+        &ObservableActions::empty(),
+        &std::collections::BTreeMap::new(),
+        PageOptions {
+            remediation: Some(&explained),
+            ..PageOptions::default()
+        },
+    )
+    .expect("a page")
+    .render()
+    .expect("renders");
+    assert!(
+        page.contains(r#"<summary>Remediation <span class="hint">(1 event)</span></summary>"#),
+        "{page}"
+    );
+    // a timeline with rows opens its panel (the owner, 2026-11-21), unless the analyst closed it
+    assert!(
+        page.contains(r#"id="remediation" data-section-id="remediation" open>"#),
+        "{page}"
+    );
+    let closed = AlertPage::with(
+        Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
+        &tree,
+        &comments,
+        &ObservableActions::empty(),
+        &std::collections::BTreeMap::from([("remediation".to_owned(), false)]),
+        PageOptions {
+            remediation: Some(&explained),
+            ..PageOptions::default()
+        },
+    )
+    .expect("a page")
+    .render()
+    .expect("renders");
+    assert!(
+        closed.contains(r#"id="remediation" data-section-id="remediation">"#),
+        "{closed}"
+    );
+    // nothing remediated: no panel
+    let page = AlertPage::with(
+        Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
+        &tree,
+        &comments,
+        &ObservableActions::empty(),
+        &std::collections::BTreeMap::new(),
+        PageOptions {
+            remediation: Some(&RemediationTimeline::default()),
+            ..PageOptions::default()
+        },
+    )
+    .expect("a page")
+    .render()
+    .expect("renders");
+    assert!(!page.contains(r#"id="remediation""#), "{page}");
+}
+
+/// Through the server: a viewer with `remediation:read` has the alert's timeline from the database,
+/// one without it the page with no panel, and an alert with nothing remediated has none.
+#[tokio::test]
+async fn the_alert_page_shows_its_timeline_to_whoever_reads_remediations() {
+    let stack = stack().await;
+    let alert = list_alert(&stack, "a phish", "2026-11-01T10:00:00Z", None).await;
+    let quiet = list_alert(&stack, "nothing removed", "2026-11-01T10:00:00Z", None).await;
+    let db = stack.test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    for value in ["<m@x>|alias@example.com", "<m@x>|owner@example.com"] {
+        ace_core::tree::upsert_observable(
+            &mut tx,
+            alert,
+            &ace_results::NewObservable::new(ace_results::ObservableKind::EmailDelivery, value),
+        )
+        .await
+        .expect("adds");
+    }
+    tx.commit().await.expect("commits");
+    let removal: i64 = sqlx::query_scalar(
+        "INSERT INTO queue.actions (kind, handler, observable_type, observable_value, action, status, result)
+         VALUES ('remediation', 'test', 'email_delivery', '<m@x>|alias@example.com', 'remove', 'COMPLETED', 'SUCCESS')
+         RETURNING id",
+    )
+    .fetch_one(db.pool())
+    .await
+    .expect("a removal");
+    sqlx::query(
+        "INSERT INTO queue.action_attempts (action_id, status, result, message, resolved_target)
+         VALUES ($1, 'COMPLETED', 'SUCCESS', 'alias@example.com is an alias of owner@example.com: removed',
+                 'owner@example.com')",
+    )
+    .bind(removal)
+    .execute(db.pool())
+    .await
+    .expect("a try");
+
+    let reader = user(&stack, "reader").await;
+    grant_to(&stack, &reader, "alert", "read").await;
+    grant_to(&stack, &reader, "remediation", "read").await;
+    let viewer = user(&stack, "viewer").await;
+    grant_to(&stack, &viewer, "alert", "read").await;
+    let (rd, vw) = (
+        session_of(&stack, "reader").await,
+        session_of(&stack, "viewer").await,
+    );
+    let get =
+        |session: &str, path: String| stack.get(&path).header("cookie", cookie(session)).send();
+    let shown = get(&rd, format!("/alerts/{alert}"))
+        .await
+        .expect("answered");
+    assert_eq!(shown.status(), StatusCode::OK);
+    let shown: String = shown
+        .text()
+        .await
+        .expect("a page")
+        .lines()
+        .map(str::trim)
+        .collect();
+    contains_all(
+        &shown,
+        &[
+            r#"<details class="section remediation" id="remediation" data-section-id="remediation" open>"#,
+            r#"<span class="hint">(1 event)</span>"#,
+            "<td>alias@example.com → owner@example.com</td><td>ACE</td><td title=\"alias@example.com is an alias of owner@example.com: removed\">Remove (Success) via owner@example.com</td>",
+            &format!(r#"<a href="/remediations/{removal}">history</a>"#),
+        ],
+    );
+    // without remediation:read the page has no panel
+    let hidden = get(&vw, format!("/alerts/{alert}"))
+        .await
+        .expect("answered");
+    assert_eq!(hidden.status(), StatusCode::OK);
+    let hidden = hidden.text().await.expect("a page");
+    assert!(!hidden.contains(r#"id="remediation""#), "{hidden}");
+    assert!(!hidden.contains("Remove (Success)"), "{hidden}");
+    // nothing remediated: no panel
+    let none = get(&rd, format!("/alerts/{quiet}"))
+        .await
+        .expect("answered");
+    assert_eq!(none.status(), StatusCode::OK);
+    let none = none.text().await.expect("a page");
+    assert!(!none.contains(r#"id="remediation""#), "{none}");
 }
 
 // PLAN.md 7.14: an alert's detection verdicts on its page.

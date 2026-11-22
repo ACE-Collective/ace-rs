@@ -16370,6 +16370,345 @@ fn coverage_sums_up_as_ace3_s() {
     );
 }
 
+// PLAN.md decision 38: an alert's remediation timeline, ace3's `saq/remediation/timeline.py`.
+
+/// A remediation of `value` and its tries, each (status, result, message, resolved_target, seconds
+/// after 2026-11-01 12:00 UTC); the remediation ends as its last try did.
+async fn remediation_with_tries(
+    db: &Db,
+    handler: &str,
+    value: &str,
+    action: &str,
+    tries: &[(&str, &str, &str, Option<&str>, i64)],
+) -> i64 {
+    let (status, result) = tries.last().map_or(("NEW", None), |t| (t.0, Some(t.1)));
+    let id: i64 = sqlx::query_scalar(
+        "INSERT INTO queue.actions (kind, handler, observable_type, observable_value, action, status, result)
+         VALUES ('remediation', $1, 'email_delivery', $2, $3, $4, $5) RETURNING id",
+    )
+    .bind(handler)
+    .bind(value)
+    .bind(action)
+    .bind(status)
+    .bind(if status == "COMPLETED" { result } else { None })
+    .fetch_one(db.pool())
+    .await
+    .expect("a remediation");
+    for (status, result, message, resolved, after) in tries {
+        sqlx::query(
+            "INSERT INTO queue.action_attempts (action_id, status, result, message, resolved_target, created_at)
+             VALUES ($1, $2, $3, $4, $5, '2026-11-01 12:00:00+00'::timestamptz + make_interval(secs => $6))",
+        )
+        .bind(id)
+        .bind(status)
+        .bind(result)
+        .bind(message)
+        .bind(resolved)
+        .bind(*after as f64)
+        .execute(db.pool())
+        .await
+        .expect("a try");
+    }
+    id
+}
+
+/// ace3's timeline rows of one alert: ACE's tries labelled from `resolved_target` and the journal's
+/// delivery tags, a vendor's confirmed events, a pending row for what's still watched, in ace3's
+/// order; `remediation:read` reads it, and an alert with nothing remediated has none.
+#[tokio::test]
+async fn an_alerts_remediation_timeline_labels_each_try_as_ace3s() {
+    use ace_results::{ObservableRef, Relationship, RelationshipKind};
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let root = alert(db).await;
+    sqlx::query(
+        "UPDATE analysis.roots SET alerted_at = now(), event_time = '2026-11-01 11:58:30.250+00',
+             event_time_source = 'event' WHERE id = $1",
+    )
+    .bind(root)
+    .execute(db.pool())
+    .await
+    .expect("an alert with an event time");
+    let delivery = |recipient: &str| format!("<m1@example.net>|{recipient}");
+    let mut tx = db.begin().await.expect("begins");
+    for recipient in [
+        "alias@example.com",
+        "owner@example.com",
+        "other@example.com",
+        "late@example.com",
+    ] {
+        tree::upsert_observable(
+            &mut tx,
+            root,
+            &NewObservable::new(ObservableKind::EmailDelivery, delivery(recipient)),
+        )
+        .await
+        .expect("adds");
+    }
+    // a forward the journal links to the mailbox that got its mail, and an address it doesn't name
+    let mut forward =
+        NewObservable::new(ObservableKind::EmailDelivery, delivery("fwd@example.com"));
+    forward.tags.push("delivery_forwarded".to_owned());
+    forward.relationships.push(Relationship::new(
+        RelationshipKind::DeliveredTo,
+        ObservableRef::new(ObservableKind::EmailDelivery, delivery("owner@example.com")),
+    ));
+    tree::upsert_observable(&mut tx, root, &forward)
+        .await
+        .expect("adds");
+    let mut ghost =
+        NewObservable::new(ObservableKind::EmailDelivery, delivery("ghost@example.com"));
+    ghost.tags.push("delivery_not_journaled".to_owned());
+    tree::upsert_observable(&mut tx, root, &ghost)
+        .await
+        .expect("adds");
+    tx.commit().await.expect("commits");
+
+    let alias = remediation_with_tries(
+        db,
+        "test",
+        &delivery("alias@example.com"),
+        "remove",
+        &[(
+            "COMPLETED",
+            "SUCCESS",
+            "alias@example.com is an alias of owner@example.com: removed",
+            Some("owner@example.com"),
+            30,
+        )],
+    )
+    .await;
+    remediation_with_tries(
+        db,
+        "test",
+        &delivery("owner@example.com"),
+        "remove",
+        &[("COMPLETED", "SUCCESS", "removed", None, 10)],
+    )
+    .await;
+    // the owner's own removal covers what an alias's search didn't find (decision 36)
+    remediation_with_tries(
+        db,
+        "test",
+        &delivery("other@example.com"),
+        "remove",
+        &[(
+            "COMPLETED",
+            "NOT_FOUND",
+            "other@example.com is an alias of owner@example.com, which has its own removal of message-id <m1@example.net>",
+            Some("owner@example.com"),
+            40,
+        )],
+    )
+    .await;
+    remediation_with_tries(
+        db,
+        "test",
+        &delivery("fwd@example.com"),
+        "remove",
+        &[
+            ("IN_PROGRESS", "ERROR", "timed out", None, 20),
+            ("COMPLETED", "NOT_FOUND", "", None, 50),
+        ],
+    )
+    .await;
+    remediation_with_tries(
+        db,
+        "test",
+        &delivery("ghost@example.com"),
+        "remove",
+        &[("COMPLETED", "NOT_FOUND", "", None, 60)],
+    )
+    .await;
+    // a vendor confirmed one, and is still watching another
+    for (value, status, result, events, deadline) in [
+        (
+            delivery("owner@example.com"),
+            "COMPLETED",
+            Some("CONFIRMED"),
+            Some(json!([{
+                "source": "Vendor Mail", "event_type": "zap", "description": "moved to junk",
+                "timestamp": "2026-11-01T12:00:05Z", "event_time": "2026-11-01T11:58:30Z",
+                "target": "owner@example.com", "portal_url": "https://portal.example/m/1"
+            }, {"not": "an event"}])),
+            None,
+        ),
+        (
+            delivery("late@example.com"),
+            "NEW",
+            None,
+            None,
+            Some("2026-11-02 12:00:00+00"),
+        ),
+    ] {
+        let check: i64 = sqlx::query_scalar(
+            "INSERT INTO queue.actions (kind, handler, observable_type, observable_value, status, result, events,
+                                        deadline_at, created_at)
+             VALUES ('remediation_check', 'vendor', 'email_delivery', $1, $2, $3, $4, $5::timestamptz,
+                     '2026-11-01 12:01:00+00') RETURNING id",
+        )
+        .bind(&value)
+        .bind(status)
+        .bind(result)
+        .bind(events)
+        .bind(deadline)
+        .fetch_one(db.pool())
+        .await
+        .expect("a check");
+        sqlx::query("INSERT INTO queue.action_roots (action_id, root_id) VALUES ($1, $2)")
+            .bind(check)
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("attaches");
+    }
+
+    let timeline = service
+        .remediation_timeline(&actor, root)
+        .await
+        .expect("reads");
+    let rows: Vec<(String, &str, &str, bool)> = timeline
+        .events
+        .iter()
+        .map(|e| {
+            (
+                e.timestamp.format("%H:%M:%S").to_string(),
+                e.target.as_deref().unwrap_or(""),
+                e.description.as_str(),
+                e.pending,
+            )
+        })
+        .collect();
+    let at = |s: &str| s.to_owned();
+    assert_eq!(
+        rows,
+        [
+            // the vendor's message time is a whole second, ACE's carries the root's 250 ms: shown
+            // alike, they sort by when
+            (at("12:00:05"), "owner@example.com", "moved to junk", false),
+            (
+                at("12:00:10"),
+                "owner@example.com",
+                "Remove (Success)",
+                false
+            ),
+            (at("12:00:20"), "fwd@example.com", "Remove (Error)", false),
+            (
+                at("12:00:30"),
+                "alias@example.com \u{2192} owner@example.com",
+                "Remove (Success) via owner@example.com",
+                false
+            ),
+            (
+                at("12:00:40"),
+                "other@example.com \u{2192} owner@example.com",
+                "Remove (Not_found) via owner@example.com",
+                false
+            ),
+            (
+                at("12:00:50"),
+                "fwd@example.com",
+                "Remove (not delivered to this address; forwarded to owner@example.com)",
+                false
+            ),
+            (
+                at("12:01:00"),
+                "ghost@example.com",
+                "Remove (no journal record of a copy delivered to this address)",
+                false
+            ),
+            (
+                at("12:01:00"),
+                "late@example.com",
+                "Watching (until 2026-11-02 12:00:00 UTC)",
+                true
+            ),
+        ]
+    );
+    assert_eq!((timeline.event_count(), timeline.pending_count()), (7, 1));
+    assert!(!timeline.truncated);
+    let by_target = |target: &str| {
+        timeline
+            .events
+            .iter()
+            .find(|e| e.target.as_deref() == Some(target))
+            .expect("a row")
+    };
+    let aliased = by_target("alias@example.com \u{2192} owner@example.com");
+    assert_eq!(aliased.source, "ACE");
+    assert_eq!(aliased.remediation, Some(alias));
+    assert_eq!(
+        aliased.message.as_deref(),
+        Some("alias@example.com is an alias of owner@example.com: removed")
+    );
+    assert_eq!(aliased.duration_display().as_deref(), Some("1m 59s"));
+    let vendor = by_target("owner@example.com");
+    assert_eq!(
+        (
+            vendor.source.as_str(),
+            vendor.portal_url.as_deref(),
+            vendor.remediation
+        ),
+        ("Vendor Mail", Some("https://portal.example/m/1"), None)
+    );
+    let pending = timeline.events.last().expect("a pending row");
+    assert_eq!(pending.source, "Vendor");
+    assert_eq!(
+        pending.delivery.as_deref(),
+        Some(delivery("late@example.com").as_str())
+    );
+    assert_eq!(pending.duration(), None);
+    // the badge reads the same rows: the forward and the address the journal doesn't name had
+    // nothing to remove and are left out of its counts
+    assert_eq!(
+        timeline.coverage.label(),
+        "remediated 3/4 · ACE, Vendor Mail"
+    );
+
+    // nothing remediated: no rows, and no badge
+    let quiet = alert(db).await;
+    let empty = service
+        .remediation_timeline(&actor, quiet)
+        .await
+        .expect("reads");
+    assert!(empty.events.is_empty());
+    assert_eq!(empty.coverage.state(), CoverageState::None);
+
+    // remediation:read is what reads it
+    let outsider = user(UserId(Uuid::from_u128(0x7D)));
+    assert!(matches!(
+        service.remediation_timeline(&outsider, root).await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+}
+
+/// ace3's `_format_duration` and its sort of rows that show the same time.
+#[test]
+fn a_timeline_reads_its_durations_and_ties_as_ace3s() {
+    use ace_service::format_duration;
+    use chrono::Duration;
+    for (seconds, shown) in [
+        (-5, "0s"),
+        (0, "0s"),
+        (59, "59s"),
+        (60, "1m"),
+        (322, "5m 22s"),
+        (3600, "1h"),
+        (3660, "1h 1m"),
+        (86400, "1d"),
+        (100800, "1d 4h"),
+    ] {
+        assert_eq!(
+            format_duration(Duration::seconds(seconds)),
+            shown,
+            "{seconds}"
+        );
+    }
+    assert_eq!(ace_service::upper_first("vendor mail"), "Vendor mail");
+}
+
 // PLAN.md 7.14: detection verdicts. Each test below is one of ace3's `tests/saq/detection_verdicts/`
 // cases, named for it; the module docs of `ace_service`'s `detection_verdicts` say what differs.
 
