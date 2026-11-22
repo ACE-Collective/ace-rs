@@ -269,8 +269,9 @@ pub struct AiQueryResult {
 pub enum AiQueryError {
     /// The backend refuses the request: ace3's `AIQueryRejected`, a 400.
     Rejected(String),
-    /// The backend failed: ace3's `AIBackendError`, with the status the API answers, 502 or 504. The
-    /// reason is shown to the caller and recorded, so it must hold no credential.
+    /// The backend failed: ace3's `AIBackendError`, with the status the API answers: 502 or 504, or
+    /// 429 when its data source throttled it, so the agent knows to wait. The reason is shown to the
+    /// caller and recorded, so it must hold no credential.
     Backend { status: u16, reason: String },
 }
 
@@ -922,8 +923,9 @@ impl Service {
                     .await;
             }
             Err(AiQueryError::Backend { status, reason }) => {
-                // a backend names a failure of its own: never a 2xx, 3xx or 4xx of this API's
-                let status = if (500..=599).contains(&status) {
+                // a backend names a failure of its own: a 5xx, or a 429 when its data source
+                // throttled it, as ace3 passes it on; never a 2xx, 3xx or other 4xx of this API's
+                let status = if status == 429 || (500..=599).contains(&status) {
                     status
                 } else {
                     502

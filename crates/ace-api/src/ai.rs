@@ -257,7 +257,8 @@ pub(crate) async fn backends(
 /// Runs a read-only query on a backend.
 ///
 /// A capped answer says `truncated` and why, a request the backend refuses is 400, a backend's failure
-/// is 502 or 504, and an answer with no rows is a 200 with `row_count` 0. The window covered is echoed
+/// is 502 or 504, a backend its data source throttled is 429, and an answer with no rows is a 200
+/// with `row_count` 0. The window covered is echoed
 /// back. Every call is recorded with its query's text.
 #[utoipa::path(
     post,
@@ -272,7 +273,7 @@ pub(crate) async fn backends(
         (status = 403, description = "The key doesn't hold ai:<backend>", body = ErrorBody),
         (status = 404, description = "No such backend, or the AI investigation API isn't enabled on this server", body = ErrorBody),
         (status = 413, description = "The body is too large", body = ErrorBody),
-        (status = 429, description = "A limit of the backend refused the request; `Retry-After` says when to try again", body = ErrorBody),
+        (status = 429, description = "A limit of the backend refused the request, and `Retry-After` says when to try again; or the backend's data source throttled it, with no `Retry-After`", body = ErrorBody),
         (status = 502, description = "The backend failed", body = ErrorBody),
         (status = 503, description = "The rate limiter can't be reached, so the query was refused", body = ErrorBody),
         (status = 504, description = "The backend or the query ran out of time", body = ErrorBody),

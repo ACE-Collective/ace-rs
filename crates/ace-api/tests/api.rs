@@ -18547,11 +18547,13 @@ async fn ai_queries(client: &mut Client<'_>) {
         )
         .await;
 
-    // test_backend_error_maps_status
+    // test_backend_error_maps_status; a backend its data source throttled is a 429, as ace3 passes
+    // it on (PLAN.md decision 42), with no Retry-After, since the source's wait isn't known
     for (code, status) in [
         (504, S::GATEWAY_TIMEOUT),
         (502, S::BAD_GATEWAY),
         (418, S::BAD_GATEWAY),
+        (429, S::TOO_MANY_REQUESTS),
     ] {
         let failed = client
             .json(
@@ -18572,6 +18574,19 @@ async fn ai_queries(client: &mut Client<'_>) {
             (&json!("query_error"), &json!(status.as_u16()))
         );
     }
+    let throttled = client
+        .call(
+            M::POST,
+            AI_QUERY,
+            &fake,
+            k,
+            post(ai_query_body(json!({
+                "extras": {"simulate": "backend_error", "error_status_code": 429},
+            }))),
+        )
+        .await;
+    assert_eq!(throttled.status(), S::TOO_MANY_REQUESTS);
+    assert!(throttled.headers().get("retry-after").is_none());
     // a query that runs past its own timeout: the request gives up, and says so
     let timed_out = client
         .json(

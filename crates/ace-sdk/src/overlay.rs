@@ -190,7 +190,8 @@ pub struct Overlay {
     /// hunter` and `ace serve` read them; a pool doesn't.
     pub command_types: BTreeMap<String, CommandTypeSection>,
     /// Each hunt type's search (PLAN.md decision 40, `ace_app::App::hunt_search`), by type name: its
-    /// settings and the connections it binds. `ace hunter` reads it; nothing else does.
+    /// settings, the connections it binds, and whether its hunts run on the schedule (decision 42).
+    /// `ace hunter` reads it; nothing else does.
     pub hunt_types: BTreeMap<String, HuntTypeSection>,
     /// The correlation query sources (PLAN.md decision 40, `ace_app::App::query_source_type`), by the
     /// name a correlation's `source:` gives, ace3's `hunter.correlation.query_sources`. Left out, the
@@ -199,14 +200,32 @@ pub struct Overlay {
     pub query_sources: Option<BTreeMap<String, QuerySourceSection>>,
 }
 
-/// What the overlay says about one hunt type's search (`ace_app::App::hunt_search`).
-#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+/// What the overlay says about one hunt type (`ace_app::App::hunt_search`): its search's settings
+/// and connections, and whether its hunts run on the hunter's schedule.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct HuntTypeSection {
     /// What the search's builder is given, as a module's settings are.
     pub settings: Option<Value>,
     /// The search's slots, each bound to a connection (`crate::connections`).
     pub connections: BTreeMap<String, String>,
+    /// ace3's `hunt_type_<name>.schedulable` (PLAN.md decision 42): false for a type whose hunts
+    /// never run on the hunter's schedule, such as one whose data source's query quota must stay
+    /// under people's control. `ace hunter` then loads none of its hunts, builds no search for it
+    /// and holds none of its search's secrets, and refuses to start when its configuration's
+    /// `rule_dirs` names the type. Its hunts still validate through the `hunt` router. True by
+    /// default.
+    pub schedulable: bool,
+}
+
+impl Default for HuntTypeSection {
+    fn default() -> Self {
+        HuntTypeSection {
+            settings: None,
+            connections: BTreeMap::new(),
+            schedulable: true,
+        }
+    }
 }
 
 /// One correlation query source (`ace_app::App::query_source_type`).
@@ -1237,6 +1256,12 @@ impl Component {
 }
 
 impl Overlay {
+    /// Whether `kind`'s hunts run on the hunter's schedule (`HuntTypeSection::schedulable`): true
+    /// unless the overlay's `hunt_types.<kind>` says false.
+    pub fn hunt_type_schedulable(&self, kind: &str) -> bool {
+        self.hunt_types.get(kind).is_none_or(|t| t.schedulable)
+    }
+
     /// Parses an overlay. An empty file is an overlay with no sections. A key written twice in one
     /// mapping is refused, where reading straight into JSON would keep the last silently.
     pub fn from_yaml(text: &str) -> Result<Overlay, OverlayError> {

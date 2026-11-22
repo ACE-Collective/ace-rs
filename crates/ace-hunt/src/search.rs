@@ -93,9 +93,16 @@ pub trait HuntSearch: Send + Sync {
         stop: Stop,
     ) -> BoxFuture<'a, Searched>;
 
-    /// ace3's `extract_event_timestamp` for one row: None when the row has no time the type reads,
-    /// so the submission takes the query's time.
-    fn event_time(&self, row: &JsonMap<String, Json>, now: DateTime<Utc>) -> Option<DateTime<Utc>>;
+    /// ace3's `extract_event_timestamp` for one row of `hunt`'s search: None when the row has no
+    /// time the type reads, so the submission takes the query's time. `hunt` is the hunt whose rows
+    /// these are, for a type whose hunts name the field their time is in (a site's mail_filter hunts'
+    /// `timestamp_field`), since one search serves every hunt of its type, several at once.
+    fn event_time(
+        &self,
+        hunt: &HuntConfig,
+        row: &JsonMap<String, Json>,
+        now: DateTime<Utc>,
+    ) -> Option<DateTime<Utc>>;
 }
 
 /// ace3's `QueryHunt.query`: the hunt's query or its query file's text, with `query_prefix` before

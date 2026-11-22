@@ -26,10 +26,13 @@ pub trait HuntSearch: Send + Sync {
     /// Runs the hunt's query over the window: the rows, and what ran.
     fn search<'a>(&'a self, hunt: &'a Hunt, home: &'a Path, window: &'a Window,
                   limits: SearchLimits, stop: Stop) -> BoxFuture<'a, Searched>;
-    /// ace3's `extract_event_timestamp` for one row.
-    fn event_time(&self, row: &JsonMap<String, Json>, now: DateTime<Utc>) -> Option<DateTime<Utc>>;
+    /// ace3's `extract_event_timestamp` for one row of the hunt's search.
+    fn event_time(&self, hunt: &HuntConfig, row: &JsonMap<String, Json>,
+                  now: DateTime<Utc>) -> Option<DateTime<Utc>>;
 }
 ```
+
+`event_time` was first given the row alone; PLAN.md decision 42 added the hunt, so a type whose hunts name their time field (a site's mail_filter hunts' `timestamp_field`) can read it. One search serves every hunt of its type, several at once, so it can't remember which hunt's rows it is timing.
 
 `Searched` holds what ran (the query as the type formats it, the link to it in the vendor's console, a search id, the `tool_instance`) and the rows or the error. `SearchLimits` is the hunter's poll interval and the hunt's `query_timeout`; `Stop` is a future that ends when the hunter stops, which a search must end on. This is ace3's `QueryHunt` contract (`execute_query`, `extract_event_timestamp`, `formatted_query`, `search_link`, `tool_instance`) without ace3's mutable hunt object.
 

@@ -940,6 +940,86 @@ fn rule_dirs_naming_a_type_the_binary_lacks_is_found() {
     assert_eq!(unknown_types(&app, &config), ["endpoint", "rapid7"]);
 }
 
+/// PLAN.md decision 42, ace3's `schedulable`: a hunt type is schedulable unless the overlay's
+/// `hunt_types.<type>.schedulable` says false. Then the hunter refuses to start when `rule_dirs`
+/// names the type, in ace3's words; builds no search for it, so a hunt of the type is skipped
+/// saying why; and resolves none of that search's secrets (here every Splunk instance's), keeping a
+/// query source's.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_hunt_type_that_isn_t_schedulable_runs_no_hunts() {
+    let app = App::new();
+    let schedulable = splunk_overlay("https://127.0.0.1:1");
+    assert!(schedulable.hunt_type_schedulable("splunk"));
+    let mut text = splunk_connections("https://127.0.0.1:1");
+    text["hunt_types"] = json!({"splunk": {"schedulable": false}});
+    let overlay = ace_sdk::Overlay::from_yaml(&text.to_string()).expect("an overlay");
+    assert!(!overlay.hunt_type_schedulable("splunk"));
+    app.check_overlay(&overlay).expect("the overlay checks");
+
+    let refused = Hunter::for_app(
+        config(Path::new("/nowhere"), "dev"),
+        &secrets(),
+        &app,
+        &overlay,
+    )
+    .err()
+    .expect("rule_dirs names the type");
+    assert_eq!(
+        refused.to_string(),
+        "hunt type splunk defines rule_dirs but is not schedulable; those hunts would never load, \
+         so remove rule_dirs or set schedulable to true"
+    );
+
+    // the search's every instance is gone from the hunter's secrets; ace3's default query source,
+    // splunk on default, keeps its own
+    assert_eq!(
+        app.hunter_secret_names(&schedulable),
+        ["splunk_default_password", "splunk_eastern_password"]
+    );
+    assert_eq!(
+        app.hunter_secret_names(&overlay),
+        ["splunk_default_password"]
+    );
+
+    let mut without = config(Path::new("/nowhere"), "dev");
+    without.rule_dirs.clear();
+    let hunter = Hunter::for_app(without, &secrets(), &app, &overlay).expect("a hunter");
+    let why = hunter.search_of("splunk").err().expect("no search");
+    assert_eq!(
+        why,
+        "splunk hunts' search failed to load: the splunk hunt type isn't schedulable (the \
+         overlay's hunt_types.splunk.schedulable)"
+    );
+    assert!(hunter.load(&ace_hunt::types::Splunk::default()).is_empty());
+    let dir = tempfile::tempdir().expect("a directory");
+    let path = dir.path().join("hunt.yaml");
+    std::fs::write(
+        &path,
+        "rule:\n  uuid: 00000000-0000-0000-0000-00000000c002\n  name: n\n  type: splunk\n  \
+         enabled: true\n  description: d\n  alert_type: a\n  frequency: '00:05:00'\n  \
+         time_range: '00:05:00'\n  full_coverage: false\n  use_index_time: true\n  \
+         instance_types: [dev]\n  query: index=main\n",
+    )
+    .expect("writes");
+    let hunt = ace_hunt::load_hunt(
+        &path,
+        &ace_hunt::types::Splunk::default(),
+        &LoadOptions::default(),
+    )
+    .expect("loads");
+    let tick = hunter
+        .tick(
+            &hunt,
+            &State::default(),
+            "unknown",
+            Utc::now(),
+            &CancellationToken::new(),
+        )
+        .await;
+    assert_eq!(tick.skipped.as_deref(), Some(why.as_str()));
+    assert!(tick.search.is_none());
+}
+
 /// PLAN.md decision 41: Splunk's instances are the overlay's connections of type `splunk`. The
 /// hunt search takes every one by its name, so `ace hunter` resolves each instance's secret under
 /// ace3's name and nothing else; a query source binds one; an entry can't bind the search's slot by

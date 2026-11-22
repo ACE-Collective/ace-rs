@@ -1197,7 +1197,8 @@ impl App {
 
     /// The secrets of the connections `overlay` binds to the command types', the hunt types'
     /// searches' and the query sources' slots, and those a search's slot by name takes (every
-    /// Splunk instance, for Splunk's): what `ace hunter`, which runs them, resolves for them.
+    /// Splunk instance, for Splunk's): what `ace hunter`, which runs them, resolves for them. A hunt
+    /// type that isn't schedulable (PLAN.md decision 42) has no search there, so none of its.
     pub fn hunter_secret_names(&self, overlay: &ace_sdk::Overlay) -> Vec<String> {
         let mut bindings: Vec<ace_sdk::Binding> = self
             .command_types
@@ -1207,6 +1208,10 @@ impl App {
             .collect();
         for (kind, search) in self.hunt_searches() {
             let section = overlay.hunt_types.get(&kind).cloned().unwrap_or_default();
+            // a type that isn't schedulable has no search in the hunter (PLAN.md decision 42)
+            if !section.schedulable {
+                continue;
+            }
             if let Ok(bound) = overlay.bind(
                 &format!("hunt_types.{kind}.connections"),
                 search.connections,

@@ -50674,6 +50674,25 @@ mod ai_tests {
             matches!(odd, Err(ServiceError::Upstream { status: 502, .. })),
             "{odd:?}"
         );
+        // a backend its data source throttled is a 429, as ace3 passes it on (PLAN.md decision 42)
+        let throttled = service
+            .ai_query(
+                &actor,
+                "tight",
+                simulate(json!({"simulate": "backend_error", "error_status_code": 429})),
+            )
+            .await;
+        assert!(
+            matches!(&throttled, Err(ServiceError::Upstream { status: 429, reason })
+                if reason == "simulated backend failure"),
+            "{throttled:?}"
+        );
+        assert_eq!(held().await, 0);
+        let row = last_audit(db).await;
+        assert_eq!(
+            (&row.details["event"], &row.details["status"]),
+            (&json!("query_error"), &json!(429))
+        );
 
         // the query runs past its own timeout: the request gives up, and the slot is free
         let slow = AiQueryRequest {

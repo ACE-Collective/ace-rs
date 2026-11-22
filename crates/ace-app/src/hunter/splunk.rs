@@ -160,7 +160,12 @@ impl HuntSearch for SplunkSearch {
     }
 
     /// `saq.splunk.extract_event_timestamp`: a row's `_time`, or the query's time.
-    fn event_time(&self, row: &JsonMap<String, Json>, now: DateTime<Utc>) -> Option<DateTime<Utc>> {
+    fn event_time(
+        &self,
+        _hunt: &ace_hunt::HuntConfig,
+        row: &JsonMap<String, Json>,
+        now: DateTime<Utc>,
+    ) -> Option<DateTime<Utc>> {
         Some(splunk::event_time(row, now))
     }
 }

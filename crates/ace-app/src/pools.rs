@@ -735,6 +735,64 @@ mod tests {
         assert!(all.get(Remediation, "off_mailbox").is_some());
     }
 
+    /// PLAN.md decision 35 for Splunk: an instance's port comes from its `base_url`, so a lookups
+    /// pool whose `splunk_api` instance binds one on 9443 reaches it, beside the module's own 8089
+    /// and 443; an instance no module binds adds nothing.
+    #[test]
+    fn a_splunk_instance_s_port_joins_the_lookups_pool_s_sandbox() {
+        let pool = LookupPool::new("lookups").module::<ace_mod_splunk::SplunkAnalyzer>();
+        let overlay = Overlay::from_yaml(
+            "\
+connections:
+  default:
+    type: splunk
+    settings: {base_url: 'https://splunk.site.example:9443', username: ace}
+    secrets: {password: splunk_default_password}
+  other:
+    type: splunk
+    settings: {base_url: 'https://other.site.example:7089', username: ace}
+modules:
+  splunk_api:
+    instances:
+      proxy_domain_lookup:
+        inputs: [fqdn]
+        connections: {splunk: default}
+        settings:
+          question: Was this domain seen?
+          summary: Proxy correlation
+          query: index=proxy hostname=\"<O_VALUE>\"
+secrets:
+  splunk_default_password: env:ACE4_TEST_UNSET
+",
+        )
+        .expect("an overlay");
+        let ports = connection_ports(&pool, &overlay).expect("the ports");
+        assert_eq!(ports, [9443]);
+        let modules = modules(&pool.name, &pool.registry, &overlay, None, &|_| None)
+            .expect("the pool's modules");
+        let profile = PoolDefinition::lookup_sandbox_with(
+            &modules,
+            false,
+            8080,
+            None,
+            &ports,
+            POOL_ADDRESS_SPACE,
+        )
+        .expect("a sandbox");
+        for port in [9443, 8089, 443, 8080] {
+            assert!(
+                profile.tcp_ports.contains(&port),
+                "{port}: {:?}",
+                profile.tcp_ports
+            );
+        }
+        assert!(
+            !profile.tcp_ports.contains(&7089),
+            "{:?}",
+            profile.tcp_ports
+        );
+    }
+
     #[test]
     fn the_ruleset_module_gets_the_pools_ruleset_directory() {
         let pool = ParserPool::new("parsers")

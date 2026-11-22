@@ -88,9 +88,12 @@ impl From<ServiceError> for ApiError {
                 };
             }
             ServiceError::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
-            // a data source's failure, 502 or 504: the service lets no other status through
+            // a data source's failure, 502 or 504, or its throttling, 429, which says no
+            // `Retry-After` since the source's wait isn't known (ace3 sends none either): the
+            // service lets no other status through
             ServiceError::Upstream { status, .. } => match *status {
                 504 => StatusCode::GATEWAY_TIMEOUT,
+                429 => StatusCode::TOO_MANY_REQUESTS,
                 _ => StatusCode::BAD_GATEWAY,
             },
             error if error.is_retryable() => StatusCode::SERVICE_UNAVAILABLE,

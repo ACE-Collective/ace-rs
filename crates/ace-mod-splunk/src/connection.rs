@@ -136,6 +136,17 @@ impl ace_sdk::ConnectionType for Splunk {
             "app_context": instance.app_context,
         })
     }
+
+    /// The management API's port, from `base_url` (its own, or its scheme's) or `port`: a pool
+    /// whose module binds an instance on a port other than the modules' own 8089 and 443 reaches
+    /// it (PLAN.md decision 35). A `base_url` that doesn't parse adds none, and its client fails.
+    fn tcp_ports(instance: &Instance) -> Vec<u16> {
+        reqwest::Url::parse(&instance.base_url())
+            .ok()
+            .and_then(|url| url.port_or_known_default())
+            .into_iter()
+            .collect()
+    }
 }
 
 /// The instance settings of the connection `connection`, which must be of type `splunk`.
@@ -148,4 +159,35 @@ pub fn instance_of(connection: &ace_sdk::Connection) -> Result<Instance, String>
     }
     ace_sdk::manifest::load_settings::<Instance>(connection.settings.as_ref())
         .map_err(|e| format!("the connection {}'s settings: {e}", connection.name))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ace_sdk::ConnectionType;
+
+    /// An instance's port is the one its `base_url` names, or its scheme's, or `port` without one.
+    #[test]
+    fn an_instance_reaches_the_port_of_its_url() {
+        let ports = |instance: Instance| Splunk::tcp_ports(&instance);
+        assert_eq!(ports(Instance::default()), [8089]);
+        let on = |base_url: &str| Instance {
+            base_url: Some(base_url.to_owned()),
+            ..Instance::default()
+        };
+        assert_eq!(ports(on("https://splunk.site.example:9443")), [9443]);
+        assert_eq!(ports(on("https://splunk.site.example:9443/")), [9443]);
+        assert_eq!(ports(on("https://splunk.site.example")), [443]);
+        assert_eq!(ports(on("http://splunk.site.example")), [80]);
+        assert_eq!(ports(on("https://[::1]:8443")), [8443]);
+        assert!(ports(on("splunk.site.example:9443")).is_empty());
+        assert_eq!(
+            ports(Instance {
+                host: "splunk.site.example".to_owned(),
+                port: 18089,
+                ..Instance::default()
+            }),
+            [18089]
+        );
+    }
 }

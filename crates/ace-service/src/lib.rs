@@ -479,8 +479,8 @@ pub enum ServiceError {
     /// limiter can't be reached: HTTP's 503.
     #[error("{0}")]
     Unavailable(String),
-    /// A data source the request was sent on to failed or ran out of time (PLAN.md 7.15): HTTP's 502
-    /// or 504. The reason is the source's own, and holds no credential.
+    /// A data source the request was sent on to failed, ran out of time or throttled it (PLAN.md
+    /// 7.15): HTTP's 502, 504 or 429. The reason is the source's own, and holds no credential.
     #[error("{reason}")]
     Upstream { status: u16, reason: String },
 }

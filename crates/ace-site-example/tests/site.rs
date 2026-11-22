@@ -2030,6 +2030,90 @@ async fn a_site_s_hunt_type_runs_its_hunts_through_its_own_search() {
     );
 }
 
+/// A hunt's own `timestamp_field` reaches its type's search (PLAN.md decision 42), as a site's
+/// mail_filter hunts name theirs: a ticket's time is read from the field the hunt names, `opened` when
+/// it names none, and a ticket without it has none, so its submission takes the query's.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_hunt_s_timestamp_field_times_its_rows() {
+    use chrono::{DateTime, Utc};
+
+    let work = tempfile::tempdir().expect("a directory");
+    let load = |text: &str| {
+        let path = work.path().join("tickets.yaml");
+        std::fs::write(&path, text).expect("writes the hunt");
+        ace_hunt::load_hunt(
+            &path,
+            &ace_site_example::hunt::TicketHunts,
+            &ace_hunt::LoadOptions::default(),
+        )
+        .expect("the hunt loads")
+        .config
+    };
+    let opened = load(TICKET_HUNT);
+    assert_eq!(opened.settings["timestamp_field"], "opened");
+    let closed = load(&TICKET_HUNT.replace(
+        "  queue: soc\n",
+        "  queue: soc\n  timestamp_field: closed\n",
+    ));
+    assert_eq!(closed.settings["timestamp_field"], "closed");
+    // a field that isn't text is refused as the model's own
+    let path = work.path().join("bad.yaml");
+    std::fs::write(
+        &path,
+        TICKET_HUNT.replace(
+            "  queue: soc\n",
+            "  queue: soc\n  timestamp_field: [closed]\n",
+        ),
+    )
+    .expect("writes the hunt");
+    let refused = ace_hunt::load_hunt(
+        &path,
+        &ace_site_example::hunt::TicketHunts,
+        &ace_hunt::LoadOptions::default(),
+    )
+    .expect_err("refused");
+    assert!(refused.to_string().contains("timestamp_field"), "{refused}");
+
+    let overlay = ticket_hunt_overlay("https://tickets.site.example");
+    let bindings = overlay
+        .bind(
+            "hunt_types.example_tickets.connections",
+            ace_site_example::hunt::SLOTS,
+            &overlay.hunt_types["example_tickets"].connections,
+        )
+        .expect("binds");
+    let search = ace_site_example::hunt::build_search(
+        &ace_app::hunter::SearchSetup::new("example_tickets", None).with_connections(
+            ace_sdk::Connections::resolve(&bindings, &ace_sdk::Secrets::new()),
+        ),
+    )
+    .expect("the search");
+    let ticket =
+        json!({"id": "T-1", "opened": "2026-11-21T11:55:00Z", "closed": "2026-11-21T11:58:00Z"});
+    let ticket = ticket.as_object().expect("an object");
+    let now = Utc::now();
+    let at = |t: &str| {
+        Some(
+            DateTime::parse_from_rfc3339(t)
+                .expect("a time")
+                .with_timezone(&Utc),
+        )
+    };
+    assert_eq!(
+        search.event_time(&opened, ticket, now),
+        at("2026-11-21T11:55:00Z")
+    );
+    assert_eq!(
+        search.event_time(&closed, ticket, now),
+        at("2026-11-21T11:58:00Z")
+    );
+    let open = json!({"id": "T-2", "opened": "2026-11-21T11:55:00Z"});
+    assert_eq!(
+        search.event_time(&closed, open.as_object().expect("an object"), now),
+        None
+    );
+}
+
 /// A hunt of a type the binary has no search for loads, and the hunter skips it, saying why; a
 /// search that fails to build, here for the connection the overlay doesn't bind, has its hunts
 /// skipped with its reason.

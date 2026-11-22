@@ -58,6 +58,13 @@
 //! built over the hunter's network ([`net`]) with its settings in the configuration's `scripts`, and
 //! its `files:` are read from the signatures checkout. Any other executable fails its step.
 //!
+//! **A type that isn't schedulable** (PLAN.md decision 42, ace3's `hunt_type_<name>.schedulable`):
+//! the overlay's `hunt_types.<type>.schedulable: false` keeps a type's hunts off the schedule, for a
+//! data source whose query quota must stay under people's control. The hunter refuses to start when
+//! its `rule_dirs` names such a type, as ace3's configuration refuses it, so it loads none of the
+//! type's hunts; it builds no search for the type and resolves none of that search's secrets. The
+//! type's hunts still validate through `ace serve`'s `hunt` router.
+//!
 //! What waits: a type the binary lacks, such as `rapid7`, has no hunts loaded, whatever `rule_dirs`
 //! names, and the hunter warns of each such type when it starts (`unknown_types`); a file mapping's
 //! files (three of the signatures' Splunk hunts have one), which are logged and dropped until the
@@ -341,6 +348,18 @@ impl Hunter {
         app: &App,
         overlay: &ace_sdk::Overlay,
     ) -> Result<Hunter> {
+        // ace3's HuntTypeConfig refuses this pairing when its configuration loads: hunts in a rule
+        // directory of a type that isn't schedulable would look live and never run
+        if let Some(kind) = config
+            .rule_dirs
+            .keys()
+            .find(|kind| !overlay.hunt_type_schedulable(kind))
+        {
+            anyhow::bail!(
+                "hunt type {kind} defines rule_dirs but is not schedulable; those hunts would never \
+                 load, so remove rule_dirs or set schedulable to true"
+            );
+        }
         let mut held = Vec::new();
         let poll = Duration::from_secs_f64(config.poll_seconds.max(0.0));
         let setup = |name: &str, settings: Option<Json>, connections: ace_sdk::Connections| {
@@ -351,6 +370,17 @@ impl Hunter {
         let mut searches = BTreeMap::new();
         for (kind, search) in app.hunt_searches() {
             let section = overlay.hunt_types.get(&kind).cloned().unwrap_or_default();
+            if !section.schedulable {
+                // never built, so the hunter holds none of its secrets
+                searches.insert(
+                    kind.clone(),
+                    Err(format!(
+                        "the {kind} hunt type isn't schedulable (the overlay's \
+                         hunt_types.{kind}.schedulable)"
+                    )),
+                );
+                continue;
+            }
             let built = overlay
                 .bind(
                     &format!("hunt_types.{kind}.connections"),
@@ -640,7 +670,7 @@ impl Hunter {
                 Err(e) => return self.failed(tick, config, Some(window), e.to_string(), now),
             },
         };
-        let event_time = |row: &JsonMap<String, Json>| search.event_time(row, now);
+        let event_time = |row: &JsonMap<String, Json>| search.event_time(config, row, now);
         let valid_type = |t: &str| ObservableKind::from_str(t).is_ok();
         let ctx = Context {
             renderer: &self.renderer,

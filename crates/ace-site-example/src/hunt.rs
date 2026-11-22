@@ -2,9 +2,11 @@
 //! system, as a site's integration adds a hunt type for its own data source (a site's LogScale).
 //!
 //! - **The hunt type** `example_tickets` ([`TicketHunts`]): a hunt names the ticket `queue` it
-//!   searches, beside every query hunt's fields. Its search ([`TicketSearch`], `App::hunt_search`)
-//!   asks the ticket system for the queue's tickets matching the hunt's query in the window, and
-//!   each ticket's `opened` time is its event's. It reaches the system through the site's shared
+//!   searches, and may name the ticket field its event time is read from (`timestamp_field`, by
+//!   default `opened`), beside every query hunt's fields. Its search ([`TicketSearch`],
+//!   `App::hunt_search`) asks the ticket system for the queue's tickets matching the hunt's query in
+//!   the window, and each ticket's `timestamp_field` is its event's time, as a site's mail_filter
+//!   hunts read theirs. It reaches the system through the site's shared
 //!   connection `example_ticket_system` in its slot `tickets`, which the overlay's
 //!   `hunt_types.example_tickets.connections` binds, so only `ace hunter` holds the token.
 //! - **The query source type** `example_tickets` ([`TicketSource`], `App::query_source_type`): a
@@ -25,7 +27,7 @@ use ace_hunt::correlate::time::Time;
 use ace_hunt::query::schedule::Window;
 use ace_hunt::search::{BoxFuture, HuntSearch, Ran, STOPPED, SearchLimits, Searched, Stop};
 use ace_hunt::validate::{Errors, Obj, string};
-use ace_hunt::{Hunt, HuntError, HuntType};
+use ace_hunt::{Hunt, HuntConfig, HuntError, HuntType};
 use ace_sdk::http::HttpClient;
 use chrono::{DateTime, Utc};
 use serde_json::{Map as JsonMap, Value as Json};
@@ -40,9 +42,13 @@ pub const MAX_TICKETS: usize = 10_000;
 /// The most bytes of one answer.
 pub const MAX_ANSWER: usize = 16 << 20;
 
-/// What a hunt of the type adds to a query hunt: the queue it searches.
+/// What a hunt of the type adds to a query hunt: the queue it searches, and the ticket field its
+/// event time is read from.
 #[derive(Debug, Clone, Default)]
 pub struct TicketHunts;
+
+/// The ticket field a hunt reads its event time from when it names none.
+pub const DEFAULT_TIMESTAMP_FIELD: &str = "opened";
 
 impl HuntType for TicketHunts {
     fn name(&self) -> &str {
@@ -58,8 +64,19 @@ impl HuntType for TicketHunts {
         o: &mut Obj<'_>,
         errs: &mut Errors,
     ) -> Result<Option<JsonMap<String, Json>>, HuntError> {
-        Ok(o.required(errs, "queue", string)?
-            .map(|queue| JsonMap::from_iter([("queue".to_owned(), Json::String(queue))])))
+        let queue = o.required(errs, "queue", string)?;
+        let field = o.default(
+            errs,
+            "timestamp_field",
+            DEFAULT_TIMESTAMP_FIELD.to_owned(),
+            string,
+        )?;
+        Ok(queue.zip(field).map(|(queue, field)| {
+            JsonMap::from_iter([
+                ("queue".to_owned(), Json::String(queue)),
+                ("timestamp_field".to_owned(), Json::String(field)),
+            ])
+        }))
     }
 }
 
@@ -167,9 +184,9 @@ pub fn build_search(setup: &SearchSetup) -> Result<Arc<dyn HuntSearch>, String> 
     }))
 }
 
-/// A ticket's `opened` time, when it reads.
-fn opened(row: &JsonMap<String, Json>) -> Option<DateTime<Utc>> {
-    row.get("opened")
+/// A ticket's time in `field`, when it reads.
+fn time_of(row: &JsonMap<String, Json>, field: &str) -> Option<DateTime<Utc>> {
+    row.get(field)
         .and_then(Json::as_str)
         .and_then(|t| DateTime::parse_from_rfc3339(t).ok())
         .map(|t| t.with_timezone(&Utc))
@@ -222,12 +239,19 @@ impl HuntSearch for TicketSearch {
         })
     }
 
+    /// The ticket's time in the hunt's `timestamp_field`.
     fn event_time(
         &self,
+        hunt: &HuntConfig,
         row: &JsonMap<String, Json>,
         _now: DateTime<Utc>,
     ) -> Option<DateTime<Utc>> {
-        opened(row)
+        let field = hunt
+            .settings
+            .get("timestamp_field")
+            .and_then(Json::as_str)
+            .unwrap_or(DEFAULT_TIMESTAMP_FIELD);
+        time_of(row, field)
     }
 }
 
@@ -259,7 +283,7 @@ pub fn build_source(setup: &SearchSetup) -> Result<Arc<dyn QuerySource>, String>
 
 impl QuerySource for TicketSource {
     fn default_time_field(&self) -> Option<&str> {
-        Some("opened")
+        Some(DEFAULT_TIMESTAMP_FIELD)
     }
 
     fn default_time_format(&self) -> Option<&str> {

@@ -419,7 +419,7 @@
           "ai"
         ],
         "summary": "Runs a read-only query on a backend.",
-        "description": "A capped answer says `truncated` and why, a request the backend refuses is 400, a backend's failure\nis 502 or 504, and an answer with no rows is a 200 with `row_count` 0. The window covered is echoed\nback. Every call is recorded with its query's text.",
+        "description": "A capped answer says `truncated` and why, a request the backend refuses is 400, a backend's failure\nis 502 or 504, a backend its data source throttled is 429, and an answer with no rows is a 200\nwith `row_count` 0. The window covered is echoed\nback. Every call is recorded with its query's text.",
         "operationId": "query",
         "parameters": [
           {
@@ -504,7 +504,7 @@
             }
           },
           "429": {
-            "description": "A limit of the backend refused the request; `Retry-After` says when to try again",
+            "description": "A limit of the backend refused the request, and `Retry-After` says when to try again; or the backend's data source throttled it, with no `Retry-After`",
             "content": {
               "application/json": {
                 "schema": {
