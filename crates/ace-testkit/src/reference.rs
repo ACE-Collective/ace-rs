@@ -194,6 +194,8 @@ impl Dump {
                 analysis_type: ace3_analysis_type(r["class"].as_str().unwrap_or_default()),
                 tags: strings(&r["tags"]),
                 error: r["error"].as_str().map(str::to_owned),
+                // ace3's analysis detection points, which a dump made before they were kept lacks
+                detections: r["detections"].as_array().map_or(0, |d| d.len() as u32),
                 added: r["added"]
                     .as_array()
                     .into_iter()

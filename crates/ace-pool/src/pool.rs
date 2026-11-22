@@ -86,10 +86,20 @@ impl PoolDefinition {
         modules.manifests().iter().any(|m| m.adds_fetched_files)
     }
 
+    /// Whether one of `modules` is a lookup that reads its input file (`Module::READS_INPUT_FILE`,
+    /// PLAN.md decision 45), so its pool downloads files and needs the bucket's port.
+    pub fn reads_input_files(modules: &Modules) -> bool {
+        modules
+            .manifests()
+            .iter()
+            .any(|m| m.kind == ace_sdk::ModuleKind::Lookup && m.reads_input_file)
+    }
+
     /// The sandbox of an async pool's process: connects to its modules' TCP ports and to the
     /// lease API's, and to the bucket's, the port of `bucket_endpoint` (`bucket_port`), only when
     /// one of its modules adds files it fetched or `collects_files`, the pool hosting a file
-    /// collector, which uploads the file it fetched (PLAN.md decision 28); reads the files name
+    /// collector, which uploads the file it fetched (PLAN.md decision 28), or one of its modules
+    /// reads its input file, which it downloads (PLAN.md decision 45); reads the files name
     /// resolution and TLS need, and maps at most `address_space_bytes`. An endpoint whose port
     /// can't be read is refused only when the port is needed. The handlers' own ports are the
     /// caller's to add.
@@ -140,7 +150,7 @@ impl PoolDefinition {
             profile = profile.allow_port(port);
         }
         profile = profile.allow_port(api_port);
-        if collects_files || Self::adds_fetched_files(modules) {
+        if collects_files || Self::adds_fetched_files(modules) || Self::reads_input_files(modules) {
             profile = profile.allow_port(bucket_port(bucket_endpoint)?);
         }
         if let Some(port) = crate::telemetry::otlp_port() {
@@ -480,5 +490,32 @@ mod tests {
             1,
             "a port once"
         );
+    }
+
+    /// PLAN.md decision 45: a lookup that reads its input file downloads it, so its pool reaches the
+    /// bucket's port too; a lookup on files that doesn't declare it gives its pool no such port.
+    #[cfg(feature = "test-pools")]
+    #[test]
+    fn the_bucket_s_port_is_allowed_for_a_lookup_that_reads_its_file() {
+        use serde_json::json;
+        let without = crate::testing::modules(&json!({})).expect("the test modules");
+        let with =
+            crate::testing::modules(&json!({"test_reads_file": null})).expect("the test modules");
+        assert!(
+            without.lookup("test_file_record").is_some(),
+            "a lookup on files"
+        );
+        assert!(!PoolDefinition::reads_input_files(&without));
+        assert!(PoolDefinition::reads_input_files(&with));
+        assert!(!PoolDefinition::adds_fetched_files(&with));
+        let endpoint = Some("http://bucket:8333");
+        let profile =
+            PoolDefinition::lookup_sandbox(&with, false, 8080, endpoint, POOL_ADDRESS_SPACE)
+                .expect("a profile");
+        assert!(profile.tcp_ports.contains(&8333));
+        let profile =
+            PoolDefinition::lookup_sandbox(&without, false, 8080, endpoint, POOL_ADDRESS_SPACE)
+                .expect("a profile");
+        assert!(!profile.tcp_ports.contains(&8333));
     }
 }

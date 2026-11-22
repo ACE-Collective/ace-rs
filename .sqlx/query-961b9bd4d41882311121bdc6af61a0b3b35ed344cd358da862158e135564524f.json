@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT observable_id AS \"id: ObservableId\", directive, source\n               FROM analysis.directive_sources\n               WHERE root_id = $1 AND observable_id = ANY($2) AND source <> 'unrecorded'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: ObservableId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.directive_sources",
+            "name": "observable_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "directive",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.directive_sources",
+            "name": "directive"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.directive_sources",
+            "name": "source"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "961b9bd4d41882311121bdc6af61a0b3b35ed344cd358da862158e135564524f"
+}

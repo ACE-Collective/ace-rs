@@ -106,7 +106,7 @@ use crate::bucket::{ALERT_FILES, Bucket, BucketError, Hold};
 use crate::commands::{CommandState, CommandWorker};
 use crate::db::{Db, DbError, Isolation, Retryable};
 use crate::lists::ListCache;
-use crate::orchestrator::{Orchestrator, OrchestratorError, Rejected};
+use crate::orchestrator::{Ending, Orchestrator, OrchestratorError, Rejected};
 use crate::queue::{HELD_BACK_BY, QueueError, TASKS_CHANNEL, Task, TaskId, Worker};
 use crate::scans::{EndedScan, ScanRowState, ScanWorker};
 use crate::tree::{self, PATH_HOLD_LIMIT};
@@ -1281,7 +1281,8 @@ impl Api {
     /// the submission (`Module::READS_ADDED_BY`), the tags of what it's related to
     /// (`Module::READS_RELATED_TAGS`) and the root's event time (`Module::READS_EVENT_TIME`); and for
     /// the module's declaration alone, the gate (`wire::Gate`): those of the modules that added it,
-    /// whether it came with the submission and the root's mode that the declaration reads.
+    /// whether it came with the submission, where its directives came from and the root's mode
+    /// that the declaration reads.
     async fn lineage_reads(&self, task: &Task) -> Result<Lineage, Failure> {
         let catalog = self.inner.orchestrator.catalog();
         let Some(component) = catalog.component(&task.module) else {
@@ -1311,6 +1312,11 @@ impl Api {
         } else {
             Vec::new()
         };
+        let directive_sources = if reads.directive_sources {
+            tree::directive_sources(pool, root, observable).await?
+        } else {
+            Vec::new()
+        };
         Ok(Lineage {
             gate: ace_sdk::wire::Gate {
                 mode: the_root
@@ -1323,6 +1329,7 @@ impl Api {
                     Vec::new()
                 },
                 at_root: reads.at_root && at_root,
+                directive_sources,
             },
             added_by: if manifest.reads_added_by {
                 added_by
@@ -1519,7 +1526,9 @@ impl Api {
     }
 
     /// A file task's record and its download URL, or why the task can't run. A lease settles the
-    /// file's path (`tree::choose_analysis_file`); a replay only reads it.
+    /// file's path (`tree::choose_analysis_file`); a replay only reads it. Only a parser and a lookup
+    /// that reads its input's bytes (`Module::READS_INPUT_FILE`, PLAN.md decision 45) get the URL:
+    /// any other lookup gets the record alone, and its pool can't reach the bucket anyway.
     async fn task_file(
         &self,
         task: &Task,
@@ -1562,13 +1571,24 @@ impl Api {
             .iter()
             .filter_map(|tag| tag.parse::<YaraMeta>().ok())
             .collect();
-        let download = self
+        let reads_bytes = self
             .inner
-            .bucket
-            .store()
-            .presign_get(ALERT_FILES, &sha256, self.inner.config.url_expiry)
-            .await
-            .map_err(BucketError::from)?;
+            .orchestrator
+            .catalog()
+            .get(&task.module)
+            .is_some_and(|m| m.kind == ace_sdk::ModuleKind::Parser || m.reads_input_file);
+        let download = if reads_bytes {
+            let download = self
+                .inner
+                .bucket
+                .store()
+                .presign_get(ALERT_FILES, &sha256, self.inner.config.url_expiry)
+                .await
+                .map_err(BucketError::from)?;
+            Some(wire_presigned(download))
+        } else {
+            None
+        };
         // the file's type, which every task but its type step's own is leased after
         let facts = crate::type_step::facts_for(self.inner.db.pool(), &sha256.to_hex()).await?;
         Ok(Ok(TaskFile {
@@ -1578,7 +1598,7 @@ impl Api {
             facts,
             role: record.role.as_deref().and_then(|role| role.parse().ok()),
             yara_meta,
-            download: wire_presigned(download),
+            download,
         }))
     }
 
@@ -1594,7 +1614,7 @@ impl Api {
         result: Value,
         writes: &[crate::writes::Checked],
         probes: &std::collections::BTreeMap<String, String>,
-        incomplete: bool,
+        ending: Ending,
     ) -> Result<(), Failure> {
         let task = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
         let orchestrator = &self.inner.orchestrator;
@@ -1602,7 +1622,7 @@ impl Api {
             return Err(self.reject(worker, &task, &result, rejected).await);
         }
         if task.module == crate::type_step::TYPE_STEP {
-            if incomplete {
+            if ending == Ending::Incomplete {
                 return Err(Failure::BadRequest(
                     "a file's type step is never incomplete".to_owned(),
                 ));
@@ -1671,15 +1691,7 @@ impl Api {
                     }
                     crate::writes::apply(tx, stores, task, writes).await?;
                     orchestrator
-                        .land_ending(
-                            tx,
-                            worker,
-                            task,
-                            result,
-                            probes,
-                            !writes.is_empty(),
-                            incomplete,
-                        )
+                        .land_ending(tx, worker, task, result, probes, !writes.is_empty(), ending)
                         .await?;
                     Ok::<_, LandError>(())
                 })
@@ -2545,12 +2557,19 @@ async fn end_in(
             result,
             writes,
             probes,
+            keep,
         } => {
             let writes = api.check_writes(&worker, task, writes, false).await?;
             // checked as JSON, so each field that fails is named
             let result = serde_json::to_value(result)
                 .map_err(|e| Failure::Internal(format!("re-encoding a result: {e}")))?;
-            api.land(&worker, task, without_nul(result), &writes, &probes, false)
+            // a result its module asked the cache not to keep (PLAN.md decision 47)
+            let ending = if keep {
+                Ending::Done
+            } else {
+                Ending::DoneNotKept
+            };
+            api.land(&worker, task, without_nul(result), &writes, &probes, ending)
                 .await?
         }
         TaskEnd::Incomplete {
@@ -2561,8 +2580,15 @@ async fn end_in(
             let writes = api.check_writes(&worker, task, writes, false).await?;
             let result = serde_json::to_value(result)
                 .map_err(|e| Failure::Internal(format!("re-encoding a result: {e}")))?;
-            api.land(&worker, task, without_nul(result), &writes, &probes, true)
-                .await?
+            api.land(
+                &worker,
+                task,
+                without_nul(result),
+                &writes,
+                &probes,
+                Ending::Incomplete,
+            )
+            .await?
         }
         TaskEnd::Skipped { reason, writes } => {
             tracing::info!(%task, "skipped: {reason}");

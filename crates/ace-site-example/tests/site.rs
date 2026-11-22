@@ -1465,6 +1465,7 @@ fn a_site_s_parser_is_built_alone_in_its_task_process() {
     let facts = |path: &'static str| ace_sdk::takes::Facts {
         kind: ace_results::ObservableKind::File,
         directives: &[],
+        directive_sources: &[],
         relationships: &[],
         redirected: false,
         added_by: &[],

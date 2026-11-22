@@ -3655,6 +3655,110 @@ async fn a_kept_result_stands_in_for_the_task_in_a_later_root() {
     assert!(open);
 }
 
+/// PLAN.md decision 47: a result its module asked not to be kept (`Outcome::DoneNotKept`, as a
+/// lookup answers for a hash its vendor doesn't know) lands in its root as any result does, isn't
+/// kept, and the next root's lookup misses and queues a task; a plain `Done` is still kept.
+#[tokio::test]
+async fn a_result_its_module_asked_not_to_keep_lands_and_isn_t_kept() {
+    use ace_core::orchestrator::Ending;
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = cache_orchestrator(None);
+    let queued = |value: &str| {
+        (
+            "test_cached".to_owned(),
+            value.to_owned(),
+            "queued".to_owned(),
+        )
+    };
+    let land = |ending: Ending| {
+        let (test_db, orchestrator) = (&test_db, &orchestrator);
+        async move {
+            let pool = worker(
+                test_db,
+                "test_cached",
+                &["test_cached"],
+                Duration::from_secs(60),
+            )
+            .await;
+            let task = pool.claim().await.expect("claims").expect("a task");
+            let mut tx = test_db.db().begin().await.expect("begins");
+            orchestrator
+                .land_ending(
+                    &mut tx,
+                    &pool,
+                    &task,
+                    &result(json!({
+                        "analysis_type": "qr_code_analysis", "schema_version": 1,
+                        "details": {"extracted_text": "", "inverted": false},
+                        "summary": "unknown",
+                    })),
+                    &std::collections::BTreeMap::new(),
+                    false,
+                    ending,
+                )
+                .await
+                .expect("lands");
+            tx.commit().await.expect("commits");
+        }
+    };
+
+    let (first, _) = root_with(
+        db,
+        "cache_test",
+        &[(ObservableKind::Fqdn, "unknown.example")],
+    )
+    .await;
+    start(db, &orchestrator, first).await;
+    land(Ending::DoneNotKept).await;
+    let (summary, _, cached_at) = result_in(db, first, "test_cached")
+        .await
+        .expect("it lands in its root");
+    assert_eq!((summary.as_deref(), cached_at), (Some("unknown"), None));
+    assert_eq!(
+        tasks_of(db, first).await,
+        [(
+            "test_cached".to_owned(),
+            "unknown.example".to_owned(),
+            "done".to_owned()
+        )]
+    );
+    assert_eq!(kept_rows(db).await, 0, "not kept");
+    // the next root misses: no result from the cache, and a task of its own
+    let (second, _) = root_with(
+        db,
+        "cache_test",
+        &[(ObservableKind::Fqdn, "unknown.example")],
+    )
+    .await;
+    start(db, &orchestrator, second).await;
+    assert_eq!(result_in(db, second, "test_cached").await, None);
+    assert_eq!(tasks_of(db, second).await, [queued("unknown.example")]);
+    let misses: i32 = sqlx::query_scalar(
+        "SELECT misses FROM cache.activity WHERE module = 'test_cached' AND root_id = $1",
+    )
+    .bind(second)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(misses, 1);
+    // that task ends with a plain result, which is kept, and a third root takes it
+    land(Ending::Done).await;
+    assert_eq!(kept_rows(db).await, 1);
+    let (third, _) = root_with(
+        db,
+        "cache_test",
+        &[(ObservableKind::Fqdn, "unknown.example")],
+    )
+    .await;
+    start(db, &orchestrator, third).await;
+    assert!(tasks_of(db, third).await.is_empty(), "a hit, no task");
+    let (_, _, cached_at) = result_in(db, third, "test_cached")
+        .await
+        .expect("the kept result");
+    assert!(cached_at.is_some());
+}
+
 /// What isn't kept (a result with an error) and what misses: other settings, an expired row, and the
 /// cache turned off, which neither looks up nor keeps.
 #[tokio::test]
@@ -4566,7 +4670,11 @@ async fn land_as(
             &result(envelope),
             &std::collections::BTreeMap::new(),
             false,
-            incomplete,
+            if incomplete {
+                ace_core::orchestrator::Ending::Incomplete
+            } else {
+                ace_core::orchestrator::Ending::Done
+            },
         )
         .await
         .expect("lands");
@@ -5024,4 +5132,124 @@ async fn an_incomplete_result_isnt_kept() {
     // its rerun, complete, is
     land_as(&test_db, &orchestrator, "test_cached", found(), false).await;
     assert_eq!(kept_rows(db).await, 1);
+}
+
+/// PLAN.md decision 44: what a result adds, to its own observable and with the observables it adds,
+/// is recorded as its module's, and a directive whose source no one recorded has none; the
+/// observable's directives, which every other rule reads, are as before.
+#[tokio::test]
+async fn a_result_s_directives_are_its_module_s() {
+    use ace_sdk::directives::{DirectiveSource, SourcedDirective};
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = orchestrator();
+    let (root, ids) = root_with(db, "email", &[(ObservableKind::File, EMAIL_SHA256)]).await;
+    file_type_says_email(db, root, ids[0]).await;
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .queue_eligible(&mut tx, root, Scope::All, false)
+        .await
+        .expect("queues");
+    // a directive a submission stamped, and one from before sources were recorded
+    sqlx::query(
+        "UPDATE analysis.observables SET directives = '{sandbox,old}' WHERE root_id = $1 AND id = $2",
+    )
+    .bind(root)
+    .bind(ids[0].0)
+    .execute(tx.conn())
+    .await
+    .expect("stamps them");
+    tree::record_directive_sources(
+        &mut tx,
+        root,
+        ids[0],
+        &strings(&["sandbox"]),
+        tree::DirectivesFrom::submission("api_key:1"),
+    )
+    .await
+    .expect("records");
+    sqlx::query(
+        "INSERT INTO analysis.directive_sources (root_id, observable_id, directive, source, added_by)
+         VALUES ($1, $2, 'old', 'unrecorded', '')",
+    )
+    .bind(root)
+    .bind(ids[0].0)
+    .execute(tx.conn())
+    .await
+    .expect("records an unrecorded one");
+    tx.commit().await.expect("commits");
+    let scanner = worker(
+        &test_db,
+        "yara",
+        &["yara_scanner_v3_4"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = scanner.claim().await.expect("claims").expect("a task");
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .land_result(
+            &mut tx,
+            &scanner,
+            &task,
+            &result(json!({
+                "analysis_type": "yara_scan_results",
+                "schema_version": 1,
+                "details": {"matches": []},
+                "analyzed": {"directives": ["sandbox", "extract_urls"]},
+                "observables": [
+                    {"type": "fqdn", "value": "c2.example.com", "directives": ["crawl"]}
+                ],
+            })),
+        )
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+    let rows: Vec<(String, String, String, String)> = sqlx::query_as(
+        "SELECT o.value, s.directive, s.source, s.added_by FROM analysis.directive_sources s
+         JOIN analysis.observables o ON o.root_id = s.root_id AND o.id = s.observable_id
+         WHERE s.root_id = $1 ORDER BY o.value, s.directive, s.source",
+    )
+    .bind(root)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    let row = |value: &str, directive: &str, source: &str, by: &str| {
+        (
+            value.to_owned(),
+            directive.to_owned(),
+            source.to_owned(),
+            by.to_owned(),
+        )
+    };
+    assert_eq!(
+        rows,
+        [
+            row(EMAIL_SHA256, "extract_urls", "module", "yara_scanner_v3_4"),
+            row(EMAIL_SHA256, "old", "unrecorded", ""),
+            row(EMAIL_SHA256, "sandbox", "module", "yara_scanner_v3_4"),
+            row(EMAIL_SHA256, "sandbox", "submission", "api_key:1"),
+            row("c2.example.com", "crawl", "module", "yara_scanner_v3_4"),
+        ]
+    );
+    // as a lease and the core's declarations read them: no unrecorded one, each pair once
+    assert_eq!(
+        tree::directive_sources(db.pool(), root, ids[0])
+            .await
+            .expect("reads"),
+        [
+            SourcedDirective::new("extract_urls", DirectiveSource::Module),
+            SourcedDirective::new("sandbox", DirectiveSource::Submission),
+            SourcedDirective::new("sandbox", DirectiveSource::Module),
+        ]
+    );
+    let directives: Vec<String> = sqlx::query_scalar(
+        "SELECT directives FROM analysis.observables WHERE root_id = $1 AND id = $2",
+    )
+    .bind(root)
+    .bind(ids[0].0)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(directives, ["sandbox", "old", "extract_urls"]);
 }

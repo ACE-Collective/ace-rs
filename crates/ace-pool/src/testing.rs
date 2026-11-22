@@ -66,6 +66,8 @@ pub fn registry() -> Registry {
         .lookup::<Connect>()
         .lookup::<Fetches>()
         .lookup::<LookupWrites>()
+        .lookup::<ReadsFile>()
+        .lookup::<FileRecord>()
         .parser::<Capabilities>()
         .parser::<PanickingParser>()
         .parser::<Spin>()
@@ -94,8 +96,8 @@ pub fn registry() -> Registry {
 
 /// The components `test-pool` runs, each with its block from `settings`, an object keyed by
 /// module name. The YARA module is there only when `settings` has a block for it, since it
-/// needs a signature directory, and so is `test_fetches`, which gives a contained pool the
-/// bucket's port. A key that names no test module is refused.
+/// needs a signature directory, and so are `test_fetches` and `test_reads_file`, which give a
+/// contained pool the bucket's port. A key that names no test module is refused.
 pub fn components(settings: &Value) -> Result<Vec<Component>, SetupError> {
     let registry = registry();
     if let Some(unknown) = settings
@@ -108,9 +110,15 @@ pub fn components(settings: &Value) -> Result<Vec<Component>, SetupError> {
         .manifests()
         .into_iter()
         .filter(|manifest| {
-            // the YARA module needs a signature directory, and test_fetches gives its pool the
-            // bucket's port (PLAN.md decision 28), so each is there only when asked for
-            ![ace_mod_yara::YaraScanner::NAME, Fetches::NAME].contains(&manifest.name)
+            // the YARA module needs a signature directory, and test_fetches and test_reads_file
+            // give their pool the bucket's port (PLAN.md decisions 28 and 45), so each is there
+            // only when asked for
+            ![
+                ace_mod_yara::YaraScanner::NAME,
+                Fetches::NAME,
+                ReadsFile::NAME,
+            ]
+            .contains(&manifest.name)
                 || settings.get(manifest.name).is_some()
         })
         .map(|manifest| Component {
@@ -149,6 +157,8 @@ pub fn test_manifests() -> Vec<ace_sdk::Manifest> {
         ace_sdk::Manifest::lookup::<Connect>(),
         ace_sdk::Manifest::lookup::<Fetches>(),
         ace_sdk::Manifest::lookup::<LookupWrites>(),
+        ace_sdk::Manifest::lookup::<ReadsFile>(),
+        ace_sdk::Manifest::lookup::<FileRecord>(),
         ace_sdk::Manifest::parser::<Capabilities>(),
         ace_sdk::Manifest::parser::<PanickingParser>(),
         ace_sdk::Manifest::parser::<Spin>(),
@@ -194,6 +204,8 @@ note_type!(
     "test_lookup_writes_note",
     "test_lookup_writes"
 );
+note_type!(ReadsFileNote, "test_reads_file_note", "test_reads_file");
+note_type!(FileRecordNote, "test_file_record_note", "test_file_record");
 note_type!(
     CapabilitiesNote,
     "test_capabilities_note",
@@ -346,6 +358,83 @@ impl Lookup for Fetches {
             })
             .with_file(file),
         ))
+    }
+}
+
+/// What a lookup on a file saw of it: the sha256 and size of the bytes it was given, or that it
+/// was given none, and the file's path either way.
+fn what_it_read<S>(ctx: &TaskContext<S>) -> Result<String, ModuleError> {
+    let observable = ctx.observable();
+    let path = observable
+        .path
+        .as_ref()
+        .map_or("no path", |path| path.as_str());
+    Ok(match &observable.file {
+        Some(file) => {
+            let bytes = std::fs::read(&file.local_path)
+                .map_err(|e| ModuleError::other(format!("{}: {e}", file.local_path.display())))?;
+            let read = ace_results::Sha256(
+                sha2::Digest::finalize(<sha2::Sha256 as sha2::Digest>::new_with_prefix(&bytes))
+                    .into(),
+            );
+            format!(
+                "bytes {} {} (the record says {}); {path}",
+                read.to_hex(),
+                bytes.len(),
+                file.sha256.to_hex()
+            )
+        }
+        None => format!("no bytes; {path}"),
+    })
+}
+
+/// A lookup that reads its input file's bytes (`Module::READS_INPUT_FILE`, PLAN.md decision 45),
+/// as an upload to a vendor's sandbox does, and says what it read.
+pub struct ReadsFile;
+
+impl Module for ReadsFile {
+    const NAME: &'static str = "test_reads_file";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+    const READS_INPUT_FILE: bool = true;
+    type Output = ReadsFileNote;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(ReadsFile)
+    }
+}
+
+impl Lookup for ReadsFile {
+    const TCP_PORTS: &'static [u16] = &[];
+
+    async fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<ReadsFileNote>, ModuleError> {
+        Ok(Outcome::Done(ResultEnvelope::new(ReadsFileNote {
+            note: what_it_read(ctx)?,
+        })))
+    }
+}
+
+/// A lookup on a file that doesn't declare it reads the bytes, which it isn't given.
+pub struct FileRecord;
+
+impl Module for FileRecord {
+    const NAME: &'static str = "test_file_record";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+    type Output = FileRecordNote;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(FileRecord)
+    }
+}
+
+impl Lookup for FileRecord {
+    const TCP_PORTS: &'static [u16] = &[];
+
+    async fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<FileRecordNote>, ModuleError> {
+        Ok(Outcome::Done(ResultEnvelope::new(FileRecordNote {
+            note: what_it_read(ctx)?,
+        })))
     }
 }
 

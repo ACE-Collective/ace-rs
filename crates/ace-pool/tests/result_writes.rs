@@ -70,6 +70,7 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_a
         result: serde_json::from_value(invalid).expect("an envelope"),
         writes: Vec::new(),
         probes: Default::default(),
+        keep: true,
     };
     let refused = client.end(task.id, &done).await;
     let Err(ClientError::Api { status, error }) = refused else {
@@ -123,6 +124,7 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_a
                 result: serde_json::from_value(wrong_type).expect("an envelope"),
                 writes: Vec::new(),
                 probes: Default::default(),
+                keep: true,
             },
         )
         .await;
@@ -167,6 +169,7 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_a
                 result: serde_json::from_value(missing).expect("an envelope"),
                 writes: Vec::new(),
                 probes: Default::default(),
+                keep: true,
             },
         )
         .await;
@@ -191,6 +194,7 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_a
                 result: serde_json::from_value(valid).expect("an envelope"),
                 writes: Vec::new(),
                 probes: Default::default(),
+                keep: true,
             },
         )
         .await
@@ -273,6 +277,7 @@ async fn a_large_result_lands_and_one_past_the_limit_fails_its_task_at_once() {
                     result,
                     writes: Vec::new(),
                     probes: Default::default(),
+                    keep: true,
                 },
             )
             .await;
@@ -356,6 +361,7 @@ async fn a_result_relates_its_observable_only_to_one_in_the_root_or_one_it_adds(
         result: serde_json::from_value(result).expect("an envelope"),
         writes: Vec::new(),
         probes: Default::default(),
+        keep: true,
     };
     let related = |targets: &[(&str, &str)]| {
         json!({
@@ -483,6 +489,7 @@ async fn a_nul_from_a_hostile_file_doesnt_stop_a_task_ending() {
                 result: serde_json::from_value(result).expect("an envelope"),
                 writes: Vec::new(),
                 probes: Default::default(),
+                keep: true,
             },
         )
         .await
@@ -589,6 +596,7 @@ async fn a_result_that_says_it_failed_lands_with_its_reason_and_its_task_is_done
                 result: serde_json::from_value(failed).expect("an envelope"),
                 writes: Vec::new(),
                 probes: Default::default(),
+                keep: true,
             },
         )
         .await
@@ -639,6 +647,7 @@ async fn a_result_that_says_it_failed_lands_with_its_reason_and_its_task_is_done
                 result: serde_json::from_value(blank).expect("an envelope"),
                 writes: Vec::new(),
                 probes: Default::default(),
+                keep: true,
             },
         )
         .await;

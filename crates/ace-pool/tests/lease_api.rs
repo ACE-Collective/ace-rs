@@ -2790,6 +2790,7 @@ async fn the_archive_readers_add_the_email_the_core_opened() {
                 result: raw,
                 writes: Vec::new(),
                 probes: Default::default(),
+                keep: true,
             },
         )
         .await;
@@ -2846,6 +2847,7 @@ async fn the_archive_readers_add_the_email_the_core_opened() {
                 result: result.to_raw().expect("JSON"),
                 writes: Vec::new(),
                 probes: Default::default(),
+                keep: true,
             },
         )
         .await;
@@ -3074,6 +3076,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
                         result: result(),
                         writes,
                         probes: Default::default(),
+                        keep: true,
                     },
                 )
                 .await;
@@ -3096,6 +3099,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
                         result: result(),
                         writes,
                         probes: Default::default(),
+                        keep: true,
                     },
                 )
                 .await;
@@ -3125,6 +3129,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
                 result: result(),
                 writes: vec![own(&mine)],
                 probes: Default::default(),
+                keep: true,
             },
         )
         .await;
@@ -3140,6 +3145,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
                 result: result(),
                 writes: vec![own(&mine)],
                 probes: Default::default(),
+                keep: true,
             },
         )
         .await
@@ -3163,6 +3169,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
                 result: result(),
                 writes: vec![own(&mine)],
                 probes: Default::default(),
+                keep: true,
             },
         )
         .await;
@@ -3321,6 +3328,7 @@ async fn pcap_files_adds_what_pcap_analyzer_stored() {
                 result: result.to_raw().expect("JSON"),
                 writes: Vec::new(),
                 probes: Default::default(),
+                keep: true,
             },
         )
         .await;
@@ -6191,7 +6199,9 @@ async fn a_request_for_several_tasks_decides_each_lease_alone() {
         (file.path.as_str(), file.sha256.to_hex(), file.size),
         ("at-root.txt", at_root.clone(), 11)
     );
-    let bytes = reqwest::get(&file.download.url)
+    // test_spin is a parser, so it gets the download
+    let download = file.download.as_ref().expect("a parser's download");
+    let bytes = reqwest::get(&download.url)
         .await
         .expect("downloads")
         .bytes()
@@ -6727,6 +6737,13 @@ mod lineage {
             Takes::everything()
                 .and(Condition::AtRoot, "not at the root")
                 .and(Condition::Mode("analysis".to_owned()), "not analysis")
+                .and(
+                    Condition::directive_from(
+                        "upload_to_vt",
+                        &[ace_sdk::directives::DirectiveSource::Analyst],
+                    ),
+                    "no analyst asked",
+                )
         }
     }
 
@@ -6740,10 +6757,11 @@ mod lineage {
 
 /// A leased task carries the root's event time and where it came from to a module that reads it,
 /// whether its observable came with the submission to one that reads where it came from, and to a
-/// module whose declaration alone reads those and the mode, only the gate, which its `analyze`
-/// never sees.
+/// module whose declaration alone reads those, the mode and where its directives came from
+/// (PLAN.md decision 44), only the gate, which its `analyze` never sees.
 #[tokio::test]
 async fn a_lease_carries_the_event_time_and_the_gate_only_to_what_reads_them() {
+    use ace_sdk::directives::{DirectiveSource, SourcedDirective};
     use ace_sdk::wire::{EventTimeSource, Gate, RootEventTime};
     let names = ["test_reads_lineage", "test_gated"];
     let core = Core::start(
@@ -6767,14 +6785,23 @@ async fn a_lease_carries_the_event_time_and_the_gate_only_to_what_reads_them() {
     ace_core::tree::create_root(&mut tx, &root)
         .await
         .expect("creates");
-    let id = ace_core::tree::upsert_observable(
-        &mut tx,
-        root.id,
-        &ace_results::NewObservable::new(ace_results::ObservableKind::Fqdn, "a.example"),
-    )
-    .await
-    .expect("adds")
-    .id;
+    let stamped = ace_results::NewObservable {
+        directives: vec!["upload_to_vt".to_owned()],
+        ..ace_results::NewObservable::new(ace_results::ObservableKind::Fqdn, "a.example")
+    };
+    let id = ace_core::tree::upsert_observable(&mut tx, root.id, &stamped)
+        .await
+        .expect("adds")
+        .id;
+    for from in [
+        ace_core::tree::DirectivesFrom::hunt("splunk/hunt"),
+        ace_core::tree::DirectivesFrom::analyst("user:1"),
+        ace_core::tree::DirectivesFrom::analyst("user:2"),
+    ] {
+        ace_core::tree::record_directive_sources(&mut tx, root.id, id, &stamped.directives, from)
+            .await
+            .expect("records");
+    }
     for module in names {
         ace_core::queue::enqueue(&mut tx, root.id, id, module)
             .await
@@ -6800,6 +6827,11 @@ async fn a_lease_carries_the_event_time_and_the_gate_only_to_what_reads_them() {
             mode: Some("analysis".to_owned()),
             added_by: Vec::new(),
             at_root: true,
+            // each source once, whoever added it
+            directive_sources: vec![
+                SourcedDirective::new("upload_to_vt", DirectiveSource::Analyst),
+                SourcedDirective::new("upload_to_vt", DirectiveSource::Hunt),
+            ],
         }
     );
     assert!(!gated.at_root && gated.event_time.is_none() && gated.tree.is_none());
@@ -6942,4 +6974,179 @@ async fn an_incomplete_end_lands_its_result_and_marks_the_task() {
         (summary.as_str(), error.as_str()),
         ("as far as it goes", "the vendor answered 503")
     );
+}
+
+/// PLAN.md decision 45: the core sends a file's download to a lookup that reads its input file
+/// (`Module::READS_INPUT_FILE`) and to no other lookup, which gets the file's record alone.
+#[tokio::test]
+async fn only_a_lookup_that_reads_its_file_gets_its_download() {
+    let modules = ["test_reads_file", "test_file_record"];
+    let core = Core::start(
+        ace_pool::testing::test_manifests(),
+        &modules,
+        Duration::from_secs(60),
+    )
+    .await;
+    let db = core.test_db.db();
+    let root = ace_core::tree::NewRoot::new("analysis");
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    tx.commit().await.expect("commits");
+    let sha256 = core
+        .bucket
+        .put_bytes(
+            ALERT_FILES,
+            b"to a vendor",
+            Some(&ace_core::bucket::Hold::root(root.id)),
+        )
+        .await
+        .expect("puts the bytes")
+        .object
+        .sha256;
+    let mut tx = db.begin().await.expect("begins");
+    let id = ace_core::tree::upsert_observable(
+        &mut tx,
+        root.id,
+        &ace_results::NewObservable::new(ace_results::ObservableKind::File, sha256.to_hex()),
+    )
+    .await
+    .expect("adds")
+    .id;
+    ace_core::tree::add_file(&mut tx, root.id, id, "to-vendor.bin", &[])
+        .await
+        .expect("records the file");
+    for module in modules {
+        ace_core::queue::enqueue(&mut tx, root.id, id, module)
+            .await
+            .expect("queues");
+    }
+    tx.commit().await.expect("commits");
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let reads = lease_one(&client, "test_reads_file").await;
+    let file = reads.observable.file.as_ref().expect("its file");
+    let download = file.download.as_ref().expect("its download");
+    let bytes = reqwest::get(&download.url)
+        .await
+        .expect("downloads")
+        .bytes()
+        .await
+        .expect("the bytes");
+    assert_eq!(&bytes[..], b"to a vendor");
+    let record = lease_one(&client, "test_file_record").await;
+    let file = record.observable.file.as_ref().expect("its record");
+    assert_eq!(
+        (file.path.as_str(), file.sha256, file.download.is_none()),
+        ("to-vendor.bin", sha256, true)
+    );
+}
+
+/// A cacheable lookup, for decision 47's end through the lease API.
+mod not_kept {
+    use ace_results::ObservableKind;
+    use ace_sdk::example::LineStats;
+    use ace_sdk::{Lookup, Module, ModuleError, Outcome, TaskContext};
+
+    pub struct Cached;
+
+    impl Module for Cached {
+        const NAME: &'static str = "test_kept_or_not";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const CACHE: Option<ace_sdk::cache::Cache> = Some(ace_sdk::cache::Cache::new(
+            1,
+            std::time::Duration::from_secs(3600),
+        ));
+        type Output = LineStats;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(Cached)
+        }
+    }
+
+    impl Lookup for Cached {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<LineStats>, ModuleError> {
+            Ok(Outcome::Skipped(String::new()))
+        }
+    }
+}
+
+/// PLAN.md decision 47: a `Done` end that says not to keep its result lands the result and leaves
+/// the analysis cache without it; the same end without the flag is kept.
+#[tokio::test]
+async fn a_done_end_that_says_not_to_keep_is_landed_and_not_kept() {
+    let core = Core::start(
+        vec![ace_sdk::Manifest::lookup::<not_kept::Cached>()],
+        &["test_kept_or_not"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let db = core.test_db.db();
+    let root = ace_core::tree::NewRoot::new("analysis");
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    for value in ["unknown.example", "known.example"] {
+        let id = ace_core::tree::upsert_observable(
+            &mut tx,
+            root.id,
+            &ace_results::NewObservable::new(ace_results::ObservableKind::Fqdn, value),
+        )
+        .await
+        .expect("adds")
+        .id;
+        ace_core::queue::enqueue(&mut tx, root.id, id, "test_kept_or_not")
+            .await
+            .expect("queues");
+    }
+    tx.commit().await.expect("commits");
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let kept_rows = || async {
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM cache.results")
+            .fetch_one(db.pool())
+            .await
+            .expect("counts")
+    };
+    for _ in 0..2 {
+        let task = lease_one(&client, "test_kept_or_not").await;
+        let keep = task.observable.value == "known.example";
+        let result = ace_results::ResultEnvelope::new(ace_sdk::example::LineStats {
+            lines: 1,
+            longest_line: 1,
+            first_line: ace_results::Bytes::new(b"x".to_vec()),
+            truncated: false,
+        })
+        .to_raw()
+        .expect("raw");
+        client
+            .end(
+                task.id,
+                &ace_sdk::wire::TaskEnd::Done {
+                    result,
+                    writes: Vec::new(),
+                    probes: Default::default(),
+                    keep,
+                },
+            )
+            .await
+            .expect("ends");
+        assert_eq!(
+            kept_rows().await,
+            i64::from(keep),
+            "{}",
+            task.observable.value
+        );
+    }
+    let landed: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM analysis.results WHERE root_id = $1 AND module = 'test_kept_or_not'",
+    )
+    .bind(root.id)
+    .fetch_one(db.pool())
+    .await
+    .expect("counts");
+    assert_eq!(landed, 2, "both land in their root");
 }

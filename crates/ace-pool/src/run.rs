@@ -100,17 +100,24 @@ impl TaskDir {
     }
 }
 
-/// Downloads a file task's input into the task's directory and returns where it is.
+/// Downloads a file task's input into the task's directory and returns where it is. None for a task
+/// that isn't a file's, or whose lease carries no download: the core sends one to a parser and to a
+/// lookup that reads its file (`Module::READS_INPUT_FILE`, PLAN.md decision 45), and to no other.
 pub async fn fetch_input(
     client: &LeaseClient,
     task: &LeasedTask,
     dir: &TaskDir,
 ) -> Result<Option<PathBuf>, ClientError> {
-    let Some(file) = &task.observable.file else {
+    let Some(download) = task
+        .observable
+        .file
+        .as_ref()
+        .and_then(|file| file.download.as_ref())
+    else {
         return Ok(None);
     };
     let path = dir.input();
-    client.download(&file.download, &path).await?;
+    client.download(download, &path).await?;
     Ok(Some(path))
 }
 
@@ -272,12 +279,16 @@ pub async fn run_in_process(
 ) -> Result<TaskEnd, ClientError> {
     let keeper = LeaseKeeper::start(client, &task, shutdown);
     let dir = TaskDir::new()?;
-    // a lookup parses nothing hostile, so it gets a file's record and not its bytes: its pool
-    // can't reach the bucket (`pool::lookup_sandbox`), unless a module of it adds files it fetched,
-    // which it uploads and never downloads (PLAN.md decision 28)
-    let parser = modules.parser(&task.module).is_some();
+    // a lookup gets a file's record and not its bytes, unless it declares it reads them
+    // (`Module::READS_INPUT_FILE`, PLAN.md decision 45), as an upload to a vendor does: only then
+    // does the core send it a download, and its pool reach the bucket (`pool::lookup_sandbox`), as
+    // it does for a module that adds files it fetched (PLAN.md decision 28)
+    let reads_input = modules.parser(&task.module).is_some()
+        || modules
+            .lookup(&task.module)
+            .is_some_and(|lookup| lookup.manifest().reads_input_file);
     let input = async {
-        if parser {
+        if reads_input {
             fetch_input(client, &task, &dir).await
         } else {
             Ok(None)

@@ -1123,6 +1123,7 @@ async fn refuse(
                 &submission,
                 &origin,
                 &[],
+                crate::submit::StampedBy::Submitter,
             )
             .await?;
             inner.commit().await?;

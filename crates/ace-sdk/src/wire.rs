@@ -114,7 +114,10 @@ pub struct TaskFile {
     pub role: Option<FileRole>,
     #[serde(default)]
     pub yara_meta: Vec<YaraMeta>,
-    pub download: Presigned,
+    /// Where to download its bytes: for a parser, and for a lookup that reads them
+    /// (`Module::READS_INPUT_FILE`, PLAN.md decision 45). None for any other lookup.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub download: Option<Presigned>,
 }
 
 /// The observable a leased task analyzes.
@@ -259,11 +262,18 @@ pub struct Gate {
     /// The observable came with its root's submission (`takes::Condition::AtRoot`).
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub at_root: bool,
+    /// Where each of the observable's directives came from (`takes::Condition::DirectiveFrom`,
+    /// PLAN.md decision 44), in directive and source order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub directive_sources: Vec<crate::directives::SourcedDirective>,
 }
 
 impl Gate {
     pub fn is_empty(&self) -> bool {
-        self.mode.is_none() && self.added_by.is_empty() && !self.at_root
+        self.mode.is_none()
+            && self.added_by.is_empty()
+            && !self.at_root
+            && self.directive_sources.is_empty()
     }
 }
 
@@ -358,6 +368,11 @@ pub enum TaskEnd {
         /// kept under (`crate::cache`), so a result is kept under what made it. Empty for any other.
         #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
         probes: BTreeMap<String, String>,
+        /// False when the module asked that the analysis cache not keep the result
+        /// (`Outcome::DoneNotKept`, PLAN.md decision 47). True, the default, keeps it where its
+        /// module's results are kept.
+        #[serde(default = "keep_by_default", skip_serializing_if = "is_kept")]
+        keep: bool,
     },
     /// The module's result as far as it goes (`Outcome::Incomplete`, PLAN.md decision 34), landed
     /// as a `Done` is, writes and all, and the task runs again when its observable changes.
@@ -485,4 +500,13 @@ pub struct CommandEnd {
     pub outcome: CommandOutcome,
     pub output: String,
     pub output_truncated: bool,
+}
+
+fn keep_by_default() -> bool {
+    true
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)] // serde's skip_serializing_if passes a reference
+fn is_kept(keep: &bool) -> bool {
+    *keep
 }

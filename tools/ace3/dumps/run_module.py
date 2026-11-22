@@ -1425,6 +1425,8 @@ def tree_view(root):
                 "details": analysis_details(analysis),
                 # ace3's Analysis.error, kept only when the module failed (ace_sdk's TreeResult::error)
                 **({"error": analysis.error} if getattr(analysis, "error", None) else {}),
+                # the analysis's own detection points (ace_sdk's TreeResult::detections counts them)
+                "detections": [d.description for d in analysis.detections],
                 "added": [
                     {"observable": observable_index(o)} | ({"path": o.file_path} if o.type == "file" else {})
                     for o in analysis.observables

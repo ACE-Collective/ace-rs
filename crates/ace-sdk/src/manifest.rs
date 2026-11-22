@@ -123,6 +123,8 @@ pub struct Manifest {
     pub adds_stored_files: bool,
     /// The lookup adds files it fetched (`Module::ADDS_FETCHED_FILES`).
     pub adds_fetched_files: bool,
+    /// The lookup reads its input file's bytes (`Module::READS_INPUT_FILE`).
+    pub reads_input_file: bool,
     /// The analyst-edited lists the module reads (`Module::LISTS`).
     pub lists: &'static [ListSpec],
     /// The reads of ACE's own data the module makes (`Module::READS`).
@@ -162,6 +164,10 @@ impl Manifest {
         assert!(
             !M::ADDS_FETCHED_FILES,
             "a parser can't declare fetched files (Module::ADDS_FETCHED_FILES): its supervisor uploads its files"
+        );
+        assert!(
+            !M::READS_INPUT_FILE,
+            "a parser can't declare it reads its input file (Module::READS_INPUT_FILE): it always does"
         );
         Manifest::of::<M>(ModuleKind::Parser, Sandbox::Contained)
     }
@@ -222,6 +228,7 @@ impl Manifest {
             sets_root: M::SETS_ROOT,
             adds_stored_files: M::ADDS_STORED_FILES,
             adds_fetched_files: M::ADDS_FETCHED_FILES,
+            reads_input_file: M::READS_INPUT_FILE,
             lists: M::LISTS,
             reads: M::READS,
             writes: M::WRITES,
@@ -248,7 +255,8 @@ impl Manifest {
     /// What the module takes on a settings block (`Module::takes`, `crate::takes`), checked against
     /// what its lease carries: a rule on a dependency's result needs the dependency in
     /// `DEPENDS_ON`, and a lookup's rules can read a file's path but not its size, mime type or
-    /// `yara_meta`, which only a parser's lease carries. Otherwise the pool would decline on a fact
+    /// `yara_meta`, which only a parser's lease carries with the bytes, and a lookup's that reads its
+    /// input file (`Module::READS_INPUT_FILE`, PLAN.md decision 45). Otherwise the pool would decline on a fact
     /// its task lacks where the core took it. Which modules added the observable, whether it came
     /// with the submission and the root's mode come in the lease's gate for the declaration alone
     /// (`wire::Gate`), whatever the module's `analyze` reads.
@@ -263,9 +271,9 @@ impl Manifest {
         {
             return refuse(format!("{module}'s result, which isn't in DEPENDS_ON"));
         }
-        if reads.file_record && self.kind == ModuleKind::Lookup {
+        if reads.file_record && self.kind == ModuleKind::Lookup && !self.reads_input_file {
             return refuse(
-                "a file's size, type, role or yara_meta, which a lookup's lease lacks".into(),
+                "a file's size, type, role or yara_meta, which a lookup's lease lacks unless it reads its input file (READS_INPUT_FILE)".into(),
             );
         }
         Ok(takes)
@@ -801,6 +809,191 @@ mod tests {
             run(only_its_own).await,
             crate::Outcome::Skipped("only gated added it".to_owned())
         );
+    }
+
+    /// A cacheable lookup that takes `upload_to_vt` only from an analyst (PLAN.md decision 44) and
+    /// reads its input file's bytes (decision 45), as a site's VirusTotal upload does.
+    struct AnalystAsked;
+
+    impl Module for AnalystAsked {
+        const NAME: &'static str = "analyst_asked";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        const REQUIRED_DIRECTIVES: &'static [&'static str] = &["upload_to_vt"];
+        const READS_INPUT_FILE: bool = true;
+        const CACHE: Option<crate::cache::Cache> = Some(crate::cache::Cache::new(
+            1,
+            std::time::Duration::from_secs(60),
+        ));
+        type Output = crate::example::LineStats;
+        type Settings = DeclaringSettings;
+        fn init(_: &DeclaringSettings) -> Result<Self, crate::ModuleError> {
+            Ok(AnalystAsked)
+        }
+        fn takes(_: &DeclaringSettings) -> Takes {
+            Takes::everything().and(
+                crate::takes::Condition::directive_from(
+                    "upload_to_vt",
+                    &[crate::directives::DirectiveSource::Analyst],
+                ),
+                "no analyst asked for an upload",
+            )
+        }
+    }
+
+    impl crate::Lookup for AnalystAsked {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(
+            &self,
+            _: &crate::TaskContext<DeclaringSettings>,
+        ) -> Result<crate::Outcome<crate::example::LineStats>, crate::ModuleError> {
+            Ok(crate::Outcome::Skipped("ran".to_owned()))
+        }
+    }
+
+    /// The pool checks where a directive came from on the lease's gate, as the core did: a hunt's
+    /// or a module's doesn't run the module, an analyst's does. Neither the source, which only the
+    /// declaration reads, nor the file's bytes, which its value names, keeps it from the cache.
+    #[tokio::test]
+    async fn a_directive_s_source_decides_on_the_gate_and_the_cache_takes_the_module() {
+        use crate::directives::{DirectiveSource, SourcedDirective};
+        use crate::wire::Gate;
+        let manifest = Manifest::lookup::<AnalystAsked>();
+        assert!(manifest.reads_input_file && manifest.kind == ModuleKind::Lookup);
+        assert_eq!(manifest.cache_refusal(), None);
+        assert!(!Manifest::lookup::<Gated>().reads_input_file);
+        let run = |sources: Vec<SourcedDirective>| async move {
+            let mut observable = crate::Observable::new(ObservableKind::File, "0".repeat(64));
+            observable.directives = vec!["upload_to_vt".to_owned()];
+            let ctx = crate::TaskContext::new::<AnalystAsked>(
+                uuid::Uuid::nil(),
+                observable,
+                std::sync::Arc::new(DeclaringSettings::default()),
+            )
+            .with_gate(Gate {
+                directive_sources: sources,
+                ..Gate::default()
+            });
+            crate::run_lookup(&AnalystAsked, &ctx).await.expect("runs")
+        };
+        let declined = crate::Outcome::Skipped("no analyst asked for an upload".to_owned());
+        assert_eq!(run(Vec::new()).await, declined);
+        let others = vec![
+            SourcedDirective::new("upload_to_vt", DirectiveSource::Hunt),
+            SourcedDirective::new("upload_to_vt", DirectiveSource::Submission),
+            SourcedDirective::new("upload_to_vt", DirectiveSource::Module),
+            SourcedDirective::new("crawl", DirectiveSource::Analyst),
+        ];
+        assert_eq!(run(others).await, declined);
+        assert_eq!(
+            run(vec![SourcedDirective::new(
+                "upload_to_vt",
+                DirectiveSource::Analyst
+            )])
+            .await,
+            crate::Outcome::Skipped("ran".to_owned())
+        );
+    }
+
+    /// A parser that declares it reads its input file, which it always does.
+    struct ReadsItsInput;
+
+    impl Module for ReadsItsInput {
+        const NAME: &'static str = "reads_its_input";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        const READS_INPUT_FILE: bool = true;
+        type Output = crate::example::LineStats;
+        type Settings = LineCounterSettings;
+        fn init(_: &LineCounterSettings) -> Result<Self, crate::ModuleError> {
+            Ok(ReadsItsInput)
+        }
+    }
+
+    impl Parser for ReadsItsInput {
+        fn analyze(
+            &self,
+            _: &crate::TaskContext<LineCounterSettings>,
+        ) -> Result<crate::Outcome<crate::example::LineStats>, crate::ModuleError> {
+            Ok(crate::Outcome::Skipped(String::new()))
+        }
+    }
+
+    #[test]
+    fn only_a_lookup_declares_it_reads_its_input_file() {
+        let refused = std::panic::catch_unwind(Manifest::parser::<ReadsItsInput>);
+        assert!(refused.is_err());
+    }
+
+    /// A lookup that takes a file by its size and type, as a sandbox submission takes what its
+    /// vendor runs (PLAN.md decision 45), and reads its bytes or doesn't, as its setting says.
+    struct BySize;
+
+    impl Module for BySize {
+        const NAME: &'static str = "by_size";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        type Output = crate::example::LineStats;
+        type Settings = DeclaringSettings;
+        fn init(_: &DeclaringSettings) -> Result<Self, crate::ModuleError> {
+            Ok(BySize)
+        }
+        fn takes(_: &DeclaringSettings) -> Takes {
+            Takes::everything()
+                .and(crate::takes::Condition::not_empty(), "an empty file")
+                .and(
+                    crate::takes::Condition::type_fact(crate::takes::TypeFact::IsPeFile),
+                    "not a PE",
+                )
+        }
+    }
+
+    impl crate::Lookup for BySize {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(
+            &self,
+            _: &crate::TaskContext<DeclaringSettings>,
+        ) -> Result<crate::Outcome<crate::example::LineStats>, crate::ModuleError> {
+            Ok(crate::Outcome::Skipped(String::new()))
+        }
+    }
+
+    struct BySizeWithBytes;
+
+    impl Module for BySizeWithBytes {
+        const NAME: &'static str = "by_size_with_bytes";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        const READS_INPUT_FILE: bool = true;
+        type Output = crate::example::LineStats;
+        type Settings = DeclaringSettings;
+        fn init(_: &DeclaringSettings) -> Result<Self, crate::ModuleError> {
+            Ok(BySizeWithBytes)
+        }
+        fn takes(settings: &DeclaringSettings) -> Takes {
+            BySize::takes(settings)
+        }
+    }
+
+    impl crate::Lookup for BySizeWithBytes {
+        const TCP_PORTS: &'static [u16] = &[];
+        async fn analyze(
+            &self,
+            _: &crate::TaskContext<DeclaringSettings>,
+        ) -> Result<crate::Outcome<crate::example::LineStats>, crate::ModuleError> {
+            Ok(crate::Outcome::Skipped(String::new()))
+        }
+    }
+
+    /// A lookup's lease carries a file's size and type only with its bytes, so only a lookup that
+    /// reads them may declare on them.
+    #[test]
+    fn a_lookup_declares_on_a_file_s_record_only_when_it_reads_the_file() {
+        assert!(matches!(
+            Manifest::lookup::<BySize>().declaration(None),
+            Err(DeclarationError::Unread("by_size", _))
+        ));
+        let takes = Manifest::lookup::<BySizeWithBytes>()
+            .declaration(None)
+            .expect("its lease carries the record");
+        let reads = takes.reads();
+        assert!(reads.file_record && reads.file_type);
     }
 
     /// A cacheable lookup that depends on a module whose result only its declaration reads, and

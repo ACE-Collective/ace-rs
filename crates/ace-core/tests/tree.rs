@@ -1122,3 +1122,113 @@ async fn the_pattern_index_migration_waits_five_seconds_for_its_lock() {
         ["observables_by_value_end", "observables_by_value_start"]
     );
 }
+
+/// Migration 0082 (PLAN.md decision 44) records where the directives already on observables came
+/// from: an analyst's, from `add_directives`' audit rows, with who asked, for each directive
+/// asked for that the observable has; every other `unrecorded`, with no one. Its two INSERTs, run
+/// here on rows as they were before it, and again, which adds nothing.
+#[tokio::test]
+async fn migration_0082_records_an_analyst_s_directives_from_the_audit() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let migration = include_str!("../migrations/0082_directive_sources.sql");
+    let start = migration
+        .find("INSERT INTO analysis.directive_sources")
+        .expect("the migration's backfill");
+    let backfill = &migration[start..];
+    let root = NewRoot::new("correlation");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    let mut ids = Vec::new();
+    for (value, directives) in [
+        ("asked.example.com", vec!["crawl", "sandbox"]),
+        ("never.example.com", vec!["crawl"]),
+    ] {
+        let new = NewObservable {
+            directives: directives.into_iter().map(str::to_owned).collect(),
+            ..NewObservable::new(ObservableKind::Fqdn, value)
+        };
+        ids.push(
+            upsert_observable(&mut tx, root.id, &new)
+                .await
+                .expect("adds")
+                .id,
+        );
+    }
+    // an analyst asked for crawl and extract_urls on the first; extract_urls isn't on it (as if
+    // it had been taken off), and a row for something else names the second
+    for (action, target, requested) in [
+        (
+            "add_directives",
+            format!("{}/{}", root.id, ids[0].0),
+            json!(["crawl", "extract_urls"]),
+        ),
+        (
+            "set_owner",
+            format!("{}/{}", root.id, ids[1].0),
+            json!(["crawl"]),
+        ),
+        (
+            "add_directives",
+            "not-an-observable".to_owned(),
+            json!(["crawl"]),
+        ),
+    ] {
+        sqlx::query(
+            "INSERT INTO service.audit (actor, action, target_kind, target_id, after, details)
+             VALUES ('{\"kind\": \"user\", \"id\": \"7\"}', $1, 'observable', $2, '{}',
+                     jsonb_build_object('requested', $3::jsonb))",
+        )
+        .bind(action)
+        .bind(target)
+        .bind(requested)
+        .execute(tx.conn())
+        .await
+        .expect("audits");
+    }
+    sqlx::query("DELETE FROM analysis.directive_sources WHERE root_id = $1")
+        .bind(root.id)
+        .execute(tx.conn())
+        .await
+        .expect("as before the migration");
+    for _ in 0..2 {
+        sqlx::raw_sql(backfill)
+            .execute(tx.conn())
+            .await
+            .expect("backfills");
+    }
+    let rows: Vec<(String, String, String, String)> = sqlx::query_as(
+        "SELECT o.value, s.directive, s.source, s.added_by FROM analysis.directive_sources s
+         JOIN analysis.observables o ON o.root_id = s.root_id AND o.id = s.observable_id
+         WHERE s.root_id = $1 ORDER BY o.value, s.directive, s.source",
+    )
+    .bind(root.id)
+    .fetch_all(tx.conn())
+    .await
+    .expect("reads");
+    let row = |value: &str, directive: &str, source: &str, by: &str| {
+        (
+            value.to_owned(),
+            directive.to_owned(),
+            source.to_owned(),
+            by.to_owned(),
+        )
+    };
+    assert_eq!(
+        rows,
+        [
+            row("asked.example.com", "crawl", "analyst", "user:7"),
+            row("asked.example.com", "sandbox", "unrecorded", ""),
+            row("never.example.com", "crawl", "unrecorded", ""),
+        ]
+    );
+    assert_eq!(
+        tree::directive_sources(tx.conn(), root.id, ids[0])
+            .await
+            .expect("reads"),
+        [ace_sdk::directives::SourcedDirective::new(
+            "crawl",
+            ace_sdk::directives::DirectiveSource::Analyst
+        )]
+    );
+}

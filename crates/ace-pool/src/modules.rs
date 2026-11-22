@@ -248,16 +248,9 @@ pub fn task_end<D: AnalysisType>(
     writes: Vec<WireWrite>,
 ) -> TaskEnd {
     match outcome {
-        Ok(Outcome::Done(result)) => match result.to_raw() {
-            Ok(result) => TaskEnd::Done {
-                result,
-                writes,
-                probes: Default::default(),
-            },
-            Err(e) => TaskEnd::Failed {
-                error: format!("the result doesn't serialize: {e}"),
-            },
-        },
+        Ok(Outcome::Done(result)) => done(&result, writes, true),
+        // a result the analysis cache isn't to keep (PLAN.md decision 47)
+        Ok(Outcome::DoneNotKept(result)) => done(&result, writes, false),
         Ok(Outcome::Incomplete(result)) => match result.to_raw() {
             Ok(result) => TaskEnd::Incomplete {
                 result,
@@ -281,6 +274,25 @@ pub fn task_end<D: AnalysisType>(
         Err(ModuleError::Cancelled) => TaskEnd::Cancelled,
         Err(e) => TaskEnd::Failed {
             error: e.to_string(),
+        },
+    }
+}
+
+/// A `Done` end for `result`, kept by the analysis cache or not.
+fn done<D: AnalysisType>(
+    result: &ace_results::ResultEnvelope<D>,
+    writes: Vec<WireWrite>,
+    keep: bool,
+) -> TaskEnd {
+    match result.to_raw() {
+        Ok(result) => TaskEnd::Done {
+            result,
+            writes,
+            probes: Default::default(),
+            keep,
+        },
+        Err(e) => TaskEnd::Failed {
+            error: format!("the result doesn't serialize: {e}"),
         },
     }
 }
@@ -585,6 +597,44 @@ mod tests {
             panic!("a delay")
         };
         assert_eq!(writes[0].write, "remediation-check");
+    }
+
+    /// PLAN.md decision 47: a result its module asked the cache not to keep goes as a `Done` that
+    /// says so, with its writes; a plain one says nothing, and reads back as kept.
+    #[test]
+    fn a_result_not_to_keep_ends_as_a_done_that_says_so() {
+        let result = ace_results::ResultEnvelope::new(ace_sdk::example::LineStats {
+            lines: 1,
+            longest_line: 1,
+            first_line: ace_results::Bytes::new(b"x".to_vec()),
+            truncated: false,
+        });
+        let writes = || {
+            vec![WireWrite {
+                write: "smtp-log".to_owned(),
+                body: serde_json::json!({}),
+            }]
+        };
+        let not_kept = task_end(Ok(Outcome::DoneNotKept(result.clone())), writes());
+        assert!(
+            matches!(&not_kept, TaskEnd::Done { keep: false, writes, .. } if writes.len() == 1),
+            "{not_kept:?}"
+        );
+        let kept = task_end(Ok(Outcome::Done(result)), writes());
+        assert!(
+            matches!(&kept, TaskEnd::Done { keep: true, .. }),
+            "{kept:?}"
+        );
+        let wire = serde_json::to_value(&not_kept).expect("writes");
+        assert_eq!(
+            (&wire["outcome"], &wire["keep"]),
+            (&serde_json::json!("done"), &serde_json::json!(false)),
+            "{wire}"
+        );
+        let wire = serde_json::to_value(&kept).expect("writes");
+        assert!(wire.get("keep").is_none(), "{wire}");
+        let back: TaskEnd = serde_json::from_value(wire).expect("reads");
+        assert!(matches!(back, TaskEnd::Done { keep: true, .. }));
     }
 
     #[test]

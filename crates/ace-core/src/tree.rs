@@ -497,6 +497,115 @@ pub async fn add_to_observable(
     Ok(())
 }
 
+/// Who added directives to an observable, for `record_directive_sources` (PLAN.md decision 44).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DirectivesFrom<'a> {
+    pub source: ace_sdk::directives::DirectiveSource,
+    /// An analyst's or a submitter's identity as the audit names it (`user:3`), a hunt's name, or a
+    /// module's key.
+    pub by: &'a str,
+}
+
+impl<'a> DirectivesFrom<'a> {
+    pub fn analyst(identity: &'a str) -> Self {
+        DirectivesFrom {
+            source: ace_sdk::directives::DirectiveSource::Analyst,
+            by: identity,
+        }
+    }
+
+    pub fn hunt(name: &'a str) -> Self {
+        DirectivesFrom {
+            source: ace_sdk::directives::DirectiveSource::Hunt,
+            by: name,
+        }
+    }
+
+    pub fn submission(submitter: &'a str) -> Self {
+        DirectivesFrom {
+            source: ace_sdk::directives::DirectiveSource::Submission,
+            by: submitter,
+        }
+    }
+
+    pub fn module(key: &'a str) -> Self {
+        DirectivesFrom {
+            source: ace_sdk::directives::DirectiveSource::Module,
+            by: key,
+        }
+    }
+}
+
+/// Records where `directives`, which the caller has just added to the observable (`upsert_observable`,
+/// `add_to_observable` or its own update), came from. The observable's directives are what every rule
+/// reads; this is what a declaration's `Condition::DirectiveFrom` reads (`directive_sources`). A
+/// directive and source recorded already for the same `by` is left as it is. Every writer of an
+/// observable's directives in the core and the service calls it with its own source.
+pub async fn record_directive_sources(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    observable: ObservableId,
+    directives: &[String],
+    from: DirectivesFrom<'_>,
+) -> Result<(), DbError> {
+    if directives.is_empty() {
+        return Ok(());
+    }
+    // a source the table refuses (`unrecorded`) is never written, and every other names who
+    let by = if from.by.is_empty() {
+        "unnamed"
+    } else {
+        from.by
+    };
+    sqlx::query!(
+        "INSERT INTO analysis.directive_sources (root_id, observable_id, directive, source, added_by)
+         SELECT $1, $2, d, $4, $5 FROM unnest($3::text[]) AS d
+         ON CONFLICT DO NOTHING",
+        root,
+        observable as ObservableId,
+        directives,
+        from.source.as_str(),
+        by,
+    )
+    .execute(tx.conn())
+    .await?;
+    Ok(())
+}
+
+/// Where each of the observable's directives came from, sorted by directive and source, each pair
+/// once whoever added it. A directive whose source wasn't recorded (`unrecorded`, from before
+/// PLAN.md decision 44) has none here.
+pub async fn directive_sources<'e>(
+    executor: impl PgExecutor<'e>,
+    root: Uuid,
+    observable: ObservableId,
+) -> Result<Vec<ace_sdk::directives::SourcedDirective>, DbError> {
+    let rows = sqlx::query!(
+        r#"SELECT DISTINCT directive, source FROM analysis.directive_sources
+           WHERE root_id = $1 AND observable_id = $2 AND source <> 'unrecorded'
+           ORDER BY directive, source"#,
+        root,
+        observable as ObservableId,
+    )
+    .fetch_all(executor)
+    .await?;
+    let mut sources = rows
+        .into_iter()
+        .map(|row| {
+            let source = row
+                .source
+                .parse()
+                .map_err(|e| DbError::Decode(format!("observable {}: {e}", observable.0)))?;
+            Ok(ace_sdk::directives::SourcedDirective::new(
+                row.directive,
+                source,
+            ))
+        })
+        .collect::<Result<Vec<_>, DbError>>()?;
+    sources.sort();
+    Ok(sources)
+}
+
 /// The observable this one redirects to, as a result named it.
 pub async fn redirection<'e>(
     executor: impl PgExecutor<'e>,
@@ -1415,9 +1524,25 @@ pub async fn tree_view(
             analysis_type: row.analysis_type,
             tags: row.tags,
             error: row.error,
+            detections: 0,
             added: Vec::new(),
             details: row.details,
         });
+    }
+    // what each result raised, on itself or on its observable, as ace3 counts an analysis's
+    // detection points (PLAN.md decision 46)
+    let raised = sqlx::query!(
+        r#"SELECT result_id AS "result_id!: ResultId", count(*) AS "detections!"
+           FROM analysis.detections WHERE root_id = $1 AND result_id IS NOT NULL
+           GROUP BY result_id"#,
+        root,
+    )
+    .fetch_all(pool)
+    .await?;
+    for row in raised {
+        if let Some(&result) = result_index.get(&row.result_id) {
+            results[result].detections = u32::try_from(row.detections).unwrap_or(u32::MAX);
+        }
     }
     let additions = sqlx::query!(
         r#"SELECT result_id AS "result_id: ResultId", observable_id AS "observable_id: ObservableId",

@@ -662,6 +662,7 @@ mod tests {
             let facts = ace_sdk::takes::Facts {
                 kind: ObservableKind::File,
                 directives: &[],
+                directive_sources: &[],
                 relationships: &[],
                 redirected: false,
                 added_by: &[],

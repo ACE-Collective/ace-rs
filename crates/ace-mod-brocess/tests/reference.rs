@@ -612,6 +612,7 @@ async fn the_entry_names_the_email_the_archiver_archived() {
             analysis_type: "email_archive_results".to_owned(),
             tags: Vec::new(),
             error: None,
+            detections: 0,
             added: Vec::new(),
             details: None,
         }],
@@ -849,6 +850,7 @@ async fn emailtree_view(dump: &Dump, this: usize, leave_out: &str) -> ace_sdk::t
             analysis_type: EmailConversationFrequencyAnalysis::NAME.to_owned(),
             tags: Vec::new(),
             error: None,
+            detections: 0,
             added: Vec::new(),
             details: None,
         });
@@ -938,6 +940,9 @@ async fn the_attachment_and_link_modules_match_the_reference_dumps_or_lists_each
                 Outcome::Skipped(_) => {}
                 Outcome::Delay(_) => panic!("{} {path}: the module delayed", dump.name),
                 Outcome::Incomplete(_) => panic!("{} {path}: the module was incomplete", dump.name),
+                Outcome::DoneNotKept(_) => {
+                    panic!("{} {path}: the module's result was not kept", dump.name)
+                }
             }
         }
         compared.push((
@@ -1000,6 +1005,9 @@ async fn the_attachment_and_link_modules_match_the_reference_dumps_or_lists_each
                 Outcome::Delay(_) => panic!("{} {value}: the module delayed", dump.name),
                 Outcome::Incomplete(_) => {
                     panic!("{} {value}: the module was incomplete", dump.name)
+                }
+                Outcome::DoneNotKept(_) => {
+                    panic!("{} {value}: the module's result was not kept", dump.name)
                 }
             }
         }

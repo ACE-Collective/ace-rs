@@ -845,6 +845,8 @@ async fn record_decisions(
                     &hit.submission,
                     &hit.origin,
                     &[],
+                    // the hunt as its run's audit row names it
+                    crate::submit::StampedBy::Hunt(&format!("{}/{}", run.kind, run.name)),
                 )
                 .await?;
                 if let Some(key) = &hit.dedup_key {

@@ -13,7 +13,10 @@
 //! adds the new ones to the observable's row and moves the root to correlation mode
 //! (`Orchestrator::set_mode`), which reruns eligibility over every observable and queues again what a
 //! disposition cancelled, in one transaction with its audit row. A module whose required directive was
-//! added is queued then. A module that already ran on the observable isn't run again, as in ace3, where
+//! added is queued then. Each directive asked for is recorded as the analyst's (PLAN.md decision 44),
+//! the ones the observable had already too, so a module that takes a directive only from an analyst
+//! (`ace_sdk::takes::Condition::DirectiveFrom`) runs on an observable a hunt stamped it on once an
+//! analyst asks for it. A module that already ran on the observable isn't run again, as in ace3, where
 //! the engine skips a module whose analysis exists.
 //!
 //! Not here from ace3: `request_analyst_analysis` also clears the root's failed modules so they run
@@ -145,6 +148,17 @@ impl Service {
                         &added,
                     )
                     .fetch_one(tx.conn())
+                    .await?;
+                    // each asked for is the analyst's, one the observable had too, so a module that
+                    // takes it only from an analyst runs now (PLAN.md decision 44)
+                    let identity = actor.to_string();
+                    ace_core::tree::record_directive_sources(
+                        tx,
+                        root,
+                        ace_core::tree::ObservableId(observable),
+                        &requested,
+                        ace_core::tree::DirectivesFrom::analyst(&identity),
+                    )
                     .await?;
                     // ace3's request_analyst_analysis: correlation mode, so a dispositioned alert runs
                     // what the directive lets in, and what its disposition cancelled

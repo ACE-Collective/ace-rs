@@ -92,7 +92,14 @@ impl Service {
                         }
                     }
                     let (submitted, change) = crate::submit::submit_in(
-                        tx, self, bucket, actor, submission, origin, files,
+                        tx,
+                        self,
+                        bucket,
+                        actor,
+                        submission,
+                        origin,
+                        files,
+                        crate::submit::StampedBy::Submitter,
                     )
                     .await?;
                     if let Some(key) = key {

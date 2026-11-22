@@ -2,7 +2,8 @@
 //! queued, a panicking task leaves a failed row while the others finish, and a lookup can't
 //! connect to a port its manifest doesn't allow. And decision 28's: a contained pool reaches the
 //! bucket only when one of its modules adds files it fetched, and the core refuses an upload from a
-//! lookup that doesn't declare it.
+//! lookup that doesn't declare it. And decision 45's: a lookup that reads its input file gets its
+//! bytes, and its pool the bucket's port, and one that doesn't gets neither.
 
 mod common;
 
@@ -195,10 +196,19 @@ async fn run_contained(
     module: &str,
     values: &[&str],
 ) -> uuid::Uuid {
-    let endpoint = std::env::var(ace_pool::pool::BUCKET_ENDPOINT_VAR)
-        .expect("the dev container's ACE4_BUCKET_ENDPOINT");
     let values: Vec<String> = values.iter().map(|v| (*v).to_owned()).collect();
     let root = root_with_tasks(core, &values, module).await;
+    run_contained_root(core, settings, root).await
+}
+
+/// Runs a contained `lookups` pool with these settings until `root` has no task left to run.
+async fn run_contained_root(
+    core: &Core,
+    settings: serde_json::Value,
+    root: uuid::Uuid,
+) -> uuid::Uuid {
+    let endpoint = std::env::var(ace_pool::pool::BUCKET_ENDPOINT_VAR)
+        .expect("the dev container's ACE4_BUCKET_ENDPOINT");
     let mut pool = test_pool(
         core,
         &[
@@ -319,6 +329,94 @@ async fn a_pool_reaches_the_bucket_only_when_a_module_adds_files_it_fetched() {
             .await
             .expect("counts");
     assert_eq!(results, 0);
+}
+
+/// PLAN.md decision 45: a lookup that reads its input file (`Module::READS_INPUT_FILE`) gets the
+/// file's bytes in a contained network pool, which reaches the bucket's port only because such a
+/// module is in it; a lookup on the same file that doesn't declare it gets the file's path and no
+/// bytes, and the core sends it no download.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_lookup_reads_its_input_file_only_when_it_declares_it() {
+    use ace_core::bucket::{ALERT_FILES, Hold};
+    use ace_core::tree;
+    let modules = ["test_connect", "test_reads_file", "test_file_record"];
+    let core = Core::start(testing::test_manifests(), &modules, Duration::from_secs(30)).await;
+    let db = core.test_db.db();
+
+    // without a module that reads its file, the bucket's port is refused
+    let root = run_contained(&core, json!({}), "test_connect", &["without.example.com"]).await;
+    let note = connect_note(&core, root).await;
+    assert!(
+        note.ends_with("; bucket: Permission denied (os error 13)"),
+        "{note}"
+    );
+    let settings = json!({"test_reads_file": null});
+    let root = run_contained(
+        &core,
+        settings.clone(),
+        "test_connect",
+        &["with.example.com"],
+    )
+    .await;
+    let note = connect_note(&core, root).await;
+    assert!(note.ends_with("; bucket: connected"), "{note}");
+
+    // a file for both lookups
+    let bytes = b"a file a vendor's sandbox would take";
+    let root = ace_core::tree::NewRoot::new("analysis");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    tx.commit().await.expect("commits");
+    let sha256 = core
+        .bucket
+        .put_bytes(ALERT_FILES, bytes, Some(&Hold::root(root.id)))
+        .await
+        .expect("puts the bytes")
+        .object
+        .sha256;
+    let mut tx = db.begin().await.expect("begins");
+    let id = tree::upsert_observable(
+        &mut tx,
+        root.id,
+        &ace_results::NewObservable::new(ace_results::ObservableKind::File, sha256.to_hex()),
+    )
+    .await
+    .expect("adds")
+    .id;
+    tree::add_file(&mut tx, root.id, id, "sample.bin", &[])
+        .await
+        .expect("records the file");
+    for module in ["test_reads_file", "test_file_record"] {
+        ace_core::queue::enqueue(&mut tx, root.id, id, module)
+            .await
+            .expect("queues");
+    }
+    tx.commit().await.expect("commits");
+    run_contained_root(&core, settings, root.id).await;
+    let notes: Vec<(String, String)> = sqlx::query_as(
+        "SELECT module, details->>'note' FROM analysis.results WHERE root_id = $1 ORDER BY module",
+    )
+    .bind(root.id)
+    .fetch_all(db.pool())
+    .await
+    .expect("the results");
+    let hex = sha256.to_hex();
+    assert_eq!(
+        notes,
+        [
+            (
+                "test_file_record".to_owned(),
+                "no bytes; sample.bin".to_owned()
+            ),
+            (
+                "test_reads_file".to_owned(),
+                format!(
+                    "bytes {hex} {} (the record says {hex}); sample.bin",
+                    bytes.len()
+                )
+            ),
+        ]
+    );
 }
 
 fn signal(pool: &PoolProcess, signal: i32) {

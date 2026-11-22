@@ -11,8 +11,90 @@
 //! open-source ones are `BUILTIN`, those of ace3's `GUI_DIRECTIVES` an ace4 module reads, and a site adds its
 //! own through `ace_app::App::directives`. `directive_list` checks the whole list when the binary
 //! starts, and an analyst's request for a directive it doesn't hold is refused.
+//!
+//! **Where a directive came from** (PLAN.md decision 44). The core records a source for each
+//! directive as it lands on an observable (`DirectiveSource`): an analyst who added it, a hunt or
+//! another submission that stamped it, or a module's result that added it. An observable keeps one
+//! list of directives whatever their sources, which is what every rule but one reads. That one is
+//! a declaration's `takes::Condition::DirectiveFrom`, which holds only for a directive from the
+//! sources it names: a module that sends a file out of ACE when asked, such as an upload to a
+//! vendor, takes the directive only from an analyst, so a hunt or a submission that stamps it
+//! uploads nothing.
 
 use std::fmt;
+use std::str::FromStr;
+
+use serde::{Deserialize, Serialize};
+
+/// Where a directive on an observable came from. A directive can have several: a module may add one
+/// an analyst added too.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DirectiveSource {
+    /// An analyst added it (PLAN.md decision 31's Add Directive), recorded with who they are.
+    Analyst,
+    /// A hunt's submission stamped it, recorded with the hunt's name.
+    Hunt,
+    /// Any other submission stamped it: the API's, a collector's, or one ACE makes itself, recorded
+    /// with who submitted it.
+    Submission,
+    /// A module's result added it, a core hook's and a result the analysis cache kept among them,
+    /// recorded with the module's key.
+    Module,
+}
+
+impl DirectiveSource {
+    pub const ALL: [DirectiveSource; 4] = [
+        DirectiveSource::Analyst,
+        DirectiveSource::Hunt,
+        DirectiveSource::Submission,
+        DirectiveSource::Module,
+    ];
+
+    /// Its name, as `analysis.directive_sources.source` stores it.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            DirectiveSource::Analyst => "analyst",
+            DirectiveSource::Hunt => "hunt",
+            DirectiveSource::Submission => "submission",
+            DirectiveSource::Module => "module",
+        }
+    }
+}
+
+impl FromStr for DirectiveSource {
+    type Err = String;
+
+    fn from_str(name: &str) -> Result<Self, Self::Err> {
+        DirectiveSource::ALL
+            .into_iter()
+            .find(|source| source.as_str() == name)
+            .ok_or_else(|| format!("not a directive source: {name:?}"))
+    }
+}
+
+impl fmt::Display for DirectiveSource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// A directive on an observable and one source of it.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SourcedDirective {
+    pub directive: String,
+    pub source: DirectiveSource,
+}
+
+impl SourcedDirective {
+    pub fn new(directive: impl Into<String>, source: DirectiveSource) -> SourcedDirective {
+        SourcedDirective {
+            directive: directive.into(),
+            source,
+        }
+    }
+}
 
 /// A directive an analyst may add: its name, and what it asks for, which the menu shows beside it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -148,6 +230,18 @@ impl fmt::Display for Directive {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_source_reads_back_from_its_name() {
+        for source in DirectiveSource::ALL {
+            assert_eq!(source.as_str().parse::<DirectiveSource>(), Ok(source));
+            assert_eq!(
+                serde_json::to_value(source).expect("writes"),
+                serde_json::json!(source.as_str())
+            );
+        }
+        assert!("unrecorded".parse::<DirectiveSource>().is_err());
+    }
 
     #[test]
     fn the_builtin_list_is_ace3s_gui_directives_ace4_reads_in_name_order() {

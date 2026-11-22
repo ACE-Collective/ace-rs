@@ -196,7 +196,10 @@ pub fn prepare(
 }
 
 /// Creates `prepare`'s root in the caller's transaction with the submission's observables and
-/// files, and queues its first tasks. The caller commits, and may run this again on a retry.
+/// files, and queues its first tasks. The caller commits, and may run this again on a retry. The
+/// observables' directives are recorded as `from`'s (PLAN.md decision 44): a hunt's, or another
+/// submitter's.
+#[allow(clippy::too_many_arguments)]
 pub async fn create(
     tx: &mut Tx<'_>,
     bucket: &Bucket,
@@ -205,6 +208,7 @@ pub async fn create(
     submission: &Submission,
     origin: &Origin,
     files: &[SubmittedFile],
+    from: tree::DirectivesFrom<'_>,
 ) -> Result<Vec<TaskId>, SubmitError> {
     let hold = Hold::root(root.id);
     tree::create_root(tx, root).await?;
@@ -248,10 +252,12 @@ pub async fn create(
         new.tags = observable.tags.clone();
         new.directives = observable.directives.clone();
         new.exclude_modules = observable.exclude_modules.clone();
-        tree::upsert_observable(tx, root.id, &new).await?;
+        let id = tree::upsert_observable(tx, root.id, &new).await?.id;
+        tree::record_directive_sources(tx, root.id, id, &new.directives, from).await?;
     }
     for observable in &origin.observables {
         let id = tree::upsert_observable(tx, root.id, observable).await?.id;
+        tree::record_directive_sources(tx, root.id, id, &observable.directives, from).await?;
         for detection in &observable.detections {
             tree::add_detection(tx, root.id, id, None, detection).await?;
         }

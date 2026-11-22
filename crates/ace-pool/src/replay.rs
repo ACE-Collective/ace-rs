@@ -34,11 +34,21 @@ pub async fn replay_task(
     task: &ace_sdk::wire::LeasedTask,
     dir: &Path,
 ) -> Result<TaskEnd, ClientError> {
-    // as a pool runs it: a lookup gets no file bytes
-    let input = match &task.observable.file {
-        Some(file) if modules.parser(&task.module).is_some() => {
+    // as a pool runs it: a lookup gets no file bytes unless it reads them
+    // (`Module::READS_INPUT_FILE`), and the core sends a download only then
+    let reads_input = modules.parser(&task.module).is_some()
+        || modules
+            .lookup(&task.module)
+            .is_some_and(|lookup| lookup.manifest().reads_input_file);
+    let input = match task
+        .observable
+        .file
+        .as_ref()
+        .and_then(|file| file.download.as_ref())
+    {
+        Some(download) if reads_input => {
             let path = dir.join("input");
-            client.download(&file.download, &path).await?;
+            client.download(download, &path).await?;
             Some(path)
         }
         _ => None,

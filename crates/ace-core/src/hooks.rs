@@ -658,6 +658,15 @@ async fn write(
         )
         .execute(tx.conn())
         .await?;
+        // the rules' directives are the hook's, as a module's result's are (PLAN.md decision 44)
+        crate::tree::record_directive_sources(
+            tx,
+            root,
+            observable,
+            &directives,
+            crate::tree::DirectivesFrom::module(OBSERVABLE_MODIFIER),
+        )
+        .await?;
         if !removed.is_empty() {
             sqlx::query!(
                 "UPDATE analysis.result_additions SET ignored = true WHERE root_id = $1 AND id = ANY($2)",

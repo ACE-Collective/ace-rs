@@ -74,7 +74,8 @@ pub struct TreeObservable {
     pub tags: Vec<String>,
     #[serde(default)]
     pub directives: Vec<String>,
-    /// How many detection points it has.
+    /// How many detection points it has: its own and those the results on it raised, which the
+    /// core stores alike, on the observable a result is about (`ace_core::normal`).
     #[serde(default)]
     pub detections: u32,
     /// A file's paths, each with its `yara_meta` types, in the order they were added.
@@ -129,6 +130,11 @@ pub struct TreeResult {
     /// when it didn't.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// How many detection points it raised, as ace3's `analysis.detections` counts an analysis's
+    /// (PLAN.md decision 46): those on itself and those on the observable it's about, which the core
+    /// stores alike, so they are among that observable's `detections` too.
+    #[serde(default)]
+    pub detections: u32,
     /// What it added, in order: ace3's `analysis.observables`.
     #[serde(default)]
     pub added: Vec<TreeAddition>,
@@ -267,6 +273,43 @@ impl TreeView {
         false
     }
 
+    /// ace3's `is_on_detection_path`: the observable at `index` has a detection point, or one of the
+    /// results between it and the root has, or an observable they are on: the results that added
+    /// it, the observables those are on, the results that added those, and so on up (`search_up`'s
+    /// walk, PLAN.md decision 46). ace3 leaves out the root itself, which here is no node. A result
+    /// on an observable of the path that added nothing on it isn't on the path, but the detection it
+    /// raised is its observable's too (`TreeObservable::detections`), so it counts where ace3's
+    /// analysis detection point wouldn't, unless that observable has one of its own.
+    pub fn on_detection_path(&self, index: usize) -> bool {
+        let Some(first) = self.observables.get(index) else {
+            return false;
+        };
+        if first.detections > 0 {
+            return true;
+        }
+        let adders = self.adders_by_observable();
+        let mut seen = vec![false; self.observables.len()];
+        seen[index] = true;
+        let mut stack = vec![index];
+        while let Some(observable) = stack.pop() {
+            for &i in &adders[observable] {
+                let result = &self.results[i];
+                if result.detections > 0 {
+                    return true;
+                }
+                let holder = result.observable;
+                if holder >= seen.len() || std::mem::replace(&mut seen[holder], true) {
+                    continue;
+                }
+                if self.observables[holder].detections > 0 {
+                    return true;
+                }
+                stack.push(holder);
+            }
+        }
+        false
+    }
+
     /// ace3's `search_down`: from the observable at `index` up through the results that added it
     /// and the observables those results are on, depth first in the order the results landed, the
     /// first observable `found` accepts. The observable itself isn't a candidate, and each is looked
@@ -322,6 +365,7 @@ mod tests {
             analysis_type: format!("{module}_analysis"),
             tags: Vec::new(),
             error: None,
+            detections: 0,
             added: added
                 .iter()
                 .map(|&observable| TreeAddition {
@@ -372,6 +416,37 @@ mod tests {
                 .collect::<Vec<_>>(),
             [3]
         );
+    }
+
+    /// PLAN.md decision 46: email (0) -> attachment (1) -> macro stream (2); email -> conversation (3).
+    #[test]
+    fn a_detection_on_the_way_up_puts_an_observable_on_the_path() {
+        let mut tree = tree();
+        assert!((0..4).all(|i| !tree.on_detection_path(i)));
+        // on the attachment: the stream below it is on the path, the conversation beside it isn't
+        tree.observables[1].detections = 1;
+        assert!(tree.on_detection_path(1) && tree.on_detection_path(2));
+        assert!(!tree.on_detection_path(0) && !tree.on_detection_path(3));
+        // a result's own, on the result that added the stream
+        let mut tree = super::tests::tree();
+        tree.results[1].detections = 1;
+        assert!(tree.on_detection_path(2));
+        // the result is officeparser3's on the attachment: what it didn't add isn't on its path
+        assert!(!tree.on_detection_path(1) && !tree.on_detection_path(3));
+        // on the email at the top: everything below it
+        let mut tree = super::tests::tree();
+        tree.observables[0].detections = 2;
+        assert!((0..4).all(|i| tree.on_detection_path(i)));
+        assert!(!tree.on_detection_path(9), "an index past the tree");
+        // a cycle ends the walk
+        let mut tree = super::tests::tree();
+        tree.results.push(result(2, "archive", &[1]));
+        assert!(!tree.on_detection_path(1));
+        let back: TreeResult = serde_json::from_value(serde_json::json!({
+            "observable": 0, "module": "m", "analysis_type": "t"
+        }))
+        .expect("reads with no detections");
+        assert_eq!(back.detections, 0);
     }
 
     #[test]

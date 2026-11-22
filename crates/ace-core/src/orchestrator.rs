@@ -164,6 +164,18 @@ fn landable<'a>(
     Cow::Owned(kept)
 }
 
+/// How a task's result ends it (`Orchestrator::land_ending`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Ending {
+    /// Done, and kept by the analysis cache where its module's results are kept.
+    Done,
+    /// Done, and not kept (`Outcome::DoneNotKept`, PLAN.md decision 47).
+    DoneNotKept,
+    /// As far as it goes, run again on a change (`Outcome::Incomplete`, PLAN.md decision 34), and
+    /// not kept.
+    Incomplete,
+}
+
 /// Why a result was refused before anything from it was written.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Rejected {
@@ -1371,13 +1383,14 @@ impl Orchestrator {
         probes: &BTreeMap<String, String>,
         writes: bool,
     ) -> Result<Landed, OrchestratorError> {
-        self.land_ending(tx, worker, task, result, probes, writes, false)
+        self.land_ending(tx, worker, task, result, probes, writes, Ending::Done)
             .await
     }
 
-    /// `land_result_with`, for a result that is `incomplete` too (PLAN.md decision 34): the task
-    /// ends done and marked so, which runs it again when its observable changes, and the analysis
-    /// cache keeps no incomplete result, as ace3's keeps only a `COMPLETED` one.
+    /// `land_result_with`, for a result that ends as `ending` says: an `Incomplete` one (PLAN.md
+    /// decision 34) ends its task done and marked so, which runs it again when its observable
+    /// changes; neither it nor a `DoneNotKept` one (decision 47) is kept by the analysis cache, as
+    /// ace3's keeps only a `COMPLETED` one and its VirusTotal module only a hash VirusTotal knows.
     #[allow(clippy::too_many_arguments)]
     pub async fn land_ending(
         &self,
@@ -1387,19 +1400,19 @@ impl Orchestrator {
         result: &ResultEnvelope<Value>,
         probes: &BTreeMap<String, String>,
         writes: bool,
-        incomplete: bool,
+        ending: Ending,
     ) -> Result<Landed, OrchestratorError> {
         let root = task.root;
         let analyzed = task.observable.id;
         let locked = lock_root(tx, root).await?;
         worker.finish_in(tx, task.id, TaskState::Done, None).await?;
-        if incomplete {
+        if ending == Ending::Incomplete {
             queue::mark_incomplete(tx, task.id).await?;
         }
         if self.takes == TakesMode::Audit {
             declared::report_if_marked(tx, task.id, &task.module, "stored a result").await?;
         }
-        if !incomplete {
+        if ending == Ending::Done {
             self.keep(tx, task, result, probes, writes).await?;
         }
         self.apply_result(
@@ -1540,6 +1553,10 @@ impl Orchestrator {
             tree::store_result(tx, root, analyzed, module, result, cached_at).await?;
         tree::add_to_observable(tx, root, analyzed, &landable(&result.analyzed, &unlandable))
             .await?;
+        // the directives it adds are the module's (PLAN.md decision 44), a kept result's too
+        let from = tree::DirectivesFrom::module(module);
+        tree::record_directive_sources(tx, root, analyzed, &result.analyzed.directives, from)
+            .await?;
 
         // what the result adds is one deeper than what it analyzed (`tree::upsert_observable_at`)
         let depth = tree::depth(tx.conn(), root, analyzed)
@@ -1556,6 +1573,7 @@ impl Orchestrator {
             let id = tree::upsert_observable_at(tx, root, observable, depth)
                 .await?
                 .id;
+            tree::record_directive_sources(tx, root, id, &observable.directives, from).await?;
             if !replaced || !tree::has_addition(tx, result_id, id, None).await? {
                 tree::add_result_addition(tx, root, result_id, id, None).await?;
             }
@@ -1572,6 +1590,7 @@ impl Orchestrator {
             let id = tree::upsert_observable_at(tx, root, &observable, depth)
                 .await?
                 .id;
+            tree::record_directive_sources(tx, root, id, &observable.directives, from).await?;
             let yara_meta: Vec<String> = file
                 .yara_meta
                 .iter()
@@ -1603,6 +1622,8 @@ impl Orchestrator {
             if let Some(id) = target {
                 tree::add_to_observable(tx, root, id, &landable(&result.redirected, &unlandable))
                     .await?;
+                tree::record_directive_sources(tx, root, id, &result.redirected.directives, from)
+                    .await?;
                 touched.push(id);
                 detections.extend(result.redirected.detections.iter().map(|d| (id, d)));
             } else {
@@ -1619,6 +1640,8 @@ impl Orchestrator {
             match tree::find_observable(tx.conn(), root, &other.observable).await? {
                 Some(id) => {
                     tree::add_to_observable(tx, root, id, &landable(&other.additions, &unlandable))
+                        .await?;
+                    tree::record_directive_sources(tx, root, id, &other.additions.directives, from)
                         .await?;
                     touched.push(id);
                     detections.extend(other.additions.detections.iter().map(|d| (id, d)));

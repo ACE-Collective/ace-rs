@@ -152,6 +152,18 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// a lookup that doesn't declare it. Only a lookup may declare it: a parser's files are its
     /// supervisor's to upload.
     const ADDS_FETCHED_FILES: bool = false;
+    /// True for a lookup that reads its input file's bytes, such as one that uploads the file to a
+    /// vendor's sandbox (PLAN.md decision 45). A lookup otherwise gets a file's record and not its
+    /// bytes. The core sends such a lookup's tasks a download of the file, as it sends a parser's,
+    /// the pool fetches it before the task runs, and the module reads it at
+    /// `ctx.observable().file`'s `local_path`, as a parser does, and its declaration may read the
+    /// file's size, type, role and `yara_meta`, as a parser's may; its pool's containment then lets it
+    /// connect to the bucket's port, as `ADDS_FETCHED_FILES` does. A lookup that doesn't declare it
+    /// gets no download. The bytes are the observable's (its value is their sha256), so the analysis
+    /// cache doesn't refuse a module for reading them. A file a module sends out of ACE leaves it:
+    /// its docs should say where it goes. Only a lookup may declare it: a parser always reads its
+    /// input.
+    const READS_INPUT_FILE: bool = false;
     /// The analyst-edited lists the module reads (PLAN.md 5.14), such as `observable_detection`'s
     /// observables enabled for detection. The core adds each to the module's tasks as it is when the task is leased, and
     /// the module reads it with `TaskContext::list`. The lists a binary knows are its modules'.
@@ -273,6 +285,11 @@ pub enum Outcome<D> {
     /// `error` badge, and what the module had before it failed is kept. An `Err(ModuleError)` is
     /// for a task that couldn't run to its end.
     Done(ResultEnvelope<D>),
+    /// The result, stored as `Done`'s is, which the analysis cache doesn't keep for later roots
+    /// (PLAN.md decision 47): an answer that holds only for now, such as a vendor that doesn't
+    /// know a hash yet, which ace3's VirusTotal module never put in its Redis cache. For a module
+    /// that isn't cacheable it is `Done`.
+    DoneNotKept(ResultEnvelope<D>),
     /// The result as far as it goes, which the core stores, and a request to run the task again
     /// whenever its observable gains a tag, a directive, a relationship or another result, and on the
     /// root's next pass, with no limit, as ace3's engine runs a module again on an analysis it

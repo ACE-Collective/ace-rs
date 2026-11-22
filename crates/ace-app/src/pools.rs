@@ -35,11 +35,12 @@
 //! files the overlay's `secrets:` names for its modules' and its action handlers' secrets,
 //! `ACE4_CONCURRENCY` (16), `ACE4_ACTION_CONCURRENCY` (4, the actions it runs at once, PLAN.md 7.9) and
 //! `ACE4_HEALTH_FILE`, and `ACE4_BUCKET_ENDPOINT` (the core's, for its port; without one, AWS S3's
-//! 443) when one of its modules adds files it fetched (`Module::ADDS_FETCHED_FILES`). It contains
-//! itself before its runtime starts a thread: it may connect only to its modules' and its
-//! handlers' TCP ports, the lease API's and the collector's, and the bucket's only when one of its
-//! modules adds files it fetched, which it uploads to the core's presigned URLs (PLAN.md decision
-//! 28).
+//! 443) when one of its modules adds files it fetched (`Module::ADDS_FETCHED_FILES`) or reads its
+//! input file (`Module::READS_INPUT_FILE`). It contains itself before its runtime starts a thread:
+//! it may connect only to its modules' and its handlers' TCP ports, the lease API's and the
+//! collector's, and the bucket's only when one of its modules adds files it fetched, which it
+//! uploads to the core's presigned URLs (PLAN.md decision 28), or reads its input file, which it
+//! downloads from the core's presigned URL (decision 45).
 //!
 //! A scanner pool (PLAN.md 7.7) reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_STACK` (`ace4`), which
 //! its containers' labels and names carry, `ACE4_DOCKER_SOCKET` (`/var/run/docker.sock`),

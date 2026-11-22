@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT result_id AS \"result_id!: ResultId\", count(*) AS \"detections!\"\n           FROM analysis.detections WHERE root_id = $1 AND result_id IS NOT NULL\n           GROUP BY result_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "result_id!: ResultId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "result_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "detections!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      null
+    ]
+  },
+  "hash": "8e97c19f96ce07f0ce2a6f049065e1ce3dad68f294c689fe5ab990fe3dee418f"
+}

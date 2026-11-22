@@ -47,6 +47,7 @@ fn dispatch_state(outcome: &Outcome<SplunkApiAnalysis>) -> String {
                 .unwrap_or("submitted")
         ),
         Outcome::Done(result) => format!("done {:?}", result.summary),
+        Outcome::DoneNotKept(result) => format!("done, not kept {:?}", result.summary),
         Outcome::Incomplete(result) => format!("incomplete {:?}", result.summary),
         Outcome::Skipped(why) => format!("skipped {why}"),
     }

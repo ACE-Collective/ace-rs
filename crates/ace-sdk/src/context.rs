@@ -486,7 +486,8 @@ impl<S> TaskContext<S> {
     }
 
     /// The facts the task carries that a module's declaration reads (`crate::takes`): the gate's
-    /// for which modules added the observable, whether it came with the submission and the mode.
+    /// for which modules added the observable, whether it came with the submission, where its
+    /// directives came from and the mode.
     /// Only the pool's check of the declaration reads them (`crate::module::declined`), so
     /// `analyze` can't.
     pub(crate) fn facts<'a>(
@@ -497,12 +498,14 @@ impl<S> TaskContext<S> {
         crate::takes::Facts {
             kind: observable.kind,
             directives: &observable.directives,
+            directive_sources: &self.gate.directive_sources,
             relationships: &observable.relationships,
             redirected: observable.redirection.is_some(),
             added_by: &self.gate.added_by,
             at_root: self.gate.at_root,
             mode: self.gate.mode.as_deref(),
-            // a parser has the file's record with its bytes; a lookup has its path alone
+            // a parser has the file's record with its bytes, as a lookup that reads its input file
+            // does (`Module::READS_INPUT_FILE`); another lookup has its path alone
             file: match (&observable.file, &observable.path) {
                 (Some(file), _) => Some(crate::takes::FileFacts {
                     path: file.path.as_str(),

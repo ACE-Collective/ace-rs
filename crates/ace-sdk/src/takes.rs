@@ -19,7 +19,8 @@
 //! before.
 //!
 //! **The facts.** Only what the core holds when it decides, and what a leased task carries: the
-//! observable's own type, its directives and relationships and whether it redirects; which
+//! observable's own type, its directives and relationships and whether it redirects; where each
+//! directive came from (`Condition::DirectiveFrom`, PLAN.md decision 44); which
 //! modules' results added it, and whether it came with its root's submission (`Condition::AtRoot`);
 //! the root's analysis mode; a file's analysis path (its name, its
 //! extension, the whole path), its size, its role and its `yara_meta` tags; a file's type, what the
@@ -30,7 +31,7 @@
 //! pool can always check what the core checked.
 //!
 //! **Reads that only decide.** Which modules added the observable, whether it came with the
-//! submission and the root's mode are *gating* facts: the lease carries the ones a declaration
+//! submission, where its directives came from and the root's mode are *gating* facts: the lease carries the ones a declaration
 //! reads in a part of its own (`wire::Gate`), which the pool checks the declaration on and
 //! `analyze` never sees. `analyze` sees which modules added the observable only with
 //! `Module::READS_ADDED_BY` and the mode only in its tree (`Module::READS_TREE`), whatever the
@@ -80,7 +81,7 @@
 //! declaration that reads it (`Reads::file_type`) is what makes a file be typed in a mode without
 //! file_type. A rule that reads a dependency's result needs the dependency in `DEPENDS_ON`; a
 //! lookup's rules can read a file's path but not its size, type, role or `yara_meta`, which only a
-//! parser's lease carries. A pool refuses to start with a declaration that breaks these, and
+//! parser's lease carries, and a lookup's that reads its input file (`Module::READS_INPUT_FILE`). A pool refuses to start with a declaration that breaks these, and
 //! `ace_app::App::modules_with_unusable_declarations` lists them for a binary's test.
 //!
 //! ```text
@@ -108,6 +109,8 @@ use ace_results::types::file_type::{self, TypeFacts};
 use ace_results::{FileRole, ObservableKind, Relationship, RelationshipKind, YaraMeta};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use crate::directives::{DirectiveSource, SourcedDirective};
 
 /// What a module takes: rules that must all hold, each with the reason it gives when it doesn't.
 /// No rules takes everything.
@@ -144,6 +147,14 @@ pub enum Condition {
     Extends(Vec<ObservableKind>),
     /// The observable has this directive.
     Directive(String),
+    /// The observable has this directive from one of these sources (PLAN.md decision 44), as a
+    /// module that uploads a file to a vendor takes `upload_to_vt` only from an analyst. Its other
+    /// sources don't count, nor does a directive added before ACE recorded where directives came
+    /// from.
+    DirectiveFrom {
+        directive: String,
+        sources: Vec<DirectiveSource>,
+    },
     /// The observable has a relationship of this kind.
     Relationship(RelationshipKind),
     /// The observable redirects to another (`redirection`).
@@ -342,6 +353,9 @@ pub enum Case {
 pub struct Facts<'a> {
     pub kind: ObservableKind,
     pub directives: &'a [String],
+    /// Where each of its directives came from, one entry for each directive and source; read only
+    /// by `Condition::DirectiveFrom`.
+    pub directive_sources: &'a [SourcedDirective],
     pub relationships: &'a [Relationship],
     pub redirected: bool,
     /// The modules whose results added the observable; read only by `Condition::AddedBy` and
@@ -361,8 +375,9 @@ pub struct FileFacts<'a> {
     /// The path it is analyzed under (PLAN.md decision 15).
     pub path: &'a str,
     /// Its size, its type, its role and its `yara_meta` tags: what a parser's lease carries with
-    /// the bytes. A lookup's lease carries the path alone, so these are None for a lookup, and
-    /// `Manifest::declaration` refuses a lookup's rule that reads them.
+    /// the bytes, and a lookup's that reads its input file (`Module::READS_INPUT_FILE`). Another
+    /// lookup's lease carries the path alone, so these are None for it, and
+    /// `Manifest::declaration` refuses its rule that reads them.
     pub size: Option<u64>,
     /// What its bytes are, as the type step found them; None when its type is unknown.
     pub facts: Option<&'a TypeFacts>,
@@ -374,6 +389,8 @@ pub struct FileFacts<'a> {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Reads {
     pub added_by: bool,
+    /// Where the observable's directives came from (`Condition::DirectiveFrom`).
+    pub directive_sources: bool,
     /// Whether the observable came with its root's submission (`Condition::AtRoot`).
     pub at_root: bool,
     pub mode: bool,
@@ -440,6 +457,14 @@ impl Condition {
 
     pub fn directive(name: &str) -> Condition {
         Condition::Directive(name.to_owned())
+    }
+
+    /// The observable has the directive `name` from one of `sources`.
+    pub fn directive_from(name: &str, sources: &[DirectiveSource]) -> Condition {
+        Condition::DirectiveFrom {
+            directive: name.to_owned(),
+            sources: sources.to_vec(),
+        }
     }
 
     pub fn added_by(module: &str) -> Condition {
@@ -547,6 +572,10 @@ impl Condition {
             Condition::Kind(kinds) => kinds.contains(&facts.kind),
             Condition::Extends(kinds) => kinds.iter().any(|k| facts.kind.is_subtype_of(*k)),
             Condition::Directive(name) => facts.directives.iter().any(|d| d == name),
+            Condition::DirectiveFrom { directive, sources } => facts
+                .directive_sources
+                .iter()
+                .any(|d| d.directive == *directive && sources.contains(&d.source)),
             Condition::Relationship(kind) => facts.relationships.iter().any(|r| r.kind == *kind),
             Condition::Redirected => facts.redirected,
             Condition::AddedBy(module) => facts.added_by.iter().any(|m| m == module),
@@ -602,6 +631,7 @@ impl Condition {
             Condition::Not(inner) => inner.collect_reads(reads),
             Condition::AddedBy(_) | Condition::AddedByOtherThan(_) => reads.added_by = true,
             Condition::AtRoot => reads.at_root = true,
+            Condition::DirectiveFrom { .. } => reads.directive_sources = true,
             Condition::Mode(_) => reads.mode = true,
             Condition::Mime(_) | Condition::Type(_) => {
                 reads.file_record = true;
@@ -725,6 +755,7 @@ mod tests {
         Facts {
             kind: ObservableKind::File,
             directives: &[],
+            directive_sources: &[],
             relationships: &[],
             redirected: false,
             added_by: &[],
@@ -805,6 +836,7 @@ mod tests {
         let facts = Facts {
             kind: ObservableKind::Fqdn,
             directives: &[],
+            directive_sources: &[],
             relationships: &[],
             redirected: false,
             added_by: &[],
@@ -938,6 +970,7 @@ mod tests {
         let mut facts = Facts {
             kind: ObservableKind::EmailFrom,
             directives: &[],
+            directive_sources: &[],
             relationships: &[],
             redirected: false,
             added_by: &added,
@@ -969,6 +1002,61 @@ mod tests {
         assert_eq!(back, Condition::AtRoot);
     }
 
+    /// A directive's source, which a declaration reads alone: the same directive from a hunt
+    /// doesn't hold where it must be an analyst's.
+    #[test]
+    fn a_directive_from_holds_only_for_the_sources_it_names() {
+        let none = BTreeMap::new();
+        let directives = ["upload_to_vt".to_owned()];
+        let hunt = [SourcedDirective::new("upload_to_vt", DirectiveSource::Hunt)];
+        let mut facts = Facts {
+            kind: ObservableKind::File,
+            directives: &directives,
+            directive_sources: &hunt,
+            relationships: &[],
+            redirected: false,
+            added_by: &[],
+            at_root: true,
+            mode: None,
+            file: None,
+            results: &none,
+        };
+        let analyst = Condition::directive_from("upload_to_vt", &[DirectiveSource::Analyst]);
+        assert!(Condition::directive("upload_to_vt").holds(&facts));
+        assert!(!analyst.holds(&facts));
+        assert!(
+            Condition::directive_from(
+                "upload_to_vt",
+                &[DirectiveSource::Hunt, DirectiveSource::Analyst]
+            )
+            .holds(&facts)
+        );
+        let both = [
+            SourcedDirective::new("upload_to_vt", DirectiveSource::Hunt),
+            SourcedDirective::new("upload_to_vt", DirectiveSource::Analyst),
+        ];
+        facts.directive_sources = &both;
+        assert!(analyst.holds(&facts));
+        // another directive of the analyst's isn't this one
+        let other = [SourcedDirective::new("crawl", DirectiveSource::Analyst)];
+        facts.directive_sources = &other;
+        assert!(!analyst.holds(&facts));
+        // a directive with no recorded source, as one added before sources were recorded
+        facts.directive_sources = &[];
+        assert!(!analyst.holds(&facts) && analyst.clone().negated().holds(&facts));
+        let reads = Takes::everything()
+            .and(analyst.clone(), "not asked by an analyst")
+            .reads();
+        assert!(reads.directive_sources && !reads.added_by && !reads.file_record);
+        let back: Condition =
+            serde_json::from_value(serde_json::to_value(&analyst).expect("writes")).expect("reads");
+        assert_eq!(back, analyst);
+        assert_eq!(
+            serde_json::to_value(&analyst).expect("writes"),
+            json!({"directive_from": {"directive": "upload_to_vt", "sources": ["analyst"]}})
+        );
+    }
+
     #[test]
     fn the_extension_is_python_s() {
         assert_eq!(splitext("a.tar.gz"), ("a.tar", ".gz"));
@@ -996,6 +1084,7 @@ mod tests {
             takes.reads(),
             Reads {
                 added_by: true,
+                directive_sources: false,
                 at_root: false,
                 mode: true,
                 file_record: false,

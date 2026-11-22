@@ -177,6 +177,7 @@ mod tests {
             .expect("an envelope"),
             writes: Vec::new(),
             probes: BTreeMap::new(),
+            keep: true,
         };
         attach(&mut done, "other", &probes);
         assert!(matches!(&done, TaskEnd::Done { probes, .. } if probes.is_empty()));

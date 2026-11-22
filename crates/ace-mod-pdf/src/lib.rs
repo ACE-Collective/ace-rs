@@ -654,6 +654,7 @@ mod tests {
                 Outcome::Skipped(_) => None,
                 Outcome::Delay(_) => panic!("a delay"),
                 Outcome::Incomplete(_) => panic!("incomplete"),
+                Outcome::DoneNotKept(_) => panic!("not kept"),
             }
         }
 

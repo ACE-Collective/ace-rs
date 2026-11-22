@@ -25443,6 +25443,7 @@ mod routing_tests {
             &submission,
             &origin,
             &[],
+            ace_core::tree::DirectivesFrom::submission("internal:test"),
         )
         .await
         .expect("creates");
@@ -51354,6 +51355,196 @@ mod directive_tests {
             }
         );
         row.action
+    }
+
+    /// `upload_to_vt`, a directive whose module sends a file out of ACE, as a site's VirusTotal upload.
+    const UPLOAD_TO_VT: ace_service::Directive =
+        ace_service::Directive::new("upload_to_vt", "upload the file to VirusTotal");
+
+    /// A module that takes `upload_to_vt` only from an analyst (PLAN.md decision 44).
+    struct AnalystOnly;
+
+    impl Module for AnalystOnly {
+        const NAME: &'static str = "test_analyst_only";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const REQUIRED_DIRECTIVES: &'static [&'static str] = &["upload_to_vt"];
+        type Output = StubOutput;
+        type Settings = ();
+
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(AnalystOnly)
+        }
+
+        fn takes(_: &()) -> ace_sdk::takes::Takes {
+            ace_sdk::takes::Takes::everything().and(
+                ace_sdk::takes::Condition::directive_from(
+                    "upload_to_vt",
+                    &[ace_sdk::directives::DirectiveSource::Analyst],
+                ),
+                "no analyst asked for an upload",
+            )
+        }
+    }
+
+    impl Lookup for AnalystOnly {
+        const TCP_PORTS: &'static [u16] = &[];
+
+        async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<StubOutput>, ModuleError> {
+            Ok(Outcome::Skipped("a stub".to_owned()))
+        }
+    }
+
+    fn analyst_only_orchestrator() -> Orchestrator {
+        Orchestrator::new(
+            Catalog::new(vec![Manifest::lookup::<AnalystOnly>()]),
+            Modes::ace3().with_module_in_mode("correlation", AnalystOnly::NAME),
+        )
+    }
+
+    /// Each directive's sources, as (directive, source, who), in that order.
+    async fn sources_of(db: &Db, root: Uuid, observable: i64) -> Vec<(String, String, String)> {
+        sqlx::query_as(
+            "SELECT directive, source, added_by FROM analysis.directive_sources
+             WHERE root_id = $1 AND observable_id = $2 ORDER BY directive, source, added_by",
+        )
+        .bind(root)
+        .bind(observable)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+    }
+
+    fn source(directive: &str, source: &str, by: &str) -> (String, String, String) {
+        (directive.to_owned(), source.to_owned(), by.to_owned())
+    }
+
+    /// PLAN.md decision 44: a module that takes a directive only from an analyst gets no task for it
+    /// from a hunt, a submission or another module, though the observable has it and its required
+    /// directive is met; an analyst's Add Directive queues it, although the observable had the
+    /// directive already, and records who asked.
+    #[tokio::test]
+    async fn a_directive_only_an_analyst_s_request_acts_on() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = admin(db).await;
+        let orchestrator = analyst_only_orchestrator();
+        let service = Service::new(db.clone(), analyst_only_orchestrator()).with_directives(
+            ace_sdk::directives::directive_list(&[UPLOAD_TO_VT]).expect("a valid list"),
+        );
+        let root = NewRoot::new("correlation");
+        let mut tx = db.begin().await.expect("begins");
+        tree::create_root(&mut tx, &root).await.expect("creates");
+        let stamped = NewObservable {
+            directives: vec!["upload_to_vt".to_owned()],
+            ..NewObservable::new(ObservableKind::Fqdn, "upload.example.com")
+        };
+        let id = tree::upsert_observable(&mut tx, root.id, &stamped)
+            .await
+            .expect("adds")
+            .id;
+        for from in [
+            tree::DirectivesFrom::hunt("splunk/hunt"),
+            tree::DirectivesFrom::submission("api_key:9"),
+            tree::DirectivesFrom::module("some_module"),
+        ] {
+            tree::record_directive_sources(&mut tx, root.id, id, &stamped.directives, from)
+                .await
+                .expect("records");
+        }
+        orchestrator.start(&mut tx, root.id).await.expect("starts");
+        tx.commit().await.expect("commits");
+        sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+            .bind(root.id)
+            .execute(db.pool())
+            .await
+            .expect("makes it an alert");
+        assert_eq!(task_state(db, root.id, id.0, AnalystOnly::NAME).await, None);
+        // a pass of its own changes nothing: no source is an analyst's
+        let mut tx = db.begin().await.expect("begins");
+        let queued = orchestrator
+            .new_pass(&mut tx, root.id, "correlation")
+            .await
+            .expect("passes");
+        tx.commit().await.expect("commits");
+        assert_eq!(queued.len(), 0);
+
+        let added = service
+            .add_directives(&actor, root.id, id.0, &["upload_to_vt".to_owned()])
+            .await
+            .expect("adds");
+        assert_eq!(added.added, Vec::<String>::new(), "it had the directive");
+        assert_eq!(added.directives, ["upload_to_vt"]);
+        assert_eq!(added.queued, 1);
+        assert_eq!(
+            task_state(db, root.id, id.0, AnalystOnly::NAME)
+                .await
+                .as_deref(),
+            Some("queued")
+        );
+        assert_eq!(
+            sources_of(db, root.id, id.0).await,
+            [
+                source("upload_to_vt", "analyst", &actor.to_string()),
+                source("upload_to_vt", "hunt", "splunk/hunt"),
+                source("upload_to_vt", "module", "some_module"),
+                source("upload_to_vt", "submission", "api_key:9"),
+            ]
+        );
+    }
+
+    /// PLAN.md decision 44: a hunt's run records its observables' directives as the hunt's, by its
+    /// type and name as its audit row names it, and the API's submission as its submitter's.
+    #[tokio::test]
+    async fn a_hunt_s_and_a_submission_s_directives_are_theirs() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let (bucket, _cache) = bucket(db).await;
+        let mut hit = hunt_submission();
+        hit.origin.observables[0].directives = vec!["upload_to_vt".to_owned()];
+        let recorded = service(db)
+            .record_hunt_run(
+                &hunter(),
+                &bucket,
+                &hunt_run(HuntState::default(), vec![hit]),
+            )
+            .await
+            .expect("records");
+        let root = recorded.roots[0];
+        let ip = observable_id(db, root, "10.1.2.3").await;
+        assert_eq!(
+            sources_of(db, root, ip).await,
+            [source("upload_to_vt", "hunt", "splunk/hunt")]
+        );
+
+        let actor = admin(db).await;
+        let submission = Submission {
+            description: "a submission".to_owned(),
+            analysis_mode: Some("analysis".to_owned()),
+            event_time: None,
+            observables: vec![ace_core::submit::SubmittedObservable {
+                kind: ObservableKind::Fqdn,
+                value: "submitted.example.com".to_owned(),
+                time: None,
+                tags: Vec::new(),
+                directives: vec!["upload_to_vt".to_owned(), "crawl".to_owned()],
+                exclude_modules: Vec::new(),
+            }],
+            file_yara_meta: Default::default(),
+        };
+        let root = service(db)
+            .submit(&actor, &bucket, &submission, &[])
+            .await
+            .expect("submits")
+            .uuid;
+        let fqdn = observable_id(db, root, "submitted.example.com").await;
+        let by = actor.to_string();
+        assert_eq!(
+            sources_of(db, root, fqdn).await,
+            [
+                source("crawl", "submission", &by),
+                source("upload_to_vt", "submission", &by),
+            ]
+        );
     }
 }
 

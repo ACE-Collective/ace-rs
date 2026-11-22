@@ -91,6 +91,7 @@ async fn submit(
                     submission,
                     &submit::Origin::default(),
                     spooled,
+                    ace_core::tree::DirectivesFrom::submission("api_key:1"),
                 )
                 .await
             })
@@ -391,6 +392,7 @@ async fn a_root_and_a_result_keep_their_pivot_links() {
         &submission,
         &origin,
         &[],
+        ace_core::tree::DirectivesFrom::hunt("a hunt"),
     )
     .await
     .expect("creates");

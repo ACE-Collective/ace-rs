@@ -28,6 +28,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use ace_results::types::file_type::TypeFacts;
 use ace_results::{FileRole, ObservableKind, Relationship, YaraMeta};
 use ace_sdk::Component;
+use ace_sdk::directives::SourcedDirective;
 use ace_sdk::takes::{Facts, FileFacts};
 use serde_json::Value;
 use uuid::Uuid;
@@ -61,6 +62,8 @@ impl TakesMode {
 /// An observable's facts as the core read them, owned.
 #[derive(Debug, Clone, Default)]
 pub struct Held {
+    /// Where its directives came from (`tree::directive_sources`), when a declaration reads it.
+    pub directive_sources: Vec<SourcedDirective>,
     pub relationships: Vec<Relationship>,
     pub redirected: bool,
     pub added_by: Vec<String>,
@@ -91,6 +94,7 @@ impl Held {
         Facts {
             kind,
             directives,
+            directive_sources: &self.directive_sources,
             relationships: &self.relationships,
             redirected: self.redirected,
             added_by: &self.added_by,
@@ -112,6 +116,7 @@ impl Held {
 #[derive(Debug, Clone, Default)]
 pub struct Needs {
     pub added_by: bool,
+    pub directive_sources: bool,
     pub results: Vec<String>,
 }
 
@@ -122,6 +127,7 @@ impl Needs {
         for component in components {
             let reads = component.takes.reads();
             needs.added_by |= reads.added_by;
+            needs.directive_sources |= reads.directive_sources;
             results.extend(reads.results);
         }
         needs.results = results.into_iter().collect();
@@ -225,6 +231,31 @@ pub async fn held(
         .await?
         {
             held.entry(row.id).or_default().added_by.push(row.module);
+        }
+    }
+    // as `tree::directive_sources` reads them for a lease
+    if needs.directive_sources {
+        for row in sqlx::query!(
+            r#"SELECT DISTINCT observable_id AS "id: ObservableId", directive, source
+               FROM analysis.directive_sources
+               WHERE root_id = $1 AND observable_id = ANY($2) AND source <> 'unrecorded'"#,
+            root,
+            &ids,
+        )
+        .fetch_all(tx.conn())
+        .await?
+        {
+            let source = row
+                .source
+                .parse()
+                .map_err(|e| DbError::Decode(format!("observable {}: {e}", row.id.0)))?;
+            held.entry(row.id)
+                .or_default()
+                .directive_sources
+                .push(SourcedDirective::new(row.directive, source));
+        }
+        for entry in held.values_mut() {
+            entry.directive_sources.sort();
         }
     }
     // ace3's file_type result is built from the file's type where the file shows it

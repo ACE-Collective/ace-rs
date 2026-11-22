@@ -53,8 +53,20 @@ fn capped(text: &str) -> &str {
     }
 }
 
+/// Who stamped a submission's directives (PLAN.md decision 44).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum StampedBy<'a> {
+    /// The submitter, the actor.
+    Submitter,
+    /// The hunt of this name, whose run submits as the hunter's actor.
+    Hunt(&'a str),
+}
+
 /// Creates a submission's root in the caller's transaction, records who made it, and gives the audit
-/// row's change. `Service::submit` and the hunter's runs (`crate::hunts`) both write through it.
+/// row's change. `Service::submit` and the hunter's runs (`crate::hunts`) both write through it. The
+/// observables' directives are recorded as the hunt's when `stamped` names one, else as a
+/// submission's by the actor.
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn submit_in(
     tx: &mut ace_core::db::Tx<'_>,
     service: &Service,
@@ -63,8 +75,14 @@ pub(crate) async fn submit_in(
     submission: &Submission,
     origin: &Origin,
     files: &[SubmittedFile],
+    stamped: StampedBy<'_>,
 ) -> Result<(Submitted, Change), ServiceError> {
     let root = submit::prepare(&service.orchestrator, submission, origin, files)?;
+    let submitter = actor.to_string();
+    let from = match stamped {
+        StampedBy::Submitter => ace_core::tree::DirectivesFrom::submission(&submitter),
+        StampedBy::Hunt(name) => ace_core::tree::DirectivesFrom::hunt(name),
+    };
     let queued = submit::create(
         tx,
         bucket,
@@ -73,6 +91,7 @@ pub(crate) async fn submit_in(
         submission,
         origin,
         files,
+        from,
     )
     .await?;
     sqlx::query!(
@@ -127,6 +146,7 @@ impl Service {
                         submission,
                         &Origin::default(),
                         files,
+                        StampedBy::Submitter,
                     )
                     .await?;
                     Ok(Audited::changed(submitted, change))

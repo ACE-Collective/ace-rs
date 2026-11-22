@@ -108,6 +108,7 @@ pub struct Harness<M: Module> {
     observables_below: Vec<ObservableRef>,
     added_by: Vec<String>,
     at_root: bool,
+    directive_sources: Vec<ace_sdk::directives::SourcedDirective>,
     mode: Option<String>,
     event_time: Option<ace_sdk::wire::RootEventTime>,
     related_tags: Vec<RelatedTags>,
@@ -155,6 +156,7 @@ impl<M: Module> Harness<M> {
             observables_below: Vec::new(),
             added_by: Vec::new(),
             at_root: false,
+            directive_sources: Vec::new(),
             mode: None,
             event_time: None,
             related_tags: Vec::new(),
@@ -243,6 +245,25 @@ impl<M: Module> Harness<M> {
     /// `TaskContext::at_root`), sent as `added_by` is.
     pub fn at_root(mut self, at_root: bool) -> Self {
         self.at_root = at_root;
+        self
+    }
+
+    /// Where the observable's directives came from, one source for each directive named, as the
+    /// core records them (PLAN.md decision 44): the lease sends them to a declaration that reads
+    /// them (`takes::Condition::DirectiveFrom`), and never to `analyze`. The observable's own
+    /// directives are whatever the observable was built with; a directive named here and missing
+    /// there is still sent, as the harness doesn't check the two agree.
+    pub fn directive_sources(
+        mut self,
+        sources: &[(&str, ace_sdk::directives::DirectiveSource)],
+    ) -> Self {
+        self.directive_sources = sources
+            .iter()
+            .map(|(directive, source)| {
+                ace_sdk::directives::SourcedDirective::new(*directive, *source)
+            })
+            .collect();
+        self.directive_sources.sort();
         self
     }
 
@@ -425,6 +446,11 @@ impl<M: Module> Harness<M> {
                 Vec::new()
             },
             at_root: reads.at_root && self.at_root,
+            directive_sources: if reads.directive_sources {
+                self.directive_sources.clone()
+            } else {
+                Vec::new()
+            },
         }
     }
 
@@ -534,7 +560,9 @@ pub fn check_result<D: AnalysisType>(result: &ResultEnvelope<D>) -> Result<(), H
 }
 
 fn check_outcome<D: AnalysisType>(outcome: Outcome<D>) -> Result<Outcome<D>, HarnessError> {
-    if let Outcome::Done(result) | Outcome::Incomplete(result) = &outcome {
+    if let Outcome::Done(result) | Outcome::DoneNotKept(result) | Outcome::Incomplete(result) =
+        &outcome
+    {
         check_result(result)?;
     }
     Ok(outcome)
@@ -553,6 +581,11 @@ pub fn snapshot_value<D: AnalysisType>(outcome: &Outcome<D>) -> Value {
             "run_after_seconds": delay.run_after.as_secs_f64(),
             "timeout_seconds": delay.timeout.as_secs_f64(),
             "state": delay.state,
+        }),
+        Outcome::DoneNotKept(result) => json!({
+            "outcome": "done_not_kept",
+            "result": serde_json::to_value(result)
+                .unwrap_or_else(|e| json!({"unserializable": e.to_string()})),
         }),
         Outcome::Incomplete(result) => json!({
             "outcome": "incomplete",
