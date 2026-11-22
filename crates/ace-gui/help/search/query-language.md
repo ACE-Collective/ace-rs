@@ -40,6 +40,7 @@ The alert list's filters are terms too, by the names their share links use. They
 | `description:invoice` | alerts whose title contains the text |
 | `detection_point:<signature uuid>` | alerts with a detection from that signature |
 | `analysis:<module>` | alerts a module wrote a result for |
+| `observable_pattern:fqdn:*.evil.com` | alerts with an observable of that type whose value matches the pattern, `any` for any type |
 
 Also `event_date:`, `disposition_date:`, `disposition_by:` and `unconfirmed_detections:`.
 
@@ -48,6 +49,13 @@ Also `event_date:`, `disposition_date:`, `disposition_by:` and `unconfirmed_dete
 - Quote a value that holds a space or a comma: `tag:"vendor mailer"`.
 - Repeating a name means either: `queue:default queue:edr`.
 - A tag with `*` matches by pattern: `tag:phish*`.
+- An observable pattern has `*` at its start or its end: `observable_pattern:fqdn:*.evil.com`,
+  `observable_pattern:url:https://evil.example/*`. A `*` in the middle is fine when one end is text
+  (`observable_pattern:fqdn:evil.com*.net`), but not at both ends (`*evil*`), which would read every
+  observable. Only `*` is a wildcard, and the match keeps case. A pattern that matches more than 500
+  observables, or takes longer than a second to look up, is reported and nothing is searched: make its
+  text longer or name a type. A `*` in `observable:` or a type's own term is a literal character, so
+  `email_subject:"***SPAM***"` finds that subject.
 
 A name that is neither a filter nor an observable type isn't a term, so `https://evil.example` and
 `C:\windows\system32` stay text as you typed them.

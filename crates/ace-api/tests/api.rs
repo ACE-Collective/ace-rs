@@ -6032,6 +6032,84 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
             .await;
     }
 
+    // the Observable Pattern filter (PLAN.md decision 39): a value with * at its start or its end, in
+    // the share link's `f`, as ace3's API takes it
+    let page = client
+        .json(
+            Method::GET,
+            LIST,
+            &format!("{LIST}?f=observable_pattern:fqdn:csv.%2A&sort=description&dir=asc"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(
+        ids(&page),
+        [
+            made[1].to_string(),
+            made[0].to_string(),
+            made[2].to_string()
+        ]
+    );
+    let page = client
+        .json(
+            Method::GET,
+            LIST,
+            &format!("{LIST}?f=!observable_pattern:Any:*v.example&f=observable:fqdn:csv.example"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(page["total"], 0);
+    // a pattern no index serves is refused as the link is read, with ace3's words
+    let refused = client
+        .json(
+            Method::GET,
+            LIST,
+            &format!("{LIST}?f=observable_pattern:fqdn:%2Acsv%2A"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::BAD_REQUEST,
+        )
+        .await;
+    assert_eq!(
+        refused["error"],
+        "observable pattern \"*csv*\" has a wildcard at both ends; it must start or end with text \
+         (e.g. evil.com/* or *.evil.com)"
+    );
+    // one matching more than 500 observables is refused, never cut short, by the list and its exports
+    let many = alert(stack, "many", &[]).await;
+    sqlx::query(
+        "INSERT INTO analysis.observables (root_id, type, value)
+         SELECT $1, 'fqdn', 'h' || n || '.past.example' FROM generate_series(1, 501) n",
+    )
+    .bind(many)
+    .execute(stack.test_db.db().pool())
+    .await
+    .expect("adds them");
+    let past = "f=observable_pattern:fqdn:%2A.past.example";
+    let refused = client
+        .json(
+            Method::GET,
+            LIST,
+            &format!("{LIST}?{past}"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::BAD_REQUEST,
+        )
+        .await;
+    assert_eq!(
+        refused["error"],
+        "observable pattern fqdn:*.past.example matches more than 500 observables; make it more specific"
+    );
+    let (status, _, body) = client
+        .text(ALERT_CSV, &format!("{ALERT_CSV}?{past}"), token)
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+    assert!(body.contains("matches more than 500 observables"), "{body}");
+
     // the exports: the list's filters and order, everything to the end, a cell guarded against formulas
     let two = "f=observable:fqdn:csv.example&f=!description:third&sort=description&dir=asc";
     let (status, kind, csv) = client
@@ -6212,6 +6290,16 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
             .expect("filters")
             .iter()
             .any(|f| f["slug"] == "alert_date" && f["kind"] == "date_range")
+    );
+    // the Observable Pattern filter (PLAN.md decision 39) is a pair, as the Observable filter is
+    assert!(
+        screen["filters"]
+            .as_array()
+            .expect("filters")
+            .iter()
+            .any(|f| f["slug"] == "observable_pattern"
+                && f["name"] == "Observable Pattern"
+                && f["kind"] == "pair")
     );
     // the Disposition filter offers the site's dispositions, in their order, a site's own after ace3's
     let options = screen["filters"]

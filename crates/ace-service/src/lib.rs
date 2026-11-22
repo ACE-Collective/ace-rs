@@ -438,6 +438,12 @@ pub enum ServiceError {
     /// or a page that's too large. Nothing was written.
     #[error("{0}")]
     InvalidRequest(String),
+    /// A filter list that is well formed but can't be run as it stands: an Observable Pattern that matches
+    /// more observables than the filter's bound, or whose lookup ran past its time (PLAN.md decision 39,
+    /// `filters::patterns`). It is the analyst's to narrow. Nothing was listed, since a list without the
+    /// filter would show more than was asked for.
+    #[error("{0}")]
+    FilterRefused(String),
     /// What a request names isn't there, or isn't what it says, such as a root that isn't an alert.
     #[error("{0}")]
     NotFound(String),
@@ -502,6 +508,7 @@ impl Retryable for ServiceError {
             | ServiceError::Unavailable(_)
             | ServiceError::Upstream { .. }
             | ServiceError::InvalidRequest(_)
+            | ServiceError::FilterRefused(_)
             | ServiceError::NotFound(_)
             | ServiceError::TooLarge(_)
             | ServiceError::Forbidden(_)
@@ -616,6 +623,8 @@ pub struct Service {
     /// The directives an analyst may add to an observable (PLAN.md decision 31), `directives`' docs:
     /// those of ace3's `GUI_DIRECTIVES` an ace4 module reads, unless the binary adds a site's.
     directives: std::sync::Arc<ace_sdk::directives::DirectiveList>,
+    /// The Observable Patterns refused for a bound, remembered for a while (`filters::patterns`).
+    pattern_refusals: std::sync::Arc<filters::patterns::Refusals>,
 }
 
 impl Service {
@@ -639,6 +648,7 @@ impl Service {
             search_config: std::sync::Arc::default(),
             ai: None,
             directives: std::sync::Arc::default(),
+            pattern_refusals: std::sync::Arc::default(),
         }
     }
 

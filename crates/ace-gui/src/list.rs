@@ -444,6 +444,10 @@ pub struct AlertList {
     pub next: Option<String>,
     /// The page's ids as JSON, for the box that ticks every row.
     pub ids: String,
+    /// Why the filters couldn't be run, so nothing is listed: an Observable Pattern past its bounds
+    /// (PLAN.md decision 39). In the fragment, which the refresh draws again, as ace3 puts it in the
+    /// filter bar its refresh draws, since a list can start being refused between two refreshes.
+    pub refused: Option<String>,
 }
 
 /// A filter in the bar, and links that take it or one of its values away.
@@ -463,6 +467,10 @@ pub struct Badge {
     pub current: bool,
     /// How many alerts it matches, when its indicator is on.
     pub count: Option<i64>,
+    /// Why it couldn't be counted, when its indicator is on and its filters were refused (PLAN.md
+    /// decision 39): ace3's warning mark, whose tooltip is the reason, so it doesn't look like a filter
+    /// with no alerts.
+    pub refused: Option<String>,
 }
 
 /// A saved filter in the manage list.
@@ -758,6 +766,26 @@ pub fn alert_list(
         first: query.after.as_ref().map(|_| query.page(None)),
         next: page.next.as_deref().map(|next| query.page(Some(next))),
         ids: serde_json::to_string(&ids).expect("ids are JSON"),
+        refused: None,
+    }
+}
+
+/// A list's page, or none and why when its filters were refused (PLAN.md decision 39): listing without
+/// them would show more alerts than were asked for, as ace3's manage page says.
+fn listed_or_refused(
+    listed: Result<AlertPage, ServiceError>,
+) -> Result<(AlertPage, Option<String>), ServiceError> {
+    match listed {
+        Ok(page) => Ok((page, None)),
+        Err(ServiceError::FilterRefused(why)) => Ok((
+            AlertPage {
+                alerts: Vec::new(),
+                next: None,
+                total: 0,
+            },
+            Some(why),
+        )),
+        Err(error) => Err(error),
     }
 }
 
@@ -768,7 +796,7 @@ pub fn list_view(
     query: &ListQuery,
     columns: &ManageColumnsPreference,
     saved: &[SavedFilter],
-    counts: &HashMap<Uuid, i64>,
+    counts: &HashMap<Uuid, Result<i64, String>>,
     tz: Tz,
     warnings: Vec<String>,
     error: Option<String>,
@@ -820,14 +848,18 @@ pub fn list_view(
     let badges = saved
         .iter()
         .filter(|filter| filter.quick_filter_order.is_some())
-        .map(|filter| Badge {
-            label: filter.name.clone(),
-            href: href_of(filter),
-            current: current(filter),
-            count: filter
+        .map(|filter| {
+            let counted = filter
                 .quick_filter_indicator
-                .then(|| counts.get(&filter.id).copied())
-                .flatten(),
+                .then(|| counts.get(&filter.id))
+                .flatten();
+            Badge {
+                label: filter.name.clone(),
+                href: href_of(filter),
+                current: current(filter),
+                count: counted.and_then(|counted| counted.as_ref().ok().copied()),
+                refused: counted.and_then(|counted| counted.as_ref().err().cloned()),
+            }
         })
         .collect();
     let saved_rows = saved
@@ -1022,7 +1054,7 @@ pub(crate) async fn page(
     let query = parsed.query;
     let tz = viewer_tz(&gui, &viewer).await;
     let actor = &viewer.actor;
-    let page = match gui
+    let listed = gui
         .service
         .alerts(
             actor,
@@ -1030,9 +1062,9 @@ pub(crate) async fn page(
             Some(query.size),
             query.after.as_deref(),
         )
-        .await
-    {
-        Ok(page) => page,
+        .await;
+    let (page, refused) = match listed_or_refused(listed) {
+        Ok(listed) => listed,
         Err(error) => return Failure::from_service(error, &parts).into_response(),
     };
     let columns = gui.service.manage_columns(actor).await.unwrap_or_else(|error| {
@@ -1066,12 +1098,19 @@ pub(crate) async fn page(
             tz,
             ..AlertQuery::default()
         };
-        if let Ok(found) = gui.service.alerts(actor, &counted, Some(1), None).await {
-            counts.insert(filter.id, found.total);
+        match gui.service.alerts(actor, &counted, Some(1), None).await {
+            Ok(found) => {
+                counts.insert(filter.id, Ok(found.total));
+            }
+            // the analyst's to fix, not an operator's, so nothing is logged, as in ace3
+            Err(ServiceError::FilterRefused(why)) => {
+                counts.insert(filter.id, Err(why));
+            }
+            Err(_) => {}
         }
     }
     let owners = owner_options(&gui, &viewer).await;
-    let view = list_view(
+    let mut view = list_view(
         &page,
         &query,
         &columns,
@@ -1083,6 +1122,7 @@ pub(crate) async fn page(
         gui.service.dispositions(),
         owners.as_deref(),
     );
+    view.list.refused = refused;
     render(&ListPage::new(viewer.layout, view))
 }
 
@@ -1103,7 +1143,7 @@ pub(crate) async fn refresh(
     };
     let tz = viewer_tz(&gui, &viewer).await;
     let actor = &viewer.actor;
-    let page = match gui
+    let listed = gui
         .service
         .alerts(
             actor,
@@ -1111,9 +1151,9 @@ pub(crate) async fn refresh(
             Some(query.size),
             query.after.as_deref(),
         )
-        .await
-    {
-        Ok(page) => page,
+        .await;
+    let (page, refused) = match listed_or_refused(listed) {
+        Ok(listed) => listed,
         Err(ServiceError::PermissionDenied { .. }) => return StatusCode::FORBIDDEN.into_response(),
         Err(ServiceError::InvalidRequest(_)) => return StatusCode::BAD_REQUEST.into_response(),
         Err(error) => {
@@ -1122,9 +1162,9 @@ pub(crate) async fn refresh(
         }
     };
     let columns = gui.service.manage_columns(actor).await.unwrap_or_default();
-    render(&AlertListFragment {
-        list: alert_list(&page, &query, &columns, tz, gui.service.dispositions()),
-    })
+    let mut list = alert_list(&page, &query, &columns, tz, gui.service.dispositions());
+    list.refused = refused;
+    render(&AlertListFragment { list })
 }
 
 fn next_of(form: &[(String, String)]) -> String {

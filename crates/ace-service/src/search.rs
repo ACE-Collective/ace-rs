@@ -37,7 +37,10 @@
 //! and polarity can't both be kept in one list, so they are joined where that means the same: inverted
 //! entries become one (not this and not that), and entries of a filter an alert has one value of
 //! (queue, disposition, owner, who dispositioned it) keep the values both name. Anything else is
-//! reported and nothing is searched, as for any term that can't be honored.
+//! reported and nothing is searched, as for any term that can't be honored. So is an Observable Pattern
+//! that the list refuses for its bounds (`ServiceError::FilterRefused`, PLAN.md decision 39), as ace3's
+//! `search_alerts` reports one. Each read of the list looks its patterns up again, at most four reads a
+//! search, where ace3 reuses the query it built; a refusal is remembered (`filters::patterns`).
 //!
 //! **Test-run alerts are left out unless asked for**, as in ace3: a search whose filters say nothing
 //! about queues leaves out SVS's test queue, and `excluded_test_alerts` counts what the same search
@@ -810,21 +813,36 @@ impl Service {
             semantic: request.semantic,
             lexical: request.lexical,
         };
-        let mut response = self
+        // an Observable Pattern past its bounds is a term that can't be honored (`filters::patterns`)
+        let refused = |why: String| SearchResponse {
+            query: query.to_owned(),
+            offset: request.offset,
+            limit: request.limit,
+            errors: vec![why],
+            ..SearchResponse::default()
+        };
+        let mut response = match self
             .run_search(run(
                 &searched,
                 request.limit,
                 request.offset,
                 request.include_hits,
             ))
-            .await?;
+            .await
+        {
+            Err(ServiceError::FilterRefused(why)) => return Ok(refused(why)),
+            searched => searched?,
+        };
         response.hint = parsed.hint();
         if let Some(test) = test {
             response.excluded_test_alerts = Some(0);
             if self.any_test_alerts(actor).await? {
                 // the same search over the test queue alone: its total is what was left out
                 let started = Instant::now();
-                let counted = self.run_search(run(&test, 0, 0, false)).await?;
+                let counted = match self.run_search(run(&test, 0, 0, false)).await {
+                    Err(ServiceError::FilterRefused(why)) => return Ok(refused(why)),
+                    counted => counted?,
+                };
                 response.excluded_test_alerts = Some(counted.total);
                 response
                     .timings_ms
@@ -877,7 +895,14 @@ impl Service {
         let (searched, test) = leave_out_test_alerts(checked, request.include_test_alerts);
         let mut exclude = request.exclude.clone();
         exclude.push(root);
-        let mut response = self
+        let refused = |why: String| SearchResponse {
+            query: query.clone(),
+            offset: request.offset,
+            limit: request.limit,
+            errors: vec![why],
+            ..SearchResponse::default()
+        };
+        let mut response = match self
             .run_similar(
                 actor,
                 &query,
@@ -890,12 +915,17 @@ impl Service {
                     page: (request.limit, request.offset, request.include_hits),
                 },
             )
-            .await?;
+            .await
+        {
+            // see search_alerts
+            Err(ServiceError::FilterRefused(why)) => return Ok(refused(why)),
+            similar => similar?,
+        };
         if let Some(test) = test {
             response.excluded_test_alerts = Some(0);
             if self.any_test_alerts(actor).await? {
                 let started = Instant::now();
-                let counted = self
+                let counted = match self
                     .run_similar(
                         actor,
                         &query,
@@ -908,7 +938,11 @@ impl Service {
                             page: (0, 0, false),
                         },
                     )
-                    .await?;
+                    .await
+                {
+                    Err(ServiceError::FilterRefused(why)) => return Ok(refused(why)),
+                    counted => counted?,
+                };
                 response.excluded_test_alerts = Some(counted.total);
                 response
                     .timings_ms

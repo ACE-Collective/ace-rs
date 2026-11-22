@@ -56,6 +56,7 @@ impl From<ServiceError> for ApiError {
                 return ApiError::new(StatusCode::FORBIDDEN, format!("this needs {permission}"));
             }
             ServiceError::InvalidRequest(_)
+            | ServiceError::FilterRefused(_)
             | ServiceError::WeakPassword
             | ServiceError::InvalidKeyName
             | ServiceError::CantDisableYourself

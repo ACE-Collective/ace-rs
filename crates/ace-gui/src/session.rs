@@ -314,6 +314,7 @@ impl Failure {
             | ServiceError::Forbidden(_)
             | ServiceError::PermissionDenied { .. } => StatusCode::FORBIDDEN,
             ServiceError::InvalidRequest(_)
+            | ServiceError::FilterRefused(_)
             | ServiceError::WeakPassword
             | ServiceError::InvalidKeyName
             | ServiceError::CantDisableYourself

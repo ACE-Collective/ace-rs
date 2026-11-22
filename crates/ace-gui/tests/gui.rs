@@ -21564,3 +21564,169 @@ fn an_icon_is_a_named_png_and_a_link_shows_it_only_when_registered() {
         "ace4 ships none"
     );
 }
+
+/// The alert list's Observable Pattern filter (PLAN.md decision 39) through the server: a share link and
+/// the editor take one, a pattern no index serves is refused as the link is read and saving it writes
+/// nothing, and one past its bounds lists nothing and says why, in the page, its refresh and a quick
+/// filter's badge, every value escaped.
+#[tokio::test]
+async fn the_observable_pattern_filter_through_the_list() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let session = session_of(&stack, "alice").await;
+    let hit = list_alert(&stack, "hit", "2026-01-01T10:00:00Z", None).await;
+    let miss = list_alert(&stack, "miss", "2026-01-02T10:00:00Z", None).await;
+    let many = list_alert(&stack, "many", "2026-01-03T10:00:00Z", None).await;
+    let db = stack.test_db.db();
+    sqlx::query(
+        "INSERT INTO analysis.observables (root_id, type, value)
+         VALUES ($1, 'fqdn', 'mail.evil.com'), ($2, 'fqdn', 'evil.com.attacker.net')",
+    )
+    .bind(hit)
+    .bind(miss)
+    .execute(db.pool())
+    .await
+    .expect("adds them");
+    // 501 observables whose values hold markup
+    sqlx::query(
+        "INSERT INTO analysis.observables (root_id, type, value)
+         SELECT $1, 'fqdn', 'h' || n || '.p<b>st.example' FROM generate_series(1, 501) n",
+    )
+    .bind(many)
+    .execute(db.pool())
+    .await
+    .expect("adds them");
+    let get = |path: &str| {
+        let request = stack.get(path).header("cookie", cookie(&session));
+        async move {
+            let response = request.send().await.expect("answered");
+            let status = response.status();
+            (status, response.text().await.expect("a page"))
+        }
+    };
+
+    // a share link's pattern, its chip naming it
+    let (status, page) = get("/?f=observable_pattern:fqdn:%2A.evil.com").await;
+    assert_eq!(status, StatusCode::OK, "{page}");
+    assert_eq!(row_ids(&page), [hit.to_string()]);
+    assert!(page.contains("Observable Pattern</a>:"), "{page}");
+    assert!(
+        page.contains(r#"title="Remove this value">fqdn:*.evil.com</a>"#),
+        "{page}"
+    );
+    // the editor offers it, with its hint, and folds one in
+    assert!(
+        page.contains(r#"<option value="observable_pattern">Observable Pattern</option>"#),
+        "{page}"
+    );
+    assert!(
+        page.contains("<dt>Observable Pattern</dt><dd>a type, or Any, and a value with * at its start or end, such as *.evil.com</dd>"),
+        "{page}"
+    );
+    let response = stack
+        .get("/?add=observable_pattern&type=fqdn&value=evil.com%2A")
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    let to = location(&response).to_owned();
+    assert_eq!(to, "/?f=observable_pattern%3Afqdn%3Aevil.com%252A");
+    let (_, page) = get(&to).await;
+    assert_eq!(row_ids(&page), [miss.to_string()]);
+
+    // a pattern no index serves: the editor and a link say why, escaped, and list without it
+    let (status, page) =
+        get("/?add=observable_pattern&type=fqdn&value=%2A%3Ci%3Eevil%3C%2Fi%3E%2A").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        page.contains(
+            "That filter couldn't be used: observable pattern &#34;*&#60;i&#62;evil&#60;/i&#62;*&#34; \
+             has a wildcard at both ends"
+        ),
+        "{page}"
+    );
+    assert!(!page.contains("<i>evil"), "{page}");
+    let (status, page) = get("/?f=observable_pattern:fqdn:%2Aevil%2A").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(page.contains("has a wildcard at both ends"), "{page}");
+    assert_eq!(
+        row_ids(&page).len(),
+        3,
+        "the list without the link's filters"
+    );
+
+    // past its bound: nothing listed, and why, in the page and in its refresh
+    let past = "f=observable_pattern:fqdn:%2A.p%3Cb%3Est.example";
+    let why = "observable pattern fqdn:*.p&#60;b&#62;st.example matches more than 500 observables; make it \
+               more specific";
+    for path in [format!("/?{past}"), format!("/alerts/list?{past}")] {
+        let (status, page) = get(&path).await;
+        assert_eq!(status, StatusCode::OK, "{path}: {page}");
+        assert!(row_ids(&page).is_empty(), "{path}");
+        assert!(
+            page.contains(&format!(
+                r#"<p class="error filter-refused">These filters can't be run, so no alerts are listed: {why}</p>"#
+            )),
+            "{path}: {page}"
+        );
+        assert!(!page.contains("No alerts match"), "{path}");
+        assert!(!page.contains("p<b>st"), "{path}: {page}");
+    }
+
+    // and in search, where a refused pattern is a term that can't be honored
+    let (status, page) = get("/search?q=observable_pattern%3Afqdn%3A%2A.p%3Cb%3Est.example").await;
+    assert_eq!(status, StatusCode::OK, "{page}");
+    assert!(page.contains(why), "{page}");
+    assert!(!page.contains("p<b>st"), "{page}");
+
+    // a quick filter that can't be counted is marked with why, not drawn as one with no alerts
+    let post = |form: Vec<(&str, &str)>| {
+        let request = stack
+            .post("/filters/saved", &form)
+            .header("cookie", cookie(&session));
+        async move { request.send().await.expect("answered") }
+    };
+    let saved = post(vec![
+        ("name", "Past"),
+        ("f", "observable_pattern:fqdn:*.p<b>st.example"),
+        ("quick", "on"),
+        ("indicator", "on"),
+        ("next", "/"),
+    ])
+    .await;
+    assert_eq!(saved.status(), StatusCode::SEE_OTHER);
+    let (_, page) = get("/").await;
+    assert!(
+        page.contains(&format!(
+            r#"title="{why}">Past <span class="refused" aria-label="can't be counted">!</span></a>"#
+        )),
+        "{page}"
+    );
+    assert!(!page.contains(r#"Past <span class="count">"#), "{page}");
+
+    // saving a link with a pattern no index serves writes nothing
+    let audit = stack.audit_count().await;
+    let refused = post(vec![
+        ("name", "Both ends"),
+        ("f", "observable_pattern:fqdn:*evil*"),
+        ("next", "/"),
+    ])
+    .await;
+    assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
+    let body = refused.text().await.expect("a page");
+    assert!(body.contains("has a wildcard at both ends"), "{body}");
+    assert_eq!(stack.audit_count().await, audit);
+    assert_eq!(
+        stack
+            .service
+            .saved_filters(&alice, FilterScreen::Alerts)
+            .await
+            .expect("lists")
+            .iter()
+            .filter(|filter| filter.name == "Both ends")
+            .count(),
+        0
+    );
+}

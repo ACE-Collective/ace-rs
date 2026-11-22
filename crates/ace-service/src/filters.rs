@@ -28,6 +28,11 @@
 //! viewer by id, where ace3 puts the viewer's display name in its place, so two users with one display
 //! name aren't each other's `$USER`.
 //!
+//! The Observable Pattern filter (PLAN.md decision 39) takes a [type, pattern] pair whose pattern has `*`
+//! at its start or its end; `check` refuses one no index can serve, and the list looks its observables up
+//! before its query, bounded, refusing one past its bounds with `ServiceError::FilterRefused`
+//! (`patterns`).
+//!
 //! ace3's event list isn't a filter screen, as it has no saved filters or share links: its filters are
 //! `events`, under the same rules (5.11's events area).
 
@@ -45,6 +50,7 @@ use crate::permission::{
 
 mod dates;
 pub mod events;
+pub mod patterns;
 
 /// The most entries a filter list holds, once merged.
 pub const MAX_FILTER_ENTRIES: usize = 32;
@@ -104,7 +110,7 @@ pub enum FilterKind {
     Multi,
     /// A date range (`dates`).
     DateRange,
-    /// `[type, value]` pairs, the observable filter.
+    /// `[type, value]` pairs, the observable filters.
     Pair,
 }
 
@@ -235,6 +241,14 @@ const ALERT_FILTERS: &[FilterSpec] = &[
         FilterKind::Pair,
         &[],
         "a type, or Any, and a value",
+    ),
+    // ace3's since c9114508: a value with * at its start or its end (`patterns`)
+    spec(
+        "Observable Pattern",
+        "observable_pattern",
+        FilterKind::Pair,
+        &[],
+        "a type, or Any, and a value with * at its start or end, such as *.evil.com",
     ),
     spec(
         "Owner",
@@ -1234,8 +1248,12 @@ fn canonical(
     let name = spec.name;
     let text = match (spec.kind, value) {
         (FilterKind::Pair, FilterValue::Pair(kind, value)) => {
-            return observable_pair(kind, value)
-                .map(|(kind, value)| FilterValue::Pair(kind, value));
+            let pair = if spec.slug == "observable_pattern" {
+                pattern_pair(kind, value)
+            } else {
+                observable_pair(kind, value)
+            };
+            return pair.map(|(kind, value)| FilterValue::Pair(kind, value));
         }
         (FilterKind::Pair, FilterValue::Text(_)) => {
             return Err(invalid(format!("an {name} value is a [type, value] pair")));
@@ -1525,6 +1543,21 @@ fn observable_pair(kind: &str, value: &str) -> Result<(String, String), ServiceE
     Ok((kind.as_str().to_owned(), value))
 }
 
+/// An Observable Pattern filter's pair: a type's name or `Any`, and a pattern an index can serve
+/// (`patterns::check_pattern`), without the whitespace around it, as ace3's `FilterEntry` keeps it. The
+/// pattern is normalized for its type when it's looked up, as ace3's is.
+fn pattern_pair(kind: &str, pattern: &str) -> Result<(String, String), ServiceError> {
+    let kind = if kind == ANY_TYPE {
+        ANY_TYPE
+    } else {
+        kind.parse::<ace_results::ObservableKind>()
+            .map_err(|why| invalid(format!("Observable Pattern: {why}")))?
+            .as_str()
+    };
+    let pattern = patterns::check_pattern(pattern).map_err(invalid)?;
+    Ok((kind.to_owned(), pattern))
+}
+
 /// The three characters that are structural inside a share link's value are percent-encoded, as Python's
 /// `quote(safe="")` does: everything but ASCII letters, digits and `-._~`.
 fn quote(text: &str) -> String {
@@ -1789,6 +1822,19 @@ impl Resolved {
                     FilterValue::Text(_) => None,
                 })
                 .unzip()
+        })
+    }
+
+    /// The Observable Pattern filter's (type, pattern) pairs, `Any` as it is.
+    pub(crate) fn observable_patterns(&self, inverted: bool) -> Option<Vec<(String, String)>> {
+        self.values("observable_pattern", inverted).map(|values| {
+            values
+                .iter()
+                .filter_map(|value| match value {
+                    FilterValue::Pair(kind, pattern) => Some((kind.clone(), pattern.clone())),
+                    FilterValue::Text(_) => None,
+                })
+                .collect()
         })
     }
 

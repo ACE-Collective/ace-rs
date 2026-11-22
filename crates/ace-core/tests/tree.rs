@@ -1054,3 +1054,71 @@ async fn a_file_is_analyzed_under_its_shallowest_path_then_the_first_in_byte_ord
             .expect("reads")
     );
 }
+
+/// Migration 0081, the Observable Pattern filter's indexes (PLAN.md decision 39), waits at most 5 seconds
+/// for its lock, as ace3's migration waits for its metadata lock (its 2ed93061 checks the timeout in
+/// effect when an ALTER gives up): with a writer holding the table, it gives up with `lock_not_available`
+/// after that long, and not the statement's own timeout, so the core's writes don't queue behind it for
+/// longer.
+#[tokio::test]
+async fn the_pattern_index_migration_waits_five_seconds_for_its_lock() {
+    use std::time::{Duration, Instant};
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let migration = ace_core::db::MIGRATOR
+        .iter()
+        .find(|migration| migration.version == 81)
+        .expect("migration 0081");
+    assert!(
+        !migration.no_tx,
+        "SET LOCAL needs the migration's transaction"
+    );
+    sqlx::raw_sql(
+        "DROP INDEX analysis.observables_by_value_start; DROP INDEX analysis.observables_by_value_end",
+    )
+    .execute(db.pool())
+    .await
+    .expect("drops them");
+    // a writer's lock, as an open transaction that added an observable holds
+    let mut writer = db.begin().await.expect("begins");
+    sqlx::raw_sql("LOCK TABLE analysis.observables IN ROW EXCLUSIVE MODE")
+        .execute(writer.conn())
+        .await
+        .expect("locks");
+    let mut tx = db.begin().await.expect("begins");
+    let started = Instant::now();
+    let error = sqlx::raw_sql(migration.sql.clone())
+        .execute(tx.conn())
+        .await
+        .expect_err("waits, then gives up");
+    let waited = started.elapsed();
+    let code = error
+        .as_database_error()
+        .and_then(|error| error.code())
+        .map(|code| code.into_owned());
+    assert_eq!(code.as_deref(), Some("55P03"), "{error}");
+    assert!(
+        waited >= Duration::from_millis(4900) && waited < Duration::from_secs(10),
+        "{waited:?}"
+    );
+    drop(tx);
+    writer.rollback().await.expect("lets go");
+    // with nobody holding the table it builds both
+    let mut tx = db.begin().await.expect("begins");
+    sqlx::raw_sql(migration.sql.clone())
+        .execute(tx.conn())
+        .await
+        .expect("builds");
+    tx.commit().await.expect("commits");
+    let indexes: Vec<String> = sqlx::query_scalar(
+        "SELECT indexname::text FROM pg_indexes
+         WHERE schemaname = 'analysis' AND indexname LIKE 'observables_by_value_%' ORDER BY 1",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(
+        indexes,
+        ["observables_by_value_end", "observables_by_value_start"]
+    );
+}

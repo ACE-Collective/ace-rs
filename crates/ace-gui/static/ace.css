@@ -958,6 +958,12 @@ a.badge:hover {
   color: var(--muted);
 }
 
+/* a quick filter whose filters were refused, so it has no count: its tooltip says why (ace3's
+   quick-filter-error) */
+.badge .refused {
+  color: var(--bad-fg);
+}
+
 /* good: closed as nothing, a hit, validated, remediated, a false positive verdict */
 .badge.tone-ok,
 .badge.disposition-success,

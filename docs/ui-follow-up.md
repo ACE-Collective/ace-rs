@@ -86,6 +86,11 @@ The owner's direction, which every item here is measured against:
   scroll the page. None does on the fixture data at 1280 px.
 - [ ] **Saved-filter counts.** The "show a count" option is on the alert list only, since only its
   badges show counts.
+- [ ] **The Observable Pattern filter's type** (PLAN.md decision 39) is the editor's free-text type field
+  the exact Observable filter shares, where ace3's modal offers a menu of types, and its pattern has the
+  editor's one value field with the filter's hint, where ace3's input has its own placeholder and
+  tooltip. A refused quick filter's mark is a `!` in the danger colour with the reason as its tooltip.
+  Check with analysts whether either needs more.
 
 ## Navigation and layout
 

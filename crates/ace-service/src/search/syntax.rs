@@ -7,6 +7,7 @@
 //! tag:phish                        the tag
 //! ipv4:10.20.30.40                 an observable, by its type
 //! observable:url:https://evil.com  the explicit form, for a value with colons in it
+//! observable_pattern:fqdn:*.evil.com  a value with * at its start or end (any: for any type)
 //! uuid:1f2e3d4c-…                  an alert's id, or its first eight characters or more
 //! queue:default                    a narrowing filter
 //! disposition:DELIVERY,IGNORE      one term, values ORed
@@ -321,9 +322,48 @@ pub fn parse(query: &str) -> ParsedQuery {
                         }
                         Some(pairs)
                     }
+                    Field::Filter(spec) if spec.slug == "observable_pattern" => {
+                        // as observable:, split at the first colon; the type is any type's name in any
+                        // case, or `any`, as ace3's `_observable_pattern_term`
+                        let mut pairs = Vec::new();
+                        for value in &values {
+                            let Some((kind, pattern)) = value
+                                .split_once(':')
+                                .filter(|(_, pattern)| !pattern.is_empty())
+                            else {
+                                errors.push(format!(
+                                    "observable_pattern:{value:?} must be written \
+                                     observable_pattern:<type>:<pattern>"
+                                ));
+                                continue;
+                            };
+                            let lowered = kind.to_lowercase();
+                            let canonical = if lowered == filters::ANY_TYPE.to_lowercase() {
+                                Some(filters::ANY_TYPE)
+                            } else {
+                                ObservableKind::all()
+                                    .iter()
+                                    .find(|known| known.as_str().to_lowercase() == lowered)
+                                    .map(|known| known.as_str())
+                            };
+                            match canonical {
+                                Some(kind) => pairs
+                                    .push(FilterValue::Pair(kind.to_owned(), pattern.to_owned())),
+                                None => errors.push(format!(
+                                    "observable_pattern:{value:?}: {kind:?} is not an observable type \
+                                     (or {})",
+                                    filters::ANY_TYPE
+                                )),
+                            }
+                        }
+                        Some(pairs)
+                    }
                     _ => None,
                 };
                 let (name, values) = match (&field, pairs) {
+                    (Field::Filter(spec), Some(pairs)) if spec.slug == "observable_pattern" => {
+                        (spec.name, pairs)
+                    }
                     (_, Some(pairs)) => ("Observable", pairs),
                     (Field::Filter(spec), None) => (
                         spec.name,

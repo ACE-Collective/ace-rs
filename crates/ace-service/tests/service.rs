@@ -51374,3 +51374,884 @@ async fn directive_state(
         .expect("reads");
     (directives, mode, tasks)
 }
+
+/// The alert list's Observable Pattern filter (PLAN.md decision 39), ace3's `TestObservablePatternFilter`
+/// (`tests/saq/gui/test_filter_query.py` at `85c8e9e5`) and its count, API and search tests.
+mod observable_pattern_tests {
+    use super::*;
+    use ace_service::filters::patterns::{
+        END_LOOKUP, MAX_PATTERN_OBSERVABLES, START_LOOKUP, check_pattern, lookup, normalized,
+    };
+    use ace_service::search::{SearchRequest, syntax};
+
+    // the grammar and the LIKE patterns, ace3's test_observable_pattern.py
+
+    #[test]
+    fn a_pattern_with_text_at_one_end_is_accepted() {
+        // ace3's test_observable_pattern.py, its accepted list
+        for pattern in [
+            "*.evil.com",
+            "https://evil.com/*",
+            "evil.com*.net",
+            "*a",
+            "a*",
+            "no wildcard at all",
+            "*a*b",
+        ] {
+            assert_eq!(check_pattern(pattern).as_deref(), Ok(pattern));
+        }
+        assert_eq!(check_pattern("  *.evil.com\t").as_deref(), Ok("*.evil.com"));
+    }
+
+    #[test]
+    fn a_wildcard_at_both_ends_or_no_text_is_refused() {
+        for pattern in ["*evil*", "*a*b*", "  *evil*  "] {
+            let why = check_pattern(pattern).expect_err(pattern);
+            assert!(why.contains("has a wildcard at both ends"), "{why}");
+            assert!(why.contains("(e.g. evil.com/* or *.evil.com)"), "{why}");
+        }
+        for pattern in ["", "   ", "*", "**", "***"] {
+            let why = check_pattern(pattern).expect_err(pattern);
+            assert!(why.ends_with("has no text to match"), "{why}");
+        }
+    }
+
+    #[test]
+    fn each_wildcard_is_a_percent_and_like_metacharacters_are_literal() {
+        assert_eq!(lookup("*.evil.com").whole, "%.evil.com");
+        assert_eq!(
+            lookup(r"C:\Users\*\evil.exe").whole,
+            r"C:\\Users\\%\\evil.exe"
+        );
+        assert_eq!(lookup("50%_off!*").whole, r"50\%\_off!%");
+        assert_eq!(lookup("50%_off!*").range, r"50\%\_off!%");
+        assert!(!lookup("50%_off!*").from_end);
+    }
+
+    #[test]
+    fn the_end_is_read_only_for_a_pattern_that_starts_with_a_wildcard() {
+        // the start's index serves a pattern that starts with text, whatever it ends with
+        for pattern in ["https://evil.com/*", "evil.com*.net", "evil.com"] {
+            assert!(!lookup(pattern).from_end, "{pattern}");
+        }
+        assert_eq!(lookup("https://evil.com/*").range, "https://evil.com/%");
+        assert_eq!(lookup("evil.com*.net").range, "evil.com%");
+        let end = lookup("*.evil.com");
+        assert!(end.from_end);
+        assert_eq!(end.range, "moc.live.%");
+        assert_eq!(lookup("*evil*.com").range, "moc.%");
+    }
+
+    #[test]
+    fn the_end_is_escaped_after_it_is_reversed() {
+        assert_eq!(lookup("*_off!%").range, r"\%!ffo\_%");
+        assert_eq!(lookup(r"*a\").range, r"\\a%");
+    }
+
+    #[test]
+    fn the_range_keeps_only_what_the_index_holds() {
+        let end = lookup(&format!("*{}ab", "x".repeat(254)));
+        assert_eq!(end.range, format!("ba{}%", "x".repeat(253)));
+        let start = lookup(&format!("{}*", "y".repeat(300)));
+        assert_eq!(start.range, format!("{}%", "y".repeat(255)));
+        // a character, not a byte, as reverse() and left() count
+        assert_eq!(lookup("*é").range, "é%");
+    }
+
+    #[test]
+    fn a_pattern_is_normalized_only_where_that_changes_its_case() {
+        let sha = "A".repeat(64);
+        assert_eq!(normalized("file", &sha), "a".repeat(64));
+        assert_eq!(normalized("file", "ABC*"), "ABC*");
+        assert_eq!(normalized("fqdn", "*.EVIL.com"), "*.EVIL.com");
+        assert_eq!(normalized("Any", &sha), sha);
+    }
+
+    /// A suffix longer than the indexes keep of a value's end (`INDEXED_CHARS`).
+    fn long_suffix() -> String {
+        format!(" --payload {}", "A".repeat(300))
+    }
+
+    fn patterned(inverted: bool, values: &[(&str, &str)]) -> FilterEntry {
+        FilterEntry::new(
+            "Observable Pattern",
+            inverted,
+            values
+                .iter()
+                .map(|(kind, pattern)| FilterValue::Pair((*kind).to_owned(), (*pattern).to_owned()))
+                .collect(),
+        )
+    }
+
+    struct Patterned {
+        subdomain: Uuid,
+        lookalike: Uuid,
+        shouty: Uuid,
+        literal: Uuid,
+        plain: Uuid,
+    }
+
+    /// ace3's `patterned` fixture: alerts whose observables tell each kind of pattern apart.
+    async fn fixtures(db: &Db) -> Patterned {
+        let lookalike_command = format!("powershell -nop{}", long_suffix());
+        // the same last 255 characters as the lookalike's command line, but not the same suffix
+        let literal_command = format!("cmd /cB{}", &long_suffix()[1..]);
+        let subdomain = listed(
+            db,
+            Fixture {
+                title: "subdomain",
+                alerted: "2026-02-01T00:00:00Z",
+                observables: &[
+                    (ObservableKind::Fqdn, "mail.evil.com", &[]),
+                    (ObservableKind::Url, "https://evil.com/login?next=1", &[]),
+                    (
+                        ObservableKind::FilePath,
+                        r"C:\Users\bob\AppData\evil.exe",
+                        &[],
+                    ),
+                ],
+                ..Fixture::default()
+            },
+        )
+        .await;
+        let lookalike = listed(
+            db,
+            Fixture {
+                title: "lookalike",
+                alerted: "2026-02-02T00:00:00Z",
+                observables: &[
+                    (ObservableKind::Fqdn, "evil.com.attacker.net", &[]),
+                    (ObservableKind::EmailAddress, "bob@evil.com", &[]),
+                    (ObservableKind::CommandLine, &lookalike_command, &[]),
+                    (
+                        ObservableKind::CommandLine,
+                        &format!("{}1", "A".repeat(255)),
+                        &[],
+                    ),
+                ],
+                ..Fixture::default()
+            },
+        )
+        .await;
+        // an fqdn keeps the case it was found in, so this is its own observable
+        let shouty = listed(
+            db,
+            Fixture {
+                title: "shouty",
+                alerted: "2026-02-03T00:00:00Z",
+                observables: &[(ObservableKind::Fqdn, "Mail.EVIL.com", &[])],
+                ..Fixture::default()
+            },
+        )
+        .await;
+        // LIKE's own wildcards and its escape character, as literal text
+        let literal = listed(
+            db,
+            Fixture {
+                title: "literal",
+                alerted: "2026-02-04T00:00:00Z",
+                observables: &[
+                    (ObservableKind::FileName, "50%_off!.exe", &[]),
+                    (ObservableKind::FileName, "50ab_off!.exe", &[]),
+                    (ObservableKind::FileName, r"back\slash.exe", &[]),
+                    (ObservableKind::CommandLine, &literal_command, &[]),
+                    (
+                        ObservableKind::CommandLine,
+                        &format!("{}2", "A".repeat(255)),
+                        &[],
+                    ),
+                ],
+                ..Fixture::default()
+            },
+        )
+        .await;
+        let plain = listed(
+            db,
+            Fixture {
+                title: "plain",
+                alerted: "2026-02-05T00:00:00Z",
+                ..Fixture::default()
+            },
+        )
+        .await;
+        Patterned {
+            subdomain,
+            lookalike,
+            shouty,
+            literal,
+            plain,
+        }
+    }
+
+    /// The alerts a filter list lists, or why it was refused.
+    async fn listing(
+        service: &Service,
+        actor: &Actor,
+        filters: Vec<FilterEntry>,
+    ) -> Result<Vec<Uuid>, ServiceError> {
+        let query = AlertQuery {
+            filters,
+            ..AlertQuery::default()
+        };
+        let page = service.alerts(actor, &query, Some(1000), None).await?;
+        assert_eq!(page.total, page.alerts.len() as i64);
+        Ok(sorted(page.alerts.iter().map(|alert| alert.id).collect()))
+    }
+
+    /// Adds `count` distinct fqdns ending `suffix` to a new alert, in one statement.
+    async fn many(db: &Db, count: i32, suffix: &str) -> Uuid {
+        let root = listed(
+            db,
+            Fixture {
+                title: "many",
+                alerted: "2026-03-01T00:00:00Z",
+                ..Fixture::default()
+            },
+        )
+        .await;
+        sqlx::query(
+            "INSERT INTO analysis.observables (root_id, type, value)
+             SELECT $1, 'fqdn', 'h' || n || $3 FROM generate_series(1, $2) n",
+        )
+        .bind(root)
+        .bind(count)
+        .bind(suffix)
+        .execute(db.pool())
+        .await
+        .expect("adds them");
+        root
+    }
+
+    fn refused(result: Result<Vec<Uuid>, ServiceError>) -> String {
+        match result {
+            Err(ServiceError::FilterRefused(why)) => why,
+            other => panic!("not refused: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn a_pattern_matches_a_start_or_an_end() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = service(db);
+        let actor = admin(db).await;
+        let p = fixtures(db).await;
+        let everyone = sorted(vec![p.subdomain, p.lookalike, p.shouty, p.literal, p.plain]);
+        let without = |left_out: &[Uuid]| -> Vec<Uuid> {
+            everyone
+                .iter()
+                .copied()
+                .filter(|id| !left_out.contains(id))
+                .collect()
+        };
+        let cases: Vec<(Vec<FilterEntry>, Vec<Uuid>)> = vec![
+            // a suffix, through the end's index; a prefix, through the start's
+            (
+                vec![patterned(false, &[("fqdn", "*.evil.com")])],
+                vec![p.subdomain],
+            ),
+            (
+                vec![patterned(false, &[("url", "https://evil.com/*")])],
+                vec![p.subdomain],
+            ),
+            // text at both ends with a wildcard between is a prefix, as in ace3
+            (
+                vec![patterned(false, &[("fqdn", "evil.com*.net")])],
+                vec![p.lookalike],
+            ),
+            // no wildcard at all is the value itself
+            (
+                vec![patterned(false, &[("fqdn", "mail.evil.com")])],
+                vec![p.subdomain],
+            ),
+            // Windows' backslashes are literal
+            (
+                vec![patterned(false, &[("file_path", r"C:\Users\*\evil.exe")])],
+                vec![p.subdomain],
+            ),
+            (
+                vec![patterned(false, &[("hostname", "*.evil.com")])],
+                vec![],
+            ),
+            (
+                vec![patterned(false, &[("Any", "*evil.com")])],
+                sorted(vec![p.subdomain, p.lookalike]),
+            ),
+            // the match keeps case
+            (
+                vec![patterned(false, &[("fqdn", "*.EVIL.com")])],
+                vec![p.shouty],
+            ),
+            (vec![patterned(false, &[("fqdn", "*.Evil.com")])], vec![]),
+            // %, _ and \ are themselves
+            (
+                vec![patterned(false, &[("file_name", "50%_off!*")])],
+                vec![p.literal],
+            ),
+            (vec![patterned(false, &[("file_name", "50_*")])], vec![]),
+            (
+                vec![patterned(false, &[("file_name", "50%*")])],
+                vec![p.literal],
+            ),
+            (
+                vec![patterned(false, &[("file_name", "*%_off!.exe")])],
+                vec![p.literal],
+            ),
+            (
+                vec![patterned(false, &[("file_name", "*_off!.exe")])],
+                vec![p.literal],
+            ),
+            (
+                vec![patterned(false, &[("file_name", "*b_off!.exe")])],
+                vec![p.literal],
+            ),
+            (
+                vec![patterned(false, &[("file_name", "*xb_off!.exe")])],
+                vec![],
+            ),
+            (
+                vec![patterned(false, &[("file_name", r"back\*")])],
+                vec![p.literal],
+            ),
+            (
+                vec![patterned(false, &[("file_name", r"*\slash.exe")])],
+                vec![p.literal],
+            ),
+            (vec![patterned(false, &[("file_name", "back%*")])], vec![]),
+            // a run of text longer than the index holds is checked against the whole value: the two
+            // command lines share their first 255 characters. A pattern is at most 256 characters
+            // (`MAX_FILTER_VALUE_CHARS`), so only a pattern with no wildcard, or one that starts
+            // with text and ends with *, can be longer than the 255 an index keeps.
+            (
+                vec![patterned(
+                    false,
+                    &[("command_line", &format!("{}1", "A".repeat(255)))],
+                )],
+                vec![p.lookalike],
+            ),
+            (
+                vec![patterned(
+                    false,
+                    &[("command_line", &format!("{}*", "A".repeat(255)))],
+                )],
+                sorted(vec![p.lookalike, p.literal]),
+            ),
+            // a suffix on a value longer than the index holds
+            (
+                vec![patterned(
+                    false,
+                    &[("command_line", &format!("*{}", "A".repeat(255)))],
+                )],
+                sorted(vec![p.lookalike, p.literal]),
+            ),
+            // one entry's values are ORed, and two entries of the filter are merged into one
+            (
+                vec![patterned(
+                    false,
+                    &[("fqdn", "*.evil.com"), ("fqdn", "*.net")],
+                )],
+                sorted(vec![p.subdomain, p.lookalike]),
+            ),
+            (
+                vec![
+                    patterned(false, &[("fqdn", "*.net")]),
+                    patterned(false, &[("email_address", "*@evil.com")]),
+                ],
+                vec![p.lookalike],
+            ),
+            // with another filter, ANDed
+            (
+                vec![
+                    patterned(false, &[("fqdn", "*.evil.com"), ("fqdn", "*.net")]),
+                    text("Description", false, &["look"]),
+                ],
+                vec![p.lookalike],
+            ),
+            // inverted keeps alerts with no observables at all
+            (
+                vec![patterned(true, &[("fqdn", "*.evil.com")])],
+                without(&[p.subdomain]),
+            ),
+            (
+                vec![patterned(false, &[("fqdn", "*.not-there.example")])],
+                vec![],
+            ),
+            (
+                vec![patterned(true, &[("fqdn", "*.not-there.example")])],
+                everyone.clone(),
+            ),
+            (
+                vec![
+                    patterned(false, &[("Any", "*evil.com")]),
+                    patterned(true, &[("email_address", "*@evil.com")]),
+                ],
+                vec![p.subdomain],
+            ),
+        ];
+        for (filters, expected) in cases {
+            assert_eq!(
+                listing(&service, &actor, filters.clone())
+                    .await
+                    .expect("lists"),
+                expected,
+                "{filters:?}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn a_pattern_no_index_serves_is_refused_where_a_filter_comes_in() {
+        for (pattern, why) in [
+            ("*evil*", "has a wildcard at both ends"),
+            ("  *evil*  ", "has a wildcard at both ends"),
+            ("*a*b*", "has a wildcard at both ends"),
+            ("*", "has no text to match"),
+            ("**", "has no text to match"),
+            ("   ", "has no text to match"),
+        ] {
+            let error = filter_model::check(
+                FilterScreen::Alerts,
+                &[patterned(false, &[("fqdn", pattern)])],
+            )
+            .expect_err(pattern);
+            assert!(
+                matches!(&error, ServiceError::InvalidRequest(message) if message.contains(why)),
+                "{pattern:?}: {error}"
+            );
+        }
+        // ace3's exact words, which the GUI, the API and search all show
+        assert_eq!(
+            check_pattern("*evil*").expect_err("refused"),
+            "observable pattern \"*evil*\" has a wildcard at both ends; it must start or end with text \
+             (e.g. evil.com/* or *.evil.com)"
+        );
+        assert_eq!(
+            check_pattern("*").expect_err("refused"),
+            "observable pattern \"*\" has no text to match"
+        );
+        // the pattern is kept without its surrounding whitespace, and its type by name
+        assert_eq!(
+            filter_model::check(
+                FilterScreen::Alerts,
+                &[patterned(false, &[("fqdn", "  *.evil.com ")])],
+            )
+            .expect("checks"),
+            vec![patterned(false, &[("fqdn", "*.evil.com")])]
+        );
+        for (entry, why) in [
+            (patterned(false, &[("nope", "*.evil.com")]), "nope"),
+            (text("Observable Pattern", false, &["*.evil.com"]), "pair"),
+        ] {
+            let error = filter_model::check(FilterScreen::Alerts, &[entry]).expect_err(why);
+            assert!(error.to_string().contains(why), "{error}");
+        }
+        // a * in the exact Observable filter is still a literal character (***SPAM*** subjects)
+        assert!(
+            filter_model::check(
+                FilterScreen::Alerts,
+                &[pair(false, "email_subject", "***SPAM***")]
+            )
+            .is_ok()
+        );
+    }
+
+    #[tokio::test]
+    async fn a_share_link_carries_a_pattern_and_refuses_one_no_index_serves() {
+        let entries = vec![patterned(true, &[("url", "https://evil.com/a,b*")])];
+        let link = filter_model::encode(FilterScreen::Alerts, &entries).expect("encodes");
+        assert_eq!(
+            link,
+            ["!observable_pattern:url:https%3A%2F%2Fevil.com%2Fa%2Cb%2A"]
+        );
+        assert_eq!(
+            filter_model::decode(FilterScreen::Alerts, &link, true).expect("decodes"),
+            (entries, Vec::new())
+        );
+        // ace3's links: a * written as itself or encoded
+        for f in [
+            "observable_pattern:fqdn:%2A.evil.com",
+            "observable_pattern:fqdn:*.evil.com",
+        ] {
+            assert_eq!(
+                filter_model::decode(FilterScreen::Alerts, &[f.to_owned()], true)
+                    .expect("decodes")
+                    .0,
+                vec![patterned(false, &[("fqdn", "*.evil.com")])]
+            );
+        }
+        // the link's values are checked as it's read, before anything is listed or saved
+        let error = filter_model::decode(
+            FilterScreen::Alerts,
+            &["observable_pattern:fqdn:%2Aevil%2A".to_owned()],
+            false,
+        )
+        .expect_err("refused");
+        assert!(
+            error.to_string().contains("has a wildcard at both ends"),
+            "{error}"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_pattern_matching_more_than_its_bound_is_refused_and_remembered() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = service(db);
+        let actor = admin(db).await;
+        assert_eq!(MAX_PATTERN_OBSERVABLES, 500);
+        let at_the_bound = many(db, 500, ".bound.example").await;
+        let past_it = many(db, 501, ".past.example").await;
+        // 500 is listed
+        assert_eq!(
+            listing(
+                &service,
+                &actor,
+                vec![patterned(false, &[("fqdn", "*.bound.example")])]
+            )
+            .await
+            .expect("lists"),
+            vec![at_the_bound]
+        );
+        // 501 is refused, never cut short, in both directions
+        let why = refused(
+            listing(
+                &service,
+                &actor,
+                vec![patterned(false, &[("fqdn", "*.past.example")])],
+            )
+            .await,
+        );
+        assert_eq!(
+            why,
+            "observable pattern fqdn:*.past.example matches more than 500 observables; make it more \
+             specific"
+        );
+        assert_eq!(
+            refused(
+                listing(
+                    &service,
+                    &actor,
+                    vec![patterned(true, &[("fqdn", "*.past.example")])]
+                )
+                .await
+            ),
+            why
+        );
+        // and its refusal is remembered: with the observables gone it is still refused, in this process
+        sqlx::query("DELETE FROM analysis.observables WHERE root_id = $1")
+            .bind(past_it)
+            .execute(db.pool())
+            .await
+            .expect("deletes");
+        assert_eq!(
+            refused(
+                listing(
+                    &service,
+                    &actor,
+                    vec![patterned(false, &[("fqdn", "*.past.example")])]
+                )
+                .await
+            ),
+            why
+        );
+        // another type is another pattern, and another process looks it up again
+        assert_eq!(
+            listing(
+                &service,
+                &actor,
+                vec![patterned(false, &[("url", "*.past.example")])]
+            )
+            .await
+            .expect("lists"),
+            Vec::<Uuid>::new()
+        );
+        assert_eq!(
+            listing(
+                &super::service(db),
+                &actor,
+                vec![patterned(false, &[("fqdn", "*.past.example")])]
+            )
+            .await
+            .expect("lists"),
+            Vec::<Uuid>::new()
+        );
+        // two patterns under the bound each, over it together
+        let first = many(db, 300, ".first.example").await;
+        many(db, 300, ".second.example").await;
+        assert_eq!(
+            listing(
+                &service,
+                &actor,
+                vec![patterned(false, &[("fqdn", "*.first.example")])]
+            )
+            .await
+            .expect("lists"),
+            vec![first]
+        );
+        assert_eq!(
+            refused(
+                listing(
+                    &service,
+                    &actor,
+                    vec![patterned(
+                        false,
+                        &[("fqdn", "*.first.example"), ("fqdn", "*.second.example")]
+                    )]
+                )
+                .await
+            ),
+            "these observable patterns match more than 500 observables together; make them more specific"
+        );
+    }
+
+    #[tokio::test]
+    async fn the_bound_counts_observables_not_the_alerts_that_hold_them() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = service(db);
+        let actor = admin(db).await;
+        // one value in 501 alerts is one observable, as ace3's observables table holds it once
+        let mut roots = Vec::new();
+        for _ in 0..=MAX_PATTERN_OBSERVABLES {
+            roots.push(
+                listed(
+                    db,
+                    Fixture {
+                        title: "the same fqdn",
+                        alerted: "2026-03-02T00:00:00Z",
+                        observables: &[(ObservableKind::Fqdn, "one.shared.example", &[])],
+                        ..Fixture::default()
+                    },
+                )
+                .await,
+            );
+        }
+        assert_eq!(
+            listing(
+                &service,
+                &actor,
+                vec![patterned(false, &[("fqdn", "*.shared.example")])]
+            )
+            .await
+            .expect("lists"),
+            sorted(roots)
+        );
+    }
+
+    #[tokio::test]
+    async fn a_lookup_that_runs_past_its_time_is_refused_and_remembered() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = service(db);
+        let actor = admin(db).await;
+        let p = fixtures(db).await;
+        // another transaction holds the table, so the lookup waits past its second
+        let mut holder = db.begin().await.expect("begins");
+        sqlx::raw_sql("LOCK TABLE analysis.observables IN ACCESS EXCLUSIVE MODE")
+            .execute(holder.conn())
+            .await
+            .expect("locks");
+        let started = Instant::now();
+        let why = refused(
+            listing(
+                &service,
+                &actor,
+                vec![patterned(false, &[("fqdn", "*.evil.com")])],
+            )
+            .await,
+        );
+        let waited = started.elapsed();
+        assert_eq!(
+            why,
+            "observable pattern fqdn:*.evil.com took too long to look up; make its text longer or pick a type"
+        );
+        assert!(
+            waited >= Duration::from_millis(900) && waited < Duration::from_secs(5),
+            "{waited:?}"
+        );
+        holder.rollback().await.expect("lets go");
+        // remembered, so it is refused again without waiting
+        let started = Instant::now();
+        assert_eq!(
+            refused(
+                listing(
+                    &service,
+                    &actor,
+                    vec![patterned(false, &[("fqdn", "*.evil.com")])]
+                )
+                .await
+            ),
+            why
+        );
+        assert!(started.elapsed() < Duration::from_millis(900));
+        // another pattern isn't, nor the same in another process
+        assert_eq!(
+            listing(
+                &service,
+                &actor,
+                vec![patterned(false, &[("url", "https://evil.com/*")])]
+            )
+            .await
+            .expect("lists"),
+            vec![p.subdomain]
+        );
+        assert_eq!(
+            listing(
+                &super::service(db),
+                &actor,
+                vec![patterned(false, &[("fqdn", "*.evil.com")])]
+            )
+            .await
+            .expect("lists"),
+            vec![p.subdomain]
+        );
+    }
+
+    /// The lookups read their indexes (migration 0081): the statements the service runs, explained with a
+    /// selective pattern over enough observables that the planner prefers an index to a scan.
+    #[tokio::test]
+    async fn a_pattern_lookup_reads_its_index() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let root = many(db, 0, "").await;
+        sqlx::query(
+            "INSERT INTO analysis.observables (root_id, type, value)
+             SELECT $1, 'fqdn', 'h' || n || '.d' || (n % 50) || '.example' FROM generate_series(1, 20000) n",
+        )
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("adds them");
+        sqlx::raw_sql("ANALYZE analysis.observables")
+            .execute(db.pool())
+            .await
+            .expect("analyzes");
+        for (statement, pattern, index) in [
+            (START_LOOKUP, "h123*", "observables_by_value_start"),
+            (
+                START_LOOKUP,
+                "h123*.d23.example",
+                "observables_by_value_start",
+            ),
+            (END_LOOKUP, "*.d7.example", "observables_by_value_end"),
+            (END_LOOKUP, "*7.d7.example", "observables_by_value_end"),
+        ] {
+            let lookup = lookup(pattern);
+            assert_eq!(lookup.from_end, statement == END_LOOKUP);
+            let mut tx = db.begin().await.expect("begins");
+            sqlx::raw_sql("SET LOCAL plan_cache_mode = force_custom_plan")
+                .execute(tx.conn())
+                .await
+                .expect("sets");
+            let plan: Vec<String> =
+                sqlx::query_scalar(sqlx::AssertSqlSafe(format!("EXPLAIN {statement}")))
+                    .bind(&lookup.range)
+                    .bind(&lookup.whole)
+                    .bind("fqdn")
+                    .bind(501_i64)
+                    .fetch_all(tx.conn())
+                    .await
+                    .expect("explains");
+            let plan = plan.join("\n");
+            assert!(plan.contains(index), "{pattern}: {plan}");
+            assert!(!plan.contains("Seq Scan"), "{pattern}: {plan}");
+            // the index's range is the anchored text's, so it reads only what starts with it
+            assert!(plan.contains("Index Cond"), "{pattern}: {plan}");
+        }
+    }
+
+    #[tokio::test]
+    async fn search_takes_a_pattern_term_and_says_when_it_is_refused() {
+        let parsed = syntax::parse("observable_pattern:fqdn:*.evil.com");
+        assert!(
+            parsed.exact.is_empty() && parsed.errors.is_empty(),
+            "{parsed:?}"
+        );
+        assert_eq!(
+            parsed.filters,
+            vec![patterned(false, &[("fqdn", "*.evil.com")])]
+        );
+        // any type's name in any case, or any
+        let parsed = syntax::parse("-observable_pattern:ANY:https://evil.com/*,FQDN:*.net");
+        assert_eq!(
+            parsed.filters,
+            vec![patterned(
+                true,
+                &[("Any", "https://evil.com/*"), ("fqdn", "*.net")]
+            )]
+        );
+        for (query, why) in [
+            (
+                "observable_pattern:fqdn:*evil*",
+                "has a wildcard at both ends",
+            ),
+            (
+                "observable_pattern:nope:*.evil.com",
+                "is not an observable type (or Any)",
+            ),
+            (
+                "observable_pattern:*.evil.com",
+                "must be written observable_pattern:<type>:<pattern>",
+            ),
+            (
+                "observable_pattern:fqdn:",
+                "must be written observable_pattern:<type>:<pattern>",
+            ),
+        ] {
+            let parsed = syntax::parse(query);
+            assert!(parsed.filters.is_empty(), "{query}: {parsed:?}");
+            assert!(
+                parsed.errors.iter().any(|error| error.contains(why)),
+                "{query}: {:?}",
+                parsed.errors
+            );
+        }
+
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = service(db);
+        let actor = admin(db).await;
+        let p = fixtures(db).await;
+        many(db, 501, ".past.example").await;
+        let found = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    query: "observable_pattern:fqdn:*.evil.com".to_owned(),
+                    ..SearchRequest::default()
+                },
+            )
+            .await
+            .expect("searches");
+        assert!(found.errors.is_empty(), "{:?}", found.errors);
+        assert_eq!(
+            found.results.iter().map(|r| r.alert.id).collect::<Vec<_>>(),
+            vec![p.subdomain]
+        );
+        // a pattern past its bound is an error with nothing searched, from the query or the filters
+        for request in [
+            SearchRequest {
+                query: "observable_pattern:fqdn:*.past.example".to_owned(),
+                ..SearchRequest::default()
+            },
+            SearchRequest {
+                query: "queue:default".to_owned(),
+                filters: vec![patterned(false, &[("fqdn", "*.past.example")])],
+                ..SearchRequest::default()
+            },
+        ] {
+            let refused = service
+                .search_alerts(&actor, &request)
+                .await
+                .expect("answers");
+            assert_eq!(
+                refused.errors,
+                [
+                    "observable pattern fqdn:*.past.example matches more than 500 observables; make it \
+                  more specific"
+                ]
+            );
+            assert_eq!((refused.total, refused.results.len()), (0, 0));
+        }
+    }
+}

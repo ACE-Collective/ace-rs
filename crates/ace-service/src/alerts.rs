@@ -582,7 +582,8 @@ impl Service {
     /// A page of the alerts `query` matches, in its order, of up to `limit` (100 when None, at most
     /// `MAX_ALERTS_PAGE`), after the cursor `after`, a page's `next`. A cursor of another order, or one that
     /// names no alert, is `InvalidRequest`, and so is a filter the alert screen can't take
-    /// (`filters::check`) or one that runs past `LIST_TIMEOUT`.
+    /// (`filters::check`) or one that runs past `LIST_TIMEOUT`. An Observable Pattern past its bounds is
+    /// `FilterRefused` (`filters::patterns`).
     pub async fn alerts(
         &self,
         actor: &crate::Actor,
@@ -630,6 +631,9 @@ impl Service {
             window("disposition_date", true)?,
         );
         let ((o1, o2), (o3, o4)) = (split(f.observables(false)), split(f.observables(true)));
+        let (patterned, not_patterned) =
+            (f.observable_patterns(false), f.observable_patterns(true));
+        let patterns = (&patterned, &not_patterned, &*self.pattern_refusals);
         let ((s1, s2), (s3, s4)) = (
             split(f.signatures("detection_point", false)),
             split(f.signatures("detection_point", true)),
@@ -697,7 +701,25 @@ impl Service {
                     let (unconfirmed, not_unconfirmed, tp, fp) = verdicts;
                     let (queued, not_queued, viewer) = queues;
                     let (owned, owned_none, not_owned, not_owned_none) = owners;
+                    let (patterned, not_patterned, refusals) = patterns;
                     sqlx::raw_sql(SET_LIST_TIMEOUT).execute(tx.conn()).await?;
+                    // Observable Pattern: each pattern's observables first, bounded in number and time
+                    let mut matched = [None, None];
+                    for (at, patterns) in [patterned, not_patterned].into_iter().enumerate() {
+                        if let Some(patterns) = patterns {
+                            matched[at] = Some(
+                                crate::filters::patterns::matches(
+                                    tx.conn(),
+                                    refusals,
+                                    patterns,
+                                    SET_LIST_TIMEOUT,
+                                )
+                                .await?,
+                            );
+                        }
+                    }
+                    let [matched, not_matched] = matched;
+                    let ((m1, m2), (m3, m4)) = (split(matched), split(not_matched));
                     if let Some(after) = after_id {
                         let known = sqlx::query_scalar!(
                             r#"SELECT EXISTS (SELECT FROM analysis.roots
@@ -787,6 +809,19 @@ impl Service {
                                             WHERE o.root_id = r.id AND t.tag ILIKE ANY ($31::text[]))
                                     OR EXISTS (SELECT FROM analysis.results x, unnest(x.tags) t(tag)
                                                WHERE x.root_id = r.id AND t.tag ILIKE ANY ($31::text[]))))
+                               -- Observable Pattern: one of the (type, value)s its patterns matched
+                               AND ($54::text[] IS NULL OR EXISTS (
+                                     SELECT FROM analysis.observables o
+                                     JOIN unnest($54::text[], $55::text[]) p(t, v)
+                                       ON o.type = p.t
+                                      AND o.value_hash = analysis.value_hash(p.v) AND o.value = p.v
+                                     WHERE o.root_id = r.id))
+                               AND ($56::text[] IS NULL OR NOT EXISTS (
+                                     SELECT FROM analysis.observables o
+                                     JOIN unnest($56::text[], $57::text[]) p(t, v)
+                                       ON o.type = p.t
+                                      AND o.value_hash = analysis.value_hash(p.v) AND o.value = p.v
+                                     WHERE o.root_id = r.id))
                                -- Analysis: a result of one of the modules
                                AND ($32::text[] IS NULL OR EXISTS (
                                      SELECT FROM analysis.results x
@@ -956,6 +991,10 @@ impl Service {
                         scope.except,
                         scope.window.map(|(start, _)| start),
                         scope.window.map(|(_, end)| end),
+                        m1.as_deref(),
+                        m2.as_deref(),
+                        m3.as_deref(),
+                        m4.as_deref(),
                     )
                     .fetch_all(tx.conn())
                     .await

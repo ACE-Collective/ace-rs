@@ -1,11 +1,14 @@
 {#- The alert list's table and pager (PLAN.md 5.10), ace3's _manage_alert_table.html and _manage_columns.html:
     what the page includes and what a refresh sends, which Datastar morphs in by the id. A row's box belongs
     to the bulk form, outside this fragment; $_sel keeps the ticked ids across a morph, and each id is a
-    uuid. A description has its marks beside it: what SVS makes of the alert, and its root's tags (PLAN.md
+    uuid. Filters the service refused (an Observable Pattern past its bounds) list nothing and say why
+    here, which the refresh draws again. A description has its marks beside it: what SVS makes of the alert, and its root's tags (PLAN.md
     7.10 batch 7b). -#}
 <div id="alert-list">
   <p class="count">{{ list.total }} alert{% if list.total != 1 %}s{% endif %}</p>
-  {%- if list.rows.is_empty() %}
+  {%- if let Some(why) = list.refused %}
+  <p class="error filter-refused">These filters can't be run, so no alerts are listed: {{ why }}</p>
+  {%- else if list.rows.is_empty() %}
   <p class="muted">No alerts match these filters.</p>
   {%- else %}
   <div class="table-wrap"><table class="alerts">

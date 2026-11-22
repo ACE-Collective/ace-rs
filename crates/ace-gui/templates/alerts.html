@@ -32,7 +32,7 @@
     <a href="{{ view.share }}" title="A link to this list, to copy and share">Link</a>
     <span class="sep" aria-hidden="true">|</span>
     {%- for badge in view.badges %}
-    <a class="badge{% if badge.current %} current{% endif %}" href="{{ badge.href }}">{{ badge.label }}{% if let Some(count) = badge.count %} <span class="count">{{ count }}</span>{% endif %}</a>
+    <a class="badge{% if badge.current %} current{% endif %}" href="{{ badge.href }}"{% if let Some(why) = badge.refused %} title="{{ why }}"{% endif %}>{{ badge.label }}{% if badge.refused.is_some() %} <span class="refused" aria-label="can't be counted">!</span>{% else if let Some(count) = badge.count %} <span class="count">{{ count }}</span>{% endif %}</a>
     {%- endfor %}
     {%- if !view.chips.is_empty() %}
     <span class="sep" aria-hidden="true">|</span>
@@ -77,7 +77,7 @@
     <details class="more-filters editor">
       <summary>More filter options</summary>
       <p><label><input type="checkbox" name="not"> Exclude what the filter matches</label>
-        <input type="text" name="type" placeholder="type, for Observable" aria-label="Observable type"></p>
+        <input type="text" name="type" placeholder="type, for Observable and Observable Pattern" aria-label="Observable type"></p>
       <dl class="hints">
         {%- for filter in view.editor %}
         <dt>{{ filter.name }}</dt><dd>{{ filter.hint }}</dd>
