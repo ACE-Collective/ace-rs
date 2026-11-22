@@ -3,10 +3,12 @@
 //!
 //! - **The hunt type** `example_tickets` ([`TicketHunts`]): a hunt names the ticket `queue` it
 //!   searches, and may name the ticket field its event time is read from (`timestamp_field`, by
-//!   default `opened`), beside every query hunt's fields. Its search ([`TicketSearch`],
-//!   `App::hunt_search`) asks the ticket system for the queue's tickets matching the hunt's query in
-//!   the window, and each ticket's `timestamp_field` is its event's time, as a site's mail_filter
-//!   hunts read theirs. It reaches the system through the site's shared
+//!   default `opened`), beside every query hunt's fields. Each ticket's `timestamp_field` is its
+//!   event's time, as a site's mail_filter hunts read theirs, and the type reads it
+//!   (`HuntType::event_time`, PLAN.md decision 43), so a validation run through `ace serve` times
+//!   the tickets it is sent as `ace hunter` times those a search finds. Its search
+//!   ([`TicketSearch`], `App::hunt_search`) asks the ticket system for the queue's tickets matching
+//!   the hunt's query in the window. It reaches the system through the site's shared
 //!   connection `example_ticket_system` in its slot `tickets`, which the overlay's
 //!   `hunt_types.example_tickets.connections` binds, so only `ace hunter` holds the token.
 //! - **The query source type** `example_tickets` ([`TicketSource`], `App::query_source_type`): a
@@ -77,6 +79,21 @@ impl HuntType for TicketHunts {
                 ("timestamp_field".to_owned(), Json::String(field)),
             ])
         }))
+    }
+
+    /// The ticket's time in the hunt's `timestamp_field`.
+    fn event_time(
+        &self,
+        hunt: &HuntConfig,
+        row: &JsonMap<String, Json>,
+        _now: DateTime<Utc>,
+    ) -> Option<DateTime<Utc>> {
+        let field = hunt
+            .settings
+            .get("timestamp_field")
+            .and_then(Json::as_str)
+            .unwrap_or(DEFAULT_TIMESTAMP_FIELD);
+        time_of(row, field)
     }
 }
 
@@ -237,21 +254,6 @@ impl HuntSearch for TicketSearch {
                 rows,
             }
         })
-    }
-
-    /// The ticket's time in the hunt's `timestamp_field`.
-    fn event_time(
-        &self,
-        hunt: &HuntConfig,
-        row: &JsonMap<String, Json>,
-        _now: DateTime<Utc>,
-    ) -> Option<DateTime<Utc>> {
-        let field = hunt
-            .settings
-            .get("timestamp_field")
-            .and_then(Json::as_str)
-            .unwrap_or(DEFAULT_TIMESTAMP_FIELD);
-        time_of(row, field)
     }
 }
 

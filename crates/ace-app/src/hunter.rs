@@ -19,7 +19,9 @@
 //! overlay's `hunt_types.<type>` (its settings and the shared connections it binds). A hunt of a type
 //! the binary has no search for loads and is skipped, saying so. Splunk's instances are the overlay's
 //! connections of type `splunk` (PLAN.md decision 41), each named as ace3 names the instance, which
-//! Splunk's search takes by name.
+//! Splunk's search takes by name. A row's event time is the hunt type's (`HuntType::event_time`,
+//! decision 43), not its search's, so a validation run through `ace serve`, which has no search,
+//! times the rows as the hunter does.
 //!
 //! Each hit a suppression drops is a row (PLAN.md 6.5, [`run_of`]): a group a grouped hunt's
 //! `suppression` drops, decided here, and a duplicate of a dedup key, which ace3's collector drops and
@@ -298,6 +300,8 @@ struct SourceEntry {
 /// The hunter without its database: what decides, searches and processes a run.
 pub struct Hunter {
     config: HunterConfig,
+    /// The binary's hunt types by name, which time a search's rows (`HuntType::event_time`).
+    types: BTreeMap<String, Arc<dyn HuntType>>,
     /// Each hunt type's search, or why it didn't build.
     searches: BTreeMap<String, Result<Arc<dyn HuntSearch>, String>>,
     sources: BTreeMap<String, SourceEntry>,
@@ -328,15 +332,16 @@ pub struct Tick {
 }
 
 impl Hunter {
-    /// A hunter with every `App`'s built-in Splunk search and source over `overlay`'s Splunk
-    /// instances and its query sources, and no site types: `Hunter::for_app` is the hunter `ace
-    /// hunter` runs.
+    /// A hunter with Splunk's hunt type and every `App`'s built-in Splunk search and source over
+    /// `overlay`'s Splunk instances and its query sources, and no site types: `Hunter::for_app` is
+    /// the hunter `ace hunter` runs.
     pub fn new(
         config: HunterConfig,
         secrets: &Secrets,
         overlay: &ace_sdk::Overlay,
     ) -> Result<Hunter> {
-        Hunter::for_app(config, secrets, &App::new(), overlay)
+        let app = App::new().hunt_type(ace_hunt::types::Splunk::default());
+        Hunter::for_app(config, secrets, &app, overlay)
     }
 
     /// The hunter of `app`'s hunt type searches and query source types, built with `overlay`'s
@@ -441,6 +446,11 @@ impl Hunter {
             home: config.signatures.clone(),
             cache: MemoryCache::new(config.correlation_cache_bytes, Box::new(Utc::now)),
             config,
+            types: app
+                .hunt_types()
+                .iter()
+                .map(|kind| (kind.name().to_owned(), kind.clone()))
+                .collect(),
             searches,
             sources,
             renderer: Renderer::default(),
@@ -549,6 +559,16 @@ impl Hunter {
         }
     }
 
+    /// The hunt type `kind` and its search, or why a hunt of it can't run.
+    fn runner_of(&self, kind: &str) -> Result<(&dyn HuntType, &dyn HuntSearch), String> {
+        let search = self.search_of(kind)?;
+        let kind = self
+            .types
+            .get(kind)
+            .ok_or_else(|| format!("this binary has no {kind} hunt type"))?;
+        Ok((kind.as_ref(), search.as_ref()))
+    }
+
     /// Loads the hunts of `kind` from its rule directories, each checked as its search checks it
     /// when it is made (Splunk: the instance it names).
     pub fn load(&self, kind: &dyn HuntType) -> Vec<ace_hunt::LoadedHunt> {
@@ -596,7 +616,7 @@ impl Hunter {
         };
         let instance_type = self.config.instance_type.to_lowercase();
         let ready = schedule::ready(config, state, now);
-        let search = self.search_of(&config.kind);
+        let search = self.runner_of(&config.kind);
         tick.skipped = if !config.enabled {
             Some("disabled".to_owned())
         } else if !config
@@ -619,7 +639,7 @@ impl Hunter {
                 }
             }
         };
-        let Ok(search) = search else {
+        let Ok((kind, search)) = search else {
             return tick;
         };
         if tick.skipped.is_some() {
@@ -670,7 +690,7 @@ impl Hunter {
                 Err(e) => return self.failed(tick, config, Some(window), e.to_string(), now),
             },
         };
-        let event_time = |row: &JsonMap<String, Json>| search.event_time(config, row, now);
+        let event_time = |row: &JsonMap<String, Json>| kind.event_time(config, row, now);
         let valid_type = |t: &str| ObservableKind::from_str(t).is_ok();
         let ctx = Context {
             renderer: &self.renderer,

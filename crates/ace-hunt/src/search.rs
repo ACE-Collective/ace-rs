@@ -1,9 +1,10 @@
 //! The running half of a hunt type (PLAN.md decision 40, docs/decisions/0005-site-hunt-types.md):
 //! how a hunt's query runs over its window, as ace3's `QueryHunt` subclasses say with
-//! `execute_query`, `extract_event_timestamp`, `formatted_query`, `search_link` and `tool_instance`.
+//! `execute_query`, `formatted_query`, `search_link` and `tool_instance`.
 //!
-//! [`crate::HuntType`] is what a hunt of the type is made of and checked against when it loads;
-//! [`HuntSearch`] is what runs it. `ace hunter` (`ace_app::hunter`) finds a hunt's search by its
+//! [`crate::HuntType`] is what a hunt of the type is made of, checked against when it loads, and
+//! how its rows are timed (ace3's `extract_event_timestamp`, [`crate::HuntType::event_time`],
+//! PLAN.md decision 43); [`HuntSearch`] is what runs it. `ace hunter` (`ace_app::hunter`) finds a hunt's search by its
 //! type, asks it for the rows, and hands what ran to [`crate::query::process`]. Splunk's is
 //! `ace_app::hunter::splunk`; a site adds its own with `ace_app::App::hunt_search`.
 //!
@@ -92,17 +93,6 @@ pub trait HuntSearch: Send + Sync {
         limits: SearchLimits,
         stop: Stop,
     ) -> BoxFuture<'a, Searched>;
-
-    /// ace3's `extract_event_timestamp` for one row of `hunt`'s search: None when the row has no
-    /// time the type reads, so the submission takes the query's time. `hunt` is the hunt whose rows
-    /// these are, for a type whose hunts name the field their time is in (a site's mail_filter hunts'
-    /// `timestamp_field`), since one search serves every hunt of its type, several at once.
-    fn event_time(
-        &self,
-        hunt: &HuntConfig,
-        row: &JsonMap<String, Json>,
-        now: DateTime<Utc>,
-    ) -> Option<DateTime<Utc>>;
 }
 
 /// ace3's `QueryHunt.query`: the hunt's query or its query file's text, with `query_prefix` before
@@ -167,5 +157,14 @@ impl crate::HuntType for Checked<'_> {
     fn on_load(&self, config: &HuntConfig) -> Result<(), HuntError> {
         self.kind.on_load(config)?;
         self.search.on_load(config)
+    }
+
+    fn event_time(
+        &self,
+        hunt: &HuntConfig,
+        row: &JsonMap<String, Json>,
+        now: DateTime<Utc>,
+    ) -> Option<DateTime<Utc>> {
+        self.kind.event_time(hunt, row, now)
     }
 }

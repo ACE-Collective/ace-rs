@@ -1,6 +1,6 @@
 # 0005: A site's hunt types, query sources and named alert summaries
 
-Status: designed and built on 2026-11-21 as PLAN.md decision 40, for the site port's batch C2 (LogScale) and later D3 (MailFilter). It follows the extension points ace4 already has: `App::hunt_type` for a hunt type's validation, `App::command_type_with_connections` and the overlay's shared connections for a correlation command type, and `App::alert_summary` for the alert page's summary. *What the owner decides* lists the two choices it left open, which the owner made on 2026-11-22: a search past its timeout fails the run, and Splunk's instances became shared connections (PLAN.md decision 41), which changes *Splunk on the same path* below.
+Status: designed and built on 2026-11-21 as PLAN.md decision 40, for the site port's batch C2 (LogScale) and later D3 (MailFilter). It follows the extension points ace4 already has: `App::hunt_type` for a hunt type's validation, `App::command_type_with_connections` and the overlay's shared connections for a correlation command type, and `App::alert_summary` for the alert page's summary. *What the owner decides* lists the two choices it left open, which the owner made on 2026-11-22: a search past its timeout fails the run, and Splunk's instances became shared connections (PLAN.md decision 41), which changes *Splunk on the same path* below. PLAN.md decision 43 (2026-11-23) moved a row's event time from the search onto the hunt type, which changes *A hunt type's search*.
 
 ## The problem
 
@@ -26,19 +26,28 @@ pub trait HuntSearch: Send + Sync {
     /// Runs the hunt's query over the window: the rows, and what ran.
     fn search<'a>(&'a self, hunt: &'a Hunt, home: &'a Path, window: &'a Window,
                   limits: SearchLimits, stop: Stop) -> BoxFuture<'a, Searched>;
-    /// ace3's `extract_event_timestamp` for one row of the hunt's search.
+}
+```
+
+A row's time is the hunt type's, ace3's `extract_event_timestamp`, a method of `HuntType` with no default:
+
+```rust
+pub trait HuntType: Send + Sync {
+    // ... name, model, auto_append, settings, check, on_load
+    /// ace3's `extract_event_timestamp` for one row of the hunt's query: None for a row it reads
+    /// no time from, so the submission takes the query's.
     fn event_time(&self, hunt: &HuntConfig, row: &JsonMap<String, Json>,
                   now: DateTime<Utc>) -> Option<DateTime<Utc>>;
 }
 ```
 
-`event_time` was first given the row alone; PLAN.md decision 42 added the hunt, so a type whose hunts name their time field (a site's mail_filter hunts' `timestamp_field`) can read it. One search serves every hunt of its type, several at once, so it can't remember which hunt's rows it is timing.
+`event_time` was first the search's, given the row alone. PLAN.md decision 42 added the hunt, so a type whose hunts name their time field (a site's mail_filter hunts' `timestamp_field`) can read it. Decision 43 moved it onto `HuntType`. `ace serve` holds the hunt types and no search, so before the move a validation run through the `hunt` router could time only Splunk's rows, which it special-cased. Now it times every type's rows as `ace hunter` does.
 
 `Searched` holds what ran (the query as the type formats it, the link to it in the vendor's console, a search id, the `tool_instance`) and the rows or the error. `SearchLimits` is the hunter's poll interval and the hunt's `query_timeout`; `Stop` is a future that ends when the hunter stops, which a search must end on. This is ace3's `QueryHunt` contract (`execute_query`, `extract_event_timestamp`, `formatted_query`, `search_link`, `tool_instance`) without ace3's mutable hunt object.
 
 A binary adds one with `App::hunt_search(kind, slots, build)`, for the hunt type `kind` that `App::hunt_type` added. `slots` are the shared connections it takes, as a command type's are; `build` makes the search from a `SearchSetup` (below) or says why it can't. A search for a type the binary hasn't is refused when `ace` starts (`App::check_overlay`). A type with no search loads its hunts, and `ace hunter` skips them, saying the binary has no search for the type.
 
-`ace hunter`'s tick no longer knows Splunk: it finds the hunt type's search, asks it for the rows, and hands its event time, query, link and `tool_instance` to `ace_hunt::query::process`, as it handed Splunk's.
+`ace hunter`'s tick no longer knows Splunk: it finds the hunt type's search, asks it for the rows, and hands the type's event time and the search's query, link and `tool_instance` to `ace_hunt::query::process`, as it handed Splunk's.
 
 ### A query source
 
@@ -71,7 +80,7 @@ So a site's `endpoint_vendor` connection is held by the lookups pool (its Endpoi
 
 ### What `ace serve` gets
 
-`ace serve` validates hunts (the `hunt` router, PLAN.md 6.4) but never searches. It builds the query sources with their settings and none of their secrets, as it builds the command types, and wraps each so that running a query is refused ("a query runs only in ace hunter; send its saved results"): a validation run then has each source's default time field and format and its display of the window in the trace, and nothing in `ace serve` can reach a data source. It builds no hunt type search. Splunk's sources need the hunter's instances, which `ace serve` hasn't, so in `ace serve` they fail to build and are left out, as now. *Since decision 41, `ace serve` builds them too, from their instances' connections without secrets.*
+`ace serve` validates hunts (the `hunt` router, PLAN.md 6.4) but never searches. It builds the query sources with their settings and none of their secrets, as it builds the command types, and wraps each so that running a query is refused ("a query runs only in ace hunter; send its saved results"): a validation run then has each source's default time field and format and its display of the window in the trace, and nothing in `ace serve` can reach a data source. It builds no hunt type search, but it has the hunt types, so a validation run times its rows by the type's `event_time` (decision 43). Splunk's sources need the hunter's instances, which `ace serve` hasn't, so in `ace serve` they fail to build and are left out, as now. *Since decision 41, `ace serve` builds them too, from their instances' connections without secrets.*
 
 ### An alert summary chosen by name
 

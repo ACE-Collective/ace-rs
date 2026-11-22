@@ -24,7 +24,6 @@ use ace_hunt::search::{BoxFuture, HuntSearch, Ran, STOPPED, SearchLimits, Search
 use ace_hunt::splunk::{self, Instance};
 use ace_mod_splunk::connection;
 use ace_mod_splunk::search::{Limits, SearchClient, SearchError};
-use chrono::{DateTime, Utc};
 use serde_json::{Map as JsonMap, Value as Json};
 
 use super::{Blocking, SearchSetup};
@@ -157,16 +156,6 @@ impl HuntSearch for SplunkSearch {
                 rows,
             }
         })
-    }
-
-    /// `saq.splunk.extract_event_timestamp`: a row's `_time`, or the query's time.
-    fn event_time(
-        &self,
-        _hunt: &ace_hunt::HuntConfig,
-        row: &JsonMap<String, Json>,
-        now: DateTime<Utc>,
-    ) -> Option<DateTime<Utc>> {
-        Some(splunk::event_time(row, now))
     }
 }
 

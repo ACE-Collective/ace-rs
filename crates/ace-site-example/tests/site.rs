@@ -2030,9 +2030,9 @@ async fn a_site_s_hunt_type_runs_its_hunts_through_its_own_search() {
     );
 }
 
-/// A hunt's own `timestamp_field` reaches its type's search (PLAN.md decision 42), as a site's
-/// mail_filter hunts name theirs: a ticket's time is read from the field the hunt names, `opened` when
-/// it names none, and a ticket without it has none, so its submission takes the query's.
+/// A hunt's own `timestamp_field` times its rows (PLAN.md decisions 42 and 43), as a site's
+/// mail_filter hunts name theirs: the type reads a ticket's time from the field the hunt names, `opened`
+/// when it names none, and a ticket without it has none, so its submission takes the query's.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_hunt_s_timestamp_field_times_its_rows() {
     use chrono::{DateTime, Utc};
@@ -2074,20 +2074,8 @@ async fn a_hunt_s_timestamp_field_times_its_rows() {
     .expect_err("refused");
     assert!(refused.to_string().contains("timestamp_field"), "{refused}");
 
-    let overlay = ticket_hunt_overlay("https://tickets.site.example");
-    let bindings = overlay
-        .bind(
-            "hunt_types.example_tickets.connections",
-            ace_site_example::hunt::SLOTS,
-            &overlay.hunt_types["example_tickets"].connections,
-        )
-        .expect("binds");
-    let search = ace_site_example::hunt::build_search(
-        &ace_app::hunter::SearchSetup::new("example_tickets", None).with_connections(
-            ace_sdk::Connections::resolve(&bindings, &ace_sdk::Secrets::new()),
-        ),
-    )
-    .expect("the search");
+    use ace_hunt::HuntType;
+    let kind = ace_site_example::hunt::TicketHunts;
     let ticket =
         json!({"id": "T-1", "opened": "2026-11-21T11:55:00Z", "closed": "2026-11-21T11:58:00Z"});
     let ticket = ticket.as_object().expect("an object");
@@ -2100,23 +2088,120 @@ async fn a_hunt_s_timestamp_field_times_its_rows() {
         )
     };
     assert_eq!(
-        search.event_time(&opened, ticket, now),
+        kind.event_time(&opened, ticket, now),
         at("2026-11-21T11:55:00Z")
     );
     assert_eq!(
-        search.event_time(&closed, ticket, now),
+        kind.event_time(&closed, ticket, now),
         at("2026-11-21T11:58:00Z")
     );
     let open = json!({"id": "T-2", "opened": "2026-11-21T11:55:00Z"});
     assert_eq!(
-        search.event_time(&closed, open.as_object().expect("an object"), now),
+        kind.event_time(&closed, open.as_object().expect("an object"), now),
         None
     );
 }
 
-/// A hunt of a type the binary has no search for loads, and the hunter skips it, saying why; a
-/// search that fails to build, here for the connection the overlay doesn't bind, has its hunts
-/// skipped with its reason.
+/// A validation run of a site's hunt through its `ace serve` (the `hunt` router, PLAN.md decision
+/// 43) times each row as `ace hunter` does: by the hunt type's own `event_time`, here the ticket's
+/// time in the hunt's `timestamp_field`, though `ace serve` builds no search. A ticket without the
+/// field takes the query's time.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_validation_run_times_each_row_by_the_hunt_s_timestamp_field() {
+    let test_db = TestDb::new().await;
+    let dir = tempfile::tempdir().expect("a directory");
+    let made = Command::new(env!("CARGO_BIN_EXE_example-ace"))
+        .args(["user", "create-key", "hunt-test", "--grant", "hunt:write"])
+        .env("ACE4_DATABASE_URL", database_url(test_db.name()))
+        .output()
+        .expect("runs");
+    let stdout = String::from_utf8_lossy(&made.stdout);
+    assert!(
+        made.status.success(),
+        "{stdout}{}",
+        String::from_utf8_lossy(&made.stderr)
+    );
+    let token = stdout
+        .lines()
+        .find_map(|line| line.strip_prefix("token (shown once): "))
+        .expect("the token")
+        .to_owned();
+    let port = free_port();
+    let web_port = free_port();
+    let web = format!("http://127.0.0.1:{web_port}");
+    let mut serve = Command::new(env!("CARGO_BIN_EXE_example-ace"));
+    serve
+        .arg("serve")
+        .env("ACE4_DATABASE_URL", database_url(test_db.name()))
+        .env("ACE4_API_LISTEN", format!("127.0.0.1:{port}"))
+        .env("ACE4_CACHE_DIR", dir.path().join("cache"))
+        .env("ACE4_POOL_TOKEN_LOOKUPS", POOL_TOKEN)
+        .env("ACE4_WEB_LISTEN", format!("127.0.0.1:{web_port}"))
+        .env("ACE4_LOG", "info")
+        .env_remove("ACE4_POOLS")
+        .env_remove("ACE4_OVERLAY")
+        .env_remove("ACE4_SIGNATURES_REPO")
+        .env_remove("ACE4_OTLP_ENDPOINT");
+    let mut core = Process::start(serve, &dir.path().join("ace.log"));
+    let http = reqwest::Client::new();
+    wait_for("the site's ace serves", Duration::from_secs(60), || {
+        let request = http.get(format!("http://127.0.0.1:{port}/healthz")).send();
+        async move { request.await.ok().filter(|r| r.status().is_success()) }
+    })
+    .await;
+
+    let hunt = TICKET_HUNT.replace(
+        "  queue: soc\n",
+        "  queue: soc\n  timestamp_field: closed\n",
+    );
+    let rows = json!([
+        {"host": "a.example", "opened": "2026-11-21T11:00:00Z", "closed": "2026-11-21T11:30:00Z"},
+        {"host": "b.example", "opened": "2026-11-21T11:05:00Z", "closed": "2026-11-21T11:45:00Z"},
+        {"host": "c.example", "opened": "2026-11-21T11:10:00Z"},
+    ]);
+    let before = chrono::Utc::now();
+    let response = http
+        .post(format!("{web}/api/hunts/v1/validate"))
+        .bearer_auth(&token)
+        .json(&json!({
+            "compiled_hunt": {
+                "target": "hunts/example_tickets/tickets.yaml",
+                "assets": [{
+                    "kind": "yaml",
+                    "path": "hunts/example_tickets/tickets.yaml",
+                    "content": hunt,
+                }],
+            },
+            "execution_arguments": {"query_results": rows},
+        }))
+        .send()
+        .await
+        .expect("answered");
+    let status = response.status();
+    let body: Value = response.json().await.expect("JSON");
+    let core_log = core.stop();
+    assert_eq!(status, 200, "{body}\n{core_log}");
+    assert_eq!(body["valid"], true, "{body}");
+    let roots = body["roots"].as_array().expect("roots");
+    // one root a ticket, in the tickets' order
+    let sources: Vec<&str> = roots
+        .iter()
+        .map(|r| r["event_time_source"].as_str().expect("a source"))
+        .collect();
+    assert_eq!(sources, ["event", "event", "query_time"], "{body}");
+    let time = |root: &Value| {
+        chrono::DateTime::parse_from_rfc3339(root["event_time"].as_str().expect("a time"))
+            .expect("reads")
+            .with_timezone(&chrono::Utc)
+    };
+    assert_eq!(time(&roots[0]).to_rfc3339(), "2026-11-21T11:30:00+00:00");
+    assert_eq!(time(&roots[1]).to_rfc3339(), "2026-11-21T11:45:00+00:00");
+    assert!(time(&roots[2]) >= before, "{body}");
+}
+
+/// A hunt of a type the binary has no search for loads, and the hunter skips it, saying why, as it
+/// does one whose search the binary has without the type; a search that fails to build, here for
+/// the connection the overlay doesn't bind, has its hunts skipped with its reason.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_hunt_type_without_a_search_is_skipped_saying_why() {
     use ace_hunt::query::schedule::State;
@@ -2147,6 +2232,32 @@ async fn a_hunt_type_without_a_search_is_skipped_saying_why() {
     assert_eq!(
         tick.skipped.as_deref(),
         Some("this binary has no search for example_tickets hunts")
+    );
+    // the search alone, with no type to time its rows (PLAN.md decision 43)
+    let app = ace_app::App::new().hunt_search(
+        ace_site_example::hunt::TICKET_HUNTS,
+        ace_site_example::hunt::SLOTS,
+        ace_site_example::hunt::build_search,
+    );
+    let hunter = ace_app::hunter::Hunter::for_app(
+        hunter_config(work.path()),
+        &ace_sdk::Secrets::new(),
+        &app,
+        &ticket_hunt_overlay("https://tickets.site.example"),
+    )
+    .expect("a hunter");
+    let tick = hunter
+        .tick(
+            &hunt,
+            &State::default(),
+            "unknown",
+            now,
+            &Default::default(),
+        )
+        .await;
+    assert_eq!(
+        tick.skipped.as_deref(),
+        Some("this binary has no example_tickets hunt type")
     );
     // the site's search with no connection bound: its settings are the defaults, and it has no token
     let app = ace_site_example::app();

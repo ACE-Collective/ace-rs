@@ -535,7 +535,7 @@ fn validate(
     for kind in &support.types {
         match ace_hunt::load_hunt(&target, kind.as_ref(), &options) {
             Ok(hunt) if hunt.config.kind == kind.name() => {
-                loaded = Some(hunt);
+                loaded = Some((hunt, kind));
                 break;
             }
             Ok(hunt) => record.kind = Some(hunt.config.kind),
@@ -546,7 +546,7 @@ fn validate(
             }
         }
     }
-    let Some(hunt) = loaded else {
+    let Some((hunt, kind)) = loaded else {
         let error = match (&record.kind, record.error.take()) {
             (Some(kind), _) => format!("invalid hunt type {kind}"),
             (None, Some(e)) => format!("invalid hunt config: {e}"),
@@ -614,9 +614,8 @@ fn validate(
             Err(e) => return refuse(record, format!("error executing hunt: {e}")),
         },
     };
-    let splunk = hunt.config.kind == "splunk";
-    let event_time =
-        |row: &JsonMap<String, JsonValue>| splunk.then(|| ace_hunt::splunk::event_time(row, now));
+    // the hunt type's own row time, as `ace hunter` gives it (PLAN.md decision 43)
+    let event_time = |row: &JsonMap<String, JsonValue>| kind.event_time(&hunt.config, row, now);
     let valid_type = support.valid_type;
     let state = State::default();
     let ctx = Context {

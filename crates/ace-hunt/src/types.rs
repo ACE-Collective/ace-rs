@@ -10,10 +10,13 @@
 //! type's directory fails as a hunt of the wrong type.
 //!
 //! What a type's class does at load beyond validating is the type's [`HuntType::on_load`]: Splunk
-//! looks up the Splunk instance a hunt names. How a type's hunts run is its search
-//! (`crate::search::HuntSearch`, PLAN.md decision 40), which `ace hunter` holds with its
-//! credentials, and which adds its own check at load (`crate::search::Checked`).
+//! looks up the Splunk instance a hunt names. A row's time is the type's too
+//! ([`HuntType::event_time`], ace3's `extract_event_timestamp`), so `ace hunter` and a validation
+//! run through `ace serve` time a hunt's rows the same way (PLAN.md decision 43). How a type's
+//! hunts run is its search (`crate::search::HuntSearch`, PLAN.md decision 40), which `ace hunter`
+//! holds with its credentials, and which adds its own check at load (`crate::search::Checked`).
 
+use chrono::{DateTime, Utc};
 use serde_json::{Map as JsonMap, Value as Json};
 
 use crate::HuntError;
@@ -56,6 +59,19 @@ pub trait HuntType: Send + Sync {
         let _ = config;
         Ok(())
     }
+
+    /// ace3's `extract_event_timestamp` for one row of `hunt`'s query: None when the row has no
+    /// time the type reads, so the submission takes the query's time. `hunt` is the hunt whose rows
+    /// these are, for a type whose hunts name the field their time is in (a site's mail_filter hunts'
+    /// `timestamp_field`). `ace hunter` calls it on the rows a search returns, and a validation run
+    /// on the rows it is sent, which is why it is the type's and not its search's: `ace serve`
+    /// builds no search (PLAN.md decisions 40 and 43).
+    fn event_time(
+        &self,
+        hunt: &HuntConfig,
+        row: &JsonMap<String, Json>,
+        now: DateTime<Utc>,
+    ) -> Option<DateTime<Utc>>;
 }
 
 /// Splunk hunts: `SplunkHuntConfig` and `SplunkHunt` (`saq/collectors/hunter/splunk_hunter.py`).
@@ -119,9 +135,22 @@ impl HuntType for Splunk {
             _ => Ok(()),
         }
     }
+
+    /// `saq.splunk.extract_event_timestamp`: a row's `_time`, or the query's time.
+    fn event_time(
+        &self,
+        _hunt: &HuntConfig,
+        row: &JsonMap<String, Json>,
+        now: DateTime<Utc>,
+    ) -> Option<DateTime<Utc>> {
+        Some(crate::splunk::event_time(row, now))
+    }
 }
 
-/// LogScale hunts: the `LogscaleHuntConfig` of the integration that adds them.
+/// LogScale hunts: the `LogscaleHuntConfig` of the integration that adds them. Only their
+/// validation: it reads no row's time ([`HuntType::event_time`] is always None), which is the
+/// integration's, so a binary that runs LogScale hunts registers its own type, with this one's
+/// checks and its rows' time.
 #[derive(Debug, Clone, Default)]
 pub struct Logscale;
 
@@ -142,5 +171,15 @@ impl HuntType for Logscale {
         Ok(o.required(errs, "repository", string)?.map(|repository| {
             JsonMap::from_iter([("repository".to_owned(), Json::String(repository))])
         }))
+    }
+
+    /// None: the integration that runs LogScale hunts reads their rows' time.
+    fn event_time(
+        &self,
+        _hunt: &HuntConfig,
+        _row: &JsonMap<String, Json>,
+        _now: DateTime<Utc>,
+    ) -> Option<DateTime<Utc>> {
+        None
     }
 }
