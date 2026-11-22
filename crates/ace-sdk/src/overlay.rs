@@ -97,7 +97,8 @@
 //! `connections:` holds the shared connections (`crate::connections`): each a named connection of a
 //! type an integration declares, with its settings and the secrets of `secrets:` it uses, which a
 //! module's, an instance's, an action handler's, a collector's or an AI backend's section, or a
-//! command type's entry in `command_types:`, binds to one of its slots with `connections:`. Every
+//! command type's entry in `command_types:`, a hunt type's search's in `hunt_types:` or a query
+//! source's in `query_sources:`, binds to one of its slots with `connections:`. Every
 //! name a `connections:` binds must be a connection here, and every secret a connection names a
 //! secret in `secrets:`; the connection's type is checked by what reads it.
 //!
@@ -180,6 +181,39 @@ pub struct Overlay {
     /// The correlation command types' entries, by type name: the connections each binds. `ace
     /// hunter` and `ace serve` read them; a pool doesn't.
     pub command_types: BTreeMap<String, CommandTypeSection>,
+    /// Each hunt type's search (PLAN.md decision 40, `ace_app::App::hunt_search`), by type name: its
+    /// settings and the connections it binds. `ace hunter` reads it; nothing else does.
+    pub hunt_types: BTreeMap<String, HuntTypeSection>,
+    /// The correlation query sources (PLAN.md decision 40, `ace_app::App::query_source_type`), by the
+    /// name a correlation's `source:` gives, ace3's `hunter.correlation.query_sources`. Left out, the
+    /// hunter has ace3's default, `splunk` on the `default` instance; given, it has these alone.
+    /// `ace hunter` builds them; `ace serve` builds them without their secrets, to validate hunts.
+    pub query_sources: Option<BTreeMap<String, QuerySourceSection>>,
+}
+
+/// What the overlay says about one hunt type's search (`ace_app::App::hunt_search`).
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct HuntTypeSection {
+    /// What the search's builder is given, as a module's settings are.
+    pub settings: Option<Value>,
+    /// The search's slots, each bound to a connection (`crate::connections`).
+    pub connections: BTreeMap<String, String>,
+}
+
+/// One correlation query source (`ace_app::App::query_source_type`).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct QuerySourceSection {
+    /// The source's type, one the binary has.
+    #[serde(rename = "type")]
+    pub kind: String,
+    /// What the type's builder is given, ace3's `kwargs`.
+    #[serde(default)]
+    pub settings: Option<Value>,
+    /// The type's slots, each bound to a connection.
+    #[serde(default)]
+    pub connections: BTreeMap<String, String>,
 }
 
 /// What the overlay says about one correlation command type (`ace_app::App::command_type_with`).
@@ -1323,6 +1357,18 @@ impl Overlay {
                 &section.connections,
             ));
         }
+        for (name, section) in &self.hunt_types {
+            uses.push((
+                format!("hunt_types.{name}.connections"),
+                &section.connections,
+            ));
+        }
+        for (name, section) in self.query_sources.iter().flatten() {
+            uses.push((
+                format!("query_sources.{name}.connections"),
+                &section.connections,
+            ));
+        }
         for (path, bindings) in uses {
             for (slot, connection) in bindings {
                 if !self.connections.contains_key(connection) {
@@ -1475,6 +1521,9 @@ impl Overlay {
             connections: self.connections.clone(),
             // the hunter and `ace serve` build the command types
             command_types: BTreeMap::new(),
+            // the hunter builds the searches and the sources, and `ace serve` the sources
+            hunt_types: BTreeMap::new(),
+            query_sources: None,
         }
     }
 

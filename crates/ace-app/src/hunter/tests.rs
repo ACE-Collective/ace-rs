@@ -120,7 +120,6 @@ fn config(base_url: &str, signatures: &Path, instance_type: &str) -> HunterConfi
         reload_seconds: 60,
         poll_seconds: 0.0,
         concurrency: 1,
-        query_sources: default_query_sources(),
         correlation_cache_bytes: 1 << 20,
         scripts: BTreeMap::new(),
     }
@@ -562,10 +561,32 @@ fn a_hunt_submission_becomes_the_core_s() {
     );
 }
 
-fn sources_config(query_sources: Json) -> HunterConfig {
-    let mut config = config("https://127.0.0.1:1", Path::new("/nowhere"), "dev");
-    config.query_sources = serde_json::from_value(query_sources).expect("a query source config");
-    config
+/// A hunter whose overlay's `query_sources:` is `query_sources`, each an entry of ace3's form
+/// (`type` and its `kwargs`, here `instance`) made the overlay's (`type` and `settings`).
+fn sources_hunter(query_sources: Json) -> Hunter {
+    let config = config("https://127.0.0.1:1", Path::new("/nowhere"), "dev");
+    let entries: BTreeMap<String, ace_sdk::overlay::QuerySourceSection> = query_sources
+        .as_object()
+        .expect("an object")
+        .iter()
+        .map(|(name, entry)| {
+            let mut settings = entry.as_object().expect("an entry").clone();
+            let kind = settings.remove("type").expect("a type");
+            (
+                name.clone(),
+                ace_sdk::overlay::QuerySourceSection {
+                    kind: kind.as_str().expect("a type").to_owned(),
+                    settings: Some(Json::Object(settings)),
+                    connections: BTreeMap::new(),
+                },
+            )
+        })
+        .collect();
+    let overlay = ace_sdk::Overlay {
+        query_sources: Some(entries),
+        ..ace_sdk::Overlay::default()
+    };
+    Hunter::for_app(config, &secrets(), &App::new(), &overlay).expect("a hunter")
 }
 
 /// The hunter records what SVS reads of each hunt file it loads, whether or not the file loaded as a hunt
@@ -656,11 +677,7 @@ async fn a_reload_records_what_svs_reads_of_each_hunt() {
 /// instance it names (ace3's `kwargs`).
 #[tokio::test(flavor = "multi_thread")]
 async fn test_registers_configured_source() {
-    let hunter = Hunter::new(
-        sources_config(json!({"rec": {"type": "splunk", "instance": "eastern"}})),
-        &secrets(),
-    )
-    .expect("a hunter");
+    let hunter = sources_hunter(json!({"rec": {"type": "splunk", "instance": "eastern"}}));
     let sources = hunter.query_sources(&CancellationToken::new());
     assert_eq!(sources.names(), ["rec"]);
     // eastern's timezone is the one its display uses
@@ -693,11 +710,7 @@ async fn test_registers_configured_source() {
 /// run's sources are always the configuration's, and a stop ends only that run's.
 #[tokio::test(flavor = "multi_thread")]
 async fn test_loaded_flag_prevents_double_registration() {
-    let hunter = Hunter::new(
-        sources_config(json!({"rec": {"type": "splunk", "instance": "default"}})),
-        &secrets(),
-    )
-    .expect("a hunter");
+    let hunter = sources_hunter(json!({"rec": {"type": "splunk", "instance": "default"}}));
     let first = hunter.query_sources(&CancellationToken::new());
     let second = hunter.query_sources(&CancellationToken::new());
     assert_eq!(first.names(), second.names());
@@ -707,14 +720,10 @@ async fn test_loaded_flag_prevents_double_registration() {
 /// load, as ace3's source whose class raises, and the others load.
 #[tokio::test(flavor = "multi_thread")]
 async fn test_failing_source_does_not_abort_others() {
-    let hunter = Hunter::new(
-        sources_config(json!({
-            "boom": {"type": "splunk", "instance": "no_such_splunk"},
-            "rec": {"type": "splunk", "instance": "default"},
-        })),
-        &secrets(),
-    )
-    .expect("a hunter");
+    let hunter = sources_hunter(json!({
+        "boom": {"type": "splunk", "instance": "no_such_splunk"},
+        "rec": {"type": "splunk", "instance": "default"},
+    }));
     let sources = hunter.query_sources(&CancellationToken::new());
     assert!(sources.get("rec").is_ok());
     assert!(matches!(sources.get("boom"), Err(e) if e.contains("not registered")));
@@ -723,37 +732,37 @@ async fn test_failing_source_does_not_abort_others() {
 /// test_no_op_when_hunter_config_absent.
 #[tokio::test(flavor = "multi_thread")]
 async fn test_no_op_when_hunter_config_absent() {
-    let hunter = Hunter::new(sources_config(json!({})), &secrets()).expect("a hunter");
+    let hunter = sources_hunter(json!({}));
     assert!(hunter.query_sources(&CancellationToken::new()).is_empty());
 }
 
 /// test_splunk_source.py test_default_config_name: with no `query_sources`, `splunk` is the
 /// `default` instance, as ace3's default configuration registers it.
-#[test]
-fn test_default_config_name() {
-    let config: HunterConfig = serde_json::from_value(json!({
-        "signatures": "/nowhere", "rule_dirs": {}, "instance_type": "dev",
-    }))
-    .expect("a config");
+#[tokio::test(flavor = "multi_thread")]
+async fn test_default_config_name() {
+    let overlay = ace_sdk::Overlay::from_yaml("{}").expect("an overlay");
+    assert_eq!(overlay.query_sources, None);
+    let hunter = Hunter::for_app(
+        config("https://127.0.0.1:1", Path::new("/nowhere"), "dev"),
+        &secrets(),
+        &App::new(),
+        &overlay,
+    )
+    .expect("a hunter");
     assert_eq!(
-        config.query_sources,
-        BTreeMap::from([(
-            "splunk".to_owned(),
-            QuerySourceConfig::Splunk {
-                instance: "default".to_owned()
-            }
-        )])
+        hunter.query_sources(&CancellationToken::new()).names(),
+        ["splunk"]
+    );
+    assert_eq!(
+        default_query_sources()["splunk"].settings,
+        Some(json!({"instance": "default"}))
     );
 }
 
 /// test_default_time_field_and_format.
 #[tokio::test(flavor = "multi_thread")]
 async fn test_default_time_field_and_format() {
-    let hunter = Hunter::new(
-        sources_config(json!({"splunk": {"type": "splunk", "instance": "default"}})),
-        &secrets(),
-    )
-    .expect("a hunter");
+    let hunter = sources_hunter(json!({"splunk": {"type": "splunk", "instance": "default"}}));
     let sources = hunter.query_sources(&CancellationToken::new());
     let splunk = sources.get("splunk").expect("registered");
     assert_eq!(splunk.default_time_field(), Some("_time"));
@@ -777,7 +786,7 @@ fn test_execute_query_passes_correct_params() {
             .with_timezone(&Utc),
     );
     assert_eq!(
-        splunk::correlation_form("search index=main", start, end),
+        ace_hunt::splunk::correlation_form("search index=main", start, end),
         [
             (
                 "search",
@@ -792,7 +801,7 @@ fn test_execute_query_passes_correct_params() {
     );
     // a generating command is sent as it is
     assert_eq!(
-        splunk::correlation_form("| inputlookup x", start, end)[0].1,
+        ace_hunt::splunk::correlation_form("| inputlookup x", start, end)[0].1,
         "| inputlookup x"
     );
 }
@@ -801,11 +810,8 @@ fn test_execute_query_passes_correct_params() {
 /// hasn't; ace4 never builds a source for one (test_failing_source_does_not_abort_others).
 #[tokio::test(flavor = "multi_thread")]
 async fn test_format_timespec_unknown_config_raises() {
-    let hunter = Hunter::new(
-        sources_config(json!({"splunk": {"type": "splunk", "instance": "no_such_splunk"}})),
-        &secrets(),
-    )
-    .expect("a hunter");
+    let hunter =
+        sources_hunter(json!({"splunk": {"type": "splunk", "instance": "no_such_splunk"}}));
     assert!(
         hunter
             .query_sources(&CancellationToken::new())

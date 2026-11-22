@@ -24,7 +24,13 @@
 //! left out (the owner's decision of 2026-11-15).
 //!
 //! A site adds its own through `ace_app::App::alert_summary`, as it adds an analysis view; one for a
-//! type listed here takes its place. A summary keeps the rules a view keeps (`crate::analysis`): no
+//! type listed here takes its place.
+//!
+//! **By name** (PLAN.md decision 40). ace3 draws an alert with the template its hunt names in
+//! `alert_template` before it looks at the alert's type, such as a site's `endpoint_vendor/logscale.html`.
+//! A summary is registered under such a name with `ace_app::App::alert_template`, and an alert whose
+//! submission's `extensions.alert_template` names it has that summary, whatever its type. The hunt
+//! summary answers to ace3's own [`HUNTER_TEMPLATE`]. A summary keeps the rules a view keeps (`crate::analysis`): no
 //! `style` attribute and no script, every value through askama, what can be large bounded. A URL from
 //! an alert is a link only when it starts with `http://` or `https://`, and text otherwise.
 
@@ -122,10 +128,25 @@ fn draw_as<T: AlertSummary>(alert: &SummaryInput<'_>) -> Option<Result<String, S
     )
 }
 
-/// The binary's alert summaries, by alert type.
+/// The binary's alert summaries, by alert type, and by template name.
 #[derive(Debug, Clone)]
 pub struct Summaries {
     entries: BTreeMap<&'static str, SummaryEntry>,
+    named: BTreeMap<&'static str, SummaryEntry>,
+}
+
+/// ace3's name for its hunter template, which hunts name in `alert_template` and the open-source hunt
+/// summary answers to.
+pub const HUNTER_TEMPLATE: &str = "analysis/custom/hunter_splunk.html";
+
+/// The template a submission names in its origin, ace3's root `extensions.alert_template`
+/// (`saq/gui/alert.py`'s `KEY_ALERT_TEMPLATE`), which a hunt's `alert_template` sets.
+pub fn named_template(origin: &Value) -> Option<&str> {
+    origin
+        .pointer("/extensions/alert_template")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
 }
 
 impl Default for Summaries {
@@ -139,20 +160,35 @@ impl Summaries {
     pub fn empty() -> Self {
         Summaries {
             entries: BTreeMap::new(),
+            named: BTreeMap::new(),
         }
     }
 
-    /// The open-source summaries: mailbox alerts and hunt alerts.
+    /// The open-source summaries: mailbox alerts and hunt alerts, the hunt summary also as ace3's
+    /// [`HUNTER_TEMPLATE`].
     pub fn builtin() -> Self {
         Summaries::empty()
             .with(SummaryEntry::of::<MailboxSummary>())
             .with(SummaryEntry::of::<HuntSummary>())
+            .with_template(HUNTER_TEMPLATE, SummaryEntry::of::<HuntSummary>())
     }
 
     /// These summaries with `entry`, which takes the place of any for the same alert type.
     pub fn with(mut self, entry: SummaryEntry) -> Self {
         self.entries.insert(entry.alert_type, entry);
         self
+    }
+
+    /// These summaries with `entry` under the template name `name` (PLAN.md decision 40), which takes
+    /// the place of any of that name. An alert whose submission names it in `alert_template` has it.
+    pub fn with_template(mut self, name: &'static str, entry: SummaryEntry) -> Self {
+        self.named.insert(name, entry);
+        self
+    }
+
+    /// Every template name with a summary.
+    pub fn templates(&self) -> impl Iterator<Item = &'static str> + '_ {
+        self.named.keys().copied()
     }
 
     /// Every alert type with a summary.
@@ -173,11 +209,36 @@ impl Summaries {
         }
     }
 
-    /// The summary of an alert by its type, or None for the page's default: no type, no summary for
-    /// it, nothing to show, or a summary that failed, which is logged.
+    /// The summary of an alert, chosen as ace3's `GUIAlertPresenter.template_path` chooses its
+    /// template: the template its submission names (`alert_template`), when a summary has that name,
+    /// then by its type. None is the page's default: no summary for either, nothing to show, or a
+    /// summary that failed, which is logged. A name with no summary is logged and falls through to
+    /// the type, where ace3 would fail to draw the page.
     pub fn draw(&self, alert: &SummaryInput<'_>) -> Option<DrawnSummary> {
+        if let Some(name) = named_template(alert.origin) {
+            match self.named.get_key_value(name) {
+                Some((name, entry)) => {
+                    if let Some(drawn) = Self::draw_entry(entry, name, alert) {
+                        return Some(drawn);
+                    }
+                }
+                None => tracing::warn!(
+                    alert_type = alert.alert_type,
+                    template = name,
+                    "an alert names a template this binary has no summary for; its type chooses"
+                ),
+            }
+        }
         let chosen = self.chosen(alert.alert_type)?;
         let entry = self.entries.get(chosen)?;
+        Self::draw_entry(entry, chosen, alert)
+    }
+
+    fn draw_entry(
+        entry: &SummaryEntry,
+        chosen: &'static str,
+        alert: &SummaryInput<'_>,
+    ) -> Option<DrawnSummary> {
         match (entry.draw)(alert)? {
             Ok(html) => Some(DrawnSummary {
                 alert_type: chosen,
@@ -197,7 +258,7 @@ impl Summaries {
 /// An alert's summary as its page places it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DrawnSummary {
-    /// The registered type that drew it.
+    /// The registered alert type, or template name, that drew it.
     pub alert_type: &'static str,
     pub html: ViewHtml,
 }

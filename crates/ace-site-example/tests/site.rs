@@ -443,8 +443,9 @@ async fn an_operator_makes_the_first_admin_with_the_sites_binary() {
 }
 
 /// The site builds on ace4's list (`ace::app()`) and adds to two of its pools, so it holds what ace4's
-/// does: its cacheable modules, hunt types, script command types and action handlers, and the site's
-/// collector and its one script command type besides.
+/// does: its cacheable modules, hunt types and their searches, script command types and action
+/// handlers, and the site's collector, its one script command type and its hunt type with its search
+/// besides.
 #[test]
 fn the_site_s_list_is_ace4_s_with_its_own_added() {
     let (ace4, site) = (ace::app(), ace_site_example::app());
@@ -458,7 +459,17 @@ fn the_site_s_list_is_ace4_s_with_its_own_added() {
             .map(|k| k.name().to_owned())
             .collect()
     };
-    assert_eq!(kinds(&site), kinds(&ace4));
+    let mut theirs = kinds(&ace4);
+    theirs.push("example_tickets".to_owned());
+    assert_eq!(kinds(&site), theirs);
+    assert_eq!(
+        site.hunt_searches().into_keys().collect::<Vec<_>>(),
+        ["example_tickets", "splunk"]
+    );
+    assert_eq!(
+        ace4.hunt_searches().into_keys().collect::<Vec<_>>(),
+        ["splunk"]
+    );
     let handlers = |app: &ace_app::App| -> Vec<String> {
         app.action_catalog()
             .expect("a catalog")
@@ -1837,5 +1848,457 @@ async fn a_site_module_reads_the_root_s_event_time_through_the_testkit() {
         ace_sdk::Outcome::Skipped(
             "Some(\"2026-11-18T09:30:00+00:00\") Some(Event) at the root true".to_owned()
         )
+    );
+}
+
+/// A hunt of the site's type that searches the ticket system (PLAN.md decision 40).
+const TICKET_HUNT: &str = "\
+rule:
+  uuid: 00000000-0000-0000-0000-0000000e0001
+  name: a high ticket on {{ host }}
+  description: one alert a ticket
+  type: example_tickets
+  queue: soc
+  enabled: true
+  instance_types: [dev]
+  frequency: '00:10:00'
+  time_range: '00:10:00'
+  full_coverage: false
+  use_index_time: false
+  alert_type: hunter - example - tickets
+  alert_template: example/ticket.html
+  query: priority:high
+  query_suffix: 'state:open'
+  observable_mapping:
+    - field: host
+      type: hostname
+";
+
+/// The overlay that binds the site's ticket system to its hunt type's search and to a query source.
+fn ticket_hunt_overlay(url: &str) -> ace_sdk::Overlay {
+    ace_sdk::Overlay::from_yaml(&format!(
+        "\
+connections:
+  tickets:
+    type: example_ticket_system
+    settings:
+      url: {url}
+      request_timeout_seconds: 5
+    secrets:
+      token: ticket_token
+hunt_types:
+  example_tickets:
+    connections:
+      tickets: tickets
+query_sources:
+  soc_tickets:
+    type: example_tickets
+    settings:
+      queue: soc
+    connections:
+      tickets: tickets
+secrets:
+  ticket_token: env:ACE4_TEST_TICKET_TOKEN
+"
+    ))
+    .expect("an overlay")
+}
+
+/// The ticket system's answers, written in the shape its API documents.
+fn ticket_recording(dir: &Path, url: &str, body: &str) {
+    std::fs::write(dir.join("000.body"), body).expect("writes a body");
+    std::fs::write(
+        dir.join("http.json"),
+        json!({"exchanges": [{
+            "method": "GET", "url": url, "status": 200,
+            "response_headers": {"Content-Type": "application/json"}, "body_file": "000.body",
+        }]})
+        .to_string(),
+    )
+    .expect("writes the recording");
+}
+
+fn hunter_config(signatures: &Path) -> ace_app::hunter::HunterConfig {
+    serde_json::from_value(json!({
+        "signatures": signatures,
+        "rule_dirs": {"example_tickets": ["."]},
+        "instance_type": "dev",
+        "poll_seconds": 0.0,
+    }))
+    .expect("a hunter configuration")
+}
+
+/// A site's hunt type runs through its own search (PLAN.md decision 40): `ace hunter` loads its hunts
+/// with the type's validation, finds the type's search, which asks the ticket system through the
+/// connection the overlay binds, with its token, and turns the tickets into submissions with the
+/// search's link, where it searched and each ticket's time. The token is the hunter's alone.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_site_s_hunt_type_runs_its_hunts_through_its_own_search() {
+    use ace_hunt::query::schedule::State;
+    use chrono::{DateTime, Utc};
+
+    let work = tempfile::tempdir().expect("a directory");
+    let hunts = work.path().join("hunts");
+    std::fs::create_dir_all(&hunts).expect("a directory");
+    std::fs::write(hunts.join("tickets.yaml"), TICKET_HUNT).expect("writes the hunt");
+    let now = DateTime::parse_from_rfc3339("2026-11-21T12:00:00Z")
+        .expect("a time")
+        .with_timezone(&Utc);
+    let (from, to) = (
+        (now - chrono::TimeDelta::minutes(10)).timestamp_millis(),
+        now.timestamp_millis(),
+    );
+    let original = "https://tickets.site.example";
+    let recorded = format!(
+        "{original}/api/tickets/search?q=priority%3Ahigh%0Astate%3Aopen&queue=soc&from={from}&to={to}"
+    );
+    let answers = work.path().join("http");
+    std::fs::create_dir_all(&answers).expect("a directory");
+    ticket_recording(
+        &answers,
+        &recorded,
+        r#"{"tickets": [
+            {"id": "T-1", "host": "ws-001", "opened": "2026-11-21T11:55:00Z"},
+            {"id": "T-2", "host": "ws-002"}
+        ]}"#,
+    );
+    let replay = ace_testkit::replay::HttpReplay::start(&answers, &[])
+        .await
+        .expect("the replay");
+    let app = ace_site_example::app();
+    let overlay = ticket_hunt_overlay(&replay.local_url(original));
+    app.check_overlay(&overlay)
+        .expect("the overlay is the binary's");
+    // the hunter resolves the connection's token, which `ace serve` and the pools never do
+    assert_eq!(app.hunter_secret_names(&overlay), ["ticket_token"]);
+    let secrets =
+        ace_sdk::Secrets::new().with("ticket_token", ace_sdk::Secret::new("t0ken".to_owned()));
+    let hunter = ace_app::hunter::Hunter::for_app(hunter_config(&hunts), &secrets, &app, &overlay)
+        .expect("a hunter");
+    let kind = app
+        .hunt_types()
+        .iter()
+        .find(|k| k.name() == "example_tickets")
+        .expect("the site's hunt type");
+    let loaded = hunter.load(kind.as_ref());
+    assert_eq!(loaded.len(), 1);
+    let hunt = loaded[0].result.clone().expect("the hunt loads");
+
+    let tick = hunter
+        .tick(
+            &hunt,
+            &State::default(),
+            "unknown",
+            now,
+            &tokio_util::sync::CancellationToken::new(),
+        )
+        .await;
+    assert_eq!(
+        (tick.skipped.as_deref(), tick.error.as_deref()),
+        (None, None)
+    );
+    assert!(replay.unmatched().is_empty(), "{:?}", replay.unmatched());
+    let requests = replay.requests();
+    assert_eq!(requests.len(), 1);
+    assert_eq!(requests[0].header("authorization"), Some("Bearer t0ken"));
+    let ran = tick.search.expect("what the search ran");
+    assert_eq!(ran.query, "priority:high\nstate:open");
+    let submissions = &tick.processed.submissions;
+    assert_eq!(submissions.len(), 2);
+    for submission in submissions {
+        assert_eq!(submission.tool_instance, replay.local_url(original));
+        assert_eq!(
+            submission.details["search_link"],
+            json!(format!(
+                "{}/search?q=priority%3Ahigh%0Astate%3Aopen&queue=soc",
+                replay.local_url(original)
+            ))
+        );
+        assert_eq!(
+            submission.extensions["alert_template"],
+            "example/ticket.html"
+        );
+    }
+    // a ticket's time is its event's; one with none takes the query's
+    let times: Vec<String> = submissions
+        .iter()
+        .map(|s| s.event_time.to_rfc3339())
+        .collect();
+    assert_eq!(
+        times,
+        ["2026-11-21T11:55:00+00:00", "2026-11-21T12:00:00+00:00"]
+    );
+}
+
+/// A hunt of a type the binary has no search for loads, and the hunter skips it, saying why; a
+/// search that fails to build, here for the connection the overlay doesn't bind, has its hunts
+/// skipped with its reason.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_hunt_type_without_a_search_is_skipped_saying_why() {
+    use ace_hunt::query::schedule::State;
+
+    let work = tempfile::tempdir().expect("a directory");
+    std::fs::write(work.path().join("tickets.yaml"), TICKET_HUNT).expect("writes the hunt");
+    let now = chrono::Utc::now();
+    let kind = ace_site_example::hunt::TicketHunts;
+    // the type alone, as a binary that adds its validation and not its search
+    let app = ace_app::App::new().hunt_type(kind.clone());
+    let hunter = ace_app::hunter::Hunter::for_app(
+        hunter_config(work.path()),
+        &ace_sdk::Secrets::new(),
+        &app,
+        &ace_sdk::Overlay::default(),
+    )
+    .expect("a hunter");
+    let hunt = hunter.load(&kind)[0].result.clone().expect("loads");
+    let tick = hunter
+        .tick(
+            &hunt,
+            &State::default(),
+            "unknown",
+            now,
+            &Default::default(),
+        )
+        .await;
+    assert_eq!(
+        tick.skipped.as_deref(),
+        Some("this binary has no search for example_tickets hunts")
+    );
+    // the site's search with no connection bound: its settings are the defaults, and it has no token
+    let app = ace_site_example::app();
+    let hunter = ace_app::hunter::Hunter::for_app(
+        hunter_config(work.path()),
+        &ace_sdk::Secrets::new(),
+        &app,
+        &ace_sdk::Overlay::default(),
+    )
+    .expect("a hunter");
+    let tick = hunter
+        .tick(
+            &hunt,
+            &State::default(),
+            "unknown",
+            now,
+            &Default::default(),
+        )
+        .await;
+    assert_eq!(
+        tick.skipped.as_deref(),
+        Some(
+            "example_tickets hunts' search failed to load: example_tickets: no connection is bound \
+             to the slot tickets"
+        )
+    );
+}
+
+/// The site's query source type (PLAN.md decision 40): an entry of the overlay's `query_sources:`
+/// builds with its settings and connection, and runs a correlation's query against the ticket system
+/// on the runtime's thread as the engine calls it; `ace serve`'s copy has its time field and runs
+/// nothing.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_site_s_query_source_runs_a_correlation_s_query() {
+    use ace_hunt::correlate::time::Time;
+    use chrono::{DateTime, Utc};
+
+    let work = tempfile::tempdir().expect("a directory");
+    let original = "https://tickets.site.example";
+    let start = DateTime::parse_from_rfc3339("2026-11-21T11:00:00Z")
+        .expect("a time")
+        .with_timezone(&Utc);
+    let end = start + chrono::TimeDelta::hours(1);
+    let recorded = format!(
+        "{original}/api/tickets/search?q=host%3Aws-001&queue=soc&from={}&to={}",
+        start.timestamp_millis(),
+        end.timestamp_millis()
+    );
+    ticket_recording(
+        work.path(),
+        &recorded,
+        r#"{"tickets": [{"id": "T-9", "opened": "2026-11-21T11:30:00Z"}]}"#,
+    );
+    let replay = ace_testkit::replay::HttpReplay::start(work.path(), &[])
+        .await
+        .expect("the replay");
+    let overlay = ticket_hunt_overlay(&replay.local_url(original));
+    let app = ace_site_example::app();
+    let types = app.query_source_types();
+    assert_eq!(
+        types.keys().map(String::as_str).collect::<Vec<_>>(),
+        ["example_tickets", "splunk"]
+    );
+    let entry = &overlay.query_sources.as_ref().expect("sources")["soc_tickets"];
+    let bindings = overlay
+        .bind(
+            "query_sources.soc_tickets.connections",
+            ace_site_example::hunt::SLOTS,
+            &entry.connections,
+        )
+        .expect("binds");
+    let secrets =
+        ace_sdk::Secrets::new().with("ticket_token", ace_sdk::Secret::new("t0ken".to_owned()));
+    let setup = ace_app::hunter::SearchSetup::new("soc_tickets", entry.settings.clone())
+        .with_connections(ace_sdk::Connections::resolve(&bindings, &secrets));
+    let source = (types["example_tickets"].build)(&setup).expect("builds");
+    assert_eq!(source.default_time_field(), Some("opened"));
+    let rows = tokio::task::block_in_place(|| {
+        source.execute_query(
+            "host:ws-001",
+            Time::from(start),
+            Time::from(end),
+            chrono::TimeDelta::seconds(5),
+            &serde_json::Map::new(),
+        )
+    })
+    .expect("the rows");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["id"], "T-9");
+    assert!(replay.unmatched().is_empty(), "{:?}", replay.unmatched());
+
+    let validating = ace_app::hunter::validation_sources(&app, &overlay);
+    assert_eq!(validating.names(), ["soc_tickets"]);
+    let held = validating.get("soc_tickets").expect("built");
+    assert_eq!(held.default_time_format(), Some("iso8601"));
+    let refused = held
+        .execute_query(
+            "host:ws-001",
+            Time::from(start),
+            Time::from(end),
+            chrono::TimeDelta::seconds(5),
+            &serde_json::Map::new(),
+        )
+        .expect_err("ace serve runs no query");
+    assert!(refused.contains("only in ace hunter"), "{refused}");
+    assert_eq!(
+        replay.requests().len(),
+        1,
+        "nothing more reached the system"
+    );
+}
+
+/// What the binary refuses of the overlay's `hunt_types:` and `query_sources:` (PLAN.md decision 40),
+/// each with its path, when any `ace` command starts.
+#[test]
+fn the_overlay_s_hunt_types_and_query_sources_are_checked() {
+    let app = ace_site_example::app();
+    let overlay = ticket_hunt_overlay("https://tickets.site.example");
+    app.check_overlay(&overlay)
+        .expect("the overlay is the binary's");
+    let refused = |yaml: &str| {
+        app.check_overlay(&ace_sdk::Overlay::from_yaml(yaml).expect("an overlay"))
+            .expect_err("refused")
+    };
+    assert_eq!(
+        refused("hunt_types: {logscale: {}}"),
+        "the overlay's hunt_types.logscale: this binary has no search for the hunt type logscale"
+    );
+    assert_eq!(
+        refused("query_sources: {lake: {type: lake}}"),
+        "the overlay's query_sources.lake: this binary has no query source type lake"
+    );
+    let unknown_slot = refused(
+        "connections: {tickets: {type: example_ticket_system}}\n\
+         query_sources: {soc: {type: example_tickets, connections: {nowhere: tickets}}}",
+    );
+    assert!(
+        unknown_slot.contains("query_sources.soc.connections.nowhere"),
+        "{unknown_slot}"
+    );
+    // a search for a hunt type the binary hasn't is the list's mistake
+    let wrong = ace_app::App::new().hunt_search(
+        "example_tickets",
+        &[],
+        ace_site_example::hunt::build_search,
+    );
+    assert_eq!(
+        wrong.check_overlay(&ace_sdk::Overlay::default()),
+        Err(
+            "the binary's list: a search for the hunt type example_tickets, which it hasn't"
+                .to_owned()
+        )
+    );
+}
+
+/// A summary chosen by the template its hunt names (PLAN.md decision 40), ace3's `alert_template`:
+/// it comes before the alert's type, and a name with no summary falls back to the type.
+#[test]
+fn the_site_binary_draws_the_summary_a_hunt_names() {
+    let app = ace_site_example::app();
+    let summaries = app.alert_summaries();
+    assert_eq!(
+        summaries.templates().collect::<Vec<_>>(),
+        ["analysis/custom/hunter_splunk.html", "example/ticket.html"]
+    );
+    let at = chrono::Utc::now();
+    let tree = |origin: Value| ace_service::AlertTree {
+        alert: ace_service::Alert {
+            summary: ace_service::AlertSummary {
+                id: Uuid::nil(),
+                title: "a hunt alert".to_owned(),
+                analysis_mode: "correlation".to_owned(),
+                event_time: None,
+                event_time_source: "unset".to_owned(),
+                created_at: at,
+                alerted_at: at,
+                disposition: None,
+                dispositioned_at: None,
+                dispositioned_by: None,
+                submitted_by: None,
+                analysis: ace_service::AnalysisState::Complete,
+                queue: "default".to_owned(),
+                tags: Vec::new(),
+                svs: None,
+                owner: None,
+                owned_at: None,
+            },
+            observables: 0,
+            files: 0,
+            detections: 0,
+            pivot_links: Vec::new(),
+        },
+        observables: Vec::new(),
+        top: Vec::new(),
+        additions: Vec::new(),
+        root_detections: Vec::new(),
+        truncated: false,
+        origin,
+    };
+    let draw = |tree: &ace_service::AlertTree| {
+        let alert_type = tree.alert_type().unwrap_or_default().to_owned();
+        summaries.draw(&ace_gui::SummaryInput {
+            alert_type: &alert_type,
+            origin: &tree.origin,
+            tree,
+            remediation: None,
+        })
+    };
+    let named = |template: &str| {
+        tree(json!({
+            "alert_type": "hunter - example - tickets",
+            "details": {"ticket_queue": "soc", "query": "priority:high"},
+            "extensions": {"alert_template": template},
+        }))
+    };
+    let drawn = draw(&named("example/ticket.html")).expect("the named summary");
+    assert_eq!(drawn.alert_type, "example/ticket.html");
+    assert!(
+        drawn
+            .html
+            .as_str()
+            .contains("<dt>Ticket queue</dt><dd>soc</dd>")
+    );
+    // ace3's name for its hunter template is the hunt summary's
+    let drawn = draw(&named(" analysis/custom/hunter_splunk.html ")).expect("the hunt summary");
+    assert_eq!(drawn.alert_type, "analysis/custom/hunter_splunk.html");
+    // a name the binary has no summary for falls back to the type's
+    let drawn = draw(&named("endpoint_vendor/logscale.html")).expect("the type's summary");
+    assert_eq!(drawn.alert_type, "hunter");
+    // and a named summary draws an alert with no type
+    let untyped = tree(json!({
+        "details": {"ticket_queue": "soc"},
+        "extensions": {"alert_template": "example/ticket.html"},
+    }));
+    assert_eq!(
+        draw(&untyped).map(|d| d.alert_type),
+        Some("example/ticket.html")
     );
 }

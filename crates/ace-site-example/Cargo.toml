@@ -24,6 +24,9 @@ ace-service = { path = "../ace-service" }
 schemars = "1.2.3"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
+# The ticket hunts' window and their tickets' times, and their searches' bounds (decision 40).
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+tokio = { version = "1.54.1", features = ["macros", "time"] }
 
 [[bin]]
 name = "example-ace"
@@ -41,8 +44,6 @@ path = "src/bin/example-parsers.rs"
 # The request a parser pool's supervisor writes its task process, which the task process test
 # writes by hand.
 ace-pool = { path = "../ace-pool" }
-# A routed alert's time, in the alert routing test (PLAN.md 7.13).
-chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 # A database of the test's own, which the site's `ace serve` runs on.
 ace-core = { path = "../ace-core", features = ["testing"] }
 libc = "0.2.191"
@@ -52,6 +53,10 @@ reqwest = { version = "0.13.5", default-features = false, features = ["json"] }
 sqlx = { version = "0.9.0", default-features = false, features = ["json", "postgres", "runtime-tokio", "uuid"] }
 tempfile = "3.27.0"
 tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "time"] }
+# The hunter's stop, in the hunt type tests (PLAN.md decision 40).
+tokio-util = "0.7.20"
+# A routed alert's time, in the alert routing test (PLAN.md 7.13).
+chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 uuid = "1.29.0"
 
 [lints]

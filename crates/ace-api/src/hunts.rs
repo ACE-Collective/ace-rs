@@ -65,6 +65,10 @@ pub struct HuntSupport {
     pub valid_type: fn(&str) -> bool,
     /// The binary's correlation command types (`App::command_types`).
     pub command_types: Arc<CommandTypes>,
+    /// The overlay's query sources, built without their secrets and refusing to run a query
+    /// (`ace_app::hunter::validation_sources`, PLAN.md decision 40): what a correlation's time
+    /// fields and its trace's windows are read from. None by default.
+    pub sources: Arc<ace_hunt::correlate::source::Sources>,
 }
 
 impl Default for HuntSupport {
@@ -74,6 +78,7 @@ impl Default for HuntSupport {
             email: |_| None,
             valid_type: |t| t.parse::<ace_results::ObservableKind>().is_ok(),
             command_types: Arc::new(CommandTypes::new()),
+            sources: Arc::new(ace_hunt::correlate::source::Sources::new()),
         }
     }
 }
@@ -666,7 +671,8 @@ fn validate(
 }
 
 /// The hunt's correlation over the rows sent, as ace3's validation runs it: a zero-width window at
-/// now, the saved `correlate_results` replayed, no data source and no cache.
+/// now, the saved `correlate_results` replayed, the sources' time fields and no data source, and
+/// no cache.
 fn run_correlation(
     hunt: &ace_hunt::Hunt,
     correlate: &ace_hunt::correlate::Correlate,
@@ -677,12 +683,12 @@ fn run_correlation(
 ) -> Result<ace_hunt::correlate::engine::Correlated, String> {
     use ace_hunt::correlate::engine::{Engine, HuntRun, Runtime};
     let renderer = Renderer::correlation(ace_hunt::render::Limits::default());
-    let sources = ace_hunt::correlate::source::Sources::new();
+    let sources = &support.sources;
     let clock = Utc::now;
     let stopped = || false;
     let rt = Runtime {
         renderer: &renderer,
-        sources: &sources,
+        sources,
         command_types: &support.command_types,
         cache: &ace_hunt::correlate::cache::NoCache,
         secrets: &[],

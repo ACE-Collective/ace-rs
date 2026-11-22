@@ -53,6 +53,12 @@
 //! to `rejected/`; one it couldn't take stays for the next pass. It declares one secret,
 //! `example_collector_token`, and needs it set, as a real source's credentials would be.
 //!
+//! Its hunts search its ticket system (PLAN.md decision 40, [`hunt`]): a hunt type of its own,
+//! `example_tickets`, with the search `ace hunter` runs its hunts with, and a correlation query source
+//! type of the same name, both through the ticket system's shared connection. Its ticket summary is
+//! also the template `example/ticket.html`, which a hunt names in `alert_template` to have it whatever
+//! its alert's type.
+//!
 //! Its alert router type (PLAN.md 7.13) is ace3's example integration's (`integrations.example`'s
 //! `ExampleTagRouter`): an overlay entry of type `example_tag` sends a new alert carrying one tag to one
 //! queue, and does nothing to any other, so the type changes nothing until an entry and that tag appear.
@@ -114,6 +120,11 @@ pub fn app() -> App {
         .analysis_view::<TicketFileAnalysis>()
         .observable_action(OPEN_TICKET)
         .alert_summary::<ExampleTicketSummary>()
+        // the same summary, for an alert whose hunt names it in `alert_template`
+        .alert_template::<ExampleTicketSummary>(TICKET_TEMPLATE)
+        .hunt_type(hunt::TicketHunts)
+        .hunt_search(hunt::TICKET_HUNTS, hunt::SLOTS, hunt::build_search)
+        .query_source_type(hunt::TICKET_HUNTS, hunt::SLOTS, hunt::build_source)
         .alert_router_type(EXAMPLE_TAG_ROUTER, |settings| {
             Ok(std::sync::Arc::new(ExampleTagRouter::new(settings)?))
         })
@@ -123,6 +134,11 @@ pub fn app() -> App {
             |_, settings| ace_hunt::correlate::scripts::example::build(settings),
         )
 }
+
+/// The ticket summary's template name, which a hunt's `alert_template` names (PLAN.md decision 40).
+pub const TICKET_TEMPLATE: &str = "example/ticket.html";
+
+pub mod hunt;
 
 /// The example alert router's type name, which an overlay's `alert_routers:` entry names.
 pub const EXAMPLE_TAG_ROUTER: &str = "example_tag";

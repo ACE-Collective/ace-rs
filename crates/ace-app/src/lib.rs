@@ -25,8 +25,10 @@
 //! Each kind of thing an ace3 integration can add (`ace3/docs/INTEGRATIONS.md`) becomes an entry
 //! here once its feature exists in ace4: analysis modules and observable types (2.31), analysis
 //! templates and observable actions (5.9, `analysis_view`, `observable_action`), the alert page's
-//! summaries by alert type (ace3's `custom_alerts` templates, `alert_summary`), hunt types (6.2,
-//! `hunt_type`), correlation command types (6.6, `command_type`), the script command types that
+//! summaries by alert type (ace3's `custom_alerts` templates, `alert_summary`) and by template name
+//! (decision 40, `alert_template`), hunt types (6.2, `hunt_type`) and their searches (decision 40,
+//! `hunt_search`), correlation query source types (decision 40, `query_source_type`), correlation
+//! command types (6.6, `command_type`), the script command types that
 //! stand in for hunt scripts (decision 16, `hunt_script`), scheduled tasks (6.7,
 //! `scheduled_task`), remediators, remediation probes and file collectors (7.9, `LookupPool::action`),
 //! alert routers and their types (7.13, `alert_router`, `alert_router_type`),
@@ -93,6 +95,8 @@ pub struct App {
         CommandTypeFactory,
     )>,
     hunt_scripts: Vec<(String, String, HuntScriptFactory)>,
+    hunt_searches: Vec<(String, hunter::SearchType<hunter::HuntSearchFactory>)>,
+    query_source_types: Vec<(String, hunter::SearchType<hunter::QuerySourceFactory>)>,
     scheduled_tasks: Vec<scheduler::Task>,
     alert_routers: Vec<(String, i32, Arc<dyn ace_service::routing::Router>)>,
     router_types: ace_service::routing::RouterTypes,
@@ -310,6 +314,25 @@ impl App {
         self
     }
 
+    /// Adds the alert page's summary `T` under the template name `name` (PLAN.md decision 40), ace3's
+    /// alert template chosen by name: an alert whose hunt names it in `alert_template`, such as
+    /// `endpoint_vendor/logscale.html`, has this summary, whatever its type. A name with no summary falls
+    /// back to the alert's type. One with a name already added takes its place.
+    ///
+    /// # Panics
+    ///
+    /// When `name` is empty, or longer than 256 bytes.
+    pub fn alert_template<T: ace_gui::AlertSummary>(mut self, name: &'static str) -> App {
+        assert!(
+            !name.is_empty() && name.len() <= 256,
+            "App::alert_template: a template's name is 1 to 256 bytes"
+        );
+        self.summaries = self
+            .summaries
+            .with_template(name, ace_gui::SummaryEntry::of::<T>());
+        self
+    }
+
     /// The ports the network pool `pool` allows for its components' connections beyond their own,
     /// such as a proxy's, with `overlay` (`ace_sdk::ConnectionType::tcp_ports`, PLAN.md decision
     /// 35), as the pool computes them when it starts. None for a pool this binary hasn't.
@@ -354,6 +377,97 @@ impl App {
         self.hunt_types.retain(|k| k.name() != kind.name());
         self.hunt_types.push(Arc::new(kind));
         self
+    }
+
+    /// Adds the search of the hunt type `kind` (PLAN.md decision 40): how `ace hunter` runs a hunt's
+    /// query, as an ace3 integration's hunt class does with `execute_query`. `App::hunt_type` adds the
+    /// type's validation; this, what runs it. The overlay's `hunt_types.<kind>` gives the search its
+    /// settings and binds its `slots` to shared connections, and `build` makes it from them, or says
+    /// why it can't, which every hunt of the type is skipped with. Only `ace hunter` builds it, and it
+    /// holds the connections' secrets. Every `App` has Splunk's (`hunter::splunk`); one with a name
+    /// already added, Splunk's included, takes its place. A search for a hunt type the binary hasn't
+    /// stops every `ace` command (`check_overlay`).
+    pub fn hunt_search(
+        mut self,
+        kind: &str,
+        slots: &'static [ace_sdk::ConnectionSlot],
+        build: impl Fn(&hunter::SearchSetup) -> Result<Arc<dyn ace_hunt::search::HuntSearch>, String>
+        + Send
+        + Sync
+        + 'static,
+    ) -> App {
+        self.hunt_searches.retain(|(name, _)| name != kind);
+        self.hunt_searches.push((
+            kind.to_owned(),
+            hunter::SearchType {
+                connections: slots,
+                build: Arc::new(build),
+            },
+        ));
+        self
+    }
+
+    /// The hunt types' searches: Splunk's, and the binary's own.
+    pub fn hunt_searches(
+        &self,
+    ) -> std::collections::BTreeMap<String, hunter::SearchType<hunter::HuntSearchFactory>> {
+        let mut searches = std::collections::BTreeMap::from([(
+            "splunk".to_owned(),
+            hunter::SearchType {
+                connections: &[],
+                build: Arc::new(hunter::splunk::build_search) as hunter::HuntSearchFactory,
+            },
+        )]);
+        for (kind, search) in &self.hunt_searches {
+            searches.insert(kind.clone(), search.clone());
+        }
+        searches
+    }
+
+    /// Adds a correlation query source type (PLAN.md decision 40), which the overlay's
+    /// `query_sources:` entries name with their own name, settings and connections, as ace3's
+    /// `hunter.correlation.query_sources` entry names a class with its `kwargs`. `build` makes a
+    /// source from an entry's setup, or says why it can't, which leaves the source out and fails a
+    /// query naming it. `ace hunter` builds sources with their connections' secrets, for each
+    /// correlation run; `ace serve` builds them with none, to validate hunts, and never runs a query
+    /// on them. Every `App` has `splunk`; one with a type's name already added takes its place.
+    pub fn query_source_type(
+        mut self,
+        kind: &str,
+        slots: &'static [ace_sdk::ConnectionSlot],
+        build: impl Fn(
+            &hunter::SearchSetup,
+        ) -> Result<Arc<dyn ace_hunt::correlate::source::QuerySource>, String>
+        + Send
+        + Sync
+        + 'static,
+    ) -> App {
+        self.query_source_types.retain(|(name, _)| name != kind);
+        self.query_source_types.push((
+            kind.to_owned(),
+            hunter::SearchType {
+                connections: slots,
+                build: Arc::new(build),
+            },
+        ));
+        self
+    }
+
+    /// The query source types: `splunk`, and the binary's own.
+    pub fn query_source_types(
+        &self,
+    ) -> std::collections::BTreeMap<String, hunter::SearchType<hunter::QuerySourceFactory>> {
+        let mut types = std::collections::BTreeMap::from([(
+            "splunk".to_owned(),
+            hunter::SearchType {
+                connections: &[],
+                build: Arc::new(hunter::splunk::build_source) as hunter::QuerySourceFactory,
+            },
+        )]);
+        for (kind, source) in &self.query_source_types {
+            types.insert(kind.clone(), source.clone());
+        }
+        types
     }
 
     /// Adds a correlation command type (PLAN.md 6.6), ace3's `hunter.correlation.command_types`
@@ -1015,7 +1129,8 @@ impl App {
     }
 
     /// Every connection type a component of the binary takes (`ace_sdk::connections`): its modules',
-    /// action handlers', collectors', AI backend types' and command types' slots.
+    /// action handlers', collectors', AI backend types', command types', hunt types' searches' and
+    /// query source types' slots.
     pub fn connection_kinds(&self) -> Vec<ace_sdk::ConnectionKind> {
         let modules = self
             .registry()
@@ -1039,12 +1154,22 @@ impl App {
             .command_types
             .iter()
             .flat_map(|(_, slots, _)| slots.iter().copied());
+        let searches = self
+            .hunt_searches
+            .iter()
+            .flat_map(|(_, search)| search.connections.iter().copied());
+        let sources = self
+            .query_source_types
+            .iter()
+            .flat_map(|(_, source)| source.connections.iter().copied());
         let mut kinds: Vec<ace_sdk::ConnectionKind> = Vec::new();
         for slot in modules
             .chain(actions)
             .chain(collectors)
             .chain(backends)
             .chain(commands)
+            .chain(searches)
+            .chain(sources)
         {
             if !kinds.contains(&slot.kind) {
                 kinds.push(slot.kind);
@@ -1070,15 +1195,38 @@ impl App {
             .map_err(|e| e.to_string())
     }
 
-    /// The secrets of the connections `overlay` binds to the command types' slots: what `ace hunter`,
-    /// which runs the commands, resolves for them.
-    pub fn command_type_secret_names(&self, overlay: &ace_sdk::Overlay) -> Vec<String> {
-        let bindings: Vec<ace_sdk::Binding> = self
+    /// The secrets of the connections `overlay` binds to the command types', the hunt types'
+    /// searches' and the query sources' slots: what `ace hunter`, which runs them, resolves for them.
+    pub fn hunter_secret_names(&self, overlay: &ace_sdk::Overlay) -> Vec<String> {
+        let mut bindings: Vec<ace_sdk::Binding> = self
             .command_types
             .iter()
             .filter_map(|(name, slots, _)| self.command_type_bindings(overlay, name, slots).ok())
             .flatten()
             .collect();
+        for (kind, search) in self.hunt_searches() {
+            if let Some(section) = overlay.hunt_types.get(&kind)
+                && let Ok(bound) = overlay.bind(
+                    &format!("hunt_types.{kind}.connections"),
+                    search.connections,
+                    &section.connections,
+                )
+            {
+                bindings.extend(bound);
+            }
+        }
+        let types = self.query_source_types();
+        for (name, entry) in overlay.query_sources.iter().flatten() {
+            if let Some(kind) = types.get(&entry.kind)
+                && let Ok(bound) = overlay.bind(
+                    &format!("query_sources.{name}.connections"),
+                    kind.connections,
+                    &entry.connections,
+                )
+            {
+                bindings.extend(bound);
+            }
+        }
         ace_sdk::connections::secret_names(&bindings)
             .into_iter()
             .map(str::to_owned)
@@ -1088,8 +1236,9 @@ impl App {
     /// What an `ace` command checks of the overlay once it is read, before it uses it: every shared
     /// connection against its type (one no component of the binary takes is refused), every
     /// component's `connections:` against its slots (the modules', the action handlers', the
-    /// collectors', the AI backends' and the command types'), a `command_types:` entry for a type the
-    /// binary hasn't, and every `module_in_group` module that no pool registers against the
+    /// collectors', the AI backends', the command types', the hunt types' searches' and the query
+    /// sources'), a `command_types:` or `hunt_types:` entry, or a `query_sources:` type, the binary
+    /// hasn't, a search registered for a hunt type the binary hasn't, and every `module_in_group` module that no pool registers against the
     /// overlay's instances. Each error names the path.
     pub fn check_overlay(&self, overlay: &ace_sdk::Overlay) -> Result<(), String> {
         overlay
@@ -1146,6 +1295,44 @@ impl App {
         }
         for (name, slots, _) in &self.command_types {
             self.command_type_bindings(overlay, name, slots)?;
+        }
+        for (kind, _) in &self.hunt_searches {
+            if !self.hunt_types.iter().any(|k| k.name() == kind) {
+                return Err(format!(
+                    "the binary's list: a search for the hunt type {kind}, which it hasn't"
+                ));
+            }
+        }
+        let searches = self.hunt_searches();
+        for (kind, section) in &overlay.hunt_types {
+            let Some(search) = searches.get(kind) else {
+                return Err(format!(
+                    "the overlay's hunt_types.{kind}: this binary has no search for the hunt type {kind}"
+                ));
+            };
+            overlay
+                .bind(
+                    &format!("hunt_types.{kind}.connections"),
+                    search.connections,
+                    &section.connections,
+                )
+                .map_err(|e| e.to_string())?;
+        }
+        let source_types = self.query_source_types();
+        for (name, entry) in overlay.query_sources.iter().flatten() {
+            let Some(kind) = source_types.get(&entry.kind) else {
+                return Err(format!(
+                    "the overlay's query_sources.{name}: this binary has no query source type {}",
+                    entry.kind
+                ));
+            };
+            overlay
+                .bind(
+                    &format!("query_sources.{name}.connections"),
+                    kind.connections,
+                    &entry.connections,
+                )
+                .map_err(|e| e.to_string())?;
         }
         self.check_group_instances(&components)
             .map_err(|wrong| format!("the binary's list and the overlay: {wrong}"))

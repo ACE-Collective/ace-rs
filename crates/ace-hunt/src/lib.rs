@@ -9,7 +9,8 @@
 //! error. [`types`] holds the hunt types. [`normal`] is the comparison with ace3's loader.
 //! [`render`] renders a hunt's templates as ace3's Jinja does (6.3). [`query`] turns a query hunt's
 //! rows into the submissions ace3's hunter makes and says when the hunt runs and over what window,
-//! and [`splunk`] builds a Splunk hunt's search (6.4). [`correlate`] also runs a hunt's correlation
+//! and [`splunk`] builds a Splunk hunt's search (6.4). [`search`] is how a hunt type's query runs
+//! (decision 40). [`correlate`] also runs a hunt's correlation
 //! over its rows (6.6).
 //!
 //! This crate depends on nothing else in the workspace, so whatever runs hunts (6.4's hunter, 6.7's
@@ -26,6 +27,7 @@ pub mod normal;
 pub mod paths;
 pub mod query;
 pub mod render;
+pub mod search;
 pub mod splunk;
 pub mod types;
 pub mod validate;

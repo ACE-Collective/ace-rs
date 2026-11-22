@@ -1,9 +1,10 @@
 //! Where a correlation's `query` commands run (`registry.py`): a [`QuerySource`] by the name a
 //! command's `source` gives, such as `splunk`. ace3 registers its sources from
-//! `hunter.correlation.query_sources`, importing each class; ace4's hunter builds them from its own
-//! configuration (`ace_app::hunter`), and a process that holds no data source's credentials, such
-//! as `ace serve` validating a hunt, has none, so a query there fails as a step error unless its
-//! results are replayed.
+//! `hunter.correlation.query_sources`, importing each class; ace4's hunter builds them from the
+//! overlay's `query_sources:`, each of a type the binary has (`ace_app::App::query_source_type`,
+//! PLAN.md decision 40), and `ace serve`, validating a hunt, builds them without their credentials
+//! and refuses to run a query on them, so a query there fails as a step error unless its results are
+//! replayed.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;

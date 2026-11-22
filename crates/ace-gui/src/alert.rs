@@ -1326,13 +1326,12 @@ impl AlertPage {
                 &builtin
             }
         };
-        let drawn = alert_type.as_deref().and_then(|kind| {
-            summaries.draw(&SummaryInput {
-                alert_type: kind,
-                origin: &tree.origin,
-                tree,
-                remediation: options.remediation.map(|timeline| &timeline.coverage),
-            })
+        // a summary its hunt names draws even an alert with no type
+        let drawn = summaries.draw(&SummaryInput {
+            alert_type: alert_type.as_deref().unwrap_or(""),
+            origin: &tree.origin,
+            tree,
+            remediation: options.remediation.map(|timeline| &timeline.coverage),
         });
         let (key_observables, more_observables) = key_observables(tree);
         let mut fired = fired_of_tree(tree);

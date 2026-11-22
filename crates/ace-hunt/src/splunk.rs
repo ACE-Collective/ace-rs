@@ -40,27 +40,11 @@ fn setting<'a>(hunt: &'a Hunt, name: &str) -> Option<&'a str> {
     hunt.config.settings.get(name).and_then(Json::as_str)
 }
 
-/// `SplunkHunt.query`: the query or its file's text, with `query_prefix` and `query_suffix`, and
+/// `SplunkHunt.query`: `QueryHunt.query` ([`crate::search::query`]), with
 /// each `<include:PATH>` replaced by that file's text without its comment lines. A relative path
 /// is read from `home`, ace3's working directory. A missing file stops the replacing, as in ace3.
 pub fn query(hunt: &Hunt, home: &Path) -> Result<String, String> {
-    let config = &hunt.config;
-    let mut result = match (&config.query, &hunt.query_file) {
-        (Some(query), _) => query.clone(),
-        (None, Some(text)) => text.clone(),
-        (None, None) => {
-            return Err(format!(
-                "no query specified for hunt Hunt({}[splunk])",
-                config.name
-            ));
-        }
-    };
-    if let Some(prefix) = config.query_prefix.as_deref().filter(|p| !p.is_empty()) {
-        result = format!("{prefix}\n{result}");
-    }
-    if let Some(suffix) = config.query_suffix.as_deref().filter(|s| !s.is_empty()) {
-        result = format!("{}\n{suffix}", result.trim_end_matches(char::is_whitespace));
-    }
+    let mut result = crate::search::query(hunt)?;
     static INCLUDE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"<include:([^>]+)>").expect("valid"));
     static COMMENT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?m)^\s*#.*$").expect("valid"));

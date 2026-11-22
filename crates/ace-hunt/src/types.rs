@@ -10,8 +10,9 @@
 //! type's directory fails as a hunt of the wrong type.
 //!
 //! What a type's class does at load beyond validating is the type's [`HuntType::on_load`]: Splunk
-//! looks up the Splunk instance a hunt names. What it needs a client or credentials for is 6.4's,
-//! with the query.
+//! looks up the Splunk instance a hunt names. How a type's hunts run is its search
+//! (`crate::search::HuntSearch`, PLAN.md decision 40), which `ace hunter` holds with its
+//! credentials, and which adds its own check at load (`crate::search::Checked`).
 
 use serde_json::{Map as JsonMap, Value as Json};
 

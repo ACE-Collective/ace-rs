@@ -317,6 +317,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
             command_types: std::sync::Arc::new(
                 app.command_types_for(&overlay, &ace_sdk::Secrets::new()),
             ),
+            // the same for the query sources, which refuse to run a query here (decision 40)
+            sources: std::sync::Arc::new(crate::hunter::validation_sources(app, &overlay)),
         });
     let hooks_orchestrator = orchestrator.clone();
     let api = Api::new(db.clone(), bucket.clone(), orchestrator, config).await?;

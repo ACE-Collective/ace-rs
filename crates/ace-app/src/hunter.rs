@@ -1,56 +1,65 @@
-//! `ace hunter`: ace3's hunter for query hunts (PLAN.md 6.4), with Splunk as its one source.
+//! `ace hunter`: ace3's hunter for query hunts (PLAN.md 6.4), with Splunk as its own hunt type and
+//! a site's hunt types beside it (decision 40).
 //!
 //! It loads the hunts of each type it has rule directories for from the signatures checkout
 //! (`ace_hunt::load_hunts`, 6.2), records them for the `hunt` router (`Service::sync_hunts`), and
 //! every tick runs each hunt ace3's `HuntManager.execute` would run: enabled, for this instance type,
 //! not suppressed, and ready by its frequency. A run searches the hunt's window
-//! (`ace_hunt::query::schedule::window`) with the hunt's Splunk search (`ace_hunt::splunk`) through
-//! `ace_mod_splunk::search`, turns the rows into submissions as ace3's `QueryHunt` does
-//! (`ace_hunt::query::process`), and records them and the hunt's new state in one transaction
-//! (`Service::record_hunt_run`), as the internal component `hunter`, which migration 0034 grants
-//! `alert:create`, `hunt:read` and `hunt:write`. The state lives in Postgres, so a restart neither
-//! searches a window again nor skips one. Hunts reload every `reload_seconds`.
+//! (`ace_hunt::query::schedule::window`) with its hunt type's search (`ace_hunt::search::HuntSearch`),
+//! turns the rows into submissions as ace3's `QueryHunt` does (`ace_hunt::query::process`), and
+//! records them and the hunt's new state in one transaction (`Service::record_hunt_run`), as the
+//! internal component `hunter`, which migration 0034 grants `alert:create`, `hunt:read` and
+//! `hunt:write`. The state lives in Postgres, so a restart neither searches a window again nor skips
+//! one. Hunts reload every `reload_seconds`.
+//!
+//! **Hunt types' searches** (decision 40, docs/decisions/0005-site-hunt-types.md). A hunt type's
+//! search is what `App::hunt_searches` has for its name: every `App` has Splunk's ([`splunk`]: the
+//! hunt's search on the instance its `splunk_config` names, built by `ace_hunt::splunk` and run by
+//! `ace_mod_splunk::search`), and a site adds its own with `App::hunt_search`, built from the
+//! overlay's `hunt_types.<type>` (its settings and the shared connections it binds). A hunt of a type
+//! the binary has no search for loads and is skipped, saying so.
 //!
 //! Each hit a suppression drops is a row (PLAN.md 6.5, [`run_of`]): a group a grouped hunt's
 //! `suppression` drops, decided here, and a duplicate of a dedup key, which ace3's collector drops and
 //! `Service::record_hunt_run` drops here, in the run's transaction (`ace_service`'s `hunts` docs).
 //!
 //! **Where it runs.** Its own process of the `ace` binary, as ace3's hunter is its own service. A
-//! search needs the Splunk instance's credentials, and 2.24 holds a process to the secrets it
-//! declares: `ace serve` holds the API's and none of a data source's, so the hunter isn't part of
-//! it. A pool reaches only the lease API and the bucket, while a hunt writes roots through the
-//! service layer, so it isn't a pool either. 6.7's scheduler takes `ace3/saq/cron_tasks.py`, which
-//! has no hunts; a hunt has its own frequency, window and state, which this keeps. So `ace hunter`
-//! resolves `splunk_<instance>_password` or `splunk_<instance>_token` for each Splunk instance its
-//! configuration names, from the site overlay's secrets, and no others.
+//! search needs a data source's credentials, and 2.24 holds a process to the secrets it declares:
+//! `ace serve` holds the API's and none of a data source's, so the hunter isn't part of it. A pool
+//! reaches only the lease API and the bucket, while a hunt writes roots through the service layer, so
+//! it isn't a pool either. 6.7's scheduler takes `ace3/saq/cron_tasks.py`, which has no hunts; a hunt
+//! has its own frequency, window and state, which this keeps. So `ace hunter` resolves
+//! `splunk_<instance>_password` or `splunk_<instance>_token` for each Splunk instance its
+//! configuration names, and the secrets of the connections the overlay's `command_types:`,
+//! `hunt_types:` and `query_sources:` bind, and no others.
 //!
-//! **Bounded waits** (2.21): each request to Splunk by the instance's `request_timeout_seconds`, a
-//! job by `dispatch_timeout_seconds` until it starts and the hunt's `query_timeout` once it runs,
-//! each database call by the pool's acquire and statement timeouts (`DbConfig`), and a stop ends
-//! a run's wait at once, cancelling its job; the run's window is then left to the next start.
+//! **Bounded waits** (2.21): a search by its type's own bounds and the hunt's `query_timeout`
+//! (Splunk's: each request by the instance's `request_timeout_seconds`, a job by
+//! `dispatch_timeout_seconds` until it starts and the hunt's `query_timeout` once it runs), each
+//! database call by the pool's acquire and statement timeouts (`DbConfig`), and a stop ends a run's
+//! wait at once, cancelling its job; the run's window is then left to the next start.
 //!
 //! It reads `ACE4_HUNTER`, a JSON file ([`HunterConfig`]), `ACE4_DATABASE_URL`, the `ACE4_BUCKET_*`
 //! variables and the overlay at `ACE4_OVERLAY`.
 //!
 //! **Correlation** (PLAN.md 6.6). A hunt with a `correlate` block has its rows run through
 //! `ace_hunt::correlate::engine` before they're processed, on the run's thread, with every wait
-//! bounded and a stop ending it ([`Hunter::correlate`]). Its `query` commands go to the query sources
-//! the configuration names ([`QuerySourceConfig`]), by default `splunk` on the `default` instance,
-//! as ace3's `hunter.correlation.query_sources` does: [`SplunkQuery`] runs one as ace3's
-//! `SplunkQuerySource` does. Its custom command types are the binary's (`App::command_type`), a
+//! bounded and a stop ending it ([`Hunter::correlate`]). Its `query` commands go to the overlay's
+//! `query_sources:`, by default `splunk` on the `default` instance, as ace3's
+//! `hunter.correlation.query_sources` does, each of a type `App::query_source_types` has: every `App`
+//! has `splunk` ([`SplunkQuery`], as ace3's `SplunkQuerySource` runs one), and a site adds its own
+//! with `App::query_source_type`. Its custom command types are the binary's (`App::command_type`), a
 //! command's `cache:` is kept in memory (`correlation_cache_bytes`), and what the run logs and the
-//! trace holds is scrubbed of the Splunk credentials the hunter holds, which no template can read.
+//! trace holds is scrubbed of the credentials the hunter holds, which no template can read.
 //! A `type: executable` command runs no script (PLAN.md decision 16): a hunt script runs as the
 //! script command type the site's binary registers for its path (`App::hunt_script`),
 //! built over the hunter's network ([`net`]) with its settings in the configuration's `scripts`, and
 //! its `files:` are read from the signatures checkout. Any other executable fails its step.
 //!
-//! What waits: LogScale hunts for their client in 7.8 (in a binary that adds the type their hunts
-//! load, and the hunter skips them, saying so), and their correlation source with them; a type the
-//! binary lacks, such as `rapid7`, has no hunts loaded, whatever `rule_dirs` names, and the hunter
-//! warns of each such type when it starts (`unknown_types`); a file mapping's files
-//! (three of the signatures' Splunk hunts have one), which are logged and dropped until the hunter
-//! spools files for submission.
+//! What waits: a type the binary lacks, such as `rapid7`, has no hunts loaded, whatever `rule_dirs`
+//! names, and the hunter warns of each such type when it starts (`unknown_types`); a file mapping's
+//! files (three of the signatures' Splunk hunts have one), which are logged and dropped until the
+//! hunter spools files for submission.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -69,9 +78,8 @@ use ace_hunt::correlate::time::Time;
 use ace_hunt::query::schedule::{self, Ran, State, Window};
 use ace_hunt::query::{self, Context, EventTimeSource, Processed};
 use ace_hunt::render::Renderer;
-use ace_hunt::splunk::{self, Instance, Search};
+use ace_hunt::search::{HuntSearch, STOPPED, SearchLimits};
 use ace_hunt::{Hunt, HuntType, LoadOptions};
-use ace_mod_splunk::search::{Connection, Limits, SearchClient};
 use ace_results::{Detection, NewObservable, ObservableKind, ObservableRef, Relationship};
 use ace_sdk::Secrets;
 use anyhow::{Context as _, Result};
@@ -82,6 +90,8 @@ use tokio_util::sync::CancellationToken;
 
 use crate::App;
 
+pub use splunk::{SplunkQuery, SplunkSearch};
+
 /// The hunter's configuration, the file `ACE4_HUNTER` names.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -90,7 +100,8 @@ pub struct HunterConfig {
     pub signatures: PathBuf,
     /// Each hunt type's rule directories, relative to `signatures`.
     pub rule_dirs: BTreeMap<String, Vec<PathBuf>>,
-    /// The Splunk instances hunts name in `splunk_config`.
+    /// The Splunk instances hunts name in `splunk_config` and Splunk query sources name in
+    /// `instance`, ace3's global `splunk_config_<name>` sections.
     #[serde(default)]
     pub splunk: BTreeMap<String, SplunkInstance>,
     /// ace3's `global_settings.instance_type`, which a hunt's `instance_types` names.
@@ -99,16 +110,12 @@ pub struct HunterConfig {
     pub tick_seconds: u64,
     #[serde(default = "default_reload")]
     pub reload_seconds: u64,
-    /// Between two reads of a job's status, as ace3's hunter waits.
+    /// Between two reads of a search job's status, as ace3's hunter waits.
     #[serde(default = "default_poll")]
     pub poll_seconds: f64,
     /// How many hunts run at once.
     #[serde(default = "default_concurrency")]
     pub concurrency: usize,
-    /// The sources a correlation's `query` commands name, ace3's
-    /// `hunter.correlation.query_sources`: by default `splunk` on the `default` instance.
-    #[serde(default = "default_query_sources")]
-    pub query_sources: BTreeMap<String, QuerySourceConfig>,
     /// The bytes of correlation command outputs kept for their `cache:`.
     #[serde(default = "default_cache_bytes")]
     pub correlation_cache_bytes: usize,
@@ -118,18 +125,14 @@ pub struct HunterConfig {
     pub scripts: BTreeMap<String, Json>,
 }
 
-/// A correlation query source: a Splunk instance of [`HunterConfig::splunk`].
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
-pub enum QuerySourceConfig {
-    Splunk { instance: String },
-}
-
-fn default_query_sources() -> BTreeMap<String, QuerySourceConfig> {
+/// ace3's default query sources when the overlay names none: `splunk` on the `default` instance.
+pub fn default_query_sources() -> BTreeMap<String, ace_sdk::overlay::QuerySourceSection> {
     BTreeMap::from([(
         "splunk".to_owned(),
-        QuerySourceConfig::Splunk {
-            instance: "default".to_owned(),
+        ace_sdk::overlay::QuerySourceSection {
+            kind: "splunk".to_owned(),
+            settings: Some(serde_json::json!({"instance": "default"})),
+            connections: BTreeMap::new(),
         },
     )])
 }
@@ -199,18 +202,148 @@ pub fn secret_names(instance: &str) -> [String; 2] {
     ]
 }
 
-struct Source {
-    instance: Instance,
-    client: Arc<SearchClient>,
-    dispatch_timeout: Duration,
-    user_context: Option<String>,
-    app_context: Option<String>,
+/// What a hunt type's search or a query source's builder is given (PLAN.md decision 40): its
+/// name (the hunt type's, or the source's as a correlation's `source:` names it), its settings
+/// from the overlay's `hunt_types.<type>.settings` or `query_sources.<name>.settings`, the shared
+/// connections its entry binds to its slots, with their secrets where the process holds them, and
+/// the hunter's poll interval. `ace serve` builds query sources with no secrets, to validate hunts,
+/// and never runs a query on them. A test builds one with `SearchSetup::new` and the methods after
+/// it, so a field added here doesn't break it.
+#[derive(Clone)]
+#[non_exhaustive]
+pub struct SearchSetup {
+    pub name: String,
+    pub settings: Option<Json>,
+    pub connections: ace_sdk::Connections,
+    /// Between two reads of a search job's status, the hunter's `poll_seconds`.
+    pub poll: Duration,
+    stop: CancellationToken,
+    handle: Option<tokio::runtime::Handle>,
+    /// The hunter's Splunk instances, for the built-in Splunk types alone.
+    splunk: Option<Arc<splunk::Instances>>,
+}
+
+impl std::fmt::Debug for SearchSetup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SearchSetup")
+            .field("name", &self.name)
+            .field("settings", &self.settings)
+            .field("connections", &self.connections.slots())
+            .finish_non_exhaustive()
+    }
+}
+
+impl SearchSetup {
+    /// The setup of `name` with `settings`, no connections, a 3 second poll, never stopped, on the
+    /// runtime it is made in, if any.
+    pub fn new(name: impl Into<String>, settings: Option<Json>) -> SearchSetup {
+        SearchSetup {
+            name: name.into(),
+            settings,
+            connections: ace_sdk::Connections::new(),
+            poll: Duration::from_secs(3),
+            stop: CancellationToken::new(),
+            handle: tokio::runtime::Handle::try_current().ok(),
+            splunk: None,
+        }
+    }
+
+    pub fn with_connections(mut self, connections: ace_sdk::Connections) -> SearchSetup {
+        self.connections = connections;
+        self
+    }
+
+    pub fn with_poll(mut self, poll: Duration) -> SearchSetup {
+        self.poll = poll;
+        self
+    }
+
+    /// A query source built with this setup ends its queries when `stop` is cancelled.
+    pub fn with_stop(mut self, stop: CancellationToken) -> SearchSetup {
+        self.stop = stop;
+        self
+    }
+
+    /// How a query source, which the correlation engine calls on a thread it may block, runs its
+    /// async client and ends on the run's stop.
+    pub fn blocking(&self) -> Blocking {
+        Blocking {
+            stop: self.stop.clone(),
+            handle: self.handle.clone(),
+        }
+    }
+}
+
+/// Runs a query source's async work to its end on the hunter's runtime from the correlation's
+/// thread, which `ace hunter` runs under `block_in_place`, ending it with [`STOPPED`] when the run
+/// stops.
+#[derive(Clone)]
+pub struct Blocking {
+    stop: CancellationToken,
+    handle: Option<tokio::runtime::Handle>,
+}
+
+impl Blocking {
+    /// A future that ends when the run stops, for a client that takes one.
+    pub fn stop(&self) -> impl std::future::Future<Output = ()> + Send + 'static {
+        self.stop.clone().cancelled_owned()
+    }
+
+    /// Whether the run has stopped.
+    pub fn stopped(&self) -> bool {
+        self.stop.is_cancelled()
+    }
+
+    /// Runs `work` to its end, or until the run stops.
+    pub fn run<T>(
+        &self,
+        work: impl std::future::Future<Output = Result<T, String>>,
+    ) -> Result<T, String> {
+        let handle = self
+            .handle
+            .as_ref()
+            .ok_or_else(|| "a query source runs only on the hunter's runtime".to_owned())?;
+        let stop = self.stop.clone();
+        handle.block_on(async move {
+            tokio::select! {
+                done = work => done,
+                () = stop.cancelled() => Err(STOPPED.to_owned()),
+            }
+        })
+    }
+}
+
+/// What builds a hunt type's search from its setup, or says why it can't: the reason a hunt of
+/// the type is skipped with.
+pub type HuntSearchFactory =
+    Arc<dyn Fn(&SearchSetup) -> Result<Arc<dyn HuntSearch>, String> + Send + Sync>;
+
+/// What builds a query source from its setup, or says why it can't.
+pub type QuerySourceFactory =
+    Arc<dyn Fn(&SearchSetup) -> Result<Arc<dyn QuerySource>, String> + Send + Sync>;
+
+/// A search or query source type: the slots its entries bind, and what builds one.
+#[derive(Clone)]
+pub struct SearchType<F> {
+    pub connections: &'static [ace_sdk::ConnectionSlot],
+    pub build: F,
+}
+
+/// A query source of the overlay's, ready to build for a run.
+struct SourceEntry {
+    kind: String,
+    settings: Option<Json>,
+    connections: ace_sdk::Connections,
+    build: QuerySourceFactory,
 }
 
 /// The hunter without its database: what decides, searches and processes a run.
 pub struct Hunter {
     config: HunterConfig,
-    sources: BTreeMap<String, Source>,
+    splunk: Arc<splunk::Instances>,
+    /// Each hunt type's search, or why it didn't build.
+    searches: BTreeMap<String, Result<Arc<dyn HuntSearch>, String>>,
+    sources: BTreeMap<String, SourceEntry>,
     renderer: Renderer,
     /// Where `<include:PATH>` reads from, ace3's working directory.
     home: PathBuf,
@@ -228,7 +361,8 @@ pub struct Tick {
     /// Why it didn't run, in ace3's manager's words.
     pub skipped: Option<String>,
     pub window: Option<Window>,
-    pub search: Option<Search>,
+    /// What the hunt type's search ran, once it got that far.
+    pub search: Option<ace_hunt::search::Ran>,
     pub processed: Processed,
     /// Why the run failed, as ace3 logs it.
     pub error: Option<String>,
@@ -237,50 +371,97 @@ pub struct Tick {
 }
 
 impl Hunter {
+    /// A hunter with every `App`'s built-in Splunk search and source over `config`'s instances and
+    /// ace3's default query sources, and no site types: `Hunter::for_app` is the hunter `ace
+    /// hunter` runs.
     pub fn new(config: HunterConfig, secrets: &Secrets) -> Result<Hunter> {
-        let mut sources = BTreeMap::new();
-        let mut held = Vec::new();
-        for (name, instance) in &config.splunk {
-            let [password, token] = secret_names(name);
-            let secret = |n: &str| secrets.get(n).map(|s| s.expose().to_owned());
-            held.extend(secret(&password));
-            held.extend(secret(&token));
-            let timezone = chrono_tz::Tz::from_str(&instance.timezone).map_err(|e| {
-                anyhow::anyhow!(
-                    "splunk instance {name}: timezone {:?}: {e}",
-                    instance.timezone
+        Hunter::for_app(config, secrets, &App::new(), &ace_sdk::Overlay::default())
+    }
+
+    /// The hunter of `app`'s hunt type searches and query source types, built with `overlay`'s
+    /// `hunt_types:` and `query_sources:` and the connections they bind, whose secrets are those
+    /// of `secrets`, and the Splunk instances of `config` with theirs.
+    pub fn for_app(
+        config: HunterConfig,
+        secrets: &Secrets,
+        app: &App,
+        overlay: &ace_sdk::Overlay,
+    ) -> Result<Hunter> {
+        let splunk = Arc::new(splunk::Instances::new(&config.splunk, secrets)?);
+        let mut held = splunk.secrets.clone();
+        let poll = Duration::from_secs_f64(config.poll_seconds.max(0.0));
+        let setup = |name: &str, settings: Option<Json>, connections: ace_sdk::Connections| {
+            let mut setup = SearchSetup::new(name, settings)
+                .with_connections(connections)
+                .with_poll(poll);
+            setup.splunk = Some(splunk.clone());
+            setup
+        };
+        let mut searches = BTreeMap::new();
+        for (kind, search) in app.hunt_searches() {
+            let section = overlay.hunt_types.get(&kind).cloned().unwrap_or_default();
+            let built = overlay
+                .bind(
+                    &format!("hunt_types.{kind}.connections"),
+                    search.connections,
+                    &section.connections,
                 )
-            })?;
-            let client = SearchClient::new(Connection {
-                base_url: instance
-                    .base_url
-                    .clone()
-                    .unwrap_or_else(|| format!("https://{}:{}", instance.host, instance.port)),
-                username: instance.username.clone(),
-                password: secret(&password),
-                token: secret(&token),
-                ca_certificates: instance.ca_certificates.clone(),
-                request_timeout: Duration::from_secs(instance.request_timeout_seconds),
-            })
-            .map_err(|e| anyhow::anyhow!("splunk instance {name}: {e}"))?;
-            sources.insert(
-                name.clone(),
-                Source {
-                    instance: Instance {
-                        host: instance.host.clone(),
-                        timezone,
-                    },
-                    client: Arc::new(client),
-                    dispatch_timeout: Duration::from_secs(instance.dispatch_timeout_seconds),
-                    user_context: instance.user_context.clone(),
-                    app_context: instance.app_context.clone(),
-                },
-            );
+                .map_err(|e| e.to_string())
+                .and_then(|bindings| {
+                    let connections = ace_sdk::Connections::resolve(&bindings, secrets);
+                    held.extend(held_secrets(&connections));
+                    (search.build)(&setup(&kind, section.settings.clone(), connections))
+                });
+            if let Err(e) = &built {
+                tracing::error!(
+                    hunt_type = kind,
+                    "the {kind} hunt type's search failed to load: {e}"
+                );
+            }
+            searches.insert(kind, built);
+        }
+        let types = app.query_source_types();
+        let mut sources = BTreeMap::new();
+        let entries = overlay
+            .query_sources
+            .clone()
+            .unwrap_or_else(default_query_sources);
+        for (name, entry) in entries {
+            let Some(kind) = types.get(&entry.kind) else {
+                tracing::error!(
+                    source = name,
+                    "failed to load query source {name}: this binary has no query source type {}",
+                    entry.kind
+                );
+                continue;
+            };
+            match overlay.bind(
+                &format!("query_sources.{name}.connections"),
+                kind.connections,
+                &entry.connections,
+            ) {
+                Ok(bindings) => {
+                    let connections = ace_sdk::Connections::resolve(&bindings, secrets);
+                    held.extend(held_secrets(&connections));
+                    sources.insert(
+                        name,
+                        SourceEntry {
+                            kind: entry.kind.clone(),
+                            settings: entry.settings.clone(),
+                            connections,
+                            build: kind.build.clone(),
+                        },
+                    );
+                }
+                Err(e) => tracing::error!(source = name, "failed to load query source {name}: {e}"),
+            }
         }
         Ok(Hunter {
             home: config.signatures.clone(),
             cache: MemoryCache::new(config.correlation_cache_bytes, Box::new(Utc::now)),
             config,
+            splunk,
+            searches,
             sources,
             renderer: Renderer::default(),
             correlation_renderer: Renderer::correlation(ace_hunt::render::Limits::default()),
@@ -296,32 +477,26 @@ impl Hunter {
     }
 
     /// The query sources a correlation can name, for a run that stops on `stop`: each configured
-    /// source whose instance the hunter has. One whose instance it hasn't fails to load, as ace3's
-    /// source that fails to build, and a query naming it fails its step.
+    /// source that builds. One that fails to build is logged and left out, as ace3's source that
+    /// fails to build, and a query naming it fails its step.
     fn query_sources(&self, stop: &CancellationToken) -> Sources {
         let mut sources = Sources::new();
-        for (name, source) in &self.config.query_sources {
-            let QuerySourceConfig::Splunk { instance } = source;
-            let Some(splunk) = self.sources.get(instance) else {
-                tracing::error!(
+        for (name, entry) in &self.sources {
+            let mut setup = SearchSetup::new(name, entry.settings.clone())
+                .with_connections(entry.connections.clone())
+                .with_poll(Duration::from_secs_f64(self.config.poll_seconds.max(0.0)))
+                .with_stop(stop.clone());
+            setup.splunk = Some(self.splunk.clone());
+            match (entry.build)(&setup) {
+                Ok(source) => {
+                    sources.register(name, source);
+                }
+                Err(e) => tracing::error!(
                     source = name,
-                    "failed to load query source {name}: splunk config for {instance} not found"
-                );
-                continue;
-            };
-            sources.register(
-                name,
-                Arc::new(SplunkQuery {
-                    client: splunk.client.clone(),
-                    timezone: splunk.instance.timezone,
-                    user_context: splunk.user_context.clone(),
-                    app_context: splunk.app_context.clone(),
-                    dispatch_timeout: splunk.dispatch_timeout,
-                    poll: Duration::from_secs_f64(self.config.poll_seconds.max(0.0)),
-                    stop: stop.clone(),
-                    handle: tokio::runtime::Handle::current(),
-                }),
-            );
+                    kind = entry.kind,
+                    "failed to load query source {name}: {e}"
+                ),
+            }
         }
         sources
     }
@@ -386,12 +561,22 @@ impl Hunter {
         self
     }
 
-    /// The Splunk instances hunts may name, for `ace_hunt::types::Splunk`'s check at load.
+    /// The Splunk instances hunts may name.
     pub fn instances(&self) -> Vec<String> {
-        self.sources.keys().cloned().collect()
+        self.splunk.names()
     }
 
-    /// Loads the hunts of `kind` from its rule directories.
+    /// The search of the hunt type `kind`, or why there is none.
+    fn search_of(&self, kind: &str) -> Result<&Arc<dyn HuntSearch>, String> {
+        match self.searches.get(kind) {
+            Some(Ok(search)) => Ok(search),
+            Some(Err(e)) => Err(format!("{kind} hunts' search failed to load: {e}")),
+            None => Err(format!("this binary has no search for {kind} hunts")),
+        }
+    }
+
+    /// Loads the hunts of `kind` from its rule directories, each checked as its search checks it
+    /// when it is made (Splunk: the instance it names).
     pub fn load(&self, kind: &dyn HuntType) -> Vec<ace_hunt::LoadedHunt> {
         let dirs: Vec<PathBuf> = self
             .config
@@ -405,7 +590,16 @@ impl Hunter {
             home: self.home.clone(),
             ..LoadOptions::default()
         };
-        ace_hunt::load_hunts(kind, &dirs, &options)
+        match self.search_of(kind.name()) {
+            Ok(search) => {
+                let checked = ace_hunt::search::Checked {
+                    kind,
+                    search: search.as_ref(),
+                };
+                ace_hunt::load_hunts(&checked, &dirs, &options)
+            }
+            Err(_) => ace_hunt::load_hunts(kind, &dirs, &options),
+        }
     }
 
     /// One tick for one hunt at `now`: whether ace3's manager would run it, and the run.
@@ -428,6 +622,7 @@ impl Hunter {
         };
         let instance_type = self.config.instance_type.to_lowercase();
         let ready = schedule::ready(config, state, now);
+        let search = self.search_of(&config.kind);
         tick.skipped = if !config.enabled {
             Some("disabled".to_owned())
         } else if !config
@@ -438,11 +633,8 @@ impl Hunter {
             Some("invalid instance type".to_owned())
         } else if schedule::suppressed(config, state, now) {
             Some("suppressed".to_owned())
-        } else if config.kind != "splunk" {
-            Some(format!(
-                "{} hunts wait for their client (PLAN.md 7.8)",
-                config.kind
-            ))
+        } else if let Err(why) = &search {
+            Some(why.clone())
         } else {
             match ready {
                 Ok(true) => None,
@@ -453,6 +645,9 @@ impl Hunter {
                 }
             }
         };
+        let Ok(search) = search else {
+            return tick;
+        };
         if tick.skipped.is_some() {
             return tick;
         }
@@ -461,48 +656,38 @@ impl Hunter {
             Err(e) => return self.failed(tick, config, None, e, now),
         };
         tick.window = Some(window);
-        let name = splunk::splunk_config(hunt);
-        let Some(source) = self.sources.get(name) else {
-            return self.failed(
-                tick,
-                config,
-                Some(window),
-                format!("splunk config for {name} not found"),
-                now,
-            );
-        };
-        let search = match splunk::query(hunt, &self.home)
-            .and_then(|q| splunk::search(hunt, &q, window.start, window.end, &source.instance))
-        {
-            Ok(search) => search,
-            Err(e) => return self.failed(tick, config, Some(window), e, now),
-        };
         let query_timeout = config
             .query_timeout
             .as_deref()
             .and_then(|t| schedule::timedelta(t).ok())
             .and_then(|t| t.to_std().ok())
             .unwrap_or(Duration::from_secs(1800));
-        let limits = Limits {
+        let limits = SearchLimits {
             poll: Duration::from_secs_f64(self.config.poll_seconds.max(0.0)),
-            dispatch_timeout: source.dispatch_timeout,
             query_timeout,
         };
-        let form = splunk::urlencode(&search.form);
-        let rows = source
-            .client
+        let searched = search
             .search(
-                splunk::user_context(hunt),
-                splunk::app_context(hunt),
-                &form,
+                hunt,
+                &self.home,
+                &window,
                 limits,
-                stop.clone().cancelled_owned(),
+                Box::pin(stop.clone().cancelled_owned()),
             )
             .await;
-        tick.search = Some(search.clone());
-        let rows = match rows {
+        tick.search = searched.ran.clone();
+        let rows = match searched.rows {
             Ok(rows) => rows,
-            Err(e) => return self.failed(tick, config, Some(window), e.to_string(), now),
+            Err(e) => return self.failed(tick, config, Some(window), e, now),
+        };
+        let Some(ran) = searched.ran else {
+            return self.failed(
+                tick,
+                config,
+                Some(window),
+                format!("the {} search said nothing of what it ran", config.kind),
+                now,
+            );
         };
         let correlated = match &config.correlate {
             None => None,
@@ -511,16 +696,16 @@ impl Hunter {
                 Err(e) => return self.failed(tick, config, Some(window), e.to_string(), now),
             },
         };
-        let event_time = |row: &JsonMap<String, Json>| Some(splunk::event_time(row, now));
+        let event_time = |row: &JsonMap<String, Json>| search.event_time(row, now);
         let valid_type = |t: &str| ObservableKind::from_str(t).is_ok();
         let ctx = Context {
             renderer: &self.renderer,
             now,
             signature_version,
-            tool_instance: &source.instance.host,
-            query: Some(search.query.clone()),
-            search_id: None,
-            search_link: Some(search.link.clone()),
+            tool_instance: &ran.tool_instance,
+            query: Some(ran.query.clone()),
+            search_id: ran.search_id.clone(),
+            search_link: ran.link.clone(),
             event_time: &event_time,
             valid_type: &valid_type,
             email: ace_mod_email::py::normalize_email_address,
@@ -574,53 +759,86 @@ impl Hunter {
     }
 }
 
-/// ace3's `SplunkQuerySource`: a correlation's query run as a job on a Splunk instance
-/// (`ace_hunt::splunk::correlation_form`), its wait bounded by the instance's dispatch timeout and
-/// the command's `timeout`, and ended by the run's stop.
-pub struct SplunkQuery {
-    client: Arc<SearchClient>,
-    timezone: chrono_tz::Tz,
-    user_context: Option<String>,
-    app_context: Option<String>,
-    dispatch_timeout: Duration,
-    poll: Duration,
-    stop: CancellationToken,
-    handle: tokio::runtime::Handle,
+/// The text of every secret `connections` hold, which a correlation's output is scrubbed of.
+fn held_secrets(connections: &ace_sdk::Connections) -> Vec<String> {
+    connections
+        .slots()
+        .into_iter()
+        .filter_map(|slot| connections.get(slot))
+        .flat_map(|connection| {
+            connection
+                .secret_roles()
+                .into_iter()
+                .filter_map(|role| connection.secret(role))
+                .map(|secret| secret.expose().to_owned())
+                .collect::<Vec<_>>()
+        })
+        .filter(|text| !text.is_empty())
+        .collect()
 }
 
-impl QuerySource for SplunkQuery {
+/// The query sources `ace serve` validates hunts with (PLAN.md decision 40): each of `overlay`'s,
+/// built with its connections' settings and none of their secrets, and refusing to run a query,
+/// so a validation has each source's time field and its display of a window, and reaches no data
+/// source. A Splunk source, which needs the hunter's instances, isn't built here.
+pub fn validation_sources(app: &App, overlay: &ace_sdk::Overlay) -> Sources {
+    let types = app.query_source_types();
+    let mut sources = Sources::new();
+    let entries = overlay
+        .query_sources
+        .clone()
+        .unwrap_or_else(default_query_sources);
+    for (name, entry) in entries {
+        let Some(kind) = types.get(&entry.kind) else {
+            continue;
+        };
+        let built = overlay
+            .bind(
+                &format!("query_sources.{name}.connections"),
+                kind.connections,
+                &entry.connections,
+            )
+            .map_err(|e| e.to_string())
+            .and_then(|bindings| {
+                let connections = ace_sdk::Connections::resolve(&bindings, &Secrets::new());
+                (kind.build)(
+                    &SearchSetup::new(&name, entry.settings.clone()).with_connections(connections),
+                )
+            });
+        match built {
+            Ok(source) => {
+                sources.register(&name, Arc::new(ValidationOnly(source)));
+            }
+            Err(e) => tracing::debug!(
+                source = name,
+                "a query source isn't there to validate hunts with: {e}"
+            ),
+        }
+    }
+    sources
+}
+
+/// A query source `ace serve` holds: what it says of its times, and no query.
+struct ValidationOnly(Arc<dyn QuerySource>);
+
+impl QuerySource for ValidationOnly {
     fn default_time_field(&self) -> Option<&str> {
-        Some("_time")
+        self.0.default_time_field()
     }
 
     fn default_time_format(&self) -> Option<&str> {
-        Some("iso8601")
+        self.0.default_time_format()
     }
 
     fn execute_query(
         &self,
-        query: &str,
-        start: Time,
-        end: Time,
-        timeout: chrono::TimeDelta,
+        _query: &str,
+        _start: Time,
+        _end: Time,
+        _timeout: chrono::TimeDelta,
         _source_options: &JsonMap<String, Json>,
     ) -> Result<Vec<JsonMap<String, Json>>, String> {
-        // ace3's Splunk source has no per-call options, and takes them to ignore
-        let form = splunk::urlencode(&splunk::correlation_form(query, start, end));
-        let limits = Limits {
-            poll: self.poll,
-            dispatch_timeout: self.dispatch_timeout,
-            query_timeout: timeout.to_std().unwrap_or(Duration::ZERO),
-        };
-        self.handle
-            .block_on(self.client.search(
-                self.user_context.as_deref(),
-                self.app_context.as_deref(),
-                &form,
-                limits,
-                self.stop.clone().cancelled_owned(),
-            ))
-            .map_err(|e| e.to_string())
+        Err("a query runs only in ace hunter; send its saved results to validate it".to_owned())
     }
 
     fn format_timespec_for_display(
@@ -628,11 +846,7 @@ impl QuerySource for SplunkQuery {
         start: Time,
         end: Time,
     ) -> Result<Option<String>, String> {
-        Ok(Some(splunk::correlation_timespec(
-            start,
-            end,
-            self.timezone,
-        )))
+        self.0.format_timespec_for_display(start, end)
     }
 }
 
@@ -907,7 +1121,10 @@ async fn hunt(app: &App) -> Result<ExitCode> {
         );
     }
     let overlay = crate::cli::overlay(app)?;
-    let names: Vec<String> = config.splunk.keys().flat_map(|n| secret_names(n)).collect();
+    // the Splunk instances' secrets, and those of the connections the command types, the hunt
+    // types' searches and the query sources bind, which run here, and no others
+    let mut names: Vec<String> = config.splunk.keys().flat_map(|n| secret_names(n)).collect();
+    names.extend(app.hunter_secret_names(&overlay));
     let names: Vec<&str> = names.iter().map(String::as_str).collect();
     let secrets = ace_pool::secrets::resolve_names(
         "hunter",
@@ -915,16 +1132,7 @@ async fn hunt(app: &App) -> Result<ExitCode> {
         &overlay,
         &ace_pool::secrets::process_env,
     );
-    // the command types run here, so the hunter holds their connections' secrets, and no others
-    let command_secrets = app.command_type_secret_names(&overlay);
-    let command_secrets: Vec<&str> = command_secrets.iter().map(String::as_str).collect();
-    let command_secrets = ace_pool::secrets::resolve_names(
-        "hunter",
-        &command_secrets,
-        &overlay,
-        &ace_pool::secrets::process_env,
-    );
-    let mut command_types = app.command_types_for(&overlay, &command_secrets);
+    let mut command_types = app.command_types_for(&overlay, &secrets);
     app.build_hunt_scripts(&mut command_types, &net::net()?, &config.scripts)
         .map_err(anyhow::Error::msg)?;
     // a script's `files:` are read from the signatures checkout, as ace3 stages them from its hunt
@@ -932,7 +1140,9 @@ async fn hunt(app: &App) -> Result<ExitCode> {
     command_types
         .scripts_mut()
         .set_roots(vec![config.signatures.clone()]);
-    let hunter = Arc::new(Hunter::new(config.clone(), &secrets)?.with_command_types(command_types));
+    let hunter = Arc::new(
+        Hunter::for_app(config.clone(), &secrets, app, &overlay)?.with_command_types(command_types),
+    );
 
     let db = Db::connect(&DbConfig::from_env("ace-hunter")?)
         .await
@@ -982,8 +1192,7 @@ async fn hunt(app: &App) -> Result<ExitCode> {
                 let state = from_service(read.clone());
                 let now = Utc::now();
                 let tick = hunter.tick(&hunt, &state, &version, now, &stop).await;
-                if tick.skipped.is_some() || matches!(&tick.error, Some(e) if e.contains("stopped"))
-                {
+                if tick.skipped.is_some() || tick.error.as_deref() == Some(STOPPED) {
                     return;
                 }
                 let run = run_of(&hunt, read, &tick, now);
@@ -1022,15 +1231,7 @@ async fn reload(
         if !config.rule_dirs.contains_key(kind.name()) {
             continue;
         }
-        let checked;
-        let kind: &dyn HuntType = if kind.name() == "splunk" {
-            checked = ace_hunt::types::Splunk {
-                instances: Some(hunter.instances()),
-            };
-            &checked
-        } else {
-            kind.as_ref()
-        };
+        let kind: &dyn HuntType = kind.as_ref();
         let mut rows = Vec::new();
         let now = chrono::Utc::now();
         for loaded in hunter.load(kind) {
@@ -1081,5 +1282,6 @@ async fn reload(
 }
 
 pub mod net;
+pub mod splunk;
 #[cfg(test)]
 mod tests;
