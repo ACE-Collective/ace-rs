@@ -353,3 +353,55 @@ pub fn custom_command_types(
     }
     unique
 }
+
+/// Each `query` command whose `source:` isn't one of `sources`, the query sources a hunter has:
+/// the correlation's own commands and the predefined ones, each problem once. The hunter fails such
+/// a command's step at run time with ace3's `query source not registered`; this finds it first.
+/// A `defined` command is checked as the predefined command it names.
+pub fn query_sources(
+    correlate: Option<&Correlate>,
+    predefined: Option<&[PredefinedCommand]>,
+    sources: &[&str],
+) -> Vec<String> {
+    let known = if sources.is_empty() {
+        "it has none".to_owned()
+    } else {
+        format!("it has {}", sources.join(", "))
+    };
+    let check = |label: String, source: Option<&str>| -> Option<String> {
+        match source.filter(|s| !s.is_empty()) {
+            None => Some(format!("{label}: a query names no source; {known}")),
+            Some(name) if !sources.contains(&name) => Some(format!(
+                "{label}: source {} isn't a query source the overlay defines; {known}",
+                py_repr(name)
+            )),
+            Some(_) => None,
+        }
+    };
+    let mut errors: Vec<String> = Vec::new();
+    for c in predefined.unwrap_or_default() {
+        if c.kind == "query" {
+            errors.extend(check(
+                format!("predefined command {}", py_repr(&c.name)),
+                c.source.as_deref(),
+            ));
+        }
+    }
+    if let Some(correlate) = correlate {
+        for command in commands(&correlate.logic) {
+            if command.kind == "query" {
+                errors.extend(check(
+                    "command 'query'".to_owned(),
+                    command.source.as_deref(),
+                ));
+            }
+        }
+    }
+    let mut unique = Vec::new();
+    for e in errors {
+        if !unique.contains(&e) {
+            unique.push(e);
+        }
+    }
+    unique
+}

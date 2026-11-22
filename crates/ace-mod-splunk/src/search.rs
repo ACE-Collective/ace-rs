@@ -117,9 +117,6 @@ fn status_text(status: StatusCode, body: &[u8]) -> String {
 
 impl SearchClient {
     pub fn new(connection: Connection) -> Result<SearchClient, String> {
-        if connection.username.is_none() && connection.token.is_none() {
-            return Err("username and password or token must be provided".to_owned());
-        }
         let mut builder = HttpClient::builder().timeout(connection.request_timeout);
         if let Some(path) = &connection.ca_certificates {
             let pem = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
@@ -346,9 +343,14 @@ impl SearchClient {
         }
     }
 
+    /// The `Authorization` header. A client made without its credential, as `ace serve` makes one
+    /// to validate hunts, or whose secret wasn't resolved, fails the search here, as ace3's client
+    /// fails to build: `username and password or token must be provided`.
     async fn authorization(&self, fresh: bool) -> Result<String, SearchError> {
+        let missing =
+            || SearchError::Failed("username and password or token must be provided".to_owned());
         let Some(username) = self.connection.username.as_deref() else {
-            let token = self.connection.token.as_deref().unwrap_or_default();
+            let token = self.connection.token.as_deref().ok_or_else(missing)?;
             return Ok(
                 if token.starts_with("Splunk ") || token.starts_with("Bearer ") {
                     token.to_owned()
@@ -362,7 +364,7 @@ impl SearchClient {
             return Ok(session);
         }
         let url = format!("{}/services/auth/login", self.base_url);
-        let password = self.connection.password.as_deref().unwrap_or_default();
+        let password = self.connection.password.as_deref().ok_or_else(missing)?;
         let request = self
             .client
             .post(&url)

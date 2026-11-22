@@ -1,0 +1,36 @@
+commands:
+  - name: elsewhere
+    type: query
+    source: nowhere
+    query: "search index=ctx"
+rule:
+  uuid: 00000000-0000-0000-0000-00000000b102
+  name: fixture unknown source
+  type: splunk
+  enabled: true
+  description: a correlated hunt whose queries name sources the overlay doesn't define
+  alert_type: hunter - splunk - fixture
+  frequency: "00:05:00"
+  time_range: "00:05:00"
+  full_coverage: false
+  use_index_time: true
+  query: index=main | head 1
+  correlate:
+    logic:
+      - transform:
+          type: event
+          method: property
+          property_name: context
+          property_type: list
+          command:
+            type: query
+            source: fixture_logs
+            query: "search index=ctx host={{ _event.host }}"
+      - transform:
+          type: event
+          method: property
+          property_name: more
+          property_type: list
+          command:
+            type: defined
+            name: elsewhere

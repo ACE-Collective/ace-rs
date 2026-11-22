@@ -414,7 +414,7 @@ impl App {
         let mut searches = std::collections::BTreeMap::from([(
             "splunk".to_owned(),
             hunter::SearchType {
-                connections: &[],
+                connections: &[ace_mod_splunk::connection::BY_NAME],
                 build: Arc::new(hunter::splunk::build_search) as hunter::HuntSearchFactory,
             },
         )]);
@@ -460,7 +460,7 @@ impl App {
         let mut types = std::collections::BTreeMap::from([(
             "splunk".to_owned(),
             hunter::SearchType {
-                connections: &[],
+                connections: &[ace_mod_splunk::connection::SLOT],
                 build: Arc::new(hunter::splunk::build_source) as hunter::QuerySourceFactory,
             },
         )]);
@@ -1130,7 +1130,7 @@ impl App {
 
     /// Every connection type a component of the binary takes (`ace_sdk::connections`): its modules',
     /// action handlers', collectors', AI backend types', command types', hunt types' searches' and
-    /// query source types' slots.
+    /// query source types' slots, the built-in Splunk ones (`splunk`) among them.
     pub fn connection_kinds(&self) -> Vec<ace_sdk::ConnectionKind> {
         let modules = self
             .registry()
@@ -1147,21 +1147,21 @@ impl App {
             .iter()
             .flat_map(|(spec, _)| spec.connections.iter().copied());
         let backends = self
-            .ai_backend_types
-            .iter()
-            .flat_map(|(_, kind)| kind.connections.iter().copied());
+            .ai_backend_types()
+            .into_values()
+            .flat_map(|kind| kind.connections.iter().copied());
         let commands = self
             .command_types
             .iter()
             .flat_map(|(_, slots, _)| slots.iter().copied());
         let searches = self
-            .hunt_searches
-            .iter()
-            .flat_map(|(_, search)| search.connections.iter().copied());
+            .hunt_searches()
+            .into_values()
+            .flat_map(|search| search.connections.iter().copied());
         let sources = self
-            .query_source_types
-            .iter()
-            .flat_map(|(_, source)| source.connections.iter().copied());
+            .query_source_types()
+            .into_values()
+            .flat_map(|source| source.connections.iter().copied());
         let mut kinds: Vec<ace_sdk::ConnectionKind> = Vec::new();
         for slot in modules
             .chain(actions)
@@ -1196,7 +1196,8 @@ impl App {
     }
 
     /// The secrets of the connections `overlay` binds to the command types', the hunt types'
-    /// searches' and the query sources' slots: what `ace hunter`, which runs them, resolves for them.
+    /// searches' and the query sources' slots, and those a search's slot by name takes (every
+    /// Splunk instance, for Splunk's): what `ace hunter`, which runs them, resolves for them.
     pub fn hunter_secret_names(&self, overlay: &ace_sdk::Overlay) -> Vec<String> {
         let mut bindings: Vec<ace_sdk::Binding> = self
             .command_types
@@ -1205,18 +1206,21 @@ impl App {
             .flatten()
             .collect();
         for (kind, search) in self.hunt_searches() {
-            if let Some(section) = overlay.hunt_types.get(&kind)
-                && let Ok(bound) = overlay.bind(
-                    &format!("hunt_types.{kind}.connections"),
-                    search.connections,
-                    &section.connections,
-                )
-            {
+            let section = overlay.hunt_types.get(&kind).cloned().unwrap_or_default();
+            if let Ok(bound) = overlay.bind(
+                &format!("hunt_types.{kind}.connections"),
+                search.connections,
+                &section.connections,
+            ) {
                 bindings.extend(bound);
             }
         }
         let types = self.query_source_types();
-        for (name, entry) in overlay.query_sources.iter().flatten() {
+        let sources = overlay
+            .query_sources
+            .clone()
+            .unwrap_or_else(hunter::default_query_sources);
+        for (name, entry) in &sources {
             if let Some(kind) = types.get(&entry.kind)
                 && let Ok(bound) = overlay.bind(
                     &format!("query_sources.{name}.connections"),

@@ -80,11 +80,12 @@ fn sections(text: &str) -> BTreeMap<String, Value> {
     Overlay::sections(text).expect("parses")
 }
 
-/// An AI overlay with a Splunk backend that lists one secret, as ace3's `etc/saq.ai.yaml` gives its
-/// backend a token.
-const AI_OVERLAY: &str = "ai_api:\n  enabled: true\n  backends:\n    splunk:\n      type: splunk\n      \
-     enabled: true\n      secrets: [splunk_ai_readonly_token]\n      settings:\n        splunk: \
-     {host: splunk.example.com, timezone: GMT}\nsecrets:\n  splunk_ai_readonly_token: \
+/// An AI overlay with a Splunk backend on its read-only instance, whose connection names one
+/// secret, as ace3's `etc/saq.ai.yaml` gives `splunk_config_ai_readonly` a token.
+const AI_OVERLAY: &str = "connections:\n  ai_readonly:\n    type: splunk\n    settings: {host: \
+     splunk.example.com, timezone: GMT}\n    secrets: {token: splunk_ai_readonly_token}\nai_api:\n  \
+     enabled: true\n  backends:\n    splunk:\n      type: splunk\n      enabled: true\n      \
+     connections: {splunk: ai_readonly}\nsecrets:\n  splunk_ai_readonly_token: \
      env:ACE4_SPLUNK_AI_TOKEN\n";
 
 fn overlay(text: &str) -> Overlay {
@@ -288,7 +289,7 @@ fn another_process_s_secret_in_reach_is_flagged() {
     let file = dir.path().join("resolver_token");
     std::fs::write(&file, "a-live-token\n").expect("writes");
     let text = format!(
-        "{AI_OVERLAY}  splunk_password: env:ACE4_SPLUNK_PASSWORD\n  resolver_token: file:{}\n",
+        "{AI_OVERLAY}  splunk_default_password: env:ACE4_SPLUNK_PASSWORD\n  resolver_token: file:{}\n",
         file.display()
     );
     let overlay = overlay(&text);
@@ -300,7 +301,7 @@ fn another_process_s_secret_in_reach_is_flagged() {
     check_secret_allowlist(&overlay, &declared_secrets(&overlay), &env, &mut failures);
     assert_eq!(failures.len(), 1, "{failures:?}");
     assert!(
-        failures[0].contains("resolver_token, splunk_password")
+        failures[0].contains("resolver_token, splunk_default_password")
             && !failures[0].contains("splunk_ai_readonly_token")
             && !failures[0].contains("the-hunters-password")
             && !failures[0].contains("a-live-token"),
@@ -313,7 +314,7 @@ fn a_secret_out_of_reach_is_permitted() {
     // named in the overlay, and this process can't read it: a variable that isn't set, one set to
     // nothing, a file that isn't there. ace3 permits a reference its container can't decrypt.
     let text = format!(
-        "{AI_OVERLAY}  splunk_password: env:ACE4_SPLUNK_PASSWORD\n  empty: env:ACE4_EMPTY\n  \
+        "{AI_OVERLAY}  splunk_default_password: env:ACE4_SPLUNK_PASSWORD\n  empty: env:ACE4_EMPTY\n  \
          resolver_token: file:/run/secrets/not-mounted-here\n"
     );
     let overlay = overlay(&text);
@@ -428,6 +429,13 @@ fn the_advisory_sweep_flags_what_reads_as_a_credential() {
     assert_eq!(passed.warnings.len(), 3);
     // a source in secrets: stays silent, as ace3's sweep leaves its own store's password out
     assert!(advisory_sweep(&sections(AI_OVERLAY)).is_empty());
+    // a connection's secrets: names secrets, and its settings are swept as any others
+    let text = "connections:\n  ai_readonly:\n    type: splunk\n    settings: {host: h, token: \
+                written-here}\n    secrets: {token: splunk_ai_readonly_token}\n";
+    assert_eq!(
+        advisory_sweep(&sections(text)),
+        ["connections.ai_readonly.settings.token"]
+    );
 }
 
 // --- ace4's own ---

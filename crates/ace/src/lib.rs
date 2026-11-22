@@ -147,7 +147,8 @@ pub fn lookup_pool() -> LookupPool {
 /// The open-source binaries' list: the four pools, no observable types beyond ace3's, ace3's
 /// one open-source hunt type, Splunk (PLAN.md 6.2), and no hunt script command types, which a
 /// site's binary adds for its own scripts (decision 16). `ace hunter` checks the Splunk instance a
-/// hunt names against its configuration's (6.4); elsewhere a hunt's `splunk_config` isn't checked.
+/// hunt names against the overlay's Splunk connections (6.4, decision 41), and so does `ace
+/// signatures check --overlay`; elsewhere a hunt's `splunk_config` isn't checked.
 pub fn app() -> App {
     App::new()
         .parser_pool(parser_pool())

@@ -7,7 +7,7 @@ mod common;
 
 use std::path::Path;
 
-use ace_mod_splunk::{PASSWORD, SplunkAnalyzer};
+use ace_mod_splunk::SplunkAnalyzer;
 use ace_results::ObservableKind;
 use ace_testkit::Harness;
 use ace_testkit::reference::{Dump, ListedDifferences, diff, dumps_dir, normal_form};
@@ -38,9 +38,10 @@ async fn matches_the_reference_dumps_or_lists_each_difference() {
             // as make-dumps ran it
             settings["query_timeout"] = json!(3);
         }
-        let harness = Harness::<SplunkAnalyzer>::with_settings(settings)
-            .expect("harness")
-            .secret(PASSWORD, common::PASSWORD);
+        let harness = common::logged_in(
+            Harness::<SplunkAnalyzer>::with_settings(settings.clone()).expect("harness"),
+            &settings,
+        );
 
         let input = &dump.value["input"]["observable"];
         let kind: ObservableKind = input["type"]
@@ -86,10 +87,7 @@ async fn matches_the_reference_dumps_or_lists_each_difference() {
 /// defaults, and fixtures/clicker/clicker_detection.yaml.
 fn clicker_settings(base_url: &str) -> serde_json::Value {
     json!({
-        "base_url": base_url,
-        "username": "ace4",
-        "request_timeout_seconds": 10,
-        "timezone": "GMT",
+        "splunk": common::instance(base_url),
         "config_path": Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../tools/ace3/dumps/fixtures/clicker/clicker_detection.yaml"),
     })
@@ -172,11 +170,12 @@ async fn the_clicker_module_matches_the_reference_dumps_or_lists_each_difference
             "{}: ace3's run began after its event time",
             dump.name
         );
-        let harness = Harness::<ClickerDetection>::with_settings(settings)
-            .expect("harness")
-            .secret(PASSWORD, common::PASSWORD)
-            .event_time(anchor)
-            .at(started);
+        let harness = common::logged_in(
+            Harness::<ClickerDetection>::with_settings(settings.clone()).expect("harness"),
+            &settings,
+        )
+        .event_time(anchor)
+        .at(started);
         let kind: ObservableKind = input["observable"]["type"]
             .as_str()
             .expect("a type")

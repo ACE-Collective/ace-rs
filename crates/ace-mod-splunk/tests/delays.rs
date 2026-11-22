@@ -8,7 +8,8 @@ mod common;
 use std::path::Path;
 use std::time::Duration;
 
-use ace_mod_splunk::{PASSWORD, SplunkAnalyzer, TOKEN};
+use ace_mod_splunk::SplunkAnalyzer;
+use ace_mod_splunk::connection::TOKEN;
 use ace_results::ObservableKind;
 use ace_results::types::splunk::SplunkApiAnalysis;
 use ace_sdk::{ModuleError, Outcome};
@@ -29,9 +30,10 @@ async fn replay(dump: &str) -> HttpReplay {
 }
 
 fn harness(settings: Value) -> Harness<SplunkAnalyzer> {
-    Harness::with_settings(settings)
-        .expect("harness")
-        .secret(PASSWORD, common::PASSWORD)
+    common::logged_in(
+        Harness::with_settings(settings.clone()).expect("harness"),
+        &settings,
+    )
 }
 
 /// A delay's dispatch state, from what it left for the next run.
@@ -305,13 +307,16 @@ async fn a_job_splunkd_lost_is_submitted_again() {
 async fn a_token_is_sent_as_splunks_session_header() {
     let replay = replay("fqdn_www.example.com").await;
     let mut settings = proxy_domain_lookup(&replay.local_url(SPLUNKD));
-    settings
+    settings["splunk"]
         .as_object_mut()
         .expect("an object")
         .remove("username");
-    let harness = Harness::<SplunkAnalyzer>::with_settings(settings)
-        .expect("harness")
-        .secret(TOKEN, "made-up-token");
+    let harness = common::connected(
+        Harness::<SplunkAnalyzer>::with_settings(settings.clone()).expect("harness"),
+        &settings,
+        TOKEN,
+        "made-up-token",
+    );
     let outcome = harness
         .run_lookup(harness.observable(ObservableKind::Fqdn, "www.example.com"))
         .await

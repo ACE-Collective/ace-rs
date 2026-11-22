@@ -13,7 +13,7 @@ use std::time::Duration;
 use ace_core::eligibility::Catalog;
 use ace_core::modes::{AnalysisMode, Modes};
 use ace_core::tree::{self, NewRoot};
-use ace_mod_splunk::{PASSWORD, SplunkAnalyzer};
+use ace_mod_splunk::SplunkAnalyzer;
 use ace_pool::client::LeaseClient;
 use ace_pool::modules::Registry;
 use ace_pool::pool::{AsyncPool, PoolDefinition};
@@ -38,15 +38,28 @@ async fn splunkd() -> HttpReplay {
     .expect("the recording loads")
 }
 
-/// One instance's section: proxy_domain_lookup's settings (ace-mod-splunk's tests/common) with
-/// its own query and summary.
-fn instance(replay: &HttpReplay, summary: &str, query: &str) -> Value {
+/// A Splunk instance (`connections:`) at `replay`, logging in as ace4 with the secret
+/// `splunk_<name>_password`, ace3's name for it.
+fn splunk(replay: &HttpReplay, name: &str) -> Value {
     json!({
-        "inputs": ["fqdn"],
+        "type": "splunk",
         "settings": {
+            "host": "127.0.0.1",
             "base_url": replay.local_url(SPLUNKD),
             "username": "ace4",
             "request_timeout_seconds": 10,
+        },
+        "secrets": {"password": format!("splunk_{name}_password")},
+    })
+}
+
+/// One instance's section: proxy_domain_lookup's settings (ace-mod-splunk's tests/common) with
+/// its own query and summary, on the Splunk instance `splunk`.
+fn instance(splunk: &str, summary: &str, query: &str) -> Value {
+    json!({
+        "inputs": ["fqdn"],
+        "connections": {"splunk": splunk},
+        "settings": {
             "question": "Was this domain seen?",
             "summary": summary,
             "query": query,
@@ -63,21 +76,26 @@ async fn two_splunk_instances_run_different_queries_on_one_observable() {
     let (proxy, dns) = (splunkd().await, splunkd().await);
     // JSON is YAML, so the overlay goes through the same parser a site's file does
     let overlay = json!({
+        "connections": {"proxy": splunk(&proxy, "proxy"), "dns": splunk(&dns, "dns")},
         "modules": {
             "splunk_api": {
                 "instances": {
                     "proxy_domain_lookup": instance(
-                        &proxy,
+                        "proxy",
                         "Proxy correlation",
                         "index=proxy hostname=\"<O_VALUE>\"",
                     ),
                     "dns_domain_lookup": instance(
-                        &dns,
+                        "dns",
                         "DNS correlation",
                         "index=dns query=\"<O_VALUE>\" | stats count by src_ip",
                     ),
                 },
             },
+        },
+        "secrets": {
+            "splunk_proxy_password": "env:ACE4_TEST_UNSET",
+            "splunk_dns_password": "env:ACE4_TEST_UNSET",
         },
     });
     let overlay = Overlay::from_yaml(&overlay.to_string()).expect("the overlay loads");
@@ -121,7 +139,9 @@ async fn two_splunk_instances_run_different_queries_on_one_observable() {
     tx.commit().await.expect("commits");
     assert_eq!(queued.len(), 2, "one task per instance");
 
-    let secrets = Secrets::new().with(PASSWORD, Secret::new("ace4-fake-password"));
+    let secrets = Secrets::new()
+        .with("splunk_proxy_password", Secret::new("ace4-fake-password"))
+        .with("splunk_dns_password", Secret::new("ace4-fake-password"));
     let modules = registry
         .build(&components, &secrets)
         .expect("the pool's modules");

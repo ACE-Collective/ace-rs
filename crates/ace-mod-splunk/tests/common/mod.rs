@@ -4,8 +4,9 @@
 use std::time::Duration;
 
 use ace_mod_splunk::SplunkAnalyzer;
+use ace_mod_splunk::connection::{PASSWORD as PASSWORD_ROLE, SLOT};
 use ace_results::types::splunk::SplunkApiAnalysis;
-use ace_sdk::{Observable, Outcome};
+use ace_sdk::{Connection, Module, Observable, Outcome, Secret};
 use ace_testkit::Harness;
 use serde_json::{Value, json};
 
@@ -19,9 +20,7 @@ pub const PASSWORD: &str = "ace4-fake-password";
 /// ran it: on fqdn rather than the `domain` type ace3 doesn't have.
 pub fn proxy_domain_lookup(base_url: &str) -> Value {
     json!({
-        "base_url": base_url,
-        "username": "ace4",
-        "request_timeout_seconds": 10,
+        "splunk": instance(base_url),
         "question": "Was this domain seen in proxy logs?",
         "summary": "Proxy correlation",
         "query": "index=proxy (transport=HTTPS OR transport=HTTP) hostname=\"<O_VALUE>\"\n| eval full_url = lower(transport) . \"://\" . url\n",
@@ -34,6 +33,37 @@ pub fn proxy_domain_lookup(base_url: &str) -> Value {
             {"field": "user", "type": "email_address"},
         ],
     })
+}
+
+/// The fake Splunk's instance, as make-dumps's `splunk_config_default`, at `base_url`: the settings
+/// of the connection the module's slot `splunk` is bound to.
+pub fn instance(base_url: &str) -> Value {
+    json!({
+        "host": "127.0.0.1",
+        "base_url": base_url,
+        "username": "ace4",
+        "request_timeout_seconds": 10,
+    })
+}
+
+/// `harness` with the connection its `settings` hold under `splunk` bound to its slot, filling
+/// `role` with `secret`, as a pool binds the overlay's instance `default`.
+pub fn connected<M: Module>(
+    harness: Harness<M>,
+    settings: &Value,
+    role: &str,
+    secret: &str,
+) -> Harness<M> {
+    harness.connection(
+        SLOT.name,
+        Connection::new("default", "splunk", Some(settings["splunk"].clone()))
+            .with_secret(role, Secret::new(secret)),
+    )
+}
+
+/// `harness` logging in as `ace4` with the dumps' password.
+pub fn logged_in<M: Module>(harness: Harness<M>, settings: &Value) -> Harness<M> {
+    connected(harness, settings, PASSWORD_ROLE, PASSWORD)
 }
 
 /// Runs the module, and again after each delay it asks for, as if each delay had passed, until

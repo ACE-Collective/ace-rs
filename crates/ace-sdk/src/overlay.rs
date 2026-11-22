@@ -2,6 +2,11 @@
 //! 2.23).
 //!
 //! ```yaml
+//! connections:
+//!   default:
+//!     type: splunk
+//!     settings: {host: splunk.example.com, username: ace, timezone: GMT}
+//!     secrets: {password: splunk_default_password}
 //! modules:
 //!   rdap_analyzer:
 //!     settings:
@@ -10,10 +15,11 @@
 //!     instances:
 //!       proxy_domain_lookup:
 //!         inputs: [fqdn]
+//!         connections: {splunk: default}
 //!         settings:
 //!           query: index=proxy hostname="<O_VALUE>"
 //! secrets:
-//!   splunk_password: env:ACE4_SPLUNK_PASSWORD
+//!   splunk_default_password: env:ACE4_SPLUNK_PASSWORD
 //!   resolver_token: file:/run/secrets/resolver_token
 //! ```
 //!
@@ -98,7 +104,9 @@
 //! type an integration declares, with its settings and the secrets of `secrets:` it uses, which a
 //! module's, an instance's, an action handler's, a collector's or an AI backend's section, or a
 //! command type's entry in `command_types:`, a hunt type's search's in `hunt_types:` or a query
-//! source's in `query_sources:`, binds to one of its slots with `connections:`. Every
+//! source's in `query_sources:`, binds to one of its slots with `connections:`. A slot by name,
+//! such as Splunk's hunt search's, isn't bound: it takes every connection of its type, each by its
+//! own name (PLAN.md decision 41). Every
 //! name a `connections:` binds must be a connection here, and every secret a connection names a
 //! secret in `secrets:`; the connection's type is checked by what reads it.
 //!
@@ -1384,7 +1392,8 @@ impl Overlay {
 
     /// The bindings of a component's `connections:` (`uses`, at `path`) to its `slots`, each
     /// checked: a slot the component has, bound to a connection of the slot's type whose settings
-    /// and secrets that type takes.
+    /// and secrets that type takes. A slot by name (`ConnectionSlot::by_name`) isn't bound in
+    /// `uses`: it has a binding for every connection of its type, each under its own name.
     pub fn bind(
         &self,
         path: &str,
@@ -1405,6 +1414,16 @@ impl Overlay {
                     },
                 ));
             };
+            if slot.by_name {
+                return Err(refuse(
+                    format!("{path}.{slot_name}"),
+                    format!(
+                        "the slot {slot_name} takes every connection of type {} by its own name, \
+                         so it isn't bound here",
+                        slot.kind.name
+                    ),
+                ));
+            }
             let Some(section) = self.connections.get(name) else {
                 return Err(refuse(
                     format!("{path}.{slot_name}"),
@@ -1425,6 +1444,7 @@ impl Overlay {
                 })?;
             bindings.push(Binding {
                 slot: slot.name.to_owned(),
+                by_name: false,
                 connection: name.clone(),
                 kind: slot.kind.name,
                 settings: section.settings.clone(),
@@ -1432,6 +1452,32 @@ impl Overlay {
                 secrets: section.secrets.clone(),
                 tcp_ports,
             });
+        }
+        for slot in slots.iter().filter(|slot| slot.by_name) {
+            for (name, section) in &self.connections {
+                if section.kind != slot.kind.name {
+                    continue;
+                }
+                let taken = |message: String| format!("{message} (taken by name at {path})");
+                let identity = crate::connections::check_section(name, section, &slot.kind)
+                    .map_err(|(at, message)| refuse(at, taken(message)))?;
+                let tcp_ports = slot
+                    .kind
+                    .tcp_ports(section.settings.as_ref())
+                    .map_err(|e| {
+                        refuse(format!("connections.{name}.settings"), taken(e.to_string()))
+                    })?;
+                bindings.push(Binding {
+                    slot: slot.name.to_owned(),
+                    by_name: true,
+                    connection: name.clone(),
+                    kind: slot.kind.name,
+                    settings: section.settings.clone(),
+                    identity,
+                    secrets: section.secrets.clone(),
+                    tcp_ports,
+                });
+            }
         }
         Ok(bindings)
     }
@@ -1541,6 +1587,16 @@ impl Overlay {
         }
         let mut components = Vec::new();
         for &manifest in manifests {
+            if let Some(slot) = manifest.connections.iter().find(|slot| slot.by_name) {
+                return Err(OverlayError::Connection {
+                    path: format!("modules.{}.connections", manifest.name),
+                    message: format!(
+                        "the module's slot {} takes connections by name, which a module can't: its \
+                         settings hold one connection per slot",
+                        slot.name
+                    ),
+                });
+            }
             let section = self.modules.get(manifest.name);
             if manifest.instances_only && section.is_none_or(|s| s.instances.is_empty()) {
                 if section.is_some_and(|s| s.settings.is_some()) {
@@ -2528,6 +2584,98 @@ mod tests {
         ] {
             let error = Overlay::from_yaml(text).expect_err(text).to_string();
             assert!(error.contains(path), "{text}: {error}");
+        }
+    }
+
+    /// A test connection type, for the slots by name below.
+    struct Store;
+
+    impl crate::connections::ConnectionType for Store {
+        const NAME: &'static str = "test_store";
+        const SECRETS: &'static [&'static str] = &["token"];
+        type Settings = serde_json::Map<String, Value>;
+    }
+
+    /// A slot by name (PLAN.md decision 41) has a binding for every connection of its type, each
+    /// under the connection's own name, and none of another type; an entry can't bind it; and a
+    /// lookup module can't have one.
+    #[test]
+    fn a_slot_by_name_takes_every_connection_of_its_type() {
+        let overlay = Overlay::from_yaml(
+            "connections:\n  east: {type: test_store, secrets: {token: east_token}}\n  \
+             west: {type: test_store}\n  other: {type: something_else}\n\
+             secrets:\n  east_token: env:ACE4_TEST_UNSET\n",
+        )
+        .expect("an overlay");
+        const SLOTS: &[ConnectionSlot] = &[ConnectionSlot::by_name::<Store>("stores")];
+        let bindings = overlay
+            .bind("hunt_types.t.connections", SLOTS, &BTreeMap::new())
+            .expect("binds");
+        let bound: Vec<(&str, &str, bool)> = bindings
+            .iter()
+            .map(|b| (b.slot.as_str(), b.connection.as_str(), b.by_name))
+            .collect();
+        assert_eq!(bound, [("stores", "east", true), ("stores", "west", true)]);
+        assert_eq!(crate::connections::secret_names(&bindings), ["east_token"]);
+        let held = crate::Connections::resolve(
+            &bindings,
+            &crate::Secrets::new().with("east_token", crate::Secret::new("t")),
+        );
+        let names: Vec<&str> = held
+            .named("stores")
+            .iter()
+            .map(|c| c.name.as_str())
+            .collect();
+        assert_eq!(names, ["east", "west"]);
+        assert!(held.get("stores").is_none());
+        assert_eq!(held.slots(), ["stores"]);
+        assert_eq!(
+            held.named("stores")[0].secret("token").map(|s| s.expose()),
+            Some("t")
+        );
+
+        let uses = BTreeMap::from([("stores".to_owned(), "east".to_owned())]);
+        let refused = overlay
+            .bind("hunt_types.t.connections", SLOTS, &uses)
+            .expect_err("refused")
+            .to_string();
+        assert!(
+            refused.contains("hunt_types.t.connections.stores")
+                && refused.contains("by its own name"),
+            "{refused}"
+        );
+
+        let refused = overlay
+            .components(&[Manifest::lookup::<StoresByName>()])
+            .expect_err("refused")
+            .to_string();
+        assert!(refused.contains("takes connections by name"), "{refused}");
+    }
+
+    /// A lookup module with a slot by name, which a module can't have.
+    struct StoresByName;
+
+    impl crate::module::Module for StoresByName {
+        const NAME: &'static str = "test_stores_by_name";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const CONNECTIONS: &'static [ConnectionSlot] =
+            &[ConnectionSlot::by_name::<Store>("stores")];
+        type Output = crate::example::ResolvedAddresses;
+        type Settings = crate::example::ResolverSettings;
+
+        fn init(_: &Self::Settings) -> Result<Self, crate::ModuleError> {
+            Ok(StoresByName)
+        }
+    }
+
+    impl crate::module::Lookup for StoresByName {
+        const TCP_PORTS: &'static [u16] = &[];
+
+        async fn analyze(
+            &self,
+            _: &crate::TaskContext<Self::Settings>,
+        ) -> Result<crate::Outcome<Self::Output>, crate::ModuleError> {
+            Ok(crate::Outcome::Skipped("a test".to_owned()))
         }
     }
 }

@@ -36,6 +36,13 @@
 //! connection with `connections: {<slot>: <connection>}`; a slot it doesn't bind has no connection,
 //! so a module runs on its settings type's default for it and has none of its secrets.
 //!
+//! **A slot by name** ([`ConnectionSlot::by_name`], PLAN.md decision 41) is where a component takes
+//! every connection of its type the overlay has, each under the connection's own name, because what
+//! it runs picks one by name at run time: Splunk's hunt search takes every `splunk` connection, and
+//! a hunt's `splunk_config: <name>` picks the instance. Its entry doesn't bind it; the component
+//! finds a connection with [`Connections::named`]. Only a component that isn't a lookup module may
+//! have one, since a module's settings hold its one connection per slot.
+//!
 //! **What a component holds.** The connection's settings, checked against its type, and the
 //! connection's secrets and no others, by role ([`Connections`]): a process resolves the secrets of
 //! the connections its own components name, and only those (PLAN.md 2.24). A lookup module also gets
@@ -159,6 +166,9 @@ pub struct ConnectionSlot {
     /// key of its settings block the connection's settings go under.
     pub name: &'static str,
     pub kind: ConnectionKind,
+    /// Whether the slot takes every connection of its type by the connection's own name
+    /// ([`ConnectionSlot::by_name`]) rather than the one its entry binds.
+    pub by_name: bool,
 }
 
 impl ConnectionSlot {
@@ -166,6 +176,18 @@ impl ConnectionSlot {
         ConnectionSlot {
             name,
             kind: ConnectionKind::of::<T>(),
+            by_name: false,
+        }
+    }
+
+    /// A slot that takes every connection of type `T` in the overlay, each under its own name, for
+    /// a component that picks one by name at run time, such as a hunt's Splunk instance. The
+    /// component's entry can't bind it.
+    pub const fn by_name<T: ConnectionType>(name: &'static str) -> ConnectionSlot {
+        ConnectionSlot {
+            name,
+            kind: ConnectionKind::of::<T>(),
+            by_name: true,
         }
     }
 }
@@ -190,6 +212,9 @@ pub struct ConnectionSection {
 pub struct Binding {
     /// The component's slot.
     pub slot: String,
+    /// Whether the slot is one by name ([`ConnectionSlot::by_name`]), which has a binding for each
+    /// connection of its type.
+    pub by_name: bool,
     /// The connection's name in the overlay.
     pub connection: String,
     /// Its type's name.
@@ -265,9 +290,12 @@ impl Connection {
     }
 }
 
-/// A component's connections, by slot.
+/// A component's connections, by slot, and, for a slot by name, by slot and the connection's name.
 #[derive(Debug, Clone, Default)]
-pub struct Connections(BTreeMap<String, Connection>);
+pub struct Connections {
+    slots: BTreeMap<String, Connection>,
+    named: BTreeMap<String, BTreeMap<String, Connection>>,
+}
 
 impl Connections {
     pub fn new() -> Connections {
@@ -277,43 +305,82 @@ impl Connections {
     /// The connections of `bindings`, each with its secrets from `secrets`, the process's resolved
     /// ones, by role. A secret the process couldn't resolve isn't held; its pool logged it.
     pub fn resolve(bindings: &[Binding], secrets: &Secrets) -> Connections {
-        Connections(
-            bindings
+        let mut connections = Connections::new();
+        for binding in bindings {
+            let held = binding
+                .secrets
                 .iter()
-                .map(|binding| {
-                    let held = binding
-                        .secrets
-                        .iter()
-                        .filter_map(|(role, name)| {
-                            secrets.get(name).map(|value| (role.clone(), value.clone()))
-                        })
-                        .fold(Secrets::new(), |held, (role, value)| held.with(role, value));
-                    let connection = Connection {
-                        name: binding.connection.clone(),
-                        kind: binding.kind.to_owned(),
-                        settings: binding.settings.clone(),
-                        secrets: held,
-                    };
-                    (binding.slot.clone(), connection)
+                .filter_map(|(role, name)| {
+                    secrets.get(name).map(|value| (role.clone(), value.clone()))
                 })
-                .collect(),
-        )
+                .fold(Secrets::new(), |held, (role, value)| held.with(role, value));
+            let connection = Connection {
+                name: binding.connection.clone(),
+                kind: binding.kind.to_owned(),
+                settings: binding.settings.clone(),
+                secrets: held,
+            };
+            connections = if binding.by_name {
+                connections.with_named(&binding.slot, connection)
+            } else {
+                connections.with(&binding.slot, connection)
+            };
+        }
+        connections
     }
 
     /// Adds `connection` at `slot`, as a test gives a component one.
     pub fn with(mut self, slot: &str, connection: Connection) -> Connections {
-        self.0.insert(slot.to_owned(), connection);
+        self.slots.insert(slot.to_owned(), connection);
+        self
+    }
+
+    /// Adds `connection` under its own name to the slot by name `slot`, as a test gives a component
+    /// one.
+    pub fn with_named(mut self, slot: &str, connection: Connection) -> Connections {
+        self.named
+            .entry(slot.to_owned())
+            .or_default()
+            .insert(connection.name.clone(), connection);
         self
     }
 
     /// The connection bound to `slot`.
     pub fn get(&self, slot: &str) -> Option<&Connection> {
-        self.0.get(slot)
+        self.slots.get(slot)
     }
 
-    /// The slots bound, in order.
+    /// The connections of the slot by name `slot`, by their names, in order.
+    pub fn named(&self, slot: &str) -> Vec<&Connection> {
+        self.named
+            .get(slot)
+            .map(|named| named.values().collect())
+            .unwrap_or_default()
+    }
+
+    /// The slots bound, in order: a slot by name with a connection among them.
     pub fn slots(&self) -> Vec<&str> {
-        self.0.keys().map(String::as_str).collect()
+        let mut slots: Vec<&str> = self
+            .slots
+            .keys()
+            .chain(
+                self.named
+                    .iter()
+                    .filter(|(_, n)| !n.is_empty())
+                    .map(|(s, _)| s),
+            )
+            .map(String::as_str)
+            .collect();
+        slots.sort_unstable();
+        slots
+    }
+
+    /// Every connection held, in every slot.
+    pub fn all(&self) -> Vec<&Connection> {
+        self.slots
+            .values()
+            .chain(self.named.values().flat_map(BTreeMap::values))
+            .collect()
     }
 
     /// The settings of the connection bound to `slot`, as `T`'s: an error says the slot has none,

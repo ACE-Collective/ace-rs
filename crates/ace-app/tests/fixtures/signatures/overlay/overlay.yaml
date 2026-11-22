@@ -1,0 +1,9 @@
+# A hunter's site overlay for `signatures check --overlay`: one Splunk instance, `default`, and
+# no query_sources:, so the hunter has ace3's default source, splunk on default.
+connections:
+  default:
+    type: splunk
+    settings: {host: splunk.example.com, timezone: GMT}
+    secrets: {token: splunk_default_token}
+secrets:
+  splunk_default_token: env:ACE4_TEST_UNSET

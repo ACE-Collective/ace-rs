@@ -1,6 +1,6 @@
 # 0005: A site's hunt types, query sources and named alert summaries
 
-Status: designed and built on 2026-11-21 as PLAN.md decision 40, for the site port's batch C2 (LogScale) and later D3 (MailFilter). It follows the extension points ace4 already has: `App::hunt_type` for a hunt type's validation, `App::command_type_with_connections` and the overlay's shared connections for a correlation command type, and `App::alert_summary` for the alert page's summary. *What the owner decides* lists the two choices left open.
+Status: designed and built on 2026-11-21 as PLAN.md decision 40, for the site port's batch C2 (LogScale) and later D3 (MailFilter). It follows the extension points ace4 already has: `App::hunt_type` for a hunt type's validation, `App::command_type_with_connections` and the overlay's shared connections for a correlation command type, and `App::alert_summary` for the alert page's summary. *What the owner decides* lists the two choices it left open, which the owner made on 2026-11-22: a search past its timeout fails the run, and Splunk's instances became shared connections (PLAN.md decision 41), which changes *Splunk on the same path* below.
 
 ## The problem
 
@@ -53,7 +53,7 @@ When the overlay has no `query_sources:` key the hunter has ace3's default, `spl
 
 ### Splunk on the same path
 
-Every `App` has the types `splunk` for both, as every `App` has the AI backend type `splunk` (`ai::builtin_types`), and a site's type of that name takes its place. Splunk's instances stay where they are, in the hunter configuration's `splunk:`, which is ace3's global `splunk_config_<name>` sections, read by both Splunk types and, in `ai_api`, by the Splunk AI backend. Their secrets keep ace3's names (`splunk_<instance>_password`, `splunk_<instance>_token`). So Splunk's search and source are built from the hunter's Splunk instances rather than from connections, and that is the only Splunk-specific thing left in the hunter: where its types' builder finds the instances. The tick, the source registry and the trait objects are the same for every type.
+Every `App` has the types `splunk` for both, as every `App` has the AI backend type `splunk` (`ai::builtin_types`), and a site's type of that name takes its place. *Since decision 41 (2026-11-22), Splunk's instances are the overlay's connections of type `splunk`: the search takes every one by its name, a source binds one to its slot `splunk`, and the hunter configuration's `splunk:` is gone. What follows is the design as first built.* Splunk's instances stay where they are, in the hunter configuration's `splunk:`, which is ace3's global `splunk_config_<name>` sections, read by both Splunk types and, in `ai_api`, by the Splunk AI backend. Their secrets keep ace3's names (`splunk_<instance>_password`, `splunk_<instance>_token`). So Splunk's search and source are built from the hunter's Splunk instances rather than from connections, and that is the only Splunk-specific thing left in the hunter: where its types' builder finds the instances. The tick, the source registry and the trait objects are the same for every type.
 
 ### Credentials
 
@@ -68,7 +68,7 @@ So a site's `endpoint_vendor` connection is held by the lookups pool (its Endpoi
 
 ### What `ace serve` gets
 
-`ace serve` validates hunts (the `hunt` router, PLAN.md 6.4) but never searches. It builds the query sources with their settings and none of their secrets, as it builds the command types, and wraps each so that running a query is refused ("a query runs only in ace hunter; send its saved results"): a validation run then has each source's default time field and format and its display of the window in the trace, and nothing in `ace serve` can reach a data source. It builds no hunt type search. Splunk's sources need the hunter's instances, which `ace serve` hasn't, so in `ace serve` they fail to build and are left out, as now.
+`ace serve` validates hunts (the `hunt` router, PLAN.md 6.4) but never searches. It builds the query sources with their settings and none of their secrets, as it builds the command types, and wraps each so that running a query is refused ("a query runs only in ace hunter; send its saved results"): a validation run then has each source's default time field and format and its display of the window in the trace, and nothing in `ace serve` can reach a data source. It builds no hunt type search. Splunk's sources need the hunter's instances, which `ace serve` hasn't, so in `ace serve` they fail to build and are left out, as now. *Since decision 41, `ace serve` builds them too, from their instances' connections without secrets.*
 
 ### An alert summary chosen by name
 
@@ -86,5 +86,5 @@ The summaries live in the binary, as askama templates, as the owner's direction 
 
 ## What the owner decides
 
-1. **A search's timeout.** a site's LogScale search returns the rows it has when its timeout passes, which is none until the search is done, and ace3's hunter then records the window as searched, so a slow search silently skips a window. ace4's Splunk search fails the run instead, and the window is searched again on the next tick. Recommendation: LogScale fails too, as built; its AI backend already turns the same case into a 504.
-2. **Splunk's instances.** They stay in the hunter configuration, so `ace serve` can't build the Splunk query sources for validation and the Splunk AI backend repeats an instance's settings. Recommendation: leave them for now; if the owner wants one place for every credential, they become shared connections of a type `splunk`, which needs a binding per instance name, not per fixed slot.
+1. **A search's timeout.** (Decided 2026-11-22: a search past its timeout fails the run.) a site's LogScale search returns the rows it has when its timeout passes, which is none until the search is done, and ace3's hunter then records the window as searched, so a slow search silently skips a window. ace4's Splunk search fails the run instead, and the window is searched again on the next tick. Recommendation: LogScale fails too, as built; its AI backend already turns the same case into a 504.
+2. **Splunk's instances.** (Decided 2026-11-22: they become shared connections of type `splunk`, PLAN.md decision 41.) They stay in the hunter configuration, so `ace serve` can't build the Splunk query sources for validation and the Splunk AI backend repeats an instance's settings. Recommendation: leave them for now; if the owner wants one place for every credential, they become shared connections of a type `splunk`, which needs a binding per instance name, not per fixed slot.

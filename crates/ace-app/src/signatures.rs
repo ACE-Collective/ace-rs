@@ -20,11 +20,17 @@
 //!   Templates aren't rendered: their inputs are a search's rows, which a check doesn't have, and a
 //!   render against an empty event says only which fields the template reads.
 //!
-//! What it doesn't check: a Splunk hunt's `splunk_config` against the hunter's instances, which
-//! only `ace hunter`'s configuration names; a query against its source, which 6.4's `hunt` router
-//! does with a live client; hunt types the binary lacks, so the open-source `ace` checks the Splunk
-//! hunts and a site's binary adds its own, such as LogScale; and the signatures repository's own
-//! pipelines (UUIDs, observable types, file extensions).
+//! - **Against a hunter's overlay**, with `--overlay FILE` (PLAN.md decision 41): the overlay is read
+//!   and checked as every `ace` command checks it, and then each correlation `query` command's
+//!   `source:` must be one of the query sources it defines (its `query_sources:`, or ace3's default
+//!   `splunk`), of a type the binary has and built as `ace serve` builds them, with no secrets; and
+//!   each Splunk hunt's `splunk_config` must be one of its Splunk instances, its connections of type
+//!   `splunk`, as SplunkHunt looks it up when it is made. Without `--overlay` neither is checked.
+//!
+//! What it doesn't check: a query against its source, which 6.4's `hunt` router does with a live
+//! client; hunt types the binary lacks, so the open-source `ace` checks the Splunk hunts and a site's
+//! binary adds its own, such as LogScale; and the signatures repository's own pipelines (UUIDs,
+//! observable types, file extensions).
 //!
 //! The report lists every rule file, then every hunt, in a stable order: namespaces and files by
 //! name, hunt types by name and each type's hunts as its loader lists them. Paths are relative to
@@ -43,7 +49,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Arc;
 
-use ace_hunt::correlate::check::custom_command_types;
+use ace_hunt::correlate::check::{custom_command_types, query_sources};
 use ace_hunt::render::Renderer;
 use ace_hunt::{HuntType, LoadOptions};
 use ace_yara::{FileOutcome, LoadError};
@@ -78,6 +84,10 @@ pub struct CheckArgs {
     /// Write the whole report as JSON.
     #[arg(long)]
     pub json: bool,
+    /// A hunter's site overlay: each correlation query's `source:` is checked against the query
+    /// sources it defines, and each Splunk hunt's `splunk_config` against its Splunk instances.
+    #[arg(long, value_name = "FILE")]
+    pub overlay: Option<PathBuf>,
 }
 
 /// What the check found.
@@ -86,11 +96,23 @@ pub struct Report {
     pub checkout: String,
     pub passed: bool,
     pub deny_warnings: bool,
+    /// What the hunts were checked against, with `--overlay`.
+    pub overlay: Option<OverlayReport>,
     pub counts: Counts,
     pub yara: YaraReport,
     /// Each hunt type's rule directories, by type.
     pub hunt_dirs: Vec<HuntDir>,
     pub hunts: Vec<HuntReport>,
+}
+
+/// The overlay a check read (`--overlay`): its path, the query sources it defines that the binary
+/// builds, each one that didn't build with why, and its Splunk instances.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct OverlayReport {
+    pub path: String,
+    pub query_sources: Vec<String>,
+    pub query_sources_failed: BTreeMap<String, String>,
+    pub splunk_instances: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -182,6 +204,10 @@ pub fn check(app: &App, args: &CheckArgs) -> Result<Report> {
         bail!("{} isn't a directory", checkout.display());
     }
     let dirs = hunt_dirs(app, args)?;
+    let overlay = match &args.overlay {
+        None => None,
+        Some(path) => Some(overlay_report(app, path)?),
+    };
 
     let yara = check_yara(checkout, &args.yara_dir);
     let renderer = Renderer::default();
@@ -217,6 +243,9 @@ pub fn check(app: &App, args: &CheckArgs) -> Result<Report> {
                         Some(&hunt.commands),
                         &command_types,
                     ));
+                    if let Some(overlay) = &overlay {
+                        errors.extend(against_overlay(kind.as_ref(), &hunt, overlay));
+                    }
                     (Some(hunt.config.name.clone()), errors)
                 }
             };
@@ -251,11 +280,75 @@ pub fn check(app: &App, args: &CheckArgs) -> Result<Report> {
         checkout: checkout.display().to_string(),
         passed: failures == 0,
         deny_warnings: args.deny_warnings,
+        overlay,
         counts,
         yara,
         hunt_dirs,
         hunts,
     })
+}
+
+/// Reads the overlay at `path` and checks it as `ace` does; an error is a usage error. Its query
+/// sources are those `ace serve` would build to validate hunts with.
+fn overlay_report(app: &App, path: &Path) -> Result<OverlayReport> {
+    let overlay = ace_sdk::Overlay::read(path)
+        .map_err(|e| anyhow::anyhow!("the overlay {}: {e}", path.display()))?;
+    app.check_overlay(&overlay)
+        .map_err(|e| anyhow::anyhow!("the overlay {}: {e}", path.display()))?;
+    let (sources, failed) = crate::hunter::validation_sources_and_failures(app, &overlay);
+    let splunk = <ace_mod_splunk::connection::Splunk as ace_sdk::ConnectionType>::NAME;
+    Ok(OverlayReport {
+        path: path.display().to_string(),
+        query_sources: sources.names().into_iter().map(str::to_owned).collect(),
+        query_sources_failed: failed.into_iter().collect(),
+        splunk_instances: overlay
+            .connections
+            .iter()
+            .filter(|(_, c)| c.kind == splunk)
+            .map(|(name, _)| name.clone())
+            .collect(),
+    })
+}
+
+/// What `overlay` says of a hunt that loaded: its correlation's query sources, and a Splunk hunt's
+/// instance.
+fn against_overlay(
+    kind: &dyn HuntType,
+    hunt: &ace_hunt::Hunt,
+    overlay: &OverlayReport,
+) -> Vec<String> {
+    let sources: Vec<&str> = overlay.query_sources.iter().map(String::as_str).collect();
+    let mut errors: Vec<String> = query_sources(
+        hunt.config.correlate.as_ref(),
+        Some(&hunt.commands),
+        &sources,
+    )
+    .into_iter()
+    .map(|e| {
+        match overlay.query_sources_failed.iter().find(|(name, _)| {
+            e.contains(&format!("source {} isn't", ace_hunt::value::py_repr(name)))
+        }) {
+            Some((name, why)) => format!("{e} ({name} is defined but didn't build: {why})"),
+            None => e,
+        }
+    })
+    .collect();
+    if kind.name() == "splunk" {
+        let splunk = ace_hunt::types::Splunk {
+            instances: Some(overlay.splunk_instances.clone()),
+        };
+        if let Err(e) = splunk.on_load(&hunt.config) {
+            errors.push(format!(
+                "{e}; the overlay's Splunk instances are {}",
+                if overlay.splunk_instances.is_empty() {
+                    "none".to_owned()
+                } else {
+                    overlay.splunk_instances.join(", ")
+                }
+            ));
+        }
+    }
+    errors
 }
 
 /// Each hunt type to check by its name, with its rule directories.
@@ -487,6 +580,25 @@ fn write_text(report: &Report, out: &mut String) -> std::fmt::Result {
         count(c.hunts, "hunt"),
         c.hunts_failed
     )?;
+    if let Some(overlay) = &report.overlay {
+        let list = |names: &[String]| {
+            if names.is_empty() {
+                "none".to_owned()
+            } else {
+                names.join(", ")
+            }
+        };
+        writeln!(
+            out,
+            "overlay ({}): query sources {}; splunk instances {}",
+            overlay.path,
+            list(&overlay.query_sources),
+            list(&overlay.splunk_instances)
+        )?;
+        for (name, why) in &overlay.query_sources_failed {
+            writeln!(out, "    query source {name} didn't build: {why}")?;
+        }
+    }
     if report.passed {
         writeln!(out, "signatures check passed")?;
     } else {

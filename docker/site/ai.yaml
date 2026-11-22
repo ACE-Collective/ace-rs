@@ -1,31 +1,36 @@
 # The overlay of the AI investigation API's process, `ace serve-ai` (the stack's `ai` service),
 # mounted at /etc/ace4/ai.yaml from ACE4_AI_OVERLAY (this file by default). It is that process's only
-# configuration, as etc/saq.ai.yaml is ace3's AI container's: it takes ai_api, secrets, dispositions
-# and disposition_classification, and the process refuses to start on any other section, so the
-# site's own overlay, which the core and the pools read, never reaches it.
+# configuration, as etc/saq.ai.yaml is ace3's AI container's: it takes ai_api, secrets, connections,
+# dispositions and disposition_classification, and the process refuses to start on any other
+# section, so the site's own overlay, which the core and the pools read, never reaches it.
 #
 # The API (ace_service::ai) is off unless this turns it on. It is read-only routes under /api/ai/v1
 # for an AI agent's own API key; ACE itself calls no model. A backend is a data source the agent may
 # query, of a type the binary has (splunk, or the testing backends fake and fake_unwindowed), with its
-# own limits and the one secret it is given. For example:
+# own limits and the one credential it is given. Splunk's is its instance's: a connection of type
+# splunk (PLAN.md decision 41), named as ace3 names the instance, ai_readonly, with ace3's secret
+# name for its token. For example:
 #
+# connections:
+#   ai_readonly:
+#     type: splunk
+#     settings: {host: splunk.example.com, timezone: GMT}
+#     secrets: {token: splunk_ai_readonly_token}
 # ai_api:
 #   enabled: true
 #   backends:
 #     splunk:
 #       type: splunk
 #       enabled: true
-#       secrets: [splunk_ai_readonly_token]
+#       connections: {splunk: ai_readonly}
 #       limits: {max_concurrency: 4, requests_per_minute: 30, hourly_budget: 400}
-#       settings:
-#         splunk: {host: splunk.example.com, timezone: GMT}
 # secrets:
 #   splunk_ai_readonly_token: env:ACE4_SPLUNK_AI_TOKEN
 #
 # The Splunk account behind that token has to be one whose role leaves out the commands that write
 # (| delete, | outputlookup, | collect): that role, not ACE, is what makes the backend read-only. The
 # process may hold that secret and no other: a secret named here that it can read and no enabled
-# backend lists stops it, as does the email archive's key, a pool's token or the bucket's credential
+# backend lists or binds through a connection stops it, as does the email archive's key, a pool's token or the bucket's credential
 # in its environment. A site that changed its dispositions repeats `dispositions` and
 # `disposition_classification` here, so the export's disposition_class agrees with the core's.
 #

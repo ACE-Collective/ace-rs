@@ -79,19 +79,25 @@ fn start(
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_pool_resolves_only_the_secrets_its_modules_declare() {
     let dir = tempfile::tempdir().expect("a directory");
-    let token_file = dir.path().join("splunk_token");
+    let token_file = dir.path().join("splunk_default_token");
     std::fs::write(&token_file, "ace4-fake-splunk-token\n").expect("writes");
     let overlay = Overlay::from_yaml(&format!(
-        "modules:
+        "connections:
+  default:
+    type: splunk
+    settings: {{host: splunk.example.com, username: ace4}}
+    secrets: {{password: splunk_default_password, token: splunk_default_token}}
+modules:
   splunk_api:
     instances:
       proxy_domain_lookup:
+        connections: {{splunk: default}}
         settings:
           query: index=proxy hostname=\"<O_VALUE>\"
 secrets:
   resolver_token: env:ACE4_TEST_RESOLVER_TOKEN
-  splunk_password: env:ACE4_TEST_SPLUNK_PASSWORD
-  splunk_token: file:{}
+  splunk_default_password: env:ACE4_TEST_SPLUNK_PASSWORD
+  splunk_default_token: file:{}
 ",
         token_file.display()
     ))
@@ -128,7 +134,7 @@ secrets:
     assert_eq!(splunk.asked, ["ACE4_TEST_SPLUNK_PASSWORD"]);
     assert!(
         splunk.log.contains(
-            r#"resolved the pool's secrets pool="splunk" secrets=["splunk_password", "splunk_token"]"#
+            r#"resolved the pool's secrets pool="splunk" secrets=["splunk_default_password", "splunk_default_token"]"#
         ),
         "{}",
         splunk.log

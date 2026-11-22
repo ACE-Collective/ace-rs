@@ -345,9 +345,23 @@ pub fn advisory_sweep(sections: &BTreeMap<String, Value>) -> Vec<String> {
     let mut found = Vec::new();
     for (section, value) in sections {
         // `secrets:` holds sources, which the parse has already held to `env:` and `file:`
-        if section != "secrets" {
-            walk(value, section, section, &mut found);
+        if section == "secrets" {
+            continue;
         }
+        // a connection's `secrets:` names secrets of `secrets:` by role, and holds none
+        if section == "connections"
+            && let Value::Object(connections) = value
+        {
+            for (name, connection) in connections {
+                let mut connection = connection.clone();
+                if let Value::Object(fields) = &mut connection {
+                    fields.remove("secrets");
+                }
+                walk(&connection, &format!("{section}.{name}"), name, &mut found);
+            }
+            continue;
+        }
+        walk(value, section, section, &mut found);
     }
     found
 }

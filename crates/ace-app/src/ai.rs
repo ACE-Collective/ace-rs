@@ -19,6 +19,12 @@
 //! serve-ai`: ace3's `validate_startup`, so a missing token is a failure at boot and not a 502 at the
 //! first query. The process may hold no secret but those: [`custody`] refuses to start it otherwise.
 //!
+//! **The Splunk backend's instance** is a connection of type `splunk` (PLAN.md decision 41,
+//! `ace_mod_splunk::connection`) bound to the entry's slot `splunk`, as ace3's backend names its
+//! `splunk_config`, such as `ai_readonly`. Its credential is the connection's password (with a
+//! `username`) or token, under ace3's secret name, such as `splunk_ai_readonly_token`; the entry
+//! lists no `secrets:` of its own.
+//!
 //! **The Splunk backend.** One search for a query: the window as `earliest=` and `latest=` in the
 //! instance's timezone and again as the job's range, `max_count` the row limit, and ace3's
 //! `auto_append` (`| fields *`) after the query so the fields survive. Read-only is the Splunk
@@ -29,13 +35,13 @@
 //! `ace_mod_splunk::search` reads the results alone.
 
 use std::collections::BTreeMap;
-use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use ace_core::Db;
 use ace_hunt::splunk;
-use ace_mod_splunk::search::{Connection, Limits, SearchClient, SearchError};
+use ace_mod_splunk::connection;
+use ace_mod_splunk::search::{Limits, SearchClient, SearchError};
 use ace_sdk::Secrets;
 use ace_sdk::overlay::{AiLimitsSection, Overlay};
 use ace_service::ai::testing::FakeBackend;
@@ -47,8 +53,6 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use chrono_tz::Tz;
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
-
-use crate::hunter::SplunkInstance;
 
 pub mod custody;
 
@@ -113,9 +117,12 @@ pub(crate) fn builtin_types() -> BTreeMap<String, AiBackendType> {
     let mut types: BTreeMap<String, AiBackendType> = BTreeMap::new();
     types.insert(
         "splunk".to_owned(),
-        AiBackendType::of(Arc::new(|setup| {
-            Ok(Arc::new(SplunkBackend::new(setup)?) as Arc<dyn AiQueryBackend>)
-        })),
+        AiBackendType {
+            connections: &[connection::SLOT],
+            build: Arc::new(|setup| {
+                Ok(Arc::new(SplunkBackend::new(setup)?) as Arc<dyn AiQueryBackend>)
+            }),
+        },
     );
     types.insert(
         "fake".to_owned(),
@@ -223,12 +230,10 @@ pub fn surface(
     Ok(section.enabled.then_some(surface))
 }
 
-/// The Splunk backend's settings.
+/// The Splunk backend's settings; its instance is the connection bound to its slot `splunk`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct SplunkBackendSettings {
-    /// The instance, as the hunter's `splunk` entries: ace3's `splunk_config_<name>`.
-    splunk: SplunkInstance,
     /// Appended to every query so fields survive; a query must not end in a table command.
     #[serde(default = "default_auto_append")]
     auto_append: String,
@@ -262,55 +267,50 @@ impl std::fmt::Debug for SplunkBackend {
 }
 
 impl SplunkBackend {
-    /// Builds the backend from its entry. Its one secret is the account's password when the instance
-    /// names a `username`, and its token otherwise. One that isn't there is an error, which stops the
-    /// server: ace3's `validate_startup`.
+    /// Builds the backend from its entry and the instance bound to its slot `splunk`. Its one
+    /// credential is the connection's password when the instance names a `username`, and its token
+    /// otherwise. One that isn't there is an error, which stops the server: ace3's
+    /// `validate_startup`.
     pub fn new(setup: &AiBackendSetup) -> Result<SplunkBackend, String> {
-        let settings: SplunkBackendSettings =
-            serde_json::from_value(setup.settings.clone().unwrap_or(Value::Null))
-                .map_err(|e| format!("settings: {e}"))?;
-        let instance = settings.splunk;
-        let kind = if instance.username.is_some() {
-            "password"
-        } else {
-            "token"
-        };
-        let names = setup.secrets.names();
-        let credential = match names.as_slice() {
-            [name] => setup
-                .secrets
-                .get(name)
-                .map(|secret| secret.expose().to_owned()),
-            [] => None,
-            _ => {
-                return Err(format!(
-                    "the backend takes one secret, its splunk {kind}, and was given more"
-                ));
-            }
-        };
-        let Some(credential) = credential.filter(|credential| !credential.is_empty()) else {
+        let settings: SplunkBackendSettings = serde_json::from_value(
+            setup
+                .settings
+                .clone()
+                .filter(|v| !v.is_null())
+                .unwrap_or_else(|| Value::Object(Default::default())),
+        )
+        .map_err(|e| format!("settings: {e}"))?;
+        if !setup.secrets.names().is_empty() {
             return Err(format!(
-                "splunk {kind} is not set: name it in the backend's secrets, with a source in secrets:"
+                "the backend's credential is its Splunk instance's, the connection bound to its slot \
+                 {}; it lists no secrets of its own",
+                connection::SLOT.name
+            ));
+        }
+        let Some(bound) = setup.connections.get(connection::SLOT.name) else {
+            return Err(format!(
+                "no Splunk instance is bound to its slot {}: bind one with connections: {{{}: <instance>}}",
+                connection::SLOT.name,
+                connection::SLOT.name
             ));
         };
-        let timezone = Tz::from_str(&instance.timezone)
-            .map_err(|e| format!("timezone {:?}: {e}", instance.timezone))?;
-        let (password, token) = if instance.username.is_some() {
-            (Some(credential), None)
+        let instance = connection::instance_of(bound)?;
+        let role = if instance.username.is_some() {
+            connection::PASSWORD
         } else {
-            (None, Some(credential))
+            connection::TOKEN
         };
-        let client = SearchClient::new(Connection {
-            base_url: instance
-                .base_url
-                .clone()
-                .unwrap_or_else(|| format!("https://{}:{}", instance.host, instance.port)),
-            username: instance.username.clone(),
-            password,
-            token,
-            ca_certificates: instance.ca_certificates.clone(),
-            request_timeout: Duration::from_secs(instance.request_timeout_seconds),
-        })?;
+        if bound
+            .secret(role)
+            .is_none_or(|credential| credential.expose().is_empty())
+        {
+            return Err(format!(
+                "splunk {role} is not set: name it in the connection {}'s secrets, with a source in secrets:",
+                bound.name
+            ));
+        }
+        let timezone = instance.tz()?;
+        let client = instance.client(bound)?;
         Ok(SplunkBackend {
             client,
             host: instance.host,

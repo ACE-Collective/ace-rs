@@ -8,6 +8,18 @@
 # two-run check turns it on, for its own samples, to check that a hit is a run.
 analysis_cache:
   enabled: false
+# The Splunk instance (PLAN.md decision 41), named as ace3 names its instance, with ace3's secret
+# name for its password.
+connections:
+  default:
+    type: splunk
+    settings:
+      host: 127.0.0.1
+      base_url: http://responder:443/https/127.0.0.1:8089
+      username: ace4
+      request_timeout_seconds: 10
+    secrets:
+      password: splunk_default_password
 modules:
   rdap_analyzer:
     settings:
@@ -48,10 +60,8 @@ modules:
       proxy_domain_splunk:
         inputs: [fqdn]
         groups: [correlation]
+        connections: {splunk: default}
         settings:
-          base_url: http://responder:443/https/127.0.0.1:8089
-          username: ace4
-          request_timeout_seconds: 10
           question: Was this domain seen in proxy logs?
           summary: Proxy correlation
           query: index=proxy hostname="<O_VALUE>"
@@ -112,4 +122,4 @@ hooks:
         actions: {ignore: true}
 # The AI investigation API (PLAN.md 7.15) isn't here: `ace serve-ai` reads ai.yaml, beside this file.
 secrets:
-  splunk_password: env:ACE4_SPLUNK_PASSWORD
+  splunk_default_password: env:ACE4_SPLUNK_PASSWORD

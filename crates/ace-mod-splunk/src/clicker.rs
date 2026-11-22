@@ -48,7 +48,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::mapping::{Mapping, ObservableMapping, add_observables, parse_timespec};
-use crate::{Connection, Failure, PASSWORD, Search, Splunkd, Step, TOKEN};
+use crate::{Connection, Failure, Search, Splunkd, Step, connection};
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::lookup::<ClickerDetection>();
@@ -60,24 +60,18 @@ pub const CRAWL: &str = "crawl";
 /// ace3's `URL_CLICKER` built-in signature.
 pub const URL_CLICKER: &str = "a764126b-443d-4991-a554-72d86125382d";
 
-/// The module's settings: ace3's `analysis_module_clicker_detection_splunk` with the Splunk
-/// connection its `api_name` names and the `api_query_defaults` it falls back on.
+/// The module's settings: ace3's `analysis_module_clicker_detection_splunk` with the
+/// `api_query_defaults` it falls back on.
 #[derive(Debug, Clone, PartialEq, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields, default)]
 pub struct ClickerSettings {
-    /// splunkd's management API, such as `https://splunk.example.com:8089`. The web links go to
-    /// its host on HTTPS's port, as ace3's do.
-    pub base_url: String,
-    /// The user to log in as, with the `splunk_password` secret. Without one, requests carry the
-    /// `splunk_token` secret.
-    pub username: Option<String>,
+    /// The Splunk instance, from the connection bound to the slot `splunk` (ace3's `api_name`):
+    /// its timezone is what a search's time range is written in, and the web links go to its host
+    /// on HTTPS's port, as ace3's do.
+    pub splunk: connection::Instance,
+    /// The namespace, where the instance names none, as the Splunk module's.
     pub user_context: Option<String>,
     pub app_context: Option<String>,
-    /// A PEM file of CA certificates to trust besides the platform's.
-    pub ca_certificates: Option<PathBuf>,
-    pub request_timeout_seconds: u64,
-    /// The Splunk instance's timezone, which a search's time range is written in.
-    pub timezone: String,
     pub question: String,
     pub summary: String,
     /// The top-level key of the clicker config holding this module's searches.
@@ -94,16 +88,12 @@ pub struct ClickerSettings {
 }
 
 impl Default for ClickerSettings {
-    /// ace3's section, `splunk_config_default` and `api_query_defaults_default`.
+    /// ace3's section and `api_query_defaults_default`, on the default instance's settings.
     fn default() -> Self {
         ClickerSettings {
-            base_url: "https://localhost:8089".to_owned(),
-            username: None,
+            splunk: connection::Instance::default(),
             user_context: None,
             app_context: None,
-            ca_certificates: None,
-            request_timeout_seconds: 60,
-            timezone: "GMT".to_owned(),
             question: "Did anyone click this URL or visit this domain?".to_owned(),
             summary: "URL Clicks".to_owned(),
             source: "splunk".to_owned(),
@@ -130,7 +120,7 @@ type Yaml = ace_hunt::value::Value;
 pub struct ClickerDetection {
     splunkd: Splunkd,
     tz: chrono_tz::Tz,
-    /// The web links' host: `base_url`'s, without its port.
+    /// The web links. host: the instance.s.
     host: String,
     correlation_delay: Option<Duration>,
     loaded: Mutex<Loaded>,
@@ -143,7 +133,7 @@ impl Module for ClickerDetection {
     /// of its own.
     const READS_EVENT_TIME: bool = true;
     const REQUIRED_DIRECTIVES: &'static [&'static str] = &[DIRECTIVE];
-    const SECRETS: &'static [&'static str] = &[PASSWORD, TOKEN];
+    const CONNECTIONS: &'static [ace_sdk::ConnectionSlot] = &[connection::SLOT];
     /// ace3 ships it disabled, with no searches.
     const ENABLED_BY_DEFAULT: bool = false;
     const RESOURCES: Resources = Resources {
@@ -155,26 +145,13 @@ impl Module for ClickerDetection {
 
     fn init(settings: &ClickerSettings) -> Result<Self, ModuleError> {
         let splunkd = Splunkd::new(&Connection {
-            base_url: &settings.base_url,
-            username: settings.username.as_deref(),
+            instance: &settings.splunk,
             user_context: settings.user_context.as_deref(),
             app_context: settings.app_context.as_deref(),
-            ca_certificates: settings.ca_certificates.as_deref(),
-            request_timeout_seconds: settings.request_timeout_seconds,
             max_result_count: settings.max_result_count,
         })?;
-        let tz: chrono_tz::Tz = settings
-            .timezone
-            .parse()
-            .map_err(|e| ModuleError::other(format!("timezone {:?}: {e}", settings.timezone)))?;
-        let host = settings
-            .base_url
-            .split_once("://")
-            .map_or(settings.base_url.as_str(), |(_, rest)| rest)
-            .split(['/', ':'])
-            .next()
-            .unwrap_or_default()
-            .to_owned();
+        let tz = settings.splunk.tz().map_err(ModuleError::other)?;
+        let host = settings.splunk.host.clone();
         let correlation_delay = settings
             .correlation_delay
             .as_deref()
@@ -189,6 +166,16 @@ impl Module for ClickerDetection {
             loaded: Mutex::default(),
         })
     }
+}
+
+/// The app searches run in, which the web links name: the instance's, else the module's, as
+/// ace3's client takes it.
+fn app_context(settings: &ClickerSettings) -> Option<&str> {
+    settings
+        .splunk
+        .app_context
+        .as_deref()
+        .or(settings.app_context.as_deref())
 }
 
 /// What the runs before this one left, as ace3 keeps it in the analysis's details.
@@ -533,7 +520,7 @@ impl Lookup for ClickerDetection {
             };
             let anchor = progress.anchor.unwrap_or(started);
             let query = self.query(ctx, &def, anchor)?;
-            progress.gui_link = Some(self.link(&query, settings.app_context.as_deref()));
+            progress.gui_link = Some(self.link(&query, app_context(settings)));
             let mut job = progress.job.take().unwrap_or_else(|| Search {
                 query: query.clone(),
                 ..Search::default()
@@ -643,7 +630,7 @@ fn collect(
     }
 
     let event_mapping = def.get("event_mapping").and_then(Value::as_object);
-    let portal_url = Some(module.link(query, settings.app_context.as_deref()));
+    let portal_url = Some(module.link(query, app_context(settings)));
     let source = format!("{}:{name}", settings.source);
     let events: Vec<ClickerEvent> = rows
         .iter()

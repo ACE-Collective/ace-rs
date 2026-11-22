@@ -1099,7 +1099,7 @@ mod tests {
         std::fs::write(
             &overlay_at,
             format!(
-                "secrets:\n  picky_token: file:{}\n  resolver_token: file:{}\n  splunk_password: env:HOME\n",
+                "secrets:\n  picky_token: file:{}\n  resolver_token: file:{}\n  splunk_default_password: env:HOME\n",
                 token.display(),
                 other.display()
             ),

@@ -7,7 +7,10 @@
 //! (`alpha/broken.yar`), two files that compile alone but not together (`beta/one.yar` and
 //! `beta/two.yar` define one rule name), a hunt that doesn't validate (`broken.yaml`), a hunt whose
 //! templates don't compile (`bad_templates.yaml`) and a hunt naming a correlation command type the
-//! binary doesn't have (`unknown_command.yaml`).
+//! binary doesn't have (`unknown_command.yaml`). `overlay/` is checked against its `overlay.yaml`
+//! (`--overlay`, PLAN.md decision 41): a correlated hunt whose source and instance the overlay
+//! defines (`known.yaml`), one whose queries name sources it doesn't (`unknown_source.yaml`), and a
+//! hunt on a Splunk instance it hasn't (`other_instance.yaml`).
 
 use std::path::{Path, PathBuf};
 
@@ -47,6 +50,7 @@ fn args(checkout: &Path) -> CheckArgs {
         rule_dirs: Vec::new(),
         deny_warnings: false,
         json: false,
+        overlay: None,
     }
 }
 
@@ -338,4 +342,112 @@ fn a_rule_file_past_the_guard_s_bounds_fails_the_check_and_is_named() {
     assert_eq!(files[1], ("yara/alpha/good.yar", None));
     assert_eq!(files[2].0, "yara/alpha/nested.yar");
     assert!(files[2].1.expect("fails").contains("nests brackets"));
+}
+
+/// With `--overlay`, each correlation query's `source:` and each Splunk hunt's `splunk_config` is
+/// checked against what the hunter's overlay defines; without it, neither is.
+#[test]
+fn an_overlay_checks_query_sources_and_splunk_instances() {
+    let dir = fixture("overlay");
+    let without = check(&app(), &args(&dir)).expect("the check runs");
+    assert!(without.passed, "{}", text(&without));
+    assert_eq!(without.counts.hunts, 3);
+    assert!(without.overlay.is_none());
+
+    let mut with = args(&dir);
+    with.overlay = Some(dir.join("overlay.yaml"));
+    let report = check(&app(), &with).expect("the check runs");
+    assert_eq!(
+        report
+            .overlay
+            .as_ref()
+            .map(|o| (&o.query_sources, &o.splunk_instances)),
+        Some((&vec!["splunk".to_owned()], &vec!["default".to_owned()]))
+    );
+    let errors = |path: &str| -> Vec<String> {
+        report
+            .hunts
+            .iter()
+            .find(|h| h.path == path)
+            .unwrap_or_else(|| panic!("{path}"))
+            .errors
+            .clone()
+    };
+    assert_eq!(errors("hunts/splunk/known.yaml"), Vec::<String>::new());
+    assert_eq!(
+        errors("hunts/splunk/unknown_source.yaml"),
+        [
+            "predefined command 'elsewhere': source 'nowhere' isn't a query source the overlay \
+             defines; it has splunk",
+            "command 'query': source 'fixture_logs' isn't a query source the overlay defines; it \
+             has splunk",
+        ]
+    );
+    assert_eq!(
+        errors("hunts/splunk/other_instance.yaml"),
+        [
+            "ValueError: splunk config for fixture_other not found; the overlay's Splunk instances are \
+          default"
+        ]
+    );
+    assert_eq!(report.counts.hunts_failed, 2);
+    assert!(!report.passed);
+
+    let overlay = dir.join("overlay.yaml");
+    let (code, out) = run_check(&[
+        dir.to_str().unwrap(),
+        "--overlay",
+        overlay.to_str().unwrap(),
+    ]);
+    assert_eq!(code, ExitCode::FAILURE, "{out}");
+    assert!(
+        out.contains(&format!(
+            "overlay ({}): query sources splunk; splunk instances default\n",
+            overlay.display()
+        )),
+        "{out}"
+    );
+}
+
+/// A source the overlay defines that doesn't build is named with why, so a hunt naming it doesn't
+/// read as a typo; an overlay `ace` refuses is a usage error.
+#[test]
+fn an_overlay_s_source_that_doesn_t_build_is_named_and_a_bad_overlay_is_refused() {
+    let dir = fixture("overlay");
+    let work = tempfile::tempdir().expect("a directory");
+    let overlay = work.path().join("overlay.yaml");
+    std::fs::write(
+        &overlay,
+        "connections:\n  default: {type: splunk}\nquery_sources:\n  splunk:\n    type: splunk\n    \
+         settings: {instance: default}\n",
+    )
+    .expect("writes");
+    let mut with = args(&dir);
+    with.overlay = Some(overlay.clone());
+    let report = check(&app(), &with).expect("the check runs");
+    let failed = &report
+        .overlay
+        .as_ref()
+        .expect("an overlay")
+        .query_sources_failed;
+    assert!(failed["splunk"].contains("takes no settings"), "{failed:?}");
+    let known = &report
+        .hunts
+        .iter()
+        .find(|h| h.path == "hunts/splunk/known.yaml")
+        .expect("known")
+        .errors;
+    assert_eq!(known.len(), 1, "{known:?}");
+    assert!(
+        known[0].contains("(splunk is defined but didn't build: "),
+        "{known:?}"
+    );
+    assert!(text(&report).contains("    query source splunk didn't build: "));
+
+    std::fs::write(&overlay, "connections:\n  default: {type: no_such_type}\n").expect("writes");
+    let error = check(&app(), &with).expect_err("refused");
+    assert!(
+        error.to_string().contains("connections.default.type"),
+        "{error}"
+    );
 }

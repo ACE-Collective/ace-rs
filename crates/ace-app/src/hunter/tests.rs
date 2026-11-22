@@ -95,26 +95,10 @@ fn recording(dir: &Path, exchanges: &[Json]) {
     .expect("written");
 }
 
-fn config(base_url: &str, signatures: &Path, instance_type: &str) -> HunterConfig {
-    let instance = |timezone: &str| SplunkInstance {
-        host: "127.0.0.1".to_owned(),
-        port: 8089,
-        base_url: Some(base_url.to_owned()),
-        username: Some("ace4".to_owned()),
-        timezone: timezone.to_owned(),
-        ca_certificates: None,
-        request_timeout_seconds: 10,
-        dispatch_timeout_seconds: 900,
-        user_context: None,
-        app_context: None,
-    };
+fn config(signatures: &Path, instance_type: &str) -> HunterConfig {
     HunterConfig {
         signatures: signatures.to_owned(),
         rule_dirs: BTreeMap::from([("splunk".to_owned(), vec![PathBuf::from(".")])]),
-        splunk: BTreeMap::from([
-            ("default".to_owned(), instance("GMT")),
-            ("eastern".to_owned(), instance("America/New_York")),
-        ]),
         instance_type: instance_type.to_owned(),
         tick_seconds: 1,
         reload_seconds: 60,
@@ -125,11 +109,46 @@ fn config(base_url: &str, signatures: &Path, instance_type: &str) -> HunterConfi
     }
 }
 
+/// The overlay's two Splunk instances at `base_url` (PLAN.md decision 41): `default`, in GMT, and
+/// `eastern`, in New York's time, each logging in as ace4 with its password under ace3's secret
+/// name, `splunk_<instance>_password`.
+fn splunk_connections(base_url: &str) -> Json {
+    let instance = |name: &str, timezone: &str| {
+        json!({
+            "type": "splunk",
+            "settings": {
+                "host": "127.0.0.1",
+                "base_url": base_url,
+                "username": "ace4",
+                "timezone": timezone,
+                "request_timeout_seconds": 10,
+            },
+            "secrets": {"password": format!("splunk_{name}_password")},
+        })
+    };
+    json!({
+        "connections": {
+            "default": instance("default", "GMT"),
+            "eastern": instance("eastern", "America/New_York"),
+        },
+        "secrets": {
+            "splunk_default_password": "env:ACE4_TEST_UNSET",
+            "splunk_eastern_password": "env:ACE4_TEST_UNSET",
+        },
+    })
+}
+
+fn splunk_overlay(base_url: &str) -> ace_sdk::Overlay {
+    ace_sdk::Overlay::from_yaml(&splunk_connections(base_url).to_string()).expect("an overlay")
+}
+
 fn secrets() -> Secrets {
     let mut secrets = Secrets::new();
     for name in ["default", "eastern"] {
-        let [password, _] = secret_names(name);
-        secrets = secrets.with(password, Secret::new("ace4-fake-password".to_owned()));
+        secrets = secrets.with(
+            format!("splunk_{name}_password"),
+            Secret::new("ace4-fake-password".to_owned()),
+        );
     }
     secrets
 }
@@ -224,12 +243,9 @@ async fn the_cases_submit_as_ace3_s_hunter_does() {
             recording(&dir, &exchanges);
             let replay = HttpReplay::start(&dir, &[]).await.expect("the replay");
             let hunter = Hunter::new(
-                config(
-                    &replay.local_url("https://127.0.0.1:8089"),
-                    &hunts,
-                    instance_type,
-                ),
+                config(&hunts, instance_type),
                 &secrets(),
+                &splunk_overlay(&replay.local_url("https://127.0.0.1:8089")),
             )
             .expect("a hunter")
             .with_home(work.path().to_owned());
@@ -562,9 +578,10 @@ fn a_hunt_submission_becomes_the_core_s() {
 }
 
 /// A hunter whose overlay's `query_sources:` is `query_sources`, each an entry of ace3's form
-/// (`type` and its `kwargs`, here `instance`) made the overlay's (`type` and `settings`).
+/// (`type` and its `kwargs`, here `instance`) made the overlay's (`type`, and its instance bound to
+/// its slot `splunk`).
 fn sources_hunter(query_sources: Json) -> Hunter {
-    let config = config("https://127.0.0.1:1", Path::new("/nowhere"), "dev");
+    let config = config(Path::new("/nowhere"), "dev");
     let entries: BTreeMap<String, ace_sdk::overlay::QuerySourceSection> = query_sources
         .as_object()
         .expect("an object")
@@ -572,19 +589,24 @@ fn sources_hunter(query_sources: Json) -> Hunter {
         .map(|(name, entry)| {
             let mut settings = entry.as_object().expect("an entry").clone();
             let kind = settings.remove("type").expect("a type");
+            let instance = settings.remove("instance").expect("an instance");
+            assert!(settings.is_empty(), "{settings:?}");
             (
                 name.clone(),
                 ace_sdk::overlay::QuerySourceSection {
                     kind: kind.as_str().expect("a type").to_owned(),
-                    settings: Some(Json::Object(settings)),
-                    connections: BTreeMap::new(),
+                    settings: None,
+                    connections: BTreeMap::from([(
+                        "splunk".to_owned(),
+                        instance.as_str().expect("a name").to_owned(),
+                    )]),
                 },
             )
         })
         .collect();
     let overlay = ace_sdk::Overlay {
         query_sources: Some(entries),
-        ..ace_sdk::Overlay::default()
+        ..splunk_overlay("https://127.0.0.1:1")
     };
     Hunter::for_app(config, &secrets(), &App::new(), &overlay).expect("a hunter")
 }
@@ -607,10 +629,14 @@ async fn a_reload_records_what_svs_reads_of_each_hunt() {
         ),
     )
     .expect("writes a hunt");
-    let config = config("https://127.0.0.1:8089", &hunts, "PRODUCTION");
-    let hunter = Hunter::new(config.clone(), &secrets())
-        .expect("a hunter")
-        .with_home(work.path().to_owned());
+    let config = config(&hunts, "PRODUCTION");
+    let hunter = Hunter::new(
+        config.clone(),
+        &secrets(),
+        &splunk_overlay("https://127.0.0.1:8089"),
+    )
+    .expect("a hunter")
+    .with_home(work.path().to_owned());
     let app = App::new().hunt_type(ace_hunt::types::Splunk::default());
     let recorder = Recorder::new().await;
 
@@ -716,7 +742,7 @@ async fn test_loaded_flag_prevents_double_registration() {
     assert_eq!(first.names(), second.names());
 }
 
-/// test_failing_source_does_not_abort_others: a source on an instance the hunter hasn't fails to
+/// test_failing_source_does_not_abort_others: a source on an instance the overlay hasn't fails to
 /// load, as ace3's source whose class raises, and the others load.
 #[tokio::test(flavor = "multi_thread")]
 async fn test_failing_source_does_not_abort_others() {
@@ -740,10 +766,10 @@ async fn test_no_op_when_hunter_config_absent() {
 /// `default` instance, as ace3's default configuration registers it.
 #[tokio::test(flavor = "multi_thread")]
 async fn test_default_config_name() {
-    let overlay = ace_sdk::Overlay::from_yaml("{}").expect("an overlay");
+    let overlay = splunk_overlay("https://127.0.0.1:1");
     assert_eq!(overlay.query_sources, None);
     let hunter = Hunter::for_app(
-        config("https://127.0.0.1:1", Path::new("/nowhere"), "dev"),
+        config(Path::new("/nowhere"), "dev"),
         &secrets(),
         &App::new(),
         &overlay,
@@ -754,9 +780,19 @@ async fn test_default_config_name() {
         ["splunk"]
     );
     assert_eq!(
-        default_query_sources()["splunk"].settings,
-        Some(json!({"instance": "default"}))
+        default_query_sources()["splunk"].connections,
+        BTreeMap::from([("splunk".to_owned(), "default".to_owned())])
     );
+    // without an instance named default, ace3's default source doesn't build, and the hunter
+    // still starts
+    let hunter = Hunter::for_app(
+        config(Path::new("/nowhere"), "dev"),
+        &Secrets::new(),
+        &App::new(),
+        &ace_sdk::Overlay::default(),
+    )
+    .expect("a hunter");
+    assert!(hunter.query_sources(&CancellationToken::new()).is_empty());
 }
 
 /// test_default_time_field_and_format.
@@ -892,7 +928,7 @@ fn test_default_config_declares_no_command_types() {
 /// site's binary would add isn't silently never loaded.
 #[test]
 fn rule_dirs_naming_a_type_the_binary_lacks_is_found() {
-    let mut config = config("http://127.0.0.1:1", Path::new("/signatures"), "DEV");
+    let mut config = config(Path::new("/signatures"), "DEV");
     let app = crate::App::new().hunt_type(ace_hunt::types::Splunk::default());
     assert!(unknown_types(&app, &config).is_empty());
     config
@@ -902,4 +938,110 @@ fn rule_dirs_naming_a_type_the_binary_lacks_is_found() {
         .rule_dirs
         .insert("endpoint".to_owned(), vec![PathBuf::from("hunts/endpoint")]);
     assert_eq!(unknown_types(&app, &config), ["endpoint", "rapid7"]);
+}
+
+/// PLAN.md decision 41: Splunk's instances are the overlay's connections of type `splunk`. The
+/// hunt search takes every one by its name, so `ace hunter` resolves each instance's secret under
+/// ace3's name and nothing else; a query source binds one; an entry can't bind the search's slot by
+/// name, and a hunt naming an instance the overlay hasn't fails to load.
+#[tokio::test(flavor = "multi_thread")]
+async fn splunk_instances_are_connections_taken_by_name() {
+    let overlay = splunk_overlay("https://127.0.0.1:1");
+    let app = App::new();
+    app.check_overlay(&overlay).expect("the overlay checks");
+    assert_eq!(
+        app.hunter_secret_names(&overlay),
+        ["splunk_default_password", "splunk_eastern_password"]
+    );
+    // the instances' passwords are what a correlation's output is scrubbed of
+    let hunter = Hunter::for_app(
+        config(Path::new("/nowhere"), "dev"),
+        &secrets(),
+        &app,
+        &overlay,
+    )
+    .expect("a hunter");
+    assert!(hunter.secrets.iter().any(|s| s == "ace4-fake-password"));
+    let search = hunter.search_of("splunk").expect("the splunk search");
+    let loaded = |instance: &str| {
+        let dir = tempfile::tempdir().expect("a directory");
+        let path = dir.path().join("hunt.yaml");
+        std::fs::write(
+            &path,
+            format!(
+                "rule:\n  uuid: 00000000-0000-0000-0000-00000000c001\n  name: n\n  type: splunk\n  \
+                 enabled: true\n  description: d\n  alert_type: a\n  frequency: '00:05:00'\n  \
+                 time_range: '00:05:00'\n  full_coverage: false\n  use_index_time: true\n  \
+                 splunk_config: {instance}\n  query: index=main\n"
+            ),
+        )
+        .expect("writes");
+        let checked = ace_hunt::search::Checked {
+            kind: &ace_hunt::types::Splunk::default(),
+            search: search.as_ref(),
+        };
+        ace_hunt::load_hunt(&path, &checked, &LoadOptions::default()).map(drop)
+    };
+    assert!(loaded("eastern").is_ok());
+    let missing = loaded("ops").expect_err("an instance the overlay hasn't");
+    assert!(
+        missing
+            .to_string()
+            .contains("splunk config for ops not found"),
+        "{missing}"
+    );
+
+    // the search's slot takes instances by name; an entry binding it is refused
+    let mut bound = splunk_connections("https://127.0.0.1:1");
+    bound["hunt_types"] = json!({"splunk": {"connections": {"splunk": "default"}}});
+    let bound = ace_sdk::Overlay::from_yaml(&bound.to_string()).expect("an overlay");
+    let refused = app.check_overlay(&bound).expect_err("refused");
+    assert!(
+        refused.contains("hunt_types.splunk.connections.splunk")
+            && refused.contains("by its own name"),
+        "{refused}"
+    );
+}
+
+/// `ace serve` builds a Splunk query source with its instance's settings and none of its secrets
+/// (PLAN.md decision 41), so a hunt's validation has the instance's time field and its window in
+/// the instance's timezone, and no query runs.
+#[tokio::test(flavor = "multi_thread")]
+async fn ace_serve_validates_with_splunk_sources_and_no_secrets() {
+    let mut overlay = splunk_connections("https://127.0.0.1:1");
+    overlay["query_sources"] =
+        json!({"eastern": {"type": "splunk", "connections": {"splunk": "eastern"}}});
+    let overlay = ace_sdk::Overlay::from_yaml(&overlay.to_string()).expect("an overlay");
+    let sources = validation_sources(&App::new(), &overlay);
+    assert_eq!(sources.names(), ["eastern"]);
+    let eastern = sources.get("eastern").expect("built");
+    assert_eq!(eastern.default_time_field(), Some("_time"));
+    let at = |t: &str| {
+        Time::from(
+            DateTime::parse_from_rfc3339(t)
+                .expect("a time")
+                .with_timezone(&Utc),
+        )
+    };
+    let (start, end) = (at("2026-05-18T12:26:32Z"), at("2026-05-18T12:31:32Z"));
+    assert_eq!(
+        eastern
+            .format_timespec_for_display(start, end)
+            .expect("formats")
+            .as_deref(),
+        Some("earliest=05/18/2026:08:26:32 latest=05/18/2026:08:31:32")
+    );
+    let refused = eastern
+        .execute_query(
+            "search index=main",
+            start,
+            end,
+            chrono::TimeDelta::seconds(5),
+            &JsonMap::new(),
+        )
+        .expect_err("no query runs");
+    assert!(refused.contains("only in ace hunter"), "{refused}");
+    // ace3's default source, splunk on default, without query_sources:
+    let defaults = validation_sources(&App::new(), &splunk_overlay("https://127.0.0.1:1"));
+    assert_eq!(defaults.names(), ["splunk"]);
 }

@@ -9,11 +9,10 @@ use std::time::Duration;
 
 use ace_core::queue::{self, TaskState, Wakeups};
 use ace_core::testing::TestDb;
-use ace_mod_splunk::{PASSWORD, SplunkAnalyzer, SplunkSettings};
+use ace_mod_splunk::connection::{PASSWORD, SLOT};
+use ace_mod_splunk::{SplunkAnalyzer, SplunkSettings};
 use ace_results::ObservableKind;
-use ace_sdk::{
-    Module, Observable, Outcome, Secret, Secrets, TaskContext, load_settings, run_lookup,
-};
+use ace_sdk::{Module, Observable, Outcome, Secret, TaskContext, load_settings, run_lookup};
 use ace_testkit::reference::dumps_dir;
 use ace_testkit::replay::HttpReplay;
 use chrono::Utc;
@@ -27,9 +26,7 @@ const SPLUNKD: &str = "https://127.0.0.1:8089";
 /// proxy_domain_lookup as ace-mod-splunk's tests run it (its tests/common/mod.rs).
 fn proxy_domain_lookup(base_url: &str) -> Value {
     json!({
-        "base_url": base_url,
-        "username": "ace4",
-        "request_timeout_seconds": 10,
+        "splunk": {"host": "127.0.0.1", "base_url": base_url, "username": "ace4", "request_timeout_seconds": 10},
         "question": "Was this domain seen in proxy logs?",
         "summary": "Proxy correlation",
         "query": "index=proxy (transport=HTTPS OR transport=HTTP) hostname=\"<O_VALUE>\"\n| eval full_url = lower(transport) . \"://\" . url\n",
@@ -62,11 +59,16 @@ async fn the_splunk_module_runs_again_after_each_delay_it_asks_for() {
     )
     .await
     .expect("the recording loads");
-    let settings: SplunkSettings =
-        load_settings(Some(&proxy_domain_lookup(&replay.local_url(SPLUNKD)))).expect("settings");
+    let block = proxy_domain_lookup(&replay.local_url(SPLUNKD));
+    let settings: SplunkSettings = load_settings(Some(&block)).expect("settings");
     let module = SplunkAnalyzer::init(&settings).expect("the module starts");
     let settings = Arc::new(settings);
-    let secrets = Secrets::new().with(PASSWORD, Secret::new("ace4-fake-password"));
+    // the Splunk instance its slot is bound to, as the lookups pool gives it
+    let connections = ace_sdk::Connections::new().with(
+        SLOT.name,
+        ace_sdk::Connection::new("default", "splunk", Some(block["splunk"].clone()))
+            .with_secret(PASSWORD, Secret::new("ace4-fake-password")),
+    );
 
     let worker = worker(
         &test_db,
@@ -107,7 +109,7 @@ async fn the_splunk_module_runs_again_after_each_delay_it_asks_for() {
             Observable::new(task.observable.kind, task.observable.value.clone()),
             settings.clone(),
         )
-        .with_secrets(&secrets);
+        .with_connections(connections.clone());
         if let Some(delayed) = task.delayed.clone() {
             ctx = ctx.with_delayed(delayed);
         }

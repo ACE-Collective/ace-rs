@@ -3,14 +3,16 @@
 //! registered as every `App`'s built-in `splunk` types (`App::hunt_searches`,
 //! `App::query_source_types`).
 //!
-//! What is Splunk's own is where they find their instances: the hunter configuration's `splunk:`,
-//! ace3's global `splunk_config_<name>` sections, with ace3's secret names
-//! (`splunk_<instance>_password`, `splunk_<instance>_token`), which the hunter resolves and hands
-//! every setup as [`Instances`]. A process without them, such as `ace serve`, builds neither.
+//! Their instances are the overlay's connections of type `splunk` (PLAN.md decision 41,
+//! `ace_mod_splunk::connection`), ace3's global `splunk_config_<name>` sections, named as ace3 names
+//! them and with ace3's secret names (`splunk_<instance>_password`, `splunk_<instance>_token`). The
+//! search takes every instance by its name (`connection::BY_NAME`), since a hunt names its own in
+//! `splunk_config`; a query source binds one to its slot `splunk` (`connection::SLOT`), as ace3's
+//! source names one in `config_name`. `ace serve` builds a source with its instance's settings and
+//! none of its secrets, to validate hunts.
 
 use std::collections::BTreeMap;
 use std::path::Path;
-use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -20,13 +22,12 @@ use ace_hunt::correlate::time::Time;
 use ace_hunt::query::schedule::Window;
 use ace_hunt::search::{BoxFuture, HuntSearch, Ran, STOPPED, SearchLimits, Searched, Stop};
 use ace_hunt::splunk::{self, Instance};
-use ace_mod_splunk::search::{Connection, Limits, SearchClient, SearchError};
-use ace_sdk::Secrets;
+use ace_mod_splunk::connection;
+use ace_mod_splunk::search::{Limits, SearchClient, SearchError};
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
 use serde_json::{Map as JsonMap, Value as Json};
 
-use super::{Blocking, SearchSetup, SplunkInstance, secret_names};
+use super::{Blocking, SearchSetup};
 
 /// One Splunk instance, ready to search.
 pub(crate) struct Source {
@@ -37,64 +38,43 @@ pub(crate) struct Source {
     app_context: Option<String>,
 }
 
-/// The hunter's Splunk instances, by name, and their credentials' text, which a correlation's
-/// output is scrubbed of.
+impl Source {
+    /// The instance `connection`, with its secrets.
+    fn of(connection: &ace_sdk::Connection) -> Result<Source, String> {
+        let instance = connection::instance_of(connection)?;
+        let timezone = instance
+            .tz()
+            .map_err(|e| format!("splunk instance {}: {e}", connection.name))?;
+        let client = instance
+            .client(connection)
+            .map_err(|e| format!("splunk instance {}: {e}", connection.name))?;
+        Ok(Source {
+            instance: Instance {
+                host: instance.host.clone(),
+                timezone,
+            },
+            client: Arc::new(client),
+            dispatch_timeout: Duration::from_secs(instance.dispatch_timeout_seconds),
+            user_context: instance.user_context,
+            app_context: instance.app_context,
+        })
+    }
+}
+
+/// The Splunk instances a hunt may name, by name: every connection of type `splunk`.
 #[derive(Default)]
 pub struct Instances {
     sources: BTreeMap<String, Source>,
-    pub(crate) secrets: Vec<String>,
 }
 
 impl Instances {
-    /// The instances of the hunter configuration's `splunk:`, each with its credentials of
-    /// `secrets`.
-    pub fn new(
-        config: &BTreeMap<String, SplunkInstance>,
-        secrets: &Secrets,
-    ) -> anyhow::Result<Instances> {
+    /// The instances `setup`'s slot by name holds, each with its secrets.
+    pub fn new(setup: &SearchSetup) -> Result<Instances, String> {
         let mut sources = BTreeMap::new();
-        let mut held = Vec::new();
-        for (name, instance) in config {
-            let [password, token] = secret_names(name);
-            let secret = |n: &str| secrets.get(n).map(|s| s.expose().to_owned());
-            held.extend(secret(&password));
-            held.extend(secret(&token));
-            let timezone = chrono_tz::Tz::from_str(&instance.timezone).map_err(|e| {
-                anyhow::anyhow!(
-                    "splunk instance {name}: timezone {:?}: {e}",
-                    instance.timezone
-                )
-            })?;
-            let client = SearchClient::new(Connection {
-                base_url: instance
-                    .base_url
-                    .clone()
-                    .unwrap_or_else(|| format!("https://{}:{}", instance.host, instance.port)),
-                username: instance.username.clone(),
-                password: secret(&password),
-                token: secret(&token),
-                ca_certificates: instance.ca_certificates.clone(),
-                request_timeout: Duration::from_secs(instance.request_timeout_seconds),
-            })
-            .map_err(|e| anyhow::anyhow!("splunk instance {name}: {e}"))?;
-            sources.insert(
-                name.clone(),
-                Source {
-                    instance: Instance {
-                        host: instance.host.clone(),
-                        timezone,
-                    },
-                    client: Arc::new(client),
-                    dispatch_timeout: Duration::from_secs(instance.dispatch_timeout_seconds),
-                    user_context: instance.user_context.clone(),
-                    app_context: instance.app_context.clone(),
-                },
-            );
+        for connection in setup.connections.named(connection::BY_NAME.name) {
+            sources.insert(connection.name.clone(), Source::of(connection)?);
         }
-        Ok(Instances {
-            sources,
-            secrets: held,
-        })
+        Ok(Instances { sources })
     }
 
     /// The instances' names.
@@ -103,23 +83,16 @@ impl Instances {
     }
 }
 
-fn instances_of(setup: &SearchSetup) -> Result<Arc<Instances>, String> {
-    setup
-        .splunk
-        .clone()
-        .ok_or_else(|| "this process has no Splunk instances".to_owned())
-}
-
-/// Builds the `splunk` hunt type's search. It takes no settings.
+/// Builds the `splunk` hunt type's search over every Splunk instance. It takes no settings.
 pub(crate) fn build_search(setup: &SearchSetup) -> Result<Arc<dyn HuntSearch>, String> {
     if !matches!(setup.settings, None | Some(Json::Null)) {
         return Err(
-            "the splunk search takes no settings; its instances are the hunter's splunk:"
+            "the splunk search takes no settings; its instances are the connections of type splunk"
                 .to_owned(),
         );
     }
     Ok(Arc::new(SplunkSearch {
-        instances: instances_of(setup)?,
+        instances: Arc::new(Instances::new(setup)?),
     }))
 }
 
@@ -199,37 +172,27 @@ fn error_text(error: SearchError) -> String {
     }
 }
 
-/// The `splunk` query source's settings, ace3's `SplunkQuerySource` kwargs.
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SourceSettings {
-    /// The Splunk instance, ace3's `config_name`.
-    #[serde(default = "default_instance")]
-    instance: String,
-}
-
-fn default_instance() -> String {
-    "default".to_owned()
-}
-
-/// Builds a `splunk` query source on the instance its settings name.
+/// Builds a `splunk` query source on the instance bound to its slot `splunk`, ace3's `config_name`.
+/// It takes no settings.
 pub(crate) fn build_source(setup: &SearchSetup) -> Result<Arc<dyn QuerySource>, String> {
-    let settings: SourceSettings = serde_json::from_value(
-        setup
-            .settings
-            .clone()
-            .unwrap_or(Json::Object(JsonMap::new())),
-    )
-    .map_err(|e| format!("its settings: {e}"))?;
-    let instances = instances_of(setup)?;
-    let Some(splunk) = instances.sources.get(&settings.instance) else {
-        return Err(format!("splunk config for {} not found", settings.instance));
+    if !matches!(setup.settings, None | Some(Json::Null)) {
+        return Err(format!(
+            "the splunk query source takes no settings; bind its instance with connections: {{{}: <instance>}}",
+            connection::SLOT.name
+        ));
+    }
+    let Some(bound) = setup.connections.get(connection::SLOT.name) else {
+        return Err(format!(
+            "no Splunk instance is bound to its slot {}",
+            connection::SLOT.name
+        ));
     };
+    let splunk = Source::of(bound)?;
     Ok(Arc::new(SplunkQuery {
-        client: splunk.client.clone(),
+        client: splunk.client,
         timezone: splunk.instance.timezone,
-        user_context: splunk.user_context.clone(),
-        app_context: splunk.app_context.clone(),
+        user_context: splunk.user_context,
+        app_context: splunk.app_context,
         dispatch_timeout: splunk.dispatch_timeout,
         poll: setup.poll,
         blocking: setup.blocking(),

@@ -61,21 +61,34 @@ fn env(name: &str) -> Option<String> {
     (name == "AI_SPLUNK_PASSWORD").then(|| "ace4-fake-password".to_owned())
 }
 
-fn setup(replay: &HttpReplay) -> AiBackendSetup {
+/// The read-only instance at `replay`, logging in as ace4.
+fn instance(replay: &HttpReplay) -> serde_json::Value {
+    json!({
+        "host": "splunk.example.com",
+        "base_url": replay.local_url(SPLUNKD),
+        "username": "ace4",
+        "timezone": "GMT",
+        "request_timeout_seconds": 10,
+    })
+}
+
+/// The backend's setup with `instance` bound to its slot `splunk` (PLAN.md decision 41), holding
+/// its password.
+fn on_instance(instance: serde_json::Value) -> AiBackendSetup {
     AiBackendSetup {
         name: "splunk".to_owned(),
-        settings: Some(json!({
-            "splunk": {
-                "host": "splunk.example.com",
-                "base_url": replay.local_url(SPLUNKD),
-                "username": "ace4",
-                "timezone": "GMT",
-                "request_timeout_seconds": 10,
-            },
-        })),
-        secrets: Secrets::new().with("ai_splunk", ace_sdk::Secret::new("ace4-fake-password")),
-        connections: ace_sdk::Connections::new(),
+        settings: None,
+        secrets: Secrets::new(),
+        connections: ace_sdk::Connections::new().with(
+            "splunk",
+            ace_sdk::Connection::new("ai_readonly", "splunk", Some(instance))
+                .with_secret("password", ace_sdk::Secret::new("ace4-fake-password")),
+        ),
     }
+}
+
+fn setup(replay: &HttpReplay) -> AiBackendSetup {
+    on_instance(instance(replay))
 }
 
 fn request(query: &str) -> AiQueryRequest {
@@ -100,8 +113,9 @@ async fn the_api_is_off_unless_the_overlay_turns_it_on() {
         "",
         "ai_api: {}",
         "secrets: {t: 'env:NOT_SET'}\n\
-         ai_api: {backends: {splunk: {type: splunk, enabled: true, secrets: [t], \
-         settings: {splunk: {host: h, timezone: GMT}}}}}",
+         connections: {ai_readonly: {type: splunk, settings: {host: h}, secrets: {token: t}}}\n\
+         ai_api: {backends: {splunk: {type: splunk, enabled: true, \
+         connections: {splunk: ai_readonly}}}}",
     ] {
         let overlay = Overlay::from_yaml(text).expect("parses");
         assert!(!overlay.ai_api.enabled);
@@ -279,12 +293,16 @@ async fn a_type_the_binary_lacks_parses_and_then_stops_the_server() {
 #[tokio::test]
 async fn a_backend_without_its_credential_stops_the_server() {
     let test_db = TestDb::new().await;
-    let entry = |secrets: &str, username: &str| {
+    // the backend on the instance ai_readonly, whose connection names `secrets`, and which lists
+    // `listed` of its own
+    let entry = |secrets: &str, username: &str, listed: &str| {
         format!(
-            "secrets: {{ai_splunk: 'env:AI_SPLUNK_PASSWORD', other: 'env:AI_SPLUNK_PASSWORD'}}\n\
+            "secrets: {{splunk_ai_readonly_token: 'env:AI_SPLUNK_PASSWORD', \
+             splunk_ai_readonly_password: 'env:AI_SPLUNK_PASSWORD', other: 'env:AI_SPLUNK_PASSWORD'}}\n\
+             connections:\n  ai_readonly:\n    type: splunk\n    \
+             settings: {{host: splunk.example.com, timezone: GMT{username}}}\n    secrets: {secrets}\n\
              ai_api:\n  enabled: true\n  backends:\n    splunk:\n      type: splunk\n      \
-             enabled: true\n      secrets: {secrets}\n      settings:\n        \
-             splunk: {{host: splunk.example.com, timezone: GMT{username}}}\n"
+             enabled: true\n      secrets: {listed}\n      connections: {{splunk: ai_readonly}}\n"
         )
     };
     let build = |text: &str, env: &dyn Fn(&str) -> Option<String>| {
@@ -292,22 +310,35 @@ async fn a_backend_without_its_credential_stops_the_server() {
         surface(&builtin_types(), &overlay, test_db.db().clone(), env)
     };
     // no secret named, and one named that isn't set
-    let error = build(&entry("[]", ""), &env).expect_err("no token");
+    let error = build(&entry("{}", "", "[]"), &env).expect_err("no token");
     assert!(
         error.starts_with("backends.splunk: splunk token is not set"),
         "{error}"
     );
-    let error = build(&entry("[ai_splunk]", ", username: ace4"), &no_env).expect_err("not set");
+    let error = build(
+        &entry(
+            "{password: splunk_ai_readonly_password}",
+            ", username: ace4",
+            "[]",
+        ),
+        &no_env,
+    )
+    .expect_err("not set");
     assert!(
         error.starts_with("backends.splunk: splunk password is not set"),
         "{error}"
     );
-    let error = build(&entry("[ai_splunk, other]", ""), &env).expect_err("two");
-    assert!(error.contains("takes one secret"), "{error}");
+    // its credential is its instance's: it lists none of its own
+    let error = build(
+        &entry("{token: splunk_ai_readonly_token}", "", "[other]"),
+        &env,
+    )
+    .expect_err("listed");
+    assert!(error.contains("lists no secrets of its own"), "{error}");
     // no error says what a secret holds
     assert!(!error.contains("ace4-fake-password"));
     // with it, the backend is built, and nothing prints the credential
-    let surface = build(&entry("[ai_splunk]", ""), &env)
+    let surface = build(&entry("{token: splunk_ai_readonly_token}", "", "[]"), &env)
         .expect("builds")
         .expect("on");
     let shown = format!("{surface:?}");
@@ -382,24 +413,24 @@ async fn the_splunk_backend_reads_its_settings() {
     );
     assert!(backend.windowed() && backend.extras_schema().is_none());
 
-    for (settings, reason) in [
-        (json!(null), "settings:"),
-        (
-            json!({"splunk": {"host": "h", "timezone": "GMT"}, "extra": 1}),
-            "unknown field",
-        ),
-        (
-            json!({"splunk": {"host": "h", "timezone": "Nowhere/None"}}),
-            "timezone",
-        ),
-    ] {
-        let error = SplunkBackend::new(&AiBackendSetup {
-            settings: Some(settings),
-            ..setup(&replay)
-        })
-        .expect_err("refused");
-        assert!(error.contains(reason), "{error}");
-    }
+    // its own settings are auto_append alone; its instance is the connection bound to `splunk`
+    let error = SplunkBackend::new(&AiBackendSetup {
+        settings: Some(json!({"splunk": {"host": "h"}})),
+        ..setup(&replay)
+    })
+    .expect_err("refused");
+    assert!(error.contains("unknown field"), "{error}");
+    let error = SplunkBackend::new(&on_instance(
+        json!({"host": "h", "username": "ace4", "timezone": "Nowhere/None"}),
+    ))
+    .expect_err("refused");
+    assert!(error.contains("timezone"), "{error}");
+    let error = SplunkBackend::new(&AiBackendSetup {
+        connections: ace_sdk::Connections::new(),
+        ..setup(&replay)
+    })
+    .expect_err("refused");
+    assert!(error.contains("no Splunk instance is bound"), "{error}");
 }
 
 #[tokio::test]
@@ -569,16 +600,9 @@ fn a_failed_search_maps_as_ace3_s() {
 #[tokio::test]
 async fn a_splunk_that_refuses_is_a_502() {
     let replay = splunkd().await;
-    let mut wrong = setup(&replay);
-    wrong.settings = Some(json!({
-        "splunk": {
-            "host": "splunk.example.com",
-            "base_url": replay.local_url("https://127.0.0.1:9999"),
-            "username": "ace4",
-            "timezone": "GMT",
-            "request_timeout_seconds": 10,
-        },
-    }));
+    let mut instance = instance(&replay);
+    instance["base_url"] = json!(replay.local_url("https://127.0.0.1:9999"));
+    let wrong = on_instance(instance);
     let backend = SplunkBackend::new(&wrong)
         .expect("builds")
         .with_poll(Duration::from_millis(10));

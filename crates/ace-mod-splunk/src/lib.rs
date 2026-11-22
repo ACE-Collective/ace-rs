@@ -18,9 +18,14 @@
 //! observable mapping options (see `ObservableMapping`). A query with an unfilled token fails at
 //! init.
 //!
+//! Its Splunk instance is a shared connection of type `splunk` (PLAN.md decision 41, [`connection`]),
+//! which an instance's `connections: {splunk: <instance>}` binds, as ace3's `api_name` names a
+//! `splunk_config_<name>` section.
+//!
 //! [`search`] is the client the hunter searches with (PLAN.md 6.4): one search waited for to its end.
 
 pub mod clicker;
+pub mod connection;
 mod mapping;
 mod rest;
 pub mod search;
@@ -50,32 +55,21 @@ use crate::mapping::{
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::lookup::<SplunkAnalyzer>();
 
-/// The secret that logs in as `username`.
-pub const PASSWORD: &str = "splunk_password";
-/// The secret sent as the session token when there's no `username`.
-pub const TOKEN: &str = "splunk_token";
-
 const FORM: &str = "application/x-www-form-urlencoded";
 
 /// The Splunk module's settings: one search, as one of ace3's `SplunkAPIAnalyzer` blocks with
-/// its `splunk_config_*` and `api_query_defaults_*` values in it.
+/// its `api_query_defaults_*` values in it.
 #[derive(Debug, Clone, PartialEq, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields, default)]
 pub struct SplunkSettings {
-    /// splunkd's management API, such as `https://splunk.example.com:8089`.
-    pub base_url: String,
-    /// The user to log in as, with the `splunk_password` secret. Without one, requests carry
-    /// the `splunk_token` secret.
-    pub username: Option<String>,
-    /// The namespace searches run in, as ace3's `user_context` and `app_context`. With neither,
-    /// they run under `/services/`.
+    /// The Splunk instance, from the connection bound to the slot `splunk` (ace3's `api_name`);
+    /// the module's own settings don't set it.
+    pub splunk: connection::Instance,
+    /// The namespace searches run in, ace3's `splunk_user_context` and `splunk_app_context`, where
+    /// the instance names none: an instance's own wins, as in ace3. With neither, they run under
+    /// `/services/`.
     pub user_context: Option<String>,
     pub app_context: Option<String>,
-    /// A PEM file of CA certificates to trust besides the platform's, such as the one that
-    /// signed splunkd's certificate. Certificates are always verified.
-    pub ca_certificates: Option<std::path::PathBuf>,
-    /// The timeout of each request to splunkd.
-    pub request_timeout_seconds: u64,
     /// The question the search answers, shown with the result.
     pub question: String,
     /// The summary's prefix, such as `Proxy correlation`.
@@ -103,15 +97,12 @@ pub struct SplunkSettings {
 }
 
 impl Default for SplunkSettings {
-    /// ace3's `splunk_config_default` and `api_query_defaults_default`, with splunkd's own port.
+    /// ace3's `api_query_defaults_default`, on the default instance's settings.
     fn default() -> Self {
         SplunkSettings {
-            base_url: "https://localhost:8089".to_owned(),
-            username: None,
+            splunk: connection::Instance::default(),
             user_context: None,
             app_context: None,
-            ca_certificates: None,
-            request_timeout_seconds: 60,
             question: String::new(),
             summary: String::new(),
             query: String::new(),
@@ -138,7 +129,7 @@ impl Module for SplunkAnalyzer {
     const NAME: &'static str = "splunk_api";
     /// Every type: `valid_observable_types` narrows it, as in ace3.
     const INPUTS: &'static [ObservableKind] = ObservableKind::BUILTIN;
-    const SECRETS: &'static [&'static str] = &[PASSWORD, TOKEN];
+    const CONNECTIONS: &'static [ace_sdk::ConnectionSlot] = &[connection::SLOT];
     /// A search needs its query, so the module runs only as the overlay's instances, as ace3's
     /// `SplunkAPIAnalyzer` runs only as its configured sections.
     const INSTANCES_ONLY: bool = true;
@@ -159,12 +150,9 @@ impl Module for SplunkAnalyzer {
             )));
         }
         let splunkd = Splunkd::new(&Connection {
-            base_url: &settings.base_url,
-            username: settings.username.as_deref(),
+            instance: &settings.splunk,
             user_context: settings.user_context.as_deref(),
             app_context: settings.app_context.as_deref(),
-            ca_certificates: settings.ca_certificates.as_deref(),
-            request_timeout_seconds: settings.request_timeout_seconds,
             max_result_count: settings.max_result_count,
         })?;
         let mappings = settings
@@ -424,14 +412,12 @@ impl SplunkAnalyzer {
     }
 }
 
-/// What a Splunk connection is made of: the settings both Splunk modules share.
+/// What a Splunk module's client is made of: the instance, the namespace the module names over
+/// the instance's, and the most rows a search returns.
 pub(crate) struct Connection<'a> {
-    pub(crate) base_url: &'a str,
-    pub(crate) username: Option<&'a str>,
+    pub(crate) instance: &'a connection::Instance,
     pub(crate) user_context: Option<&'a str>,
     pub(crate) app_context: Option<&'a str>,
-    pub(crate) ca_certificates: Option<&'a std::path::Path>,
-    pub(crate) request_timeout_seconds: u64,
     pub(crate) max_result_count: u64,
 }
 
@@ -452,9 +438,10 @@ pub(crate) struct Splunkd {
 
 impl Splunkd {
     pub(crate) fn new(connection: &Connection<'_>) -> Result<Splunkd, ModuleError> {
+        let instance = connection.instance;
         let mut builder =
-            HttpClient::builder().timeout(Duration::from_secs(connection.request_timeout_seconds));
-        if let Some(path) = connection.ca_certificates {
+            HttpClient::builder().timeout(Duration::from_secs(instance.request_timeout_seconds));
+        if let Some(path) = &instance.ca_certificates {
             let pem = std::fs::read(path)
                 .map_err(|e| ModuleError::other(format!("{}: {e}", path.display())))?;
             builder = builder
@@ -463,10 +450,14 @@ impl Splunkd {
         }
         Ok(Splunkd {
             client: builder.build().map_err(ModuleError::other)?,
-            base_url: connection.base_url.trim_end_matches('/').to_owned(),
-            namespace: rest::namespace(connection.user_context, connection.app_context),
+            base_url: instance.base_url().trim_end_matches('/').to_owned(),
+            // ace3's `SplunkClient` puts the instance's context over the caller's
+            namespace: rest::namespace(
+                instance.user_context.as_deref().or(connection.user_context),
+                instance.app_context.as_deref().or(connection.app_context),
+            ),
             session: Mutex::new(None),
-            username: connection.username.map(str::to_owned),
+            username: instance.username.clone(),
             max_result_count: connection.max_result_count,
         })
     }
@@ -661,7 +652,9 @@ impl Splunkd {
         fresh: bool,
     ) -> Result<String, Failure> {
         let Some(username) = self.username.as_deref() else {
-            let token = ctx.secret(TOKEN)?.expose();
+            let token = ctx
+                .connection_secret(connection::SLOT.name, connection::TOKEN)?
+                .expose();
             // splunklib sends a token as `Splunk <token>` unless it says its scheme
             return Ok(
                 if token.starts_with("Splunk ") || token.starts_with("Bearer ") {
@@ -674,7 +667,7 @@ impl Splunkd {
         if !fresh && let Some(session) = self.session.lock().ok().and_then(|s| s.clone()) {
             return Ok(session);
         }
-        let password = ctx.secret(PASSWORD)?;
+        let password = ctx.connection_secret(connection::SLOT.name, connection::PASSWORD)?;
         let url = format!("{}/services/auth/login", self.base_url);
         let request = self
             .client
