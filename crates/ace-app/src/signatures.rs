@@ -39,7 +39,7 @@
 //!
 //! ace3 has no such command. Its `ace signatures` lists the signatures a node loads and where from,
 //! and its `ace hunt verify` loads the configured hunts; the signatures repository's
-//! `validate-yara.yaml` pipeline compiles `yara/site` with yara_scanner_v2's `scan -c`, and its hunt
+//! `validate-yara.yaml` pipeline compiles its YARA rules with yara_scanner_v2's `scan -c`, and its hunt
 //! pipelines validate hunts against a live ACE. Running this check in that repository's CI is
 //! Deferred's.
 
