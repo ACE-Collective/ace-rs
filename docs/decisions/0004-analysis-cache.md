@@ -46,7 +46,7 @@ On the laptop's comparison it saves nothing, by design. In production it saves w
 ## In what order
 
 1. The cache itself (opt-in, key, the core's check, storage, the bucket holds, expiry, the mark, metrics), with ace3's seven opt-ins, and the two-run check in `tests/e2e/run`.
-2. a site's five cacheable modules opt in as they are ported (the site port's `docs/modules.md`, question 9).
+2. A site's cacheable modules opt in as they are ported (the site's own `docs/modules.md`, question 9).
 
 Not now: ace3's designed-but-unbuilt *single flight* (two alerts with the same new file at the same moment both run the module; the second could wait for the first).
 

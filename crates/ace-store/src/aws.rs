@@ -1,5 +1,5 @@
 //! Where an AWS client's credentials and region come from: the bucket's, and a site's own AWS
-//! clients (a queue queue, another bucket) built the same way.
+//! clients (a queue, another bucket) built the same way.
 //!
 //! Static keys, when they are given, sign every request, and nothing else is read: no `AWS_*`
 //! variable, no `~/.aws` file, no metadata service. This is how the dev and e2e stacks reach their

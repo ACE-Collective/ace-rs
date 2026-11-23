@@ -16,7 +16,7 @@
 //!   still removing it or a check still watching (ace3's `pending_events_from_coverage`).
 //!
 //! ace3's fourth source, analysis-tree providers (`register_remediation_event_provider`), has no
-//! counterpart: nothing in ace3 or site_ace registers one at `85c8e9e5`.
+//! counterpart: nothing in ace3 or a site's integration registers one at `85c8e9e5`.
 //!
 //! Rows sort as ace3's: what happened before what is pending, then by the message's time, the try's
 //! time (both to the whole second the table shows), the target, the source and the description; a

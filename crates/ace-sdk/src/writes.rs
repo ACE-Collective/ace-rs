@@ -186,7 +186,7 @@ impl WriteKind for RemediationCheck {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CheckRequest {
-    /// The probe's name, such as ace3's `msmail_filter`: a remediation check handler the core's catalog
+    /// The probe's name, such as `mail_vendor`: a remediation check handler the core's catalog
     /// has (`crate::actions::ActionSpec`), which acts on the task's observable's type.
     pub probe: String,
     /// What the module knows that the probe's later tries need, such as the alert's event time,
@@ -209,7 +209,7 @@ pub const MAX_CHECK_CONTEXT_BYTES: usize = 16 * 1024;
 /// the same in the end's transaction (`ace_core::actions::request_collection`): it joins a pending
 /// one, from any alert or person, takes the root's own earlier success, or queues a new one. The
 /// module reads where it stands with the `file-collection` read. No module of ace4's makes it:
-/// a site's Endpoint modules do.
+/// a site's endpoint modules do.
 pub struct FileCollection;
 
 impl WriteKind for FileCollection {
@@ -230,7 +230,7 @@ pub struct CollectionAsk {
 }
 
 /// `file-collection-release`: the task's root stops waiting on collections it no longer needs, as
-/// ace3's `endpoint_file_collector` cancels its siblings' once the identical file is in the alert
+/// a site's endpoint file collector cancels its siblings' once the identical file is in the alert
 /// (`_cancel_sibling_collections`) (PLAN.md decision 49). For each named observable of the root, its
 /// unfinished collection by the collector stops being the root's; it is cancelled only when no
 /// other root waits on it and no person or caller asked for it, where ace3 cancels it whoever else
@@ -259,7 +259,7 @@ pub struct CollectionRelease {
 pub const MAX_RELEASED: usize = 100;
 
 /// `sandbox-submission`: the task's own file's row in ace3's `sandbox_submissions` for a sandbox
-/// (PLAN.md decision 50), as a site's ExampleSandbox module calls `record_submission` when it submits a file
+/// (PLAN.md decision 50), as a site's sandbox module calls `record_submission` when it submits a file
 /// or finds the sandbox already knows it, and `update_submission_result` once the analysis ends.
 pub struct SandboxSubmission;
 

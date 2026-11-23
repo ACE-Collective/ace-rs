@@ -30,8 +30,8 @@
 //! descriptions, as boxes to tick, since several may be added at once as in ace3's multiselect. A
 //! directive the observable has is shown ticked and can't be ticked off: ace3 has no way to remove one.
 //!
-//! The form's link can name directives to tick in advance, `?directive=upload_to_vt` once for each
-//! (PLAN.md decision 60), so a site's action, such as a site's "Upload To VT", is a link to the form with
+//! The form's link can name directives to tick in advance, `?directive=upload_to_scanner` once for each
+//! (PLAN.md decision 60), so a site's action, such as "Upload To Scanner", is a link to the form with
 //! its box ticked, and the analyst confirms with one click (`add_directive_href`). Ticking in advance
 //! only checks a box: nothing is added until the analyst posts the form, which goes through the same
 //! permission check and audit row as any other. A name the list doesn't offer ticks nothing, and the
@@ -153,10 +153,10 @@ pub const ADD_DIRECTIVE: ObservableAction =
 /// ```
 /// use ace_gui::actions::{ObservableAction, add_directive_href};
 ///
-/// const UPLOAD_TO_VT: ObservableAction =
-///     ObservableAction::new("upload_to_vt", "Upload To VT", |target| {
+/// const UPLOAD_TO_SCANNER: ObservableAction =
+///     ObservableAction::new("upload_to_scanner", "Upload To Scanner", |target| {
 ///         (target.kind == "file" && target.has_file)
-///             .then(|| add_directive_href(target, &["upload_to_vt"]))
+///             .then(|| add_directive_href(target, &["upload_to_scanner"]))
 ///     });
 /// ```
 /// The analyst still posts the form, so nothing is added by following the link.

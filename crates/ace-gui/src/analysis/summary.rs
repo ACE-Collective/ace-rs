@@ -27,7 +27,7 @@
 //! type listed here takes its place.
 //!
 //! **By name** (PLAN.md decision 40). ace3 draws an alert with the template its hunt names in
-//! `alert_template` before it looks at the alert's type, such as a site's `endpoint_vendor/logscale.html`.
+//! `alert_template` before it looks at the alert's type, such as a site's `example/ticket.html`.
 //! A summary is registered under such a name with `ace_app::App::alert_template`, and an alert whose
 //! submission's `extensions.alert_template` names it has that summary, whatever its type. The hunt
 //! summary answers to ace3's own [`HUNTER_TEMPLATE`]. A summary keeps the rules a view keeps (`crate::analysis`): no

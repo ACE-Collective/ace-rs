@@ -62,7 +62,7 @@ pub trait HuntType: Send + Sync {
 
     /// ace3's `extract_event_timestamp` for one row of `hunt`'s query: None when the row has no
     /// time the type reads, so the submission takes the query's time. `hunt` is the hunt whose rows
-    /// these are, for a type whose hunts name the field their time is in (a site's mail_filter hunts'
+    /// these are, for a type whose hunts name the field their time is in (a site's hunts'
     /// `timestamp_field`). `ace hunter` calls it on the rows a search returns, and a validation run
     /// on the rows it is sent, which is why it is the type's and not its search's: `ace serve`
     /// builds no search (PLAN.md decisions 40 and 43).

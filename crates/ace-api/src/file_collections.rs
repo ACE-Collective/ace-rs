@@ -147,7 +147,7 @@ pub(crate) struct FileCollectionPageBody {
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct RequestBody {
-    /// The collector's name, one this server's pools run, such as a site's Endpoint collectors.
+    /// The collector's name, one this server's pools run, such as a site's endpoint collectors.
     collector: String,
     /// The type the collector collects, such as `file_location`.
     observable_type: String,
@@ -418,7 +418,7 @@ pub(crate) async fn history(
 
 /// A collection's file, once it succeeded, as a zip encrypted with AES-256 and the password
 /// `infected`, as an alert's file downloads are, holding the file under the name its collector gave
-/// it. It is the file as the collector stored it: a Endpoint collection's is endpoint collection's 7z
+/// it. It is the file as the collector stored it: an endpoint agent's collection may be a 7z
 /// container, itself encrypted with the password `infected`. Audited as a read of the file.
 #[utoipa::path(
     get,

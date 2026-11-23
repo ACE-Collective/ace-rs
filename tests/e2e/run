@@ -139,7 +139,7 @@ A site repository runs the same scenario against its own images (PLAN.md 2.32) b
   ace, ai, parsers, sandbox, lookups, scanners and the e2e profile's responder, and its browser
   for the browser test), with the `scanned` network, and whose ace and ai services get their
   database logins in ACE4_DATABASE_URL;
-- ACE4_E2E_PREFIX: the prefix of that file's variables, such as SITE_PORT_, in place of ACE4_;
+- ACE4_E2E_PREFIX: the prefix of that file's variables, such as SITE_ACE4_, in place of ACE4_;
 - ACE4_E2E_PROJECT: the Compose project the test runs under, in place of ace4-e2e;
 - ACE4_E2E_SITE: the site overlay directory, in place of tests/e2e/site;
 - ACE4_E2E_WORK: where the signatures repository goes, in place of target/e2e;

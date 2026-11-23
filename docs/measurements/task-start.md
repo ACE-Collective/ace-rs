@@ -439,7 +439,7 @@ What else the numbers could be measuring: one fresh stack and one second pass fo
 
 ### What a site does
 
-Nothing, for a site whose modules declare nothing: they take everything, as before. A site's module declares its own in `Module::takes`, as the open-source modules do; `crates/ace-site-example`'s ticket parser declares from a setting (`skip_extensions`), and its test shows the site's binary declining before `analyze` and the core reading the declaration from the overlay. A site checks its declarations with `ACE4_TAKES_AUDIT=1` over its own traffic, and its binary's test can assert `App::modules_with_unusable_declarations` is empty. site_port gets this when its `Cargo.toml` moves to the tag.
+Nothing, for a site whose modules declare nothing: they take everything, as before. A site's module declares its own in `Module::takes`, as the open-source modules do; `crates/ace-site-example`'s ticket parser declares from a setting (`skip_extensions`), and its test shows the site's binary declining before `analyze` and the core reading the declaration from the overlay. A site checks its declarations with `ACE4_TAKES_AUDIT=1` over its own traffic, and its binary's test can assert `App::modules_with_unusable_declarations` is empty. A site gets this when its `Cargo.toml` moves to the tag.
 
 ### What is left
 

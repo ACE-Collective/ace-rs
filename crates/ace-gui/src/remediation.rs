@@ -10,7 +10,7 @@
 //! | the bulk Restore, Retry, Cancel and Delete of the ticked rows | a form per row: `POST /remediations/{id}/restore`, `/retry`, `/cancel`, `/delete` |
 //! | the Add Remediation modal: a type, values, Find Targets, Remediate | `GET /remediations/targets?type=&values=`, or `?alert=` repeated from an event's page, then `POST /remediations` with the ticked targets and Remove or Restore |
 //! | `/file_collection/manage`, its list, history modal, Retry, Cancel and Delete | `GET /file-collections`, `GET /file-collections/{id}`, `POST /file-collections/{id}/retry`, `/cancel`, `/delete` |
-//! | none: ace3's integrations ask for a collection, and a site's API takes a host | `GET /file-collections/new`, or `?alert=` repeated, then `POST /file-collections` with a collector, a value and the alerts, one per line, under `file_collection:create` (the owner's decision of 2026-11-13) |
+//! | none: ace3's integrations ask for a collection, and a site's API may take a host | `GET /file-collections/new`, or `?alert=` repeated, then `POST /file-collections` with a collector, a value and the alerts, one per line, under `file_collection:create` (the owner's decision of 2026-11-13) |
 //!
 //! The pages need `remediation:read` or `file_collection:read`, and each form the matching `:write`, as
 //! ace3's routes do, but for the request form, which needs `file_collection:create`; the service checks each and audits each write. Every form is a `SignedIn` post, which

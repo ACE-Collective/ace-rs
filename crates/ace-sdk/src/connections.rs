@@ -1,25 +1,25 @@
 //! Shared connections: one named connection to a service in the site overlay, which many components
-//! of an integration name, as one of ace3's config sections (`mail_api`, `endpoint_vendor`,
-//! `virus_total`, `example_cloud`) serves every module, probe, command type and AI backend of its integration.
+//! of an integration name, as one of an integration's config sections in ace3
+//! (`mail_api`, `example_vendor`) serves every module, probe, command type and AI backend of its integration.
 //!
 //! ```yaml
 //! connections:
-//!   graph_readonly:
+//!   mail_readonly:
 //!     type: mail_api
 //!     settings:
 //!       tenant_id: 6f1c2a8e-0b7d-4e3a-9c55-2d4f8a1b3c70
 //!       client_id: 0d7e4c1a-5b2f-4a90-8e63-1c9b7f2a4d58
 //!       request_timeout_seconds: 10
 //!     secrets:
-//!       certificate: mail_api_readonly_certificate
-//!       certificate_password: mail_api_readonly_certificate_password
+//!       certificate: mail_readonly_certificate
+//!       certificate_password: mail_readonly_certificate_password
 //! modules:
-//!   entra_user:
+//!   mail_user:
 //!     connections:
-//!       mail_api: graph_readonly
+//!       mail_api: mail_readonly
 //! secrets:
-//!   mail_api_readonly_certificate: env:ACE4_MAIL_API_READONLY_CERTIFICATE
-//!   mail_api_readonly_certificate_password: env:ACE4_MAIL_API_READONLY_CERTIFICATE_PASSWORD
+//!   mail_readonly_certificate: env:ACE4_MAIL_READONLY_CERTIFICATE
+//!   mail_readonly_certificate_password: env:ACE4_MAIL_READONLY_CERTIFICATE_PASSWORD
 //! ```
 //!
 //! **A connection type** ([`ConnectionType`]) is what an integration declares for its service: its

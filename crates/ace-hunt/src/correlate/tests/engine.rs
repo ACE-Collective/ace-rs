@@ -405,7 +405,7 @@ fn test_replay_skips_live_source() {
     );
 }
 
-/// The spray_hunt incident's shape: condition(success) -> [log, transform(query -> count),
+/// A password-spray hunt's shape: condition(success) -> [log, transform(query -> count),
 /// when(count > 0 -> filter)].
 fn spray_like_config(timeout: &str) -> crate::correlate::Correlate {
     super::config(
@@ -413,7 +413,7 @@ fn spray_like_config(timeout: &str) -> crate::correlate::Correlate {
             "when": {"type": "equals", "value": "yes", "property": "is_success"},
             "execute": [
                 {"action": {"type": "log", "log_message": "{{ _event.ip }} success"}},
-                {"description": "Step: Filter if Azure Trusted Named Location",
+                {"description": "Step: Filter if trusted named location",
                  "transform": {"type": "event", "method": "property", "property_name": "correlate_trusted_location",
                     "property_type": "list",
                     "command": {"type": "query", "source": "splunk", "query": "search trusted ip={{ _event.ip }}",
@@ -469,7 +469,7 @@ fn test_midevent_timeout_is_visible_and_fails_safe() {
     let slow = Arc::new(slow);
     let f = f.source("splunk", slow.clone());
     let mut run = hunt(utc("2024-06-01T12:00:00+00:00"), "splunk");
-    run.name = Some("SSPR spray".to_owned());
+    run.name = Some("password spray".to_owned());
     run.uuid = Some("abc-123".to_owned());
     let result = f.run(
         &spray_like_config("15m"),
@@ -500,7 +500,7 @@ fn test_midevent_timeout_is_visible_and_fails_safe() {
         result
             .logs
             .iter()
-            .any(|l| l.message.contains("hunt SSPR spray (uuid=abc-123)"))
+            .any(|l| l.message.contains("hunt password spray (uuid=abc-123)"))
     );
 }
 

@@ -1,5 +1,5 @@
 //! Alert actions (PLAN.md decision 55): links a site's binary adds beside the alert page's own, such as
-//! a site's "Open in TriageTool".
+//! "Open in Triage tool".
 //!
 //! ace3's `AlertAction` (`saq/gui/alert_actions.py`) is a button with a name, a label, an icon, an
 //! optional template included once, a permission and `is_available(alert)`, registered at import and
@@ -13,7 +13,7 @@
 //! **Where it may lead.** An observable action's link is built from an observable's value, which an
 //! attacker can choose, so it may be only a path on this site or an `https://` URL. An alert action's is
 //! built from the site's configuration and the alert's uuid, and may also be `http://` to a loopback
-//! host (`localhost`, `127.0.0.0/8`, `[::1]`): a tool on the analyst's own machine, as TriageTool's UI is
+//! host (`localhost`, `127.0.0.0/8`, `[::1]`): a tool on the analyst's own machine, as a local triage tool's UI is
 //! (the owner's B1 answer 3). Nothing crosses a network, and browsers treat loopback origins as secure
 //! contexts. An absolute link never carries a user name or password, so it can't read as another host
 //! (`http://ace.example.com@203.0.113.9/`). Every link is printable ASCII with nothing an attribute or a
@@ -47,7 +47,7 @@ type Href = dyn Fn(&AlertActionTarget<'_>) -> Option<String> + Send + Sync;
 /// link for an alert.
 #[derive(Clone)]
 pub struct AlertAction {
-    /// ace3's name for it, such as `triage_tool_open`: 1 to 64 of `a-z`, `0-9` and `_`.
+    /// ace3's name for it, such as `triage_open`: 1 to 64 of `a-z`, `0-9` and `_`.
     pub name: &'static str,
     pub label: String,
     /// The link's `title`, what a pointer over it says.

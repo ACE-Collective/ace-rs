@@ -1,10 +1,10 @@
 //! The example site's hunt type and query source (PLAN.md decision 40): its hunts search its ticket
-//! system, as a site's integration adds a hunt type for its own data source (a site's LogScale).
+//! system, as a site's integration adds a hunt type for its own data source.
 //!
 //! - **The hunt type** `example_tickets` ([`TicketHunts`]): a hunt names the ticket `queue` it
 //!   searches, and may name the ticket field its event time is read from (`timestamp_field`, by
 //!   default `opened`), beside every query hunt's fields. Each ticket's `timestamp_field` is its
-//!   event's time, as a site's mail_filter hunts read theirs, and the type reads it
+//!   event's time, as a site's hunts may read theirs, and the type reads it
 //!   (`HuntType::event_time`, PLAN.md decision 43), so a validation run through `ace serve` times
 //!   the tickets it is sent as `ace hunter` times those a search finds. Its search
 //!   ([`TicketSearch`], `App::hunt_search`) asks the ticket system for the queue's tickets matching

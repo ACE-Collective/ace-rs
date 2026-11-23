@@ -1,10 +1,10 @@
 # 0005: A site's hunt types, query sources and named alert summaries
 
-Status: designed and built on 2026-11-21 as PLAN.md decision 40, for the site port's batch C2 (LogScale) and later D3 (MailFilter). It follows the extension points ace4 already has: `App::hunt_type` for a hunt type's validation, `App::command_type_with_connections` and the overlay's shared connections for a correlation command type, and `App::alert_summary` for the alert page's summary. *What the owner decides* lists the two choices it left open, which the owner made on 2026-11-22: a search past its timeout fails the run, and Splunk's instances became shared connections (PLAN.md decision 41), which changes *Splunk on the same path* below. PLAN.md decision 43 (2026-11-22) moved a row's event time from the search onto the hunt type, which changes *A hunt type's search*.
+Status: designed and built on 2026-11-21 as PLAN.md decision 40, for a site's batch C2 (its LogScale hunts) and a later batch, D3. It follows the extension points ace4 already has: `App::hunt_type` for a hunt type's validation, `App::command_type_with_connections` and the overlay's shared connections for a correlation command type, and `App::alert_summary` for the alert page's summary. *What the owner decides* lists the two choices it left open, which the owner made on 2026-11-22: a search past its timeout fails the run, and Splunk's instances became shared connections (PLAN.md decision 41), which changes *Splunk on the same path* below. PLAN.md decision 43 (2026-11-22) moved a row's event time from the search onto the hunt type, which changes *A hunt type's search*.
 
 ## The problem
 
-the site port's inventory (`docs/modules.md`, *Missing extension points*) names four gaps that stop a site's hunts from running in ace4:
+A site's inventory (its `docs/modules.md`, *Missing extension points*) names four gaps that stop a site's hunts from running in ace4:
 
 2. A hunt type adds only its validation (`App::hunt_type`). `ace hunter` runs a hunt only when its `type` is `splunk`, and skips any other, saying it "waits for its client". There is no way for a site to say how its hunts' query runs.
 3. A correlation's query sources are a closed enum with one variant, Splunk (`ace_app::hunter::QuerySourceConfig`). A site can't add one.
@@ -41,7 +41,7 @@ pub trait HuntType: Send + Sync {
 }
 ```
 
-`event_time` was first the search's, given the row alone. PLAN.md decision 42 added the hunt, so a type whose hunts name their time field (a site's mail_filter hunts' `timestamp_field`) can read it. Decision 43 moved it onto `HuntType`. `ace serve` holds the hunt types and no search, so before the move a validation run through the `hunt` router could time only Splunk's rows, which it special-cased. Now it times every type's rows as `ace hunter` does.
+`event_time` was first the search's, given the row alone. PLAN.md decision 42 added the hunt, so a type whose hunts name their time field (a site's hunts' `timestamp_field`) can read it. Decision 43 moved it onto `HuntType`. `ace serve` holds the hunt types and no search, so before the move a validation run through the `hunt` router could time only Splunk's rows, which it special-cased. Now it times every type's rows as `ace hunter` does.
 
 `Searched` holds what ran (the query as the type formats it, the link to it in the vendor's console, a search id, the `tool_instance`) and the rows or the error. `SearchLimits` is the hunter's poll interval and the hunt's `query_timeout`; `Stop` is a future that ends when the hunter stops, which a search must end on. This is ace3's `QueryHunt` contract (`execute_query`, `extract_event_timestamp`, `formatted_query`, `search_link`, `tool_instance`) without ace3's mutable hunt object.
 
@@ -58,7 +58,7 @@ query_sources:
   logscale:
     type: logscale
     settings: {repository: search-all, use_index_time: false}
-    connections: {endpoint_vendor: endpoint}
+    connections: {logscale: logscale_api}
 ```
 
 When the overlay has no `query_sources:` key the hunter has ace3's default, `splunk` on the `default` instance. A source that fails to build is logged and left out, and a query naming it fails its step, as in ace3.
@@ -76,7 +76,7 @@ A search or a source takes shared connections (`ace_sdk::connections`), and noth
 
 `SearchSetup` is what a builder is given: the entry's name, its settings, and its connections (each with its secrets when the process holds them). `ace hunter` resolves the secrets of the connections that `hunt_types:`, `query_sources:` and `command_types:` bind, and of the Splunk instances, and no others (PLAN.md 2.24). Every `ace` command checks the bindings against the slots when it reads the overlay (`App::check_overlay`), as it checks a command type's, and a connection that only a search or a source binds counts as one a component of the binary takes.
 
-So a site's `endpoint_vendor` connection is held by the lookups pool (its Endpoint modules) and by `ace hunter` (the LogScale search and source). The AI backend's read-only client is a second connection of the same type, bound only by its `ai_api.backends` entry, so only `ace serve-ai` holds it.
+So a site's vendor connection can be held by the lookups pool (the vendor's modules) and by `ace hunter` (the site's search and source). The AI backend's read-only client is a second connection of the same type, bound only by its `ai_api.backends` entry, so only `ace serve-ai` holds it.
 
 ### What `ace serve` gets
 
@@ -84,7 +84,7 @@ So a site's `endpoint_vendor` connection is held by the lookups pool (its Endpoi
 
 ### An alert summary chosen by name
 
-`App::alert_template::<T: AlertSummary>(name)` adds a summary under a template name, such as ace3's `endpoint_vendor/logscale.html`. The alert page's choice becomes ace3's: the submission's `extensions.alert_template` first, when a summary has that name, then the alert's type as now, then the default. A name with no summary falls through to the type, where ace3 would fail to render the page; that is logged. The open-source hunt summary is registered under ace3's own name too, `analysis/custom/hunter_splunk.html`, which two of the signatures' hunts name.
+`App::alert_template::<T: AlertSummary>(name)` adds a summary under a template name, such as `example/ticket.html`. The alert page's choice becomes ace3's: the submission's `extensions.alert_template` first, when a summary has that name, then the alert's type as now, then the default. A name with no summary falls through to the type, where ace3 would fail to render the page; that is logged. The open-source hunt summary is registered under ace3's own name too, `analysis/custom/hunter_splunk.html`, which two of the signatures' hunts name.
 
 The summaries live in the binary, as askama templates, as the owner's direction of 2026-11-15 has it for summaries by type ("a site/integration can register its own through `App`"). ace3's Manual Analysis list of selectable templates (`custom_alerts.selectable_templates`) has no counterpart, since ace4 has no Manual Analysis page; when it has one, it offers the named summaries.
 
@@ -94,9 +94,9 @@ The summaries live in the binary, as askama templates, as the owner's direction 
 - `ace_sdk::overlay`: two sections, `hunt_types:` and `query_sources:`.
 - `ace_gui::analysis::summary`: named summaries.
 - `ace-site-example`: a hunt type with a search, `example_tickets`, over its ticket system's connection, and a query source type, `example_tickets`, each tested against a recorded ticket system; a named summary.
-- site_port: LogScale's search, source, AI backend and two summaries (batch C2).
+- A site's repository: its hunt type's search, source, AI backend and two summaries (batch C2).
 
 ## What the owner decides
 
-1. **A search's timeout.** (Decided 2026-11-22: a search past its timeout fails the run.) a site's LogScale search returns the rows it has when its timeout passes, which is none until the search is done, and ace3's hunter then records the window as searched, so a slow search silently skips a window. ace4's Splunk search fails the run instead, and the window is searched again on the next tick. Recommendation: LogScale fails too, as built; its AI backend already turns the same case into a 504.
+1. **A search's timeout.** (Decided 2026-11-22: a search past its timeout fails the run.) A site's Python search returns the rows it has when its timeout passes, which is none until the search is done, and ace3's hunter then records the window as searched, so a slow search silently skips a window. ace4's Splunk search fails the run instead, and the window is searched again on the next tick. Recommendation: the site's search fails too, as built; its AI backend already turns the same case into a 504.
 2. **Splunk's instances.** (Decided 2026-11-22: they become shared connections of type `splunk`, PLAN.md decision 41.) They stay in the hunter configuration, so `ace serve` can't build the Splunk query sources for validation and the Splunk AI backend repeats an instance's settings. Recommendation: leave them for now; if the owner wants one place for every credential, they become shared connections of a type `splunk`, which needs a binding per instance name, not per fixed slot.

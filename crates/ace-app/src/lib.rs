@@ -328,7 +328,7 @@ impl App {
 
     /// Adds the alert page's summary `T` under the template name `name` (PLAN.md decision 40), ace3's
     /// alert template chosen by name: an alert whose hunt names it in `alert_template`, such as
-    /// `endpoint_vendor/logscale.html`, has this summary, whatever its type. A name with no summary falls
+    /// `example/ticket.html`, has this summary, whatever its type. A name with no summary falls
     /// back to the alert's type. One with a name already added takes its place.
     ///
     /// # Panics
@@ -1928,14 +1928,14 @@ mod tests {
         let app = base()
             .module_in_mode("corelation", "email_analyzer")
             .module_in_mode("correlation", "email_analyzer")
-            .module_in_mode("correlation", "mail_api_email_extraction");
+            .module_in_mode("correlation", "mailbox_email_extraction");
         let wrong = app.check_modes().expect_err("refused");
         assert_eq!(
             wrong,
             "module_in_mode(corelation, email_analyzer): there's no analysis mode corelation \
              (the modes are analysis, binary, cli, correlation, dispositioned, email, event, file, \
-             suricata_ids, yara); module_in_mode(correlation, mail_api_email_extraction): no pool of \
-             the list registers a module mail_api_email_extraction"
+             suricata_ids, yara); module_in_mode(correlation, mailbox_email_extraction): no pool of \
+             the list registers a module mailbox_email_extraction"
         );
         assert_eq!(app.ace_main(), ExitCode::from(2));
     }

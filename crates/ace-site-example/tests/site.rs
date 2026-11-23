@@ -2258,7 +2258,7 @@ async fn a_site_s_hunt_type_runs_its_hunts_through_its_own_search() {
 }
 
 /// A hunt's own `timestamp_field` times its rows (PLAN.md decisions 42 and 43), as a site's
-/// mail_filter hunts name theirs: the type reads a ticket's time from the field the hunt names, `opened`
+/// hunts may name theirs: the type reads a ticket's time from the field the hunt names, `opened`
 /// when it names none, and a ticket without it has none, so its submission takes the query's.
 #[tokio::test(flavor = "multi_thread")]
 async fn a_hunt_s_timestamp_field_times_its_rows() {
@@ -2707,7 +2707,7 @@ fn the_site_binary_draws_the_summary_a_hunt_names() {
     let drawn = draw(&named(" analysis/custom/hunter_splunk.html ")).expect("the hunt summary");
     assert_eq!(drawn.alert_type, "analysis/custom/hunter_splunk.html");
     // a name the binary has no summary for falls back to the type's
-    let drawn = draw(&named("endpoint_vendor/logscale.html")).expect("the type's summary");
+    let drawn = draw(&named("vendor/unknown.html")).expect("the type's summary");
     assert_eq!(drawn.alert_type, "hunter");
     // and a named summary draws an alert with no type
     let untyped = tree(json!({

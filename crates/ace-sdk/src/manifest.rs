@@ -832,14 +832,14 @@ mod tests {
         );
     }
 
-    /// A cacheable lookup that takes `upload_to_vt` only from an analyst (PLAN.md decision 44) and
-    /// reads its input file's bytes (decision 45), as a site's VirusTotal upload does.
+    /// A cacheable lookup that takes `upload_to_scanner` only from an analyst (PLAN.md decision 44) and
+    /// reads its input file's bytes (decision 45), as a site's upload to a scanning service does.
     struct AnalystAsked;
 
     impl Module for AnalystAsked {
         const NAME: &'static str = "analyst_asked";
         const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
-        const REQUIRED_DIRECTIVES: &'static [&'static str] = &["upload_to_vt"];
+        const REQUIRED_DIRECTIVES: &'static [&'static str] = &["upload_to_scanner"];
         const READS_INPUT_FILE: bool = true;
         const CACHE: Option<crate::cache::Cache> = Some(crate::cache::Cache::new(
             1,
@@ -853,7 +853,7 @@ mod tests {
         fn takes(_: &DeclaringSettings) -> Takes {
             Takes::everything().and(
                 crate::takes::Condition::directive_from(
-                    "upload_to_vt",
+                    "upload_to_scanner",
                     &[crate::directives::DirectiveSource::Analyst],
                 ),
                 "no analyst asked for an upload",
@@ -884,7 +884,7 @@ mod tests {
         assert!(!Manifest::lookup::<Gated>().reads_input_file);
         let run = |sources: Vec<SourcedDirective>| async move {
             let mut observable = crate::Observable::new(ObservableKind::File, "0".repeat(64));
-            observable.directives = vec!["upload_to_vt".to_owned()];
+            observable.directives = vec!["upload_to_scanner".to_owned()];
             let ctx = crate::TaskContext::new::<AnalystAsked>(
                 uuid::Uuid::nil(),
                 observable,
@@ -899,15 +899,15 @@ mod tests {
         let declined = crate::Outcome::Skipped("no analyst asked for an upload".to_owned());
         assert_eq!(run(Vec::new()).await, declined);
         let others = vec![
-            SourcedDirective::new("upload_to_vt", DirectiveSource::Hunt),
-            SourcedDirective::new("upload_to_vt", DirectiveSource::Submission),
-            SourcedDirective::new("upload_to_vt", DirectiveSource::Module),
+            SourcedDirective::new("upload_to_scanner", DirectiveSource::Hunt),
+            SourcedDirective::new("upload_to_scanner", DirectiveSource::Submission),
+            SourcedDirective::new("upload_to_scanner", DirectiveSource::Module),
             SourcedDirective::new("crawl", DirectiveSource::Analyst),
         ];
         assert_eq!(run(others).await, declined);
         assert_eq!(
             run(vec![SourcedDirective::new(
-                "upload_to_vt",
+                "upload_to_scanner",
                 DirectiveSource::Analyst
             )])
             .await,

@@ -30,7 +30,7 @@
 //! `publish` reads and changes. A pass claims the row with a lease, so two replicas never publish at once,
 //! and writes it back after: the new fingerprint after a publish that returned Ok, the old one after one
 //! that failed, so the next pass tries again, and the document either way, so what landed is kept, as
-//! a site's export records each file in a `finally`. A publish that runs past `publish_timeout_seconds`
+//! a site's Python export records each file in a `finally`. A publish that runs past `publish_timeout_seconds`
 //! (600) is dropped and counted failed.
 //!
 //! **Passes.** One every `interval_seconds` (60, ace3's cron minute), or one with `--once`, `--force`
@@ -46,7 +46,7 @@
 //! `seconds`.
 //!
 //! **A site's Compose service.** As a collector's (`crate::collector`), with the export's connection's
-//! secret and none of the others, and `command: ["site-ace", "export", "siem_export_lookup"]`.
+//! secret and none of the others, and `command: ["site-ace", "export", "example_lookup"]`.
 
 use std::collections::BTreeSet;
 use std::future::Future;

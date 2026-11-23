@@ -3,7 +3,7 @@
 -- that added it. `analysis.observables.directives` stays the one list every rule reads; this records
 -- the sources beside it, one row for each directive, source and who, so a module's declaration can
 -- take a directive only from an analyst (`ace_sdk::takes::Condition::DirectiveFrom`), as a site's
--- VirusTotal upload must.
+-- upload of a file to an outside service must.
 --
 -- `added_by` says who: an analyst's or a submitter's identity as the audit names it (`user:3`,
 -- `api_key:7`, `internal:collector:x`), a hunt's name, or a module's key. A directive that was on an

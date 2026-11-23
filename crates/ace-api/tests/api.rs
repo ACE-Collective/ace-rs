@@ -9693,7 +9693,7 @@ async fn remediation_routers(client: &mut Client<'_>) {
     .expect("reads");
     assert_eq!(actions.len(), 3);
     for body in [
-        json!({"collector": "endpoint", "observable_type": "file_location", "observable_value": "h@C:\\x"}),
+        json!({"collector": "unknown", "observable_type": "file_location", "observable_value": "h@C:\\x"}),
         json!({"collector": "edr", "observable_type": "hostname", "observable_value": "h"}),
         json!({"collector": "edr", "observable_type": "file_location", "observable_value": "no host"}),
         json!({"collector": "edr", "observable_type": "file_location", "observable_value": "h@C:\\x", "extra": 1}),

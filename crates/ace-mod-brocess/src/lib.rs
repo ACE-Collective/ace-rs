@@ -18,7 +18,7 @@
 //!
 //! `similarity` (ace3's `saq.domain_similarity`) and `thread::IgnoredDomainPairs` (the thread
 //! settings' `is_ignored_pair`) are for a site's modules too, as ace3's are for its integrations:
-//! a site's `mail_filter_email_thread_recovery` compares a recovered conversation's domains with
+//! a site's thread recovery module compares a recovered conversation's domains with
 //! them (PLAN.md decision 29).
 
 pub mod attachment;

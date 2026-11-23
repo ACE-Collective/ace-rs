@@ -6,7 +6,7 @@ It runs inside ace3's dev container on ace3's Python, writing only under its wor
 
     docker exec -i -e PYTHONDONTWRITEBYTECODE=1 -e SAQ_SKIP_LOCAL_SAQ_YAML=1 ace-dev-1 \\
         /venv/bin/python3 - --work /tmp/ace4-dumps/hunts --root /opt/ace/signatures \\
-        --rule-dir splunk=hunts/splunk --rule-dir logscale=hunts/logscale \\
+        --rule-dir splunk=hunts/splunk \\
         < tools/ace3/hunts/load_hunts.py
 
 tools/ace3/hunts/make-hunts calls it. For each hunt type it does what HuntManager's
@@ -15,7 +15,8 @@ outside the hunt files left out:
 
 - _list_hunt_yaml lists the hunts, through ace3's own method;
 - each hunt loads as its class's load_hunt_config does, load_from_yaml with the type's config
-  class (SplunkHuntConfig, LogscaleHuntConfig, Rapid7HuntConfig), and then as QueryHunt.load_hunt
+  class (ace3's SplunkHuntConfig, or the class --hunt-class names for a type an integration
+  installed beside ace3 adds), and then as QueryHunt.load_hunt
   does, reading its query file when it names one;
 - SplunkHunt's constructor looks its splunk_config up in ace3's configuration, so that lookup is
   made too;
@@ -23,7 +24,7 @@ outside the hunt files left out:
   a name loaded before it in the same type, in listing order.
 
 What's left out is the rest of each class's constructor, which needs credentials or an API:
-LogscaleHunt's get_endpoint_auth and Rapid7Hunt's log name lookup (6.4 brings those).
+an integration's sign-in or lookups (6.4 brings those).
 
 The output, hunts.json in the work directory, lists every hunt file by its path under --root,
 with its type and either `loaded`, the config as pydantic dumps it with its aliases plus the
@@ -40,12 +41,21 @@ import sys
 
 ACE3 = "/opt/ace"
 
-# the hunt types make-hunts loads, and the config class each one's hunt class validates with
+# the hunt types make-hunts loads, and the config class each one's hunt class validates with: ace3's
+# own Splunk type, and each type an integration installed beside ace3 adds, named by --hunt-class
 CONFIG_CLASSES = {
     "splunk": ("saq.collectors.hunter.splunk_hunter", "SplunkHuntConfig"),
-    "logscale": ("endpoint.collectors.hunter.logscale_hunter", "LogscaleHuntConfig"),
-    "rapid7": ("rapid7.collectors.hunter.rapid7_hunter", "Rapid7HuntConfig"),
 }
+
+
+def add_hunt_classes(specs, parser):
+    """--hunt-class TYPE=MODULE:CLASS, for a hunt type an integration adds."""
+    for spec in specs:
+        hunt_type, _, target = spec.partition("=")
+        module_name, _, class_name = target.partition(":")
+        if not (hunt_type and module_name and class_name):
+            parser.error(f"--hunt-class {spec!r}: expected TYPE=MODULE:CLASS")
+        CONFIG_CLASSES[hunt_type] = (module_name, class_name)
 
 # SplunkHunt's constructor looks up the splunk config its hunt names, `default` unless it says
 # otherwise, and ace3's shipped configuration has none of that name without the local overlay. This
@@ -84,7 +94,10 @@ def parse_args():
     parser.add_argument("--root", required=True, help="the directory hunt paths are written relative to")
     parser.add_argument("--rule-dir", action="append", default=[], metavar="TYPE=DIR",
                         help="a hunt type and one of its rule directories, relative to --root")
+    parser.add_argument("--hunt-class", action="append", default=[], metavar="TYPE=MODULE:CLASS",
+                        help="the config class of a hunt type an integration adds")
     args = parser.parse_args(sys.argv[1:])
+    add_hunt_classes(args.hunt_class, parser)
     if not args.work.startswith("/tmp/"):
         parser.error("--work must be under /tmp")
     return args

@@ -465,7 +465,7 @@
 //! | `DELETE /remediation/remediations/{id}` | `DELETE /api/remediation/v1/remediations/{id}`, audited |
 //! | none | `GET /api/remediation/v1/remediations/{id}` |
 //! | `GET /file-collections/?f=&cursor=&limit=&tz=`, its exports | `GET /api/file-collections/v1/collections`, and `/export/csv`, `/export/ndjson` |
-//! | none in ace3's router; a site's `POST /integrations/endpoint_vendor/endpoint/browser-history`, `{hostname}`, under `file_collection:create` | `POST /api/file-collections/v1/collections`, `{collector, observable_type, observable_value, alerts}`, under `file_collection:create`: 201 for a new collection, 200 for a pending one it joins, audited |
+//! | none in ace3's router; a site integration's own endpoint, under `file_collection:create` | `POST /api/file-collections/v1/collections`, `{collector, observable_type, observable_value, alerts}`, under `file_collection:create`: 201 for a new collection, 200 for a pending one it joins, audited |
 //! | `GET /file-collections/{id}/history?limit=` | `GET /api/file-collections/v1/collections/{id}/history?limit=` |
 //! | `POST /file-collections/{id}/cancel`, `/retry` | the same under `/api/file-collections/v1/collections/{id}/`, audited |
 //! | `DELETE /file-collections/{id}` | `DELETE /api/file-collections/v1/collections/{id}`, audited |
@@ -479,7 +479,7 @@
 //! - A file collection's row names every alert it belongs to (`alerts`), where ace3's has one
 //!   `alert_uuid` (#1101), and its `file` once collected.
 //! - A value its type refuses is 400 where ace3 answers 422.
-//! - ace3's `file_collection:create`, which only an integration's API (EndpointVendor's endpoint) checks, isn't
+//! - ace3's `file_collection:create`, which only an integration's own API checks, isn't
 //!   here: nothing in this repository asks for a collection through the API.
 //!
 //! ace3's `cli` router and the `engine` router's `cli` endpoint (PLAN.md 5.6, 5.12), under `cli:execute`

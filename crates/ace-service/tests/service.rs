@@ -15677,7 +15677,7 @@ async fn request_file_collection_records_its_row(db: &Db) -> String {
     let refusals: Vec<(ace_service::CollectionAsk, &str)> = vec![
         (
             ace_service::CollectionAsk {
-                collector: "endpoint".to_owned(),
+                collector: "unknown".to_owned(),
                 ..collection_ask(value, &[])
             },
             "invalid",
@@ -16540,7 +16540,7 @@ fn coverage_sums_up_as_ace3_s() {
     assert_eq!(watching.state(), CoverageState::Pending);
     assert_eq!(watching.status_label(), "watching 0/1");
     let events = serde_json::json!([{
-        "source": "MailVendor", "event_type": "remediated", "timestamp": "2026-11-01T00:00:00Z",
+        "source": "Mail Vendor", "event_type": "remediated", "timestamp": "2026-11-01T00:00:00Z",
         "description": "moved"
     }]);
     let partial = ace_service::assemble_coverage(
@@ -16555,7 +16555,7 @@ fn coverage_sums_up_as_ace3_s() {
         Default::default(),
     );
     assert_eq!(partial.state(), CoverageState::Partial);
-    assert_eq!(partial.label(), "remediated 1/2 · MailVendor");
+    assert_eq!(partial.label(), "remediated 1/2 · Mail Vendor");
 
     let mut failed = std::collections::BTreeMap::new();
     failed.insert(
@@ -16588,7 +16588,7 @@ fn coverage_sums_up_as_ace3_s() {
     );
     let superseded = ace_service::CoverageCheck {
         result_message: Some(ace_core::actions::probe_supersede_reason(
-            "msmail_filter",
+            "other_vendor",
             None,
         )),
         ..check("<c>|w@y", "COMPLETED", Some("SUPERSEDED"), None)
@@ -16601,7 +16601,7 @@ fn coverage_sums_up_as_ace3_s() {
             Default::default()
         )
         .label(),
-        "remediated 1/1 · msmail_filter"
+        "remediated 1/1 · other_vendor"
     );
     let many: Vec<String> = (0..30).map(|i| format!("<m>|u{i}@y")).collect();
     let many = ace_service::assemble_coverage(
@@ -51310,13 +51310,13 @@ mod ai_tests {
 mod directive_tests {
     use super::*;
 
-    /// A site's directive, as site_ace registers `locate_file`.
+    /// A site's directive, such as `locate_file`.
     const LOCATE_FILE: ace_service::Directive = ace_service::Directive::new(
         "locate_file",
         "locate the on-disk host(s) and path(s) of this file by its SHA256",
     );
 
-    /// A module that requires the site's directive, as a site's `mail_filter_file_location_resolver` does.
+    /// A module that requires the site's directive, as a site's file location resolver does.
     struct Directed;
 
     impl Module for Directed {
@@ -51615,17 +51615,17 @@ mod directive_tests {
         row.action
     }
 
-    /// `upload_to_vt`, a directive whose module sends a file out of ACE, as a site's VirusTotal upload.
-    const UPLOAD_TO_VT: ace_service::Directive =
-        ace_service::Directive::new("upload_to_vt", "upload the file to VirusTotal");
+    /// `upload_to_scanner`, a directive whose module sends a file out of ACE, as a site's upload to a scanning service.
+    const UPLOAD_TO_SCANNER: ace_service::Directive =
+        ace_service::Directive::new("upload_to_scanner", "upload the file to a scanning service");
 
-    /// A module that takes `upload_to_vt` only from an analyst (PLAN.md decision 44).
+    /// A module that takes `upload_to_scanner` only from an analyst (PLAN.md decision 44).
     struct AnalystOnly;
 
     impl Module for AnalystOnly {
         const NAME: &'static str = "test_analyst_only";
         const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
-        const REQUIRED_DIRECTIVES: &'static [&'static str] = &["upload_to_vt"];
+        const REQUIRED_DIRECTIVES: &'static [&'static str] = &["upload_to_scanner"];
         type Output = StubOutput;
         type Settings = ();
 
@@ -51636,7 +51636,7 @@ mod directive_tests {
         fn takes(_: &()) -> ace_sdk::takes::Takes {
             ace_sdk::takes::Takes::everything().and(
                 ace_sdk::takes::Condition::directive_from(
-                    "upload_to_vt",
+                    "upload_to_scanner",
                     &[ace_sdk::directives::DirectiveSource::Analyst],
                 ),
                 "no analyst asked for an upload",
@@ -51687,13 +51687,13 @@ mod directive_tests {
         let actor = admin(db).await;
         let orchestrator = analyst_only_orchestrator();
         let service = Service::new(db.clone(), analyst_only_orchestrator()).with_directives(
-            ace_sdk::directives::directive_list(&[UPLOAD_TO_VT]).expect("a valid list"),
+            ace_sdk::directives::directive_list(&[UPLOAD_TO_SCANNER]).expect("a valid list"),
         );
         let root = NewRoot::new("correlation");
         let mut tx = db.begin().await.expect("begins");
         tree::create_root(&mut tx, &root).await.expect("creates");
         let stamped = NewObservable {
-            directives: vec!["upload_to_vt".to_owned()],
+            directives: vec!["upload_to_scanner".to_owned()],
             ..NewObservable::new(ObservableKind::Fqdn, "upload.example.com")
         };
         let id = tree::upsert_observable(&mut tx, root.id, &stamped)
@@ -51727,11 +51727,11 @@ mod directive_tests {
         assert_eq!(queued.len(), 0);
 
         let added = service
-            .add_directives(&actor, root.id, id.0, &["upload_to_vt".to_owned()])
+            .add_directives(&actor, root.id, id.0, &["upload_to_scanner".to_owned()])
             .await
             .expect("adds");
         assert_eq!(added.added, Vec::<String>::new(), "it had the directive");
-        assert_eq!(added.directives, ["upload_to_vt"]);
+        assert_eq!(added.directives, ["upload_to_scanner"]);
         assert_eq!(added.queued, 1);
         assert_eq!(
             task_state(db, root.id, id.0, AnalystOnly::NAME)
@@ -51742,10 +51742,10 @@ mod directive_tests {
         assert_eq!(
             sources_of(db, root.id, id.0).await,
             [
-                source("upload_to_vt", "analyst", &actor.to_string()),
-                source("upload_to_vt", "hunt", "splunk/hunt"),
-                source("upload_to_vt", "module", "some_module"),
-                source("upload_to_vt", "submission", "api_key:9"),
+                source("upload_to_scanner", "analyst", &actor.to_string()),
+                source("upload_to_scanner", "hunt", "splunk/hunt"),
+                source("upload_to_scanner", "module", "some_module"),
+                source("upload_to_scanner", "submission", "api_key:9"),
             ]
         );
     }
@@ -51758,7 +51758,7 @@ mod directive_tests {
         let db = test_db.db();
         let (bucket, _cache) = bucket(db).await;
         let mut hit = hunt_submission();
-        hit.origin.observables[0].directives = vec!["upload_to_vt".to_owned()];
+        hit.origin.observables[0].directives = vec!["upload_to_scanner".to_owned()];
         let recorded = service(db)
             .record_hunt_run(
                 &hunter(),
@@ -51771,7 +51771,7 @@ mod directive_tests {
         let ip = observable_id(db, root, "10.1.2.3").await;
         assert_eq!(
             sources_of(db, root, ip).await,
-            [source("upload_to_vt", "hunt", "splunk/hunt")]
+            [source("upload_to_scanner", "hunt", "splunk/hunt")]
         );
 
         let actor = admin(db).await;
@@ -51784,7 +51784,7 @@ mod directive_tests {
                 value: "submitted.example.com".to_owned(),
                 time: None,
                 tags: Vec::new(),
-                directives: vec!["upload_to_vt".to_owned(), "crawl".to_owned()],
+                directives: vec!["upload_to_scanner".to_owned(), "crawl".to_owned()],
                 exclude_modules: Vec::new(),
             }],
             file_yara_meta: Default::default(),
@@ -51800,7 +51800,7 @@ mod directive_tests {
             sources_of(db, root, fqdn).await,
             [
                 source("crawl", "submission", &by),
-                source("upload_to_vt", "submission", &by),
+                source("upload_to_scanner", "submission", &by),
             ]
         );
     }

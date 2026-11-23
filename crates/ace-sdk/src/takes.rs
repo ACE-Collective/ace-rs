@@ -148,7 +148,7 @@ pub enum Condition {
     /// The observable has this directive.
     Directive(String),
     /// The observable has this directive from one of these sources (PLAN.md decision 44), as a
-    /// module that uploads a file to a vendor takes `upload_to_vt` only from an analyst. Its other
+    /// module that uploads a file to a vendor takes `upload_to_scanner` only from an analyst. Its other
     /// sources don't count, nor does a directive added before ACE recorded where directives came
     /// from.
     DirectiveFrom {
@@ -966,7 +966,7 @@ mod tests {
     #[test]
     fn lineage_and_type_conditions_read_their_facts() {
         let none = BTreeMap::new();
-        let added = ["entra_device".to_owned()];
+        let added = ["device_lookup".to_owned()];
         let mut facts = Facts {
             kind: ObservableKind::EmailFrom,
             directives: &[],
@@ -979,11 +979,11 @@ mod tests {
             file: None,
             results: &none,
         };
-        let others = Condition::added_by_other_than(&["entra_device"]);
+        let others = Condition::added_by_other_than(&["device_lookup"]);
         assert!(!Condition::AtRoot.holds(&facts));
         assert!(!others.holds(&facts));
-        assert!(Condition::added_by("entra_device").holds(&facts));
-        let both = ["entra_device".to_owned(), "email_analyzer".to_owned()];
+        assert!(Condition::added_by("device_lookup").holds(&facts));
+        let both = ["device_lookup".to_owned(), "email_analyzer".to_owned()];
         facts.added_by = &both;
         assert!(others.holds(&facts));
         facts.at_root = true;
@@ -1007,8 +1007,11 @@ mod tests {
     #[test]
     fn a_directive_from_holds_only_for_the_sources_it_names() {
         let none = BTreeMap::new();
-        let directives = ["upload_to_vt".to_owned()];
-        let hunt = [SourcedDirective::new("upload_to_vt", DirectiveSource::Hunt)];
+        let directives = ["upload_to_scanner".to_owned()];
+        let hunt = [SourcedDirective::new(
+            "upload_to_scanner",
+            DirectiveSource::Hunt,
+        )];
         let mut facts = Facts {
             kind: ObservableKind::File,
             directives: &directives,
@@ -1021,19 +1024,19 @@ mod tests {
             file: None,
             results: &none,
         };
-        let analyst = Condition::directive_from("upload_to_vt", &[DirectiveSource::Analyst]);
-        assert!(Condition::directive("upload_to_vt").holds(&facts));
+        let analyst = Condition::directive_from("upload_to_scanner", &[DirectiveSource::Analyst]);
+        assert!(Condition::directive("upload_to_scanner").holds(&facts));
         assert!(!analyst.holds(&facts));
         assert!(
             Condition::directive_from(
-                "upload_to_vt",
+                "upload_to_scanner",
                 &[DirectiveSource::Hunt, DirectiveSource::Analyst]
             )
             .holds(&facts)
         );
         let both = [
-            SourcedDirective::new("upload_to_vt", DirectiveSource::Hunt),
-            SourcedDirective::new("upload_to_vt", DirectiveSource::Analyst),
+            SourcedDirective::new("upload_to_scanner", DirectiveSource::Hunt),
+            SourcedDirective::new("upload_to_scanner", DirectiveSource::Analyst),
         ];
         facts.directive_sources = &both;
         assert!(analyst.holds(&facts));
@@ -1053,7 +1056,7 @@ mod tests {
         assert_eq!(back, analyst);
         assert_eq!(
             serde_json::to_value(&analyst).expect("writes"),
-            json!({"directive_from": {"directive": "upload_to_vt", "sources": ["analyst"]}})
+            json!({"directive_from": {"directive": "upload_to_scanner", "sources": ["analyst"]}})
         );
     }
 

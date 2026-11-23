@@ -53,7 +53,11 @@ def parse_args():
     sigs = sub.add_parser("signatures")
     sigs.add_argument("--root", required=True)
     sigs.add_argument("--rule-dir", action="append", default=[], metavar="TYPE=DIR")
+    sigs.add_argument("--hunt-class", action="append", default=[], metavar="TYPE=MODULE:CLASS")
     args = parser.parse_args(sys.argv[1:])
+    import load_hunts
+
+    load_hunts.add_hunt_classes(getattr(args, "hunt_class", []), parser)
     if not args.work.startswith("/tmp/"):
         parser.error("--work must be under /tmp")
     return args
@@ -335,7 +339,7 @@ def variants(fields, consts):
     strings  every field a realistic string
     second   every field the other realistic string, for a second event in a group
     lists    every field a two-item list, as a Splunk multivalue field is
-    numbers  every field an integer, as LogScale and Rapid7 give numbers
+    numbers  every field an integer, as some query APIs give numbers
     json     every field a JSON string of an object holding every field, for fromjson
     nested   every field an object holding every field, for .get() and attributes on a value
     records  every field a list of two objects holding every field, the first with the constants

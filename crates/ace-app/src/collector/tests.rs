@@ -66,7 +66,7 @@ impl Fixture {
     }
 }
 
-/// A source in memory, as a queue queue: an item stays until the collector says it has it, and one
+/// A source in memory, as a message queue: an item stays until the collector says it has it, and one
 /// given back is offered again.
 #[derive(Default)]
 struct Queue {
@@ -196,7 +196,7 @@ async fn each_item_is_submitted_once() {
                 && queue.refused.lock().expect("refused").len() == 1
         })
         .await;
-        // the source offers one again, as queue does when a delete didn't land
+        // the source offers one again, as a queue does when a delete didn't land
         queue.offer("mail/a", "email");
         until("the redelivered item handled", || {
             queue.taken.lock().expect("taken").len() == 3

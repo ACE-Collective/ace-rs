@@ -278,14 +278,15 @@ DECISIONS = {"crate", "runner", "children", "scanner", "none"}
 # the core's list, which a worker reads through the core (PLAN.md 7.4).
 ADDED_READS = {"newly-registered": "nrd_analyzer"}
 # Reads ace4 serves for a site integration's module, which isn't one of ace3's sections and so has no
-# row here: a site's mail_filter_email_thread_recovery asks the thread store which ids it holds, as
-# ace3's get_recorded_message_ids (PLAN.md decision 29); its Endpoint file collector reads its
-# collection's state, as its get_file_collection (decision 49), and its ExampleSandbox module the sandbox
-# submissions table, as its get_existing_submission (decision 50).
+# row here: a site's thread recovery module asks the thread store which ids it holds, as
+# ace3's get_recorded_message_ids (PLAN.md decision 29); its endpoint file collector reads its
+# collection's state, as its get_file_collection (decision 49), and its sandbox module the sandbox
+# submissions table, as its get_existing_submission (decision 50). reads.md names each by a
+# placeholder.
 SITE_READS = {
-    "recorded-message-ids": "mail_filter_email_thread_recovery",
-    "file-collection": "endpoint_file_collector",
-    "sandbox-submission": "example_sandbox_file_analyzer",
+    "recorded-message-ids": "site_thread_recovery",
+    "file-collection": "site_file_collector",
+    "sandbox-submission": "site_sandbox_analyzer",
 }
 SERVED = {"lease", "ruleset", "end", "core"}
 FUNCTION = (ast.FunctionDef, ast.AsyncFunctionDef)

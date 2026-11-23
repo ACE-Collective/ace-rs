@@ -113,7 +113,7 @@ impl Directive {
 /// descriptions (`saq/constants.py` at `fe6da632`). ace3 offers eleven more that nothing here reads:
 /// `analyze_activity`, `extract_email`, `extract_pcap`, `no_cache`, `scan_urlscan`, `triage`,
 /// `force_download` and `phishkit` are read by no module in ace3 either, and `sandbox`, `no_sandbox`
-/// and `sandbox_force` only by ace3's `SandboxAnalysisModule`, whose one user is a site's ExampleSandbox module,
+/// and `sandbox_force` only by ace3's `SandboxAnalysisModule`, whose one user is a site's sandbox module,
 /// which registers them when it is ported (the owner's decision of 2026-11-20).
 pub const BUILTIN: &[Directive] = &[
     Directive::new("collect_file", "collect the file from the remote endpoint"),

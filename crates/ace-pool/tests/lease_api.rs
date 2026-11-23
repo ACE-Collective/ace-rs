@@ -6739,7 +6739,7 @@ mod lineage {
                 .and(Condition::Mode("analysis".to_owned()), "not analysis")
                 .and(
                     Condition::directive_from(
-                        "upload_to_vt",
+                        "upload_to_scanner",
                         &[ace_sdk::directives::DirectiveSource::Analyst],
                     ),
                     "no analyst asked",
@@ -6786,7 +6786,7 @@ async fn a_lease_carries_the_event_time_and_the_gate_only_to_what_reads_them() {
         .await
         .expect("creates");
     let stamped = ace_results::NewObservable {
-        directives: vec!["upload_to_vt".to_owned()],
+        directives: vec!["upload_to_scanner".to_owned()],
         ..ace_results::NewObservable::new(ace_results::ObservableKind::Fqdn, "a.example")
     };
     let id = ace_core::tree::upsert_observable(&mut tx, root.id, &stamped)
@@ -6829,8 +6829,8 @@ async fn a_lease_carries_the_event_time_and_the_gate_only_to_what_reads_them() {
             at_root: true,
             // each source once, whoever added it
             directive_sources: vec![
-                SourcedDirective::new("upload_to_vt", DirectiveSource::Analyst),
-                SourcedDirective::new("upload_to_vt", DirectiveSource::Hunt),
+                SourcedDirective::new("upload_to_scanner", DirectiveSource::Analyst),
+                SourcedDirective::new("upload_to_scanner", DirectiveSource::Hunt),
             ],
         }
     );
@@ -7162,7 +7162,7 @@ mod asks {
     };
     use ace_sdk::{Lookup, Module, ModuleError, Outcome, TaskContext};
 
-    /// A stand-in for a site's `endpoint_file_collector`, whose tasks the tests end themselves.
+    /// A stand-in for a site's endpoint file collector, whose tasks the tests end themselves.
     pub struct AsksForAFile;
 
     impl Module for AsksForAFile {
@@ -7196,7 +7196,7 @@ mod asks {
         const MODULE: &'static str = "test_sandbox";
     }
 
-    /// A stand-in for a site's `example_sandbox_file_analyzer`.
+    /// A stand-in for a site's sandbox module.
     pub struct Sandboxes;
 
     impl Module for Sandboxes {
@@ -7721,7 +7721,7 @@ async fn a_sandbox_submission_is_recorded_once_and_counts_only_what_was_sent() {
     let module = "test_sandbox";
     let (sent, known) = (
         b"a sample to send".as_slice(),
-        b"a sample ExampleSandbox knows".as_slice(),
+        b"a sample the sandbox knows".as_slice(),
     );
     let record = |body: serde_json::Value| write("sandbox-submission", body);
     let read = serde_json::json!({"sandbox_type": "example_sandbox"});
@@ -7851,13 +7851,15 @@ async fn a_sandbox_submission_is_recorded_once_and_counts_only_what_was_sent() {
         ),
         (
             module,
-            vec![record(serde_json::json!({"sandbox_type": "example_sandbox"}))],
+            vec![record(
+                serde_json::json!({"sandbox_type": "example_sandbox"}),
+            )],
             400,
         ),
         (
             module,
             vec![record(
-                serde_json::json!({"sandbox_type": "ExampleSandbox", "submitted": true}),
+                serde_json::json!({"sandbox_type": "Example_Sandbox", "submitted": true}),
             )],
             403,
         ),

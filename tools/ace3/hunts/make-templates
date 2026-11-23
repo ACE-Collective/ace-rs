@@ -34,7 +34,10 @@ REMOTE = "/tmp/ace4-dumps/templates"
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "reference"
 
-RULE_DIRS = ["splunk=hunts/splunk", "logscale=hunts/logscale"]
+# ace3's Splunk hunts, and each hunt type an integration installed beside ace3 adds, given as
+# ACE4_ACE3_HUNT_CLASSES="TYPE=MODULE:CLASS ..." (its hunts are read from hunts/TYPE)
+HUNT_CLASSES = os.environ.get("ACE4_ACE3_HUNT_CLASSES", "").split()
+RULE_DIRS = ["splunk=hunts/splunk"] + [f"{s.partition('=')[0]}=hunts/{s.partition('=')[0]}" for s in HUNT_CLASSES]
 
 
 def docker(*args, stdin=None, check=True):
@@ -62,6 +65,8 @@ def make(name):
         args += ["--root", "/opt/ace/signatures"]
         for rule_dir in RULE_DIRS:
             args += ["--rule-dir", rule_dir]
+        for spec in HUNT_CLASSES:
+            args += ["--hunt-class", spec]
     result = docker(
         "exec", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "SAQ_SKIP_LOCAL_SAQ_YAML=1", CONTAINER,
         "/venv/bin/python3", f"{REMOTE}/render_templates.py", *args, check=False,

@@ -942,8 +942,8 @@ fn rule_dirs_naming_a_type_the_binary_lacks_is_found() {
         .insert("rapid7".to_owned(), vec![PathBuf::from("hunts/rapid7")]);
     config
         .rule_dirs
-        .insert("endpoint".to_owned(), vec![PathBuf::from("hunts/endpoint")]);
-    assert_eq!(unknown_types(&app, &config), ["endpoint", "rapid7"]);
+        .insert("example".to_owned(), vec![PathBuf::from("hunts/example")]);
+    assert_eq!(unknown_types(&app, &config), ["example", "rapid7"]);
 }
 
 /// PLAN.md decision 42, ace3's `schedulable`: a hunt type is schedulable unless the overlay's

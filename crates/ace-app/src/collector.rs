@@ -6,8 +6,8 @@
 //! ships none; `ace-site-example` has one over a directory, as a test of this. A collector's
 //! [`Collector::collect`] runs one pass: it reads what its source has ready, hands each item to the
 //! [`Submitter`], and tells the source it has the item only once [`Submitter::submit`] says the item
-//! is in (submitted, or a duplicate of one that is). That is the order ace3's collectors keep: the
-//! journal collector deletes a queue message only after its submissions came back from the
+//! is in (submitted, or a duplicate of one that is). That is the order ace3's collectors keep: a
+//! collector that reads a queue deletes a message only after its submissions came back from the
 //! generator.
 //!
 //! **Where it runs.** Its own process of the `ace` binary, as `ace hunter` is (PLAN.md 6.4) and as
@@ -31,7 +31,7 @@
 //!
 //! **When the core can't take it.** A submission the core refuses as it is, such as one naming a mode
 //! that doesn't exist, is [`NotSubmitted::Refused`] at once: trying it again can't help, and the
-//! collector decides what its source does with it (ace3's journal collector deletes a message it can't
+//! collector decides what its source does with it (a queue collector may delete a message it can't
 //! read). Anything else, the database or the bucket unreachable, a timeout, a missing grant, is tried
 //! again, `submit_attempts` times in all (5 by default), waiting 1, 2, 4 and 8 seconds between them, and
 //! is then [`NotSubmitted::GivenBack`]: the collector leaves the item in its source, which offers it
@@ -59,7 +59,7 @@
 //!
 //! ```text
 //! journal-collector:
-//!   image: site-port-ace:latest
+//!   image: site-ace:latest
 //!   command: ["site-ace", "collect", "journal"]
 //!   depends_on: {ace: {condition: service_healthy}}
 //!   environment:

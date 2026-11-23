@@ -473,7 +473,7 @@ pub const MAX_SVS_DETECTIONS: usize = 1000;
 
 /// `recorded-message-ids`: which of a set of Message-IDs the thread store holds, in any thread, as
 /// ace3's `get_recorded_message_ids` (`saq/modules/email/conversation.py`). A module that rebuilds a
-/// conversation from elsewhere, such as a site's `mail_filter_email_thread_recovery` from the mail
+/// conversation from elsewhere, such as a site's thread recovery module from the mail
 /// provider, tells a message ACE never scanned from one it scanned but recorded in a thread of its
 /// own.
 pub struct RecordedMessageIds;
@@ -567,7 +567,7 @@ pub struct CollectedFile {
 
 /// `sandbox-submission`: what ace3's `sandbox_submissions` table holds of the task's own file for a
 /// sandbox, and how many files were sent to that sandbox today (PLAN.md decision 50), as a site's
-/// ExampleSandbox module reads `get_existing_submission` and `check_daily_submission_count` before it
+/// sandbox module reads `get_existing_submission` and `check_daily_submission_count` before it
 /// submits.
 pub struct SandboxSubmissionState;
 
@@ -603,7 +603,7 @@ pub struct SandboxSubmissionAnswer {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SandboxSubmissionRow {
-    /// The sandbox's id for it, such as ExampleSandbox's sample id.
+    /// The sandbox's id for it, such as the sandbox's sample id.
     pub external_id: Option<String>,
     /// None until the analysis finished, as ace3 waits on a row without one.
     pub verdict: Option<String>,

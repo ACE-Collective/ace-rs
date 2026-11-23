@@ -358,7 +358,7 @@ impl Requested {
 /// for it, so concurrent alerts share one collection and each holds its file (#1101), as ace3's
 /// `get_pending_file_collection_by_observable` and `resolve_duplicate_pending_file_collection` meant to.
 /// An alert whose own collection of it succeeded gets that one back, and one whose collection failed
-/// asks again, as ace3's `endpoint_file_collection` does. A lock on the target makes two requests in
+/// asks again, as a site's endpoint file collector does. A lock on the target makes two requests in
 /// flight agree.
 pub async fn request_collection(
     tx: &mut Tx<'_>,
@@ -447,7 +447,7 @@ impl Target for CollectionRequest<'_> {
 /// Asks for a file on someone's request: joins a pending collection of the same file by the same
 /// collector, whoever asked for it, and makes it each root's, or queues a new one for them (#1101). It's
 /// `Queued` or `Joined`, never `Collected`: someone asking again wants the file fetched again, as a site's
-/// browser history request does, where a module asking for an alert's file takes the one it has. Returns
+/// request for a host's files does, where a module asking for an alert's file takes the one it has. Returns
 /// with it the roots a joined collection was for before, for the request's audit row.
 pub async fn ask_for_collection(
     tx: &mut Tx<'_>,
@@ -578,7 +578,7 @@ pub enum Released {
 /// A root lets go of its unfinished collection of a target by `handler` (PLAN.md decision 49,
 /// `file-collection-release`): the collection stops being the root's, and is cancelled when no
 /// other root is on it and nobody asked for it through the API (`asked_through_api`, migration
-/// 0084), whether they queued it or joined it. ace3's `endpoint_file_collector`
+/// 0084), whether they queued it or joined it. A site's endpoint file collector
 /// cancels a sibling's collection outright (`cancel_file_collection`), though another alert may
 /// wait on it; here that alert keeps it.
 pub async fn release_collection(

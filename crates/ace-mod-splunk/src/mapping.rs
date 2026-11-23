@@ -4,7 +4,7 @@
 //! extraction in `saq/query/extraction.py`, for the mapping options the port reads.
 //!
 //! The source-independent parts are public (PLAN.md decision 51), so a site's port of another of
-//! ace3's `BaseAPIAnalyzer`s, such as a site's LogScale analyzer, maps its rows and fills its time
+//! ace3's `BaseAPIAnalyzer`s, such as a LogScale analyzer, maps its rows and fills its time
 //! ranges as this module does: [`ObservableMapping`] and [`Mapping`], [`add_observables`], which
 //! takes the time a row's mapped observables get from its caller, [`whole_value_patterns`],
 //! [`parse_timespec`], and the named time ranges ([`TimeRange`], [`time_spec`]).

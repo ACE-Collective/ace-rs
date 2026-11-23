@@ -4,8 +4,8 @@
 //! A file collection is an action of `ace_core::actions`, which a network pool hosting its collector leases
 //! and tries, backing off, until it completes or runs out of tries or time. Here are its list, its tries and
 //! the writes on it under `file_collection:write`, each with its audit row: stopping, retrying and deleting
-//! one. ace3's router has no way to ask for a collection: its integrations' modules and a site's
-//! EndpointVendor API do (`POST /endpoint/browser-history`, `{hostname}`, under `file_collection:create`). Here a
+//! one. ace3's router has no way to ask for a collection: its integrations' modules and their own
+//! APIs do (under `file_collection:create`). Here a
 //! module's request is `ace_core::actions::request_collection`, and someone's is `request_file_collection`
 //! under `file_collection:create` (the owner's decision of 2026-11-13): a collector by name, its target and
 //! the alerts it's for, if any. Each joins a pending collection of the same file by the same collector, so
@@ -15,7 +15,7 @@
 //! from `App::action_catalog`), since whether a pool that runs it is up isn't known when someone asks, and
 //! a request no pool leases ends at its deadline; the type is the collector's; the value is one its type
 //! takes, and a `file_location` is ace3's `host@path` with neither blank; each alert is one. What else a
-//! collector needs of a value, such as a site's Endpoint hostname pattern, the collector checks when it
+//! collector needs of a value, such as a hostname pattern, the collector checks when it
 //! tries, and ends the collection with its result if it refuses.
 //!
 //! `prune_file_collections` is ace3's `ace file-collection prune`, which the scheduler runs daily as
@@ -524,7 +524,7 @@ impl Service {
     }
 
     /// A collection's file to download (PLAN.md decision 49), as a site's
-    /// `GET /endpoint/browser-history/{id}/download` gives its zip: once the collection succeeded, and
+    /// own download endpoint gives its zip: once the collection succeeded, and
     /// while the bucket still has the file and something holds it, a collection's own hold or an
     /// alert's. Not yet collected is a conflict, and a file let go of is gone (ace3's `expired`).
     /// The download is in the audit record, as a read of the file.

@@ -4655,7 +4655,7 @@ async fn add_comment_comments_on_the_observable() {
     assert_eq!(stack.audit_count().await, audits + 1);
 }
 
-/// A site's directive, as site_ace registers `locate_file` (PLAN.md decision 31).
+/// A site's directive, such as `locate_file` (PLAN.md decision 31).
 const LOCATE_FILE: ace_service::Directive = ace_service::Directive::new(
     "locate_file",
     "locate the on-disk host(s) and path(s) of this file by its SHA256",
@@ -13295,7 +13295,7 @@ async fn remediations_and_collections_are_worked_through_the_gui() {
     assert_eq!(stack.audit_count().await, rows + 2);
     for form in [
         vec![
-            ("collector", "endpoint".to_owned()),
+            ("collector", "unknown".to_owned()),
             ("value", "h@C:\\x".to_owned()),
         ],
         ask("no host", String::new()),
@@ -22050,7 +22050,7 @@ async fn an_alert_page_shows_a_summary_its_email_bodies_and_the_site_s_actions()
     let write = ace_service::PermissionName::new("alert", "write").expect("a name");
     let actions = ace_gui::AlertActions::empty()
         .with(
-            ace_gui::AlertAction::new("triage_tool_open", "Open <in> TriageTool", read.clone(), |t| {
+            ace_gui::AlertAction::new("triage_open", "Open <in> Triage tool", read.clone(), |t| {
                 Some(format!("http://127.0.0.1:28563/#triage={}", t.alert))
             })
             .with_title("The UI \"must\" run on this machine"),
@@ -22150,7 +22150,7 @@ async fn an_alert_page_shows_a_summary_its_email_bodies_and_the_site_s_actions()
     // the actions: the reader's, not the writers', and not one that leads off this machine
     assert!(
         html.contains(&format!(
-            r#"<a class="alert-action" href="http://127.0.0.1:28563/#triage={id}" target="_blank" rel="noopener noreferrer" title="The UI &#34;must&#34; run on this machine">Open &#60;in&#62; TriageTool</a></p>"#
+            r#"<a class="alert-action" href="http://127.0.0.1:28563/#triage={id}" target="_blank" rel="noopener noreferrer" title="The UI &#34;must&#34; run on this machine">Open &#60;in&#62; Triage tool</a></p>"#
         )),
         "{html}"
     );
@@ -22206,7 +22206,7 @@ fn alert_action_a_link_is_a_site_path_https_or_http_to_this_machine() {
         "javascript:alert(1)",
         "file:///etc/passwd",
         "http://203.0.113.9:28563/",
-        "http://triage_tool.example.com/",
+        "http://triage.example.com/",
         "http://127.0.0.1.example.com/",
         "http://localhost.example.com/",
         "http://user:pass@127.0.0.1/",
@@ -22243,15 +22243,20 @@ fn alert_action_an_action_is_refused_for_its_name_label_or_sample_link() {
         )
     };
     assert_eq!(
-        action("triage_tool_open", "Open in TriageTool", "http://127.0.0.1:28563/").refusal(),
+        action(
+            "triage_open",
+            "Open in Triage tool",
+            "http://127.0.0.1:28563/"
+        )
+        .refusal(),
         None
     );
     for (name, label, link, says) in [
-        ("TriageTool", "x", "/a", "name"),
+        ("Triage", "x", "/a", "name"),
         ("", "x", "/a", "name"),
-        ("triage_tool_open", " ", "/a", "no label"),
-        ("triage_tool_open", "x", "http://203.0.113.9/", "isn't a path"),
-        ("triage_tool_open", "x", "javascript:alert(1)", "isn't a path"),
+        ("triage_open", " ", "/a", "no label"),
+        ("triage_open", "x", "http://203.0.113.9/", "isn't a path"),
+        ("triage_open", "x", "javascript:alert(1)", "isn't a path"),
     ] {
         let refused = action(name, label, link).refusal().expect("refused");
         assert!(refused.contains(says), "{refused}");

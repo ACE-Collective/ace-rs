@@ -49,8 +49,8 @@
 //! Its collector (PLAN.md 6.1), `example`, stands in for a site's collector over a source of its own:
 //! `ace collect example` takes each `*.ticket` file in its `directory` setting as an item keyed by the
 //! file's name, submits it as a ticket alert with its `tags` setting as the root's tags, and deletes the
-//! file once the core has it (a new root or a duplicate of one), as the journal collector deletes an
-//! queue message. It asks first whether the name already made a root (`Submitter::submitted`), and
+//! file once the core has it (a new root or a duplicate of one), as a queue collector deletes a
+//! message. It asks first whether the name already made a root (`Submitter::submitted`), and
 //! deletes such a file without reading it, as a feed's collector skips an article it submitted before
 //! it fetches it. A file the core refuses moves to `rejected/`; one it couldn't take stays for the next
 //! pass. It declares one secret,
@@ -106,7 +106,7 @@ pub const TICKET_EXPORT: FileRole = FileRole::define("example.ticket_export");
 pub const FILE_ROLES: &[FileRole] = &[TICKET_EXPORT];
 
 /// The site's directive, which an analyst may add to an observable from the alert page's menu or the
-/// JSON API, beside ace3's (PLAN.md decision 31), as site_ace registers `locate_file`. A module of the site's
+/// JSON API, beside ace3's (PLAN.md decision 31), as a site may register `locate_file`. A module of the site's
 /// that requires it (`Module::REQUIRED_DIRECTIVES`) runs on an observable only once someone adds it.
 pub const TICKET_HISTORY: ace_sdk::directives::Directive = ace_sdk::directives::Directive::new(
     "example_ticket_history",
@@ -209,7 +209,7 @@ pub const OPEN_TICKET: ObservableAction =
 
 /// An action that asks for the site's directive (PLAN.md decision 60): a link to the Add Directive form
 /// with `example_ticket_history` ticked, so the analyst confirms with one click, as a site's "Upload To
-/// VT" does. Following it adds nothing; the form's post does, under `observable:write`, with its audit
+/// Scanner" does. Following it adds nothing; the form's post does, under `observable:write`, with its audit
 /// row.
 pub const TICKET_HISTORY_ACTION: ObservableAction =
     ObservableAction::new("example_ticket_history", "Ticket History", |target| {

@@ -35,7 +35,7 @@
 //! which ace4 has no Phishkit for. `tests/clicker_differences.md` lists the rest.
 //!
 //! What doesn't depend on Splunk is public (PLAN.md decision 51), for a site's clicker on another
-//! source, such as a site's LogScale one: the watched config ([`ClickerConfig`]), the searches that
+//! source, such as a LogScale one: the watched config ([`ClickerConfig`]), the searches that
 //! apply ([`searches_for`]), the values a search matches ([`match_values`]), a time range's
 //! durations ([`durations`]), what a search's rows add ([`collect`], into [`Findings`], with the
 //! search's console link and each row's time from the caller) and the summary ([`summary_text`]).

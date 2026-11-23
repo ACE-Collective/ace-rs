@@ -28,7 +28,7 @@ The owner's direction, which every item here is measured against:
   a type should be able to reorder or hide the other sections.
 - [ ] **More alert types.** Only `mailbox` and `hunter` have summaries. ace3's `brotex`, `bro_smtp`,
   `http`, `virustotal`, `o365_security`, `graph_resource` and `saq_debug` templates were left out by
-  decision. a site's integrations add theirs with `App::alert_summary`.
+  decision. A site's integrations add theirs with `App::alert_summary`.
 
 ## The alert page
 
@@ -67,7 +67,7 @@ The owner's direction, which every item here is measured against:
   the list should be filtered by the observable's type (ace3 offers every one on every type), and whether
   the page should say which modules a directive lets in. It was looked at only in tests, not in a browser.
   A link can tick boxes in advance (PLAN.md decision 60, `?directive=`), so a site's action, such as
-  a site's "Upload To VT" or "Collect Browser History", is one click on a ticked form. A name the list
+  "Upload To Scanner" or "Collect Files", is one click on a ticked form. A name the list
   doesn't offer is named back in a warning. Check with analysts whether the ticked box stands out
   enough among the others, or whether a link that ticks one should show only that one, with the rest
   folded.

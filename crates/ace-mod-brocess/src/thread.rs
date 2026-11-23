@@ -82,7 +82,7 @@ pub struct EmailThreadAnalyzer {
 /// ace3's `EmailThreadSettings.is_ignored_pair`: the domain pairs never reported as look-alikes of
 /// each other, matched in either order on their registrable domains, the level `compare_domains`
 /// works at, so a pair covers the hosts beneath each side. The thread module and a site's module
-/// that honours the same pairs, such as a site's `mail_filter_email_thread_recovery`, build it from
+/// that honours the same pairs, such as a site's thread recovery module, build it from
 /// their `ignored_domain_pairs` setting.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct IgnoredDomainPairs {

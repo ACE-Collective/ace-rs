@@ -4106,7 +4106,7 @@
         "tags": [
           "file_collections"
         ],
-        "summary": "A collection's file, once it succeeded, as a zip encrypted with AES-256 and the password\n`infected`, as an alert's file downloads are, holding the file under the name its collector gave\nit. It is the file as the collector stored it: a Endpoint collection's is endpoint collection's 7z\ncontainer, itself encrypted with the password `infected`. Audited as a read of the file.",
+        "summary": "A collection's file, once it succeeded, as a zip encrypted with AES-256 and the password\n`infected`, as an alert's file downloads are, holding the file under the name its collector gave\nit. It is the file as the collector stored it: an endpoint agent's collection may be a 7z\ncontainer, itself encrypted with the password `infected`. Audited as a read of the file.",
         "operationId": "file",
         "parameters": [
           {
@@ -26662,7 +26662,7 @@
           },
           "collector": {
             "type": "string",
-            "description": "The collector's name, one this server's pools run, such as a site's Endpoint collectors."
+            "description": "The collector's name, one this server's pools run, such as a site's endpoint collectors."
           },
           "observable_type": {
             "type": "string",

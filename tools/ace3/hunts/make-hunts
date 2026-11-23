@@ -8,10 +8,9 @@ load_hunts.py runs in ace3's dev container (ace-dev-1) for each set and writes o
 file, its normal form or its error. The sets:
 
 - `signatures`: the signatures checkout ace3's container has at /opt/ace/signatures, read where
-  it is, with the rule directories ace3's configuration gives the splunk and logscale hunt types
-  (etc/saq.yaml and the integrations' etc/saq.integration.yaml). ace3 has no other hunt types with
-  rule directories ace4 compares: rapid7's was left out by the owner on 2026-11-19, mail_filter isn't
-  schedulable, and hunts/sentinel holds only a README.
+  it is, with ace3's Splunk rule directory, hunts/splunk, and hunts/TYPE for each hunt type
+  ACE4_ACE3_HUNT_CLASSES names ("TYPE=MODULE:CLASS ...", a type an integration installed beside
+  ace3 adds, such as LogScale, with the config class its hunts validate with).
 - `cases`: tools/ace3/hunts/cases, hunts written for this comparison, copied into the container
   under /tmp/ace4-dumps/hunts. They cover what the signatures don't: every kind of error ace3's
   loader gives, and the YAML and coercion rules a hunt can trip on.
@@ -34,7 +33,10 @@ REMOTE = "/tmp/ace4-dumps/hunts"
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "reference"
 
-RULE_DIRS = ["splunk=hunts/splunk", "logscale=hunts/logscale"]
+# ace3's Splunk hunts, and each hunt type an integration installed beside ace3 adds, given as
+# ACE4_ACE3_HUNT_CLASSES="TYPE=MODULE:CLASS ..." (its hunts are read from hunts/TYPE)
+HUNT_CLASSES = os.environ.get("ACE4_ACE3_HUNT_CLASSES", "").split()
+RULE_DIRS = ["splunk=hunts/splunk"] + [f"{s.partition('=')[0]}=hunts/{s.partition('=')[0]}" for s in HUNT_CLASSES]
 
 SETS = {
     "signatures": {"root": "/opt/ace/signatures", "copy": None},
@@ -64,6 +66,8 @@ def make(name):
     args = ["--work", work, "--root", spec["root"]]
     for rule_dir in RULE_DIRS:
         args += ["--rule-dir", rule_dir]
+    for spec in HUNT_CLASSES:
+        args += ["--hunt-class", spec]
     script = (HERE / "load_hunts.py").read_bytes()
     result = docker(
         "exec", "-i", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "SAQ_SKIP_LOCAL_SAQ_YAML=1", CONTAINER,
