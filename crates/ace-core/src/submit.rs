@@ -12,12 +12,17 @@
 //! mode (`Orchestrator::start`). A file's path in the alert is the name it was sent with, and the
 //! submission's `file_yara_meta` can give a file `yara_meta` tags.
 //!
+//! A root submitted in the `correlation` mode is an alert as it's created, whoever submits it, as
+//! ace3's `remote_node.submit_local` and its API's `submit` call `ALERT` on one (PLAN.md decision 54).
+//! A root submitted in another mode becomes an alert when a detection lands on it in a detectable
+//! mode, a submitted detection included (`Orchestrator::start`).
+//!
 //! A submitter inside ACE, such as the hunter (PLAN.md 6.4), adds an [`Origin`]: what the API's
 //! submission doesn't take yet. Its observables carry display types, relationships and detections,
-//! a detection makes the root an alert as it's created, as ace3's hunter does with a correlation
-//! root's detection point, and the rest of what the submitter said about the root, such as ace3's
-//! alert type, tool, queue and details, is kept as it said it in `analysis.roots.origin` until roots
-//! have columns for them. The queue has one (PLAN.md 7.13): `Origin::queue` is the alert's first.
+//! its tags are the root's own (`analysis.roots.tags`, decision 54), and the rest of what the
+//! submitter said about the root, such as ace3's alert type, tool, queue and details, is kept as it
+//! said it in `analysis.roots.origin` until roots have columns for them. The queue has one (PLAN.md
+//! 7.13): `Origin::queue` is the alert's first.
 
 use std::collections::BTreeMap;
 
@@ -86,12 +91,10 @@ pub struct Origin {
     /// The root's links out of ACE, such as those a hunt renders for its alert (ace3's
     /// `RootAnalysis.pivot_links`, PLAN.md decision 32 part (b)), which its alert's summary shows.
     pub pivot_links: Vec<ace_results::PivotLink>,
-}
-
-impl Origin {
-    fn alerts(&self) -> bool {
-        self.observables.iter().any(|o| !o.detections.is_empty())
-    }
+    /// The root's own tags, ace3's `RootAnalysis.add_tag`, such as a hunt's or a feed's: merged into
+    /// `analysis.roots.tags`, where the alert shows them and the alert list's Tag filter finds them.
+    /// An empty tag is left out.
+    pub tags: Vec<String>,
 }
 
 /// A submitted file: its bytes, spooled on this node, and its path in the alert.
@@ -158,6 +161,7 @@ pub fn prepare(
     if has_nul(serde_json::to_string(submission))
         || has_nul(serde_json::to_string(&origin.observables))
         || has_nul(serde_json::to_string(&origin.details))
+        || origin.tags.iter().any(|t| t.contains('\0'))
     {
         return Err(SubmitError::Invalid(
             "a submission can't hold a NUL character".to_owned(),
@@ -212,14 +216,24 @@ pub async fn create(
 ) -> Result<Vec<TaskId>, SubmitError> {
     let hold = Hold::root(root.id);
     tree::create_root(tx, root).await?;
-    if origin.details.is_some() || origin.alerts() {
+    // a correlation root is an alert at once (decision 54); a detection makes one in `start`
+    let alerts = root.analysis_mode == crate::modes::CORRELATION;
+    let tags: Vec<String> = origin
+        .tags
+        .iter()
+        .filter(|t| !t.is_empty())
+        .cloned()
+        .collect();
+    if origin.details.is_some() || alerts || !tags.is_empty() {
         sqlx::query!(
             "UPDATE analysis.roots
-             SET origin = $2, alerted_at = CASE WHEN $3 THEN now() ELSE alerted_at END
+             SET origin = $2, alerted_at = CASE WHEN $3 THEN now() ELSE alerted_at END,
+                 tags = analysis.merged(tags, $4)
              WHERE id = $1",
             root.id,
             origin.details,
-            origin.alerts(),
+            alerts,
+            &tags,
         )
         .execute(tx.conn())
         .await

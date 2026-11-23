@@ -110,6 +110,9 @@
 //! name a `connections:` binds must be a connection here, and every secret a connection names a
 //! secret in `secrets:`; the connection's type is checked by what reads it.
 //!
+//! `alert_actions:` holds the settings of the alert page's actions the binary registers, by name, with
+//! `enabled: false` to leave one off (PLAN.md decision 55). `ace serve` reads it.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -198,6 +201,21 @@ pub struct Overlay {
     /// hunter has ace3's default, `splunk` on the `default` instance; given, it has these alone.
     /// `ace hunter` builds them; `ace serve` builds them without their secrets, to validate hunts.
     pub query_sources: Option<BTreeMap<String, QuerySourceSection>>,
+    /// The alert page's actions a site's binary registers (PLAN.md decision 55,
+    /// `ace_app::App::alert_action`), by action name: whether each is on and its settings, such as a
+    /// link's base URL. `ace serve` reads it; nothing else does.
+    pub alert_actions: BTreeMap<String, AlertActionSection>,
+}
+
+/// What the overlay says about one of the alert page's actions (`Overlay::alert_actions`).
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct AlertActionSection {
+    /// False leaves the action off the page, and its builder isn't called. Left out, or true, its
+    /// builder decides.
+    pub enabled: Option<bool>,
+    /// What the action's builder is given, as a module's settings are.
+    pub settings: Option<Value>,
 }
 
 /// What the overlay says about one hunt type (`ace_app::App::hunt_search`): its search's settings
@@ -1595,6 +1613,8 @@ impl Overlay {
             // the hunter builds the searches and the sources, and `ace serve` the sources
             hunt_types: BTreeMap::new(),
             query_sources: None,
+            // `ace serve` draws the alert page
+            alert_actions: BTreeMap::new(),
         }
     }
 

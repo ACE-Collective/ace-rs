@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT root AS \"root!\" FROM collection.submitted_keys\n                           WHERE collector = $1 AND hash = sha256(convert_to($2, 'UTF8'))\n                             AND expires_at > now() AND root IS NOT NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "collection.submitted_keys",
+            "name": "root"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "3a8023122aaf53420a2084348c672691b99fb8c0c10727806bc706f51a101c4d"
+}

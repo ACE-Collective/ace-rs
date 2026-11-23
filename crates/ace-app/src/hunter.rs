@@ -976,6 +976,9 @@ pub fn to_core(submission: &query::Submission) -> (Submission, Origin) {
                 }
             })
             .collect(),
+        // the hunt's tags are the root's, as ace3's hunter adds them to it (decision 54); they stay in
+        // the details too, where the submission records them
+        tags: submission.tags.clone(),
     };
     (core, origin)
 }

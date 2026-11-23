@@ -287,12 +287,7 @@ fn the_site_binary_draws_its_alert_type_s_summary() {
     };
     let draw = |tree: &ace_service::AlertTree| {
         let alert_type = tree.alert_type().unwrap_or_default().to_owned();
-        summaries.draw(&ace_gui::SummaryInput {
-            alert_type: &alert_type,
-            origin: &tree.origin,
-            tree,
-            remediation: None,
-        })
+        summaries.draw(&ace_gui::SummaryInput::new(&alert_type, &tree.origin, tree))
     };
     let ticket = tree(
         json!({"alert_type": "example - ticket - vip", "details": {"ticket_queue": "<b>SOC</b> tier 2"}}),
@@ -480,7 +475,80 @@ fn the_site_s_list_is_ace4_s_with_its_own_added() {
     assert_eq!(handlers(&site), handlers(&ace4));
     assert_eq!(site.collector_names(), ["example"]);
     assert!(ace4.collector_names().is_empty(), "ace4 ships no collector");
+    assert_eq!(site.alert_action_names(), ["ticket_open"]);
+    assert!(
+        ace4.alert_action_names().is_empty(),
+        "ace4 ships no alert action"
+    );
     assert_eq!(site.modules_without_a_view(), []);
+}
+
+/// PLAN.md decision 55: a site's alert action is built from its overlay section at `ace serve`'s
+/// start. With no section, or `enabled: false`, it's off; with one, its link for an alert is its
+/// `ticket_url`'s, which may be `http://` to this machine; a link elsewhere over `http://`, one that isn't
+/// a URL a page may draw, a user name in it, or settings that don't read stop the start with the reason.
+#[test]
+fn a_site_s_alert_action_is_built_from_its_overlay_section() {
+    let site = ace_site_example::app();
+    let actions_for = |yaml: &str| {
+        site.alert_actions_for(&ace_sdk::Overlay::from_yaml(yaml).expect("the overlay"))
+    };
+    assert!(actions_for("{}").expect("builds").is_empty());
+    assert!(
+        actions_for(
+            "alert_actions:\n  ticket_open:\n    enabled: false\n    settings: {ticket_url: javascript:x}\n"
+        )
+        .expect("off, so not built")
+        .is_empty()
+    );
+    let on = actions_for(
+        "alert_actions:\n  ticket_open:\n    settings: {ticket_url: \"http://localhost:9999/\"}\n",
+    )
+    .expect("builds");
+    let origin = json!({});
+    let target = ace_gui::AlertActionTarget {
+        alert: uuid::Uuid::from_u128(7),
+        alert_type: None,
+        origin: &origin,
+    };
+    let links = on.links(&target, |p| p.to_string() == "alert:read");
+    assert_eq!(links.len(), 1);
+    assert_eq!(links[0].label, "Open in Ticket System");
+    assert_eq!(
+        links[0].href,
+        "http://localhost:9999/alerts/00000000-0000-0000-0000-000000000007"
+    );
+    for (settings, says) in [
+        (
+            "{ticket_url: \"http://203.0.113.9:9999/\"}",
+            "isn't a path on this site",
+        ),
+        (
+            "{ticket_url: \"javascript:alert(1)\"}",
+            "isn't a path on this site",
+        ),
+        (
+            "{ticket_url: \"http://me:pw@127.0.0.1/\"}",
+            "isn't a path on this site",
+        ),
+        (
+            "{ticket_url: \"https://tickets.example.com/a b\"}",
+            "isn't a path on this site",
+        ),
+        ("{ticket: x}", "its settings"),
+    ] {
+        let refused = actions_for(&format!(
+            "alert_actions:\n  ticket_open:\n    settings: {settings}\n"
+        ))
+        .expect_err("refused");
+        assert!(refused.contains(says), "{settings}: {refused}");
+    }
+    // a section for an action the binary doesn't add is left, with a warning
+    assert!(
+        actions_for("alert_actions:\n  nothing_here: {}\n")
+            .expect("builds")
+            .is_empty()
+    );
 }
 
 /// A site's module in one mode (`App::module_in_mode`) is eligible in that mode and in no other, and
@@ -531,9 +599,10 @@ fn a_site_s_module_in_a_mode_is_eligible_there_alone() {
 
 /// PLAN.md 6.1: `ace collect example` runs the site's collector as a process of the site's binary. It
 /// reads its own section and its one secret, submits each ticket file once as `collector:example`, which
-/// holds `alert:create` through the class `collector`, answers a file that comes back with the root it
-/// made (and deletes it), skips Finder's `.DS_Store`, logs a metrics event for each submission, and stops
-/// on SIGTERM with exit code 0.
+/// holds `alert:create` through the class `collector`, with its `tags` as the root's own (decision 54),
+/// asks before it reads a file that comes back whether its name made a root, and deletes it unread
+/// (`Submitter::submitted`, decision 54), skips Finder's `.DS_Store`, logs a metrics event for each
+/// submission, and stops on SIGTERM with exit code 0.
 #[tokio::test]
 async fn a_site_s_collector_submits_each_item_once_and_stops() {
     let test_db = TestDb::new().await;
@@ -549,6 +618,7 @@ async fn a_site_s_collector_submits_each_item_once_and_stops() {
         &overlay,
         format!(
             "collectors:\n  example:\n    poll_seconds: 1\n    settings:\n      directory: {}\n\
+             \x20     tags: [tickets, \"<b>vip</b>\"]\n\
              secrets:\n  example_collector_token: env:EXAMPLE_COLLECTOR_TOKEN\n  \
              other_token: env:OTHER_TOKEN\n",
             source.display()
@@ -568,8 +638,8 @@ async fn a_site_s_collector_submits_each_item_once_and_stops() {
     let roots = || {
         let db = db.clone();
         async move {
-            sqlx::query_as::<_, (String, Value, Value)>(
-                "SELECT description, submitted_by::jsonb, origin FROM analysis.roots
+            sqlx::query_as::<_, (String, Value, Value, Vec<String>)>(
+                "SELECT description, submitted_by::jsonb, origin, tags FROM analysis.roots
                  ORDER BY description",
             )
             .fetch_all(&db)
@@ -622,6 +692,7 @@ async fn a_site_s_collector_submits_each_item_once_and_stops() {
                 "tool": "example collector",
                 "details": {"ticket_queue": "triage"},
             }),
+            vec!["tickets".to_owned(), "<b>vip</b>".to_owned()],
         )
     };
     assert_eq!(
@@ -659,7 +730,12 @@ async fn a_site_s_collector_submits_each_item_once_and_stops() {
                 .to_owned()
         })
         .collect();
-    assert_eq!(outcomes, ["submitted", "submitted", "duplicate"], "{log}");
+    assert_eq!(
+        outcomes,
+        ["submitted", "submitted"],
+        "the file that came back wasn't submitted again: {log}"
+    );
+    assert!(log.contains("already submitted; not read again"), "{log}");
     assert!(
         log.contains(r#"secrets=["example_collector_token"]"#),
         "it resolves its own secret and no other: {log}"
@@ -2460,12 +2536,7 @@ fn the_site_binary_draws_the_summary_a_hunt_names() {
     };
     let draw = |tree: &ace_service::AlertTree| {
         let alert_type = tree.alert_type().unwrap_or_default().to_owned();
-        summaries.draw(&ace_gui::SummaryInput {
-            alert_type: &alert_type,
-            origin: &tree.origin,
-            tree,
-            remediation: None,
-        })
+        summaries.draw(&ace_gui::SummaryInput::new(&alert_type, &tree.origin, tree))
     };
     let named = |template: &str| {
         tree(json!({

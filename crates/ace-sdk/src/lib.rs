@@ -73,9 +73,9 @@ pub use module::{
     Parser, Settings, run_lookup, run_parser,
 };
 pub use overlay::{
-    ACE3_DISPOSITION_CLASSES, ActionSection, AlertRouterSection, CollectorSection,
-    CommandTypeSection, Component, DispositionClass, DispositionSection, NrdList, NrdSection,
-    Overlay, OverlayError, ScheduledTaskSection, SecretSource, SvsCatalogRepository,
+    ACE3_DISPOSITION_CLASSES, ActionSection, AlertActionSection, AlertRouterSection,
+    CollectorSection, CommandTypeSection, Component, DispositionClass, DispositionSection, NrdList,
+    NrdSection, Overlay, OverlayError, ScheduledTaskSection, SecretSource, SvsCatalogRepository,
     SvsCatalogSection, SvsObservationWindow, SvsRepository, SvsRunsSection, SvsSection,
     SvsYaraSection, is_attack_release_name,
 };

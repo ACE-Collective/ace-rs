@@ -31,7 +31,8 @@
 //! command types (6.6, `command_type`), the script command types that
 //! stand in for hunt scripts (decision 16, `hunt_script`), scheduled tasks (6.7,
 //! `scheduled_task`), remediators, remediation probes and file collectors (7.9, `LookupPool::action`),
-//! alert routers and their types (7.13, `alert_router`, `alert_router_type`),
+//! alert routers and their types (7.13, `alert_router`, `alert_router_type`), the alert page's
+//! actions (decision 55, `alert_action`),
 //! collectors (6.1, `collector`, run by `ace collect <name>`), and the rest with the phases that
 //! build them.
 //!
@@ -102,7 +103,16 @@ pub struct App {
     router_types: ace_service::routing::RouterTypes,
     ai_backend_types: Vec<(String, ai::AiBackendType)>,
     collectors: Vec<(collector::CollectorSpec, collector::CollectorFactory)>,
+    alert_actions: Vec<(&'static str, AlertActionFactory)>,
 }
+
+/// What builds one of the alert page's actions from its overlay section's `settings` (PLAN.md decision
+/// 55): the action, None to leave it off, or why it can't be built, which stops `ace serve`.
+pub type AlertActionFactory = Arc<
+    dyn Fn(Option<&serde_json::Value>) -> Result<Option<ace_gui::AlertAction>, String>
+        + Send
+        + Sync,
+>;
 
 /// What builds a script command type from the hunter's network and the type's settings (its entry
 /// in the hunter configuration's `scripts`, or null), or why it can't be built.
@@ -369,6 +379,73 @@ impl App {
     pub fn observable_action(mut self, action: ace_gui::ObservableAction) -> App {
         self.actions = self.actions.with(action);
         self
+    }
+
+    /// Adds an action to the alert page (PLAN.md decision 55), a link beside its Graph and Similar
+    /// alerts, as an ace3 integration calls `register_alert_action`. `ace serve` calls `build` once at
+    /// its start with the overlay's `alert_actions.<name>.settings`, unless that section says
+    /// `enabled: false`: it gives the action, None to leave it off, or why it can't be built, which
+    /// stops `ace serve`, as a refused link does (`ace_gui::AlertAction::refusal`). The action must
+    /// carry `name`. One with an action's name already added takes its place.
+    pub fn alert_action(
+        mut self,
+        name: &'static str,
+        build: impl Fn(Option<&serde_json::Value>) -> Result<Option<ace_gui::AlertAction>, String>
+        + Send
+        + Sync
+        + 'static,
+    ) -> App {
+        self.alert_actions.retain(|(n, _)| *n != name);
+        self.alert_actions.push((name, Arc::new(build)));
+        self
+    }
+
+    /// The alert actions' names, in the order the binary added them.
+    pub fn alert_action_names(&self) -> Vec<&'static str> {
+        self.alert_actions.iter().map(|(name, _)| *name).collect()
+    }
+
+    /// The alert actions `overlay` turns on, each built from its section and checked
+    /// (`alert_action`), or why one can't be: what `ace serve` draws. A section for an action the
+    /// binary doesn't add is logged and left.
+    pub fn alert_actions_for(
+        &self,
+        overlay: &ace_sdk::Overlay,
+    ) -> Result<ace_gui::AlertActions, String> {
+        for name in overlay.alert_actions.keys() {
+            if !self.alert_actions.iter().any(|(n, _)| n == name) {
+                tracing::warn!(
+                    action = %name,
+                    "the overlay's alert_actions names an action this binary doesn't add"
+                );
+            }
+        }
+        let mut actions = ace_gui::AlertActions::empty();
+        for (name, build) in &self.alert_actions {
+            let section = overlay.alert_actions.get(*name);
+            if section.and_then(|s| s.enabled) == Some(false) {
+                tracing::info!(action = name, "the overlay leaves this alert action off");
+                continue;
+            }
+            let Some(action) = build(section.and_then(|s| s.settings.as_ref()))
+                .map_err(|e| format!("the alert action {name}: {e}"))?
+            else {
+                tracing::info!(action = name, "this alert action is off");
+                continue;
+            };
+            if action.name != *name {
+                return Err(format!(
+                    "the alert action added as {name} calls itself {}",
+                    action.name
+                ));
+            }
+            if let Some(why) = action.refusal() {
+                return Err(why);
+            }
+            tracing::info!(action = name, "the alert page offers this action");
+            actions = actions.with(action);
+        }
+        Ok(actions)
     }
 
     /// Adds a hunt type (PLAN.md 6.2), as an ace3 integration adds a `hunt_type_*` section with

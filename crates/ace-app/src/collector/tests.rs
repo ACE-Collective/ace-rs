@@ -276,7 +276,9 @@ async fn each_item_is_submitted_once() {
 }
 
 /// Keys are each collector's own: another collector's item with the same key is submitted, and an
-/// expired key holds nothing.
+/// expired key holds nothing. A collector asking whether a key made a root (`Submitter::submitted`,
+/// PLAN.md decision 54) is told the root its own live key made, and nothing for another collector's
+/// key or an expired one.
 #[tokio::test]
 async fn a_key_is_its_collector_s_and_expires() {
     let fixture = Fixture::new().await;
@@ -290,9 +292,17 @@ async fn a_key_is_its_collector_s_and_expires() {
     };
     let journal = fixture.submitter("journal", &stop);
     let feed = fixture.submitter("feed", &stop);
+    assert_eq!(journal.submitted("k").await.expect("asks"), None);
     let Ok(Submitted::New { root: first }) = journal.submit(&item("k")).await else {
         panic!("submitted");
     };
+    assert_eq!(journal.submitted("k").await.expect("asks"), Some(first));
+    assert_eq!(journal.submitted("K").await.expect("asks"), None);
+    assert_eq!(
+        feed.submitted("k").await.expect("asks"),
+        None,
+        "another collector's key isn't its own"
+    );
     assert!(matches!(feed.submit(&item("k")).await, Ok(Submitted::New { root }) if root != first));
     assert_eq!(
         journal.submit(&item("k")).await,
@@ -305,6 +315,7 @@ async fn a_key_is_its_collector_s_and_expires() {
     .execute(fixture.test_db.db().pool())
     .await
     .expect("expired");
+    assert_eq!(journal.submitted("k").await.expect("asks"), None);
     assert!(
         matches!(journal.submit(&item("k")).await, Ok(Submitted::New { root }) if root != first),
         "an expired key holds nothing"
@@ -346,6 +357,12 @@ async fn only_a_collector_holds_the_collector_grant() {
         submitter.submit(&item).await,
         Err(NotSubmitted::GivenBack(why)) if why.contains("doesn't hold alert:create")
     ));
+    // nor may it ask whether a key made a root
+    let asked = submitter.submitted("k").await.expect_err("refused");
+    assert!(
+        asked.to_string().contains("doesn't hold alert:create"),
+        "{asked}"
+    );
     // and a deny on one collector wins over its class's allow
     sqlx::query(
         "INSERT INTO service.permissions (component, major, minor, effect, created_by)

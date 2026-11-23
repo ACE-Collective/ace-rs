@@ -1383,11 +1383,14 @@ impl Service {
                         }
                     }
                     if !tags.is_empty() {
-                        // an alert's tags are its observables' and its results', as the Tag filter's
+                        // an alert's tags are its own, its observables' and its results', as the Tag
+                        // filter's
                         let rows = sqlx::query!(
                             r#"SELECT DISTINCT r.id AS "id!", r.alerted_at AS "alerted_at!", t.tag AS "tag!"
                                FROM analysis.roots r
                                JOIN LATERAL (
+                                   SELECT tag FROM unnest(r.tags) tag
+                                   UNION
                                    SELECT tag FROM analysis.observables o, unnest(o.tags) tag
                                    WHERE o.root_id = r.id
                                    UNION

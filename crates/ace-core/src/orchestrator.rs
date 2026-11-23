@@ -1015,7 +1015,10 @@ impl Orchestrator {
     }
 
     /// Starts analysis of a new root: queues what is eligible for every observable it has. A
-    /// root with nothing eligible completes its first pass at once.
+    /// root with nothing eligible completes its first pass at once. A root that already holds a
+    /// detection, such as a collector's submitted one, in a detectable mode is an alert in
+    /// correlation mode, as a pre-hook's detection makes it: ace3's engine moves any root with
+    /// detection points, its own included, to correlation (PLAN.md decision 54).
     pub async fn start(
         &self,
         tx: &mut Tx<'_>,
@@ -1043,13 +1046,23 @@ impl Orchestrator {
         )
         .await?;
         hooks::mark_due(tx, &self.hooks, &self.modes, root, &locked.mode).await?;
-        if pre.detected && self.modes.is_detectable(&locked.mode) {
+        let detectable = self.modes.is_detectable(&locked.mode);
+        let detected = pre.detected
+            || (detectable
+                && sqlx::query_scalar!(
+                    r#"SELECT EXISTS (SELECT FROM analysis.detections WHERE root_id = $1) AS "held!""#,
+                    root,
+                )
+                .fetch_one(tx.conn())
+                .await?);
+        if detected && detectable {
             sqlx::query!(
                 "UPDATE analysis.roots SET alerted_at = COALESCE(alerted_at, now()) WHERE id = $1",
                 root,
             )
             .execute(tx.conn())
             .await?;
+            tracing::info!(%root, from = %locked.mode, "a detection made the new root an alert");
             let queued = self.set_mode(tx, root, CORRELATION).await?;
             queue::check_completion(tx, root).await?;
             return Ok(queued);

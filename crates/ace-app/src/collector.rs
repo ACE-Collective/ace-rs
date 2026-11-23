@@ -26,7 +26,8 @@
 //! within the collector's `key_lifetime_seconds` (4 hours, ace3's) makes none: the earlier root is the
 //! answer. So a redelivered item is submitted once, and so is one whose commit landed but whose
 //! answer was lost, which ace3's mark-then-stage order can't promise. An item with no key is always
-//! submitted.
+//! submitted. A collector that fetches an item's content separately, such as an article a feed links
+//! to, asks [`Submitter::submitted`] first, so it doesn't fetch what it already submitted.
 //!
 //! **When the core can't take it.** A submission the core refuses as it is, such as one naming a mode
 //! that doesn't exist, is [`NotSubmitted::Refused`] at once: trying it again can't help, and the
@@ -305,6 +306,18 @@ impl Submitter {
     /// Spools a file on this node for an item's file.
     pub async fn spool_file(&self, path: &std::path::Path) -> Result<ace_store::Spooled> {
         Ok(self.bucket.store().spool_file(path).await?)
+    }
+
+    /// The root `key` made, if it made one within its lifetime: a collector asks before it fetches
+    /// what an item would hold, so an item it already submitted costs one read, not a fetch and a
+    /// spool (PLAN.md decision 54). It's advisory: [`Submitter::submit`] still decides, so an item two
+    /// replicas fetch at once still makes one root. The root may since have gone; the key still holds.
+    /// Tried once: an error is the caller's to handle, such as by fetching and submitting anyway.
+    pub async fn submitted(&self, key: &str) -> Result<Option<Uuid>> {
+        Ok(self
+            .service
+            .collected_key(&self.actor, &self.name, key)
+            .await?)
     }
 
     /// Submits `item`, trying again while the core can't take it (the module docs). Once stopping, an

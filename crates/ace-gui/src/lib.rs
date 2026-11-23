@@ -109,6 +109,7 @@ use axum::routing::{get, post};
 pub mod actions;
 pub mod admin;
 pub mod alert;
+pub mod alert_actions;
 pub mod analysis;
 mod assets;
 mod auth;
@@ -137,8 +138,10 @@ pub mod verdicts;
 
 pub use actions::{ObservableAction, ObservableActions};
 pub use alert::LiveLimits;
+pub use alert_actions::{AlertAction, AlertActionTarget, AlertActions};
 pub use analysis::summary::{
-    AlertSummary, Summaries as AlertSummaries, SummaryEntry, SummaryInput,
+    AlertSummary, EmailBody, MAX_BODY_BYTES, MAX_BODY_EMAILS, Summaries as AlertSummaries,
+    SummaryEntry, SummaryInput,
 };
 pub use analysis::{AnalysisView, ViewEntry, Views};
 pub use assets::{Asset, asset_named};
@@ -159,6 +162,7 @@ pub struct Gui {
     live: std::sync::Arc<alert::Live>,
     views: std::sync::Arc<Views>,
     actions: std::sync::Arc<ObservableActions>,
+    alert_actions: std::sync::Arc<AlertActions>,
     summaries: std::sync::Arc<AlertSummaries>,
     icons: std::sync::Arc<icons::PivotIcons>,
     refreshes: std::sync::Arc<places::Places>,
@@ -179,6 +183,7 @@ impl Gui {
             live: std::sync::Arc::new(alert::Live::new(limits)),
             views: std::sync::Arc::new(Views::builtin()),
             actions: std::sync::Arc::new(ObservableActions::builtin()),
+            alert_actions: std::sync::Arc::new(AlertActions::empty()),
             summaries: std::sync::Arc::new(AlertSummaries::builtin()),
             icons: std::sync::Arc::new(icons::PivotIcons::builtin()),
             refreshes: std::sync::Arc::new(places::Places::new(
@@ -213,6 +218,13 @@ impl Gui {
     /// ones alone.
     pub fn with_actions(mut self, actions: ObservableActions) -> Self {
         self.actions = std::sync::Arc::new(actions);
+        self
+    }
+
+    /// The GUI offering these alert actions on the alert page (PLAN.md decision 55), the site's, rather
+    /// than ace4's own, which are none.
+    pub fn with_alert_actions(mut self, actions: AlertActions) -> Self {
+        self.alert_actions = std::sync::Arc::new(actions);
         self
     }
 

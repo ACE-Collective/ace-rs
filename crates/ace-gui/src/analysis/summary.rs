@@ -53,15 +53,171 @@ pub const MAX_VALUE: usize = 400;
 /// The most bytes of a query or of an email's headers a summary shows.
 pub const MAX_BLOCK: usize = 16 << 10;
 
-/// What a summary is drawn from: the alert's type, what its submitter said about it, its tree, and
-/// what remediation did with its targets, when the viewer may read that.
+/// The most emails whose body text a summary that reads them gets (PLAN.md decision 55).
+pub const MAX_BODY_EMAILS: usize = MAX_SUMMARY_ROWS;
+/// The most bytes of one body part a summary gets; the rest is counted (`EmailBody::more`).
+pub const MAX_BODY_BYTES: usize = 64 << 10;
+
+/// What a summary is drawn from: the alert's type, what its submitter said about it, its tree, what
+/// remediation did with its targets, when the viewer may read that, and the text of its emails' bodies
+/// when the summary reads them. Built with [`SummaryInput::new`] and the methods after it, so a field
+/// added here doesn't break a site's test.
 #[derive(Debug, Clone, Copy)]
+#[non_exhaustive]
 pub struct SummaryInput<'a> {
     pub alert_type: &'a str,
     /// `analysis.roots.origin`: the alert type, tool and details as the submitter gave them.
     pub origin: &'a Value,
     pub tree: &'a AlertTree,
     pub remediation: Option<&'a Coverage>,
+    /// The body parts of the tree's emails, read for a summary that declares
+    /// [`AlertSummary::READS_EMAIL_BODIES`]; empty for any other.
+    pub bodies: &'a [EmailBody],
+}
+
+impl<'a> SummaryInput<'a> {
+    /// An alert's input with no remediation and no bodies.
+    pub fn new(alert_type: &'a str, origin: &'a Value, tree: &'a AlertTree) -> Self {
+        SummaryInput {
+            alert_type,
+            origin,
+            tree,
+            remediation: None,
+            bodies: &[],
+        }
+    }
+
+    /// With what remediation did with the alert's targets.
+    pub fn with_remediation(mut self, remediation: Option<&'a Coverage>) -> Self {
+        self.remediation = remediation;
+        self
+    }
+
+    /// With its emails' body texts.
+    pub fn with_bodies(mut self, bodies: &'a [EmailBody]) -> Self {
+        self.bodies = bodies;
+        self
+    }
+
+    /// The body parts of the email result `result`, in the order the email had them.
+    pub fn bodies_of(&self, result: i64) -> impl Iterator<Item = &'a EmailBody> + 'a {
+        self.bodies.iter().filter(move |body| body.result == result)
+    }
+}
+
+/// One body part of an email in an alert, as text, for a summary that shows it (PLAN.md decision 55):
+/// ace3's `EmailAnalysis.body_text` and `body_html`, which its alert templates read from the part's
+/// file. At most [`MAX_BODY_BYTES`] of it, decoded as UTF-8 with each byte that isn't replaced by
+/// U+FFFD, where ace3 drops them; an HTML part is its source, which a summary shows as text and never
+/// as markup.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EmailBody {
+    /// The `email_analysis` result whose email it is.
+    pub result: i64,
+    /// The part's file observable.
+    pub observable: i64,
+    /// Its path in the alert.
+    pub path: String,
+    /// True for the `text/html` part, false for the `text/plain` one.
+    pub html: bool,
+    pub text: String,
+    /// The bytes past what `text` holds.
+    pub more: u64,
+}
+
+/// The body parts an alert's summary may show, which [`body_parts`] picks: each email result's first
+/// plain text part and its first HTML part, of at most [`MAX_BODY_EMAILS`] emails in the tree's order.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BodyPart {
+    pub result: i64,
+    pub observable: i64,
+    pub path: String,
+    pub html: bool,
+}
+
+/// The body parts to read for a summary (`BodyPart`), as ace3's `EmailAnalysis.body_text` and
+/// `body_html` take the first of each kind (`_body_part_types`).
+pub fn body_parts(tree: &AlertTree) -> Vec<BodyPart> {
+    let mut parts = Vec::new();
+    let results = tree.observables.iter().flat_map(|observable| {
+        observable
+            .results
+            .iter()
+            .filter(|result| result.analysis_type == "email_analysis")
+    });
+    for result in results.take(MAX_BODY_EMAILS) {
+        let (added, paths) = added_files(tree, result);
+        let recorded = recorded_parts(result);
+        let kinds = EmailAnalysis::body_parts_in(recorded.as_deref(), &paths);
+        for html in [false, true] {
+            if let Some((index, _)) = kinds.iter().find(|(_, is_html)| *is_html == html) {
+                parts.push(BodyPart {
+                    result: result.id,
+                    observable: added[*index].id,
+                    path: paths[*index].to_owned(),
+                    html,
+                });
+            }
+        }
+    }
+    parts
+}
+
+/// A body part's first bytes as text, and how many of them it holds: invalid UTF-8 replaced, and a
+/// character the cut split left out.
+pub fn body_text(bytes: &[u8]) -> (String, usize) {
+    let mut whole = bytes;
+    // the cut fell inside a character: leave that character out
+    for back in 1..=3.min(bytes.len()) {
+        let start = bytes.len() - back;
+        if let Err(e) = std::str::from_utf8(&bytes[start..])
+            && e.error_len().is_none()
+            && e.valid_up_to() == 0
+        {
+            whole = &bytes[..start];
+            break;
+        }
+    }
+    (String::from_utf8_lossy(whole).into_owned(), whole.len())
+}
+
+/// The files a result added, and their paths in the alert, in the order it added them.
+fn added_files<'t>(
+    tree: &'t AlertTree,
+    result: &ace_service::ModuleResult,
+) -> (Vec<&'t AlertObservable>, Vec<&'t str>) {
+    let added: Vec<&AlertObservable> = tree
+        .additions
+        .iter()
+        .filter(|addition| addition.result == result.id)
+        .filter_map(|addition| {
+            tree.observables
+                .iter()
+                .find(|o| o.id == addition.observable)
+        })
+        .filter(|observable| observable.kind == "file")
+        .collect();
+    let paths = added
+        .iter()
+        .map(|observable| {
+            observable
+                .files
+                .first()
+                .map_or(observable.value.as_str(), |file| file.path.as_str())
+        })
+        .collect();
+    (added, paths)
+}
+
+/// The parts an email result records, or None for a result made before it recorded them.
+fn recorded_parts(
+    result: &ace_service::ModuleResult,
+) -> Option<Vec<ace_results::types::email::EmailPart>> {
+    result
+        .details
+        .get("parts")
+        .filter(|parts| !parts.is_null())
+        .and_then(|parts| serde_json::from_value(parts.clone()).ok())
 }
 
 /// An alert type's summary: the askama template that draws what decides an alert of that type.
@@ -89,6 +245,11 @@ pub trait AlertSummary {
     /// The alert type it draws, and every type that starts with it and ` - `.
     const ALERT_TYPE: &'static str;
 
+    /// Whether it shows its emails' body text: the page then reads each email's first plain text and
+    /// HTML body part, bounded, into [`SummaryInput::bodies`] (PLAN.md decision 55). Off, the page reads
+    /// no file for it.
+    const READS_EMAIL_BODIES: bool = false;
+
     type View<'a>: Template;
 
     /// The summary of this alert, or None when the alert holds nothing it shows, which leaves the
@@ -100,6 +261,8 @@ pub trait AlertSummary {
 #[derive(Clone, Copy)]
 pub struct SummaryEntry {
     pub alert_type: &'static str,
+    /// Its `AlertSummary::READS_EMAIL_BODIES`.
+    pub reads_email_bodies: bool,
     draw: fn(&SummaryInput<'_>) -> Option<Result<String, String>>,
 }
 
@@ -107,6 +270,7 @@ impl SummaryEntry {
     pub fn of<T: AlertSummary>() -> Self {
         SummaryEntry {
             alert_type: T::ALERT_TYPE,
+            reads_email_bodies: T::READS_EMAIL_BODIES,
             draw: draw_as::<T>,
         }
     }
@@ -207,6 +371,20 @@ impl Summaries {
             }
             wanted = wanted.rsplit_once(" - ")?.0.trim_end();
         }
+    }
+
+    /// Whether the summary `draw` would try first for an alert, by the template it names or else its
+    /// type, or the one by type it falls back to, reads its emails' bodies, so the page reads them
+    /// only for such a summary.
+    pub fn reads_email_bodies(&self, alert_type: &str, origin: &Value) -> bool {
+        let named = named_template(origin)
+            .and_then(|name| self.named.get(name))
+            .is_some_and(|entry| entry.reads_email_bodies);
+        let typed = self
+            .chosen(alert_type)
+            .and_then(|chosen| self.entries.get(chosen))
+            .is_some_and(|entry| entry.reads_email_bodies);
+        named || typed
     }
 
     /// The summary of an alert, chosen as ace3's `GUIAlertPresenter.template_path` chooses its
@@ -525,32 +703,9 @@ fn mailbox_view(alert: &SummaryInput<'_>) -> Option<MailboxSummaryView> {
 
     // ace3's `EmailAnalysis.body`: which of the files the email's result added is the body
     let body = analyzed.and_then(|(_, result)| {
-        let added: Vec<&AlertObservable> = tree
-            .additions
-            .iter()
-            .filter(|addition| addition.result == result.id)
-            .filter_map(|addition| {
-                tree.observables
-                    .iter()
-                    .find(|o| o.id == addition.observable)
-            })
-            .filter(|observable| observable.kind == "file")
-            .collect();
-        let paths: Vec<&str> = added
-            .iter()
-            .map(|observable| {
-                observable
-                    .files
-                    .first()
-                    .map_or(observable.value.as_str(), |file| file.path.as_str())
-            })
-            .collect();
+        let (added, paths) = added_files(tree, result);
         // the parts the result records, or, for a result made before it recorded them, the names
-        let parts: Option<Vec<ace_results::types::email::EmailPart>> = result
-            .details
-            .get("parts")
-            .filter(|parts| !parts.is_null())
-            .and_then(|parts| serde_json::from_value(parts.clone()).ok());
+        let parts = recorded_parts(result);
         let index = EmailAnalysis::body_in(parts.as_deref(), &paths)?;
         Some((paths[index].to_owned(), tree_anchor(tree, added[index].id)))
     });

@@ -65,7 +65,8 @@
     <button type="submit" name="owner" value="assign">Assign</button>
   </form>
   {%- endif %}
-  <p class="alert-links"><a href="/alerts/{{ id }}/graph">Graph</a> <a href="/search?similar={{ id }}" title="Other alerts whose text is like this one's">Similar alerts</a></p>
+  <p class="alert-links"><a href="/alerts/{{ id }}/graph">Graph</a> <a href="/search?similar={{ id }}" title="Other alerts whose text is like this one's">Similar alerts</a>
+    {%- for action in alert_actions %} <a class="alert-action" href="{{ action.href }}" target="_blank" rel="noopener noreferrer"{% if let Some(title) = action.title %} title="{{ title }}"{% endif %}>{{ action.label }}</a>{% endfor %}</p>
   </div>
   </header>
   <div class="alert-summary">

@@ -56,7 +56,9 @@
 //!   alert); what fired and on what, each detection once with its verdict, at most `MAX_FIRED`; and
 //!   the summary the alert's type chose (`crate::analysis::summary`): a mailbox alert's email, a hunt
 //!   alert's hunt, a site's own, or the default, the key observables: those the submission added and
-//!   those that carry a detection, at most `MAX_KEY_OBSERVABLES`.
+//!   those that carry a detection, at most `MAX_KEY_OBSERVABLES`. A summary that reads its emails'
+//!   bodies is given their text, read once per page load and not audited (PLAN.md decision 55). Beside
+//!   Graph and Similar alerts, the site's alert actions this viewer may see (`crate::alert_actions`).
 //! - Collapsed panels, each a `<details>` whose summary line says what it holds: what SVS makes of the
 //!   alert (PLAN.md 7.10 batch 7b, `crate::svs_alert`), the detections with their verdicts and the
 //!   forms that change them (PLAN.md 7.14, `crate::verdicts`), remediation's coverage and timeline
@@ -1001,6 +1003,11 @@ pub struct PageOptions<'a> {
     pub remediation: Option<&'a ace_service::RemediationTimeline>,
     /// None draws pivot links with ace4's own icons, which are none.
     pub icons: Option<&'a crate::icons::PivotIcons>,
+    /// The alert's emails' body texts, for a summary that reads them (PLAN.md decision 55).
+    pub bodies: &'a [crate::analysis::summary::EmailBody],
+    /// The links of the site's alert actions this viewer may see, drawn beside the page's own (decision
+    /// 55).
+    pub alert_actions: &'a [crate::alert_actions::AlertActionLink],
 }
 
 /// `/alerts/{id}`.
@@ -1027,6 +1034,9 @@ pub struct AlertPage {
     /// What fired and on what, at most `MAX_FIRED`, and how many more the verdicts panel lists.
     pub fired: Vec<Fired>,
     pub more_fired: usize,
+    /// The site's alert actions for this alert and viewer, beside Graph and Similar alerts (PLAN.md
+    /// decision 55).
+    pub alert_actions: Vec<crate::alert_actions::AlertActionLink>,
     /// The alert's own links out of ACE, such as its hunt's, ace3's "External Link" rows (PLAN.md
     /// decision 32 part (b)); none draws no section.
     pub external_links: Vec<crate::icons::DrawnLink>,
@@ -1327,12 +1337,11 @@ impl AlertPage {
             }
         };
         // a summary its hunt names draws even an alert with no type
-        let drawn = summaries.draw(&SummaryInput {
-            alert_type: alert_type.as_deref().unwrap_or(""),
-            origin: &tree.origin,
-            tree,
-            remediation: options.remediation.map(|timeline| &timeline.coverage),
-        });
+        let drawn = summaries.draw(
+            &SummaryInput::new(alert_type.as_deref().unwrap_or(""), &tree.origin, tree)
+                .with_remediation(options.remediation.map(|timeline| &timeline.coverage))
+                .with_bodies(options.bodies),
+        );
         let (key_observables, more_observables) = key_observables(tree);
         let mut fired = fired_of_tree(tree);
         let more_fired = fired.len().saturating_sub(MAX_FIRED);
@@ -1360,6 +1369,7 @@ impl AlertPage {
             tags: summary.tags.clone(),
             fired,
             more_fired,
+            alert_actions: options.alert_actions.to_vec(),
             external_links: crate::icons::DrawnLink::of(&tree.alert.pivot_links, icons),
             summary: drawn,
             key_observables,
@@ -1578,12 +1588,16 @@ pub(crate) async fn page(
                 .find(|(key, _)| key == "tree")
                 .and_then(|(_, value)| TreeMode::named(value))
         });
+    let bodies = email_bodies(&gui, actor, &tree).await;
+    let alert_actions = alert_action_links(&gui, actor, &tree).await;
     let options = PageOptions {
         tree: asked,
         summaries: Some(&gui.summaries),
         dispositions: Some(gui.service.dispositions()),
         remediation: remediation.as_ref(),
         icons: Some(gui.icons()),
+        bodies: &bodies,
+        alert_actions: &alert_actions,
     };
     let dispositions = if ownership.is_some() {
         gui.service.dispositions().selectable()
@@ -1610,6 +1624,87 @@ pub(crate) async fn page(
             (StatusCode::INTERNAL_SERVER_ERROR, "internal error").into_response()
         }
     }
+}
+
+/// The body texts of the alert's emails, when the summary its page draws reads them (PLAN.md decision
+/// 55): each email's first plain text and HTML body part, of at most `MAX_BODY_EMAILS` emails, at most
+/// `MAX_BODY_BYTES` of each. A part that can't be read is logged and left out, so the summary draws
+/// without it. Reading them writes no audit row (the owner's B1 answer 4). The live stream redraws the
+/// tree, not the summary, so they're read once per page load.
+async fn email_bodies(
+    gui: &Gui,
+    actor: &ace_service::Actor,
+    tree: &ace_service::AlertTree,
+) -> Vec<crate::analysis::summary::EmailBody> {
+    use crate::analysis::summary::{EmailBody, MAX_BODY_BYTES, body_parts, body_text};
+    if !gui
+        .summaries
+        .reads_email_bodies(tree.alert_type().unwrap_or(""), &tree.origin)
+    {
+        return Vec::new();
+    }
+    let id = tree.alert.summary.id;
+    let mut bodies = Vec::new();
+    for part in body_parts(tree) {
+        match gui
+            .service
+            .alert_file_head(actor, id, part.observable, MAX_BODY_BYTES)
+            .await
+        {
+            Ok(head) => {
+                let (text, kept) = body_text(&head.bytes);
+                bodies.push(EmailBody {
+                    result: part.result,
+                    observable: part.observable,
+                    path: part.path,
+                    html: part.html,
+                    more: head.size.saturating_sub(kept as u64),
+                    text,
+                });
+            }
+            Err(error) => tracing::warn!(
+                alert = %id,
+                observable = part.observable,
+                "an email's body part couldn't be read for its summary: {error}"
+            ),
+        }
+    }
+    bodies
+}
+
+/// The site's alert actions this viewer may see, with their links for this alert (PLAN.md decision 55).
+/// A permission that can't be checked hides its actions.
+async fn alert_action_links(
+    gui: &Gui,
+    actor: &ace_service::Actor,
+    tree: &ace_service::AlertTree,
+) -> Vec<crate::alert_actions::AlertActionLink> {
+    if gui.alert_actions.is_empty() {
+        return Vec::new();
+    }
+    let mut held: Vec<(ace_service::PermissionName, bool)> = Vec::new();
+    for action in gui.alert_actions.iter() {
+        if held.iter().any(|(p, _)| *p == action.permission) {
+            continue;
+        }
+        let may = gui
+            .service
+            .allowed(actor, &action.permission)
+            .await
+            .unwrap_or_else(|error| {
+                tracing::warn!(%actor, "checking an alert action's permission failed: {error}");
+                false
+            });
+        held.push((action.permission.clone(), may));
+    }
+    let target = crate::alert_actions::AlertActionTarget {
+        alert: tree.alert.summary.id,
+        alert_type: tree.alert_type(),
+        origin: &tree.origin,
+    };
+    gui.alert_actions.links(&target, |permission| {
+        held.iter().any(|(p, may)| p == permission && *may)
+    })
 }
 
 /// An observable a result added, as the result's page lists it.

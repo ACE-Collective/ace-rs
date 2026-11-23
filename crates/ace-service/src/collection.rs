@@ -13,6 +13,11 @@
 //! collector given the same item at once make one root: the second's insert waits for the first's
 //! transaction and then finds its row.
 //!
+//! [`Service::collected_key`] tells a collector whether a key already made a root, before it fetches
+//! what the item would hold, as a site's RSS collector asks `is_entry_processed` before it fetches an
+//! article (PLAN.md decision 54). It's advisory: `submit_collected` still decides, so two replicas
+//! asking at once and both fetching still make one root.
+//!
 //! Growth: one row per submitted key, removed once it expires (`key_lifetime_seconds`, 4 hours by
 //! default, ace3's), by each submission of its collector.
 
@@ -40,6 +45,32 @@ pub enum Collected {
 }
 
 impl Service {
+    /// The root `key` made for `collector`, if a live key holds it: one that hasn't expired. The root
+    /// may since have gone, as a key outlives what it made. It needs `alert:create`, the grant a
+    /// collector submits with, and is a read, so it's not audited.
+    pub async fn collected_key(
+        &self,
+        actor: &Actor,
+        collector: &str,
+        key: &str,
+    ) -> Result<Option<Uuid>, ServiceError> {
+        self.gate
+            .read(actor, "collected_key", &ALERT_CREATE, &|tx| {
+                Box::pin(async move {
+                    Ok(sqlx::query_scalar!(
+                        r#"SELECT root AS "root!" FROM collection.submitted_keys
+                           WHERE collector = $1 AND hash = sha256(convert_to($2, 'UTF8'))
+                             AND expires_at > now() AND root IS NOT NULL"#,
+                        collector,
+                        key,
+                    )
+                    .fetch_optional(tx.conn())
+                    .await?)
+                })
+            })
+            .await
+    }
+
     /// Creates a collected item's root, as `submit` does, unless its `key` already made one for
     /// `collector` within `key_lifetime`: the key is recorded with the root in one transaction. It
     /// needs `alert:create`. An item with no key is always submitted, as ace3's. A submission that

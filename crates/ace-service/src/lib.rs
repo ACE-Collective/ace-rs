@@ -202,8 +202,9 @@ pub use alert_graph::{
 pub use alert_view::{Addition, AlertTree, AlertWatch, MAX_TREE_OBSERVABLES, RESULTS_CHANNEL};
 pub use alerts::{
     Alert, AlertDetection, AlertFile, AlertObservable, AlertPage, AlertQuery, AlertSort,
-    AlertSummary, AnalysisState, FailedModule, FileDownload, LIST_TIMEOUT, MAX_ALERTS_PAGE,
-    MAX_OBSERVABLES_PAGE, ModuleResult, ObservablePage, RecordedActor, Relationship,
+    AlertSummary, AnalysisState, FailedModule, FileDownload, FileHead, LIST_TIMEOUT,
+    MAX_ALERTS_PAGE, MAX_OBSERVABLES_PAGE, ModuleResult, ObservablePage, RecordedActor,
+    Relationship,
 };
 pub use auth::{
     InvalidUsername, IssuedToken, MAX_PASSWORD_BYTES, MIN_PASSWORD_CHARS, NewApiKey, NewSession,

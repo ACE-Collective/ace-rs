@@ -21730,3 +21730,469 @@ async fn the_observable_pattern_filter_through_the_list() {
         0
     );
 }
+
+/// A summary that reads its emails' bodies (PLAN.md decision 55): each body part as text, with how much
+/// more it has.
+#[derive(Template)]
+#[template(
+    source = r#"<section class="type-summary bodies">{% for body in bodies %}<pre data-result="{{ body.result }}" data-html="{{ body.html }}" data-more="{{ body.more }}">{{ body.text }}</pre>{% endfor %}</section>"#,
+    ext = "html"
+)]
+struct BodiesView {
+    bodies: Vec<ace_gui::EmailBody>,
+}
+
+struct BodiesSummary;
+
+impl ace_gui::AlertSummary for BodiesSummary {
+    const ALERT_TYPE: &'static str = "bodies";
+    const READS_EMAIL_BODIES: bool = true;
+    type View<'a> = BodiesView;
+    fn view<'a>(alert: &ace_gui::SummaryInput<'a>) -> Option<BodiesView> {
+        Some(BodiesView {
+            bodies: alert.bodies.to_vec(),
+        })
+    }
+}
+
+/// The same alert type's summary, which doesn't read bodies: it is given none.
+#[derive(Template)]
+#[template(
+    source = r#"<section class="type-summary bodies">given {{ count }} bodies</section>"#,
+    ext = "html"
+)]
+struct NoBodiesView {
+    count: usize,
+}
+
+struct NoBodiesSummary;
+
+impl ace_gui::AlertSummary for NoBodiesSummary {
+    const ALERT_TYPE: &'static str = "bodies";
+    type View<'a> = NoBodiesView;
+    fn view<'a>(alert: &ace_gui::SummaryInput<'a>) -> Option<NoBodiesView> {
+        Some(NoBodiesView {
+            count: alert.bodies.len(),
+        })
+    }
+}
+
+/// An alert of type `bodies` with `emails` email results, each adding a plain text and an HTML body
+/// part, and an attachment that is no body, stored in the bucket held by the root. The first email's
+/// text is `first_text`; the rest are their number.
+async fn bodies_alert(
+    stack: &Stack,
+    bucket: &ace_core::bucket::Bucket,
+    emails: usize,
+    first_text: &[u8],
+) -> uuid::Uuid {
+    use ace_core::tree;
+    let db = stack.test_db.db();
+    let root = tree::NewRoot::new("correlation");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    sqlx::query(
+        "UPDATE analysis.roots SET alerted_at = now(), origin = '{\"alert_type\": \"bodies\"}'
+         WHERE id = $1",
+    )
+    .bind(root.id)
+    .execute(tx.conn())
+    .await
+    .expect("an alert");
+    let hold = ace_core::bucket::Hold::root(root.id);
+    for n in 0..emails {
+        let email = tree::upsert_observable(
+            &mut tx,
+            root.id,
+            &ace_results::NewObservable::new(
+                ace_results::ObservableKind::File,
+                hex::encode(Sha256::digest(format!("email {n}"))),
+            ),
+        )
+        .await
+        .expect("the email")
+        .id;
+        let paths = [
+            format!("e{n}.unknown_text_plain_000.txt"),
+            format!("e{n}.unknown_text_html_001.html"),
+            format!("notes{n}.txt"),
+        ];
+        let result: ace_results::ResultEnvelope<serde_json::Value> =
+            serde_json::from_value(serde_json::json!({
+                "analysis_type": "email_analysis", "schema_version": 1,
+                "details": {"parts": [
+                    {"path": paths[0], "content_type": "text/plain", "role": "body"},
+                    {"path": paths[1], "content_type": "text/html", "role": "body"},
+                    {"path": paths[2], "content_type": "text/plain", "role": "attachment"},
+                ]},
+            }))
+            .expect("a result");
+        let result = tree::insert_result(&mut tx, root.id, email, "email_analysis", &result)
+            .await
+            .expect("stores");
+        let bytes: [Vec<u8>; 3] = [
+            if n == 0 {
+                first_text.to_vec()
+            } else {
+                format!("plain {n}").into_bytes()
+            },
+            format!("<p onclick=x>html {n}</p><script>alert(1)</script>").into_bytes(),
+            format!("attachment {n}").into_bytes(),
+        ];
+        for (path, bytes) in paths.iter().zip(bytes) {
+            let spooled = bucket.store().spool_bytes(&bytes).await.expect("spools");
+            bucket
+                .put_in(
+                    &mut tx,
+                    ace_core::bucket::ALERT_FILES,
+                    &spooled,
+                    Some(&hold),
+                )
+                .await
+                .expect("stores the bytes");
+            let file = tree::upsert_observable(
+                &mut tx,
+                root.id,
+                &ace_results::NewObservable::new(
+                    ace_results::ObservableKind::File,
+                    spooled.sha256.to_hex(),
+                ),
+            )
+            .await
+            .expect("the part")
+            .id;
+            tree::add_file(&mut tx, root.id, file, path, &[])
+                .await
+                .expect("the file");
+            tree::add_result_addition(&mut tx, root.id, result, file, Some(path))
+                .await
+                .expect("the addition");
+        }
+    }
+    tx.commit().await.expect("commits");
+    root.id
+}
+
+/// PLAN.md decision 55, through the server. A summary that reads its emails' bodies is given each
+/// email's first plain text and HTML body part, never an attachment, as text: escaped, invalid UTF-8
+/// replaced, at most 64 KiB of each with the rest counted, of at most 8 emails, and reading them writes
+/// no audit row. A summary that doesn't read them is given none. The site's alert actions are drawn
+/// beside Graph and Similar alerts, each only for a viewer with its permission, in a new tab with no
+/// opener or referrer, their text escaped, and a link that isn't one to draw for an alert is left out.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_alert_page_shows_a_summary_its_email_bodies_and_the_site_s_actions() {
+    let cache = std::env::temp_dir().join(format!("ace4-gui-cache-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&cache).expect("a cache directory");
+    let store = ace_store::Store::new(
+        &ace_store::BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        ace_store::NodeCache::new(&cache, 1 << 30).expect("a cache"),
+    )
+    .await;
+    let read = ace_service::PermissionName::new("alert", "read").expect("a name");
+    let write = ace_service::PermissionName::new("alert", "write").expect("a name");
+    let actions = ace_gui::AlertActions::empty()
+        .with(
+            ace_gui::AlertAction::new("triage_tool_open", "Open <in> TriageTool", read.clone(), |t| {
+                Some(format!("http://127.0.0.1:28563/#triage={}", t.alert))
+            })
+            .with_title("The UI \"must\" run on this machine"),
+        )
+        .with(ace_gui::AlertAction::new(
+            "writers_only",
+            "Writers",
+            write,
+            |_| Some("/writers".to_owned()),
+        ))
+        .with(ace_gui::AlertAction::new(
+            "elsewhere",
+            "Elsewhere",
+            read,
+            |_| Some("http://203.0.113.9/".to_owned()),
+        ));
+    let bucket_slot: Arc<Mutex<Option<ace_core::bucket::Bucket>>> = Arc::new(Mutex::new(None));
+    let slot = bucket_slot.clone();
+    let stack = stack_of_db(Catalog::new(vec![]), move |service, db| {
+        let bucket = ace_core::bucket::Bucket::new(
+            db.clone(),
+            store,
+            ace_core::bucket::BucketSettings::default(),
+        );
+        *slot.lock().expect("the slot") = Some(bucket.clone());
+        Gui::new(service.with_bucket(bucket), Transport::Plain)
+            .with_summaries(
+                ace_gui::AlertSummaries::builtin()
+                    .with(ace_gui::SummaryEntry::of::<BodiesSummary>()),
+            )
+            .with_alert_actions(actions)
+    })
+    .await;
+    let bucket = bucket_slot
+        .lock()
+        .expect("the slot")
+        .clone()
+        .expect("a bucket");
+    let alice = user(&stack, "alice").await;
+    grant_to(&stack, &alice, "alert", "read").await;
+    let session = session_of(&stack, "alice").await;
+    let page = |id: uuid::Uuid| {
+        let request = stack
+            .get(&format!("/alerts/{id}"))
+            .header("cookie", cookie(&session));
+        async move {
+            let page = request.send().await.expect("answered");
+            assert_eq!(page.status(), StatusCode::OK);
+            page.text().await.expect("text")
+        }
+    };
+
+    // a body past the bound, cut inside a character, with a byte that isn't UTF-8
+    let mut long = b"<b>bold</b> \xff ".to_vec();
+    long.resize(ace_gui::MAX_BODY_BYTES - 1, b'a');
+    long.extend_from_slice("é".as_bytes());
+    long.extend_from_slice(&[b'z'; 99]);
+    let id = bodies_alert(&stack, &bucket, 9, &long).await;
+    let audit = stack.audit_count().await;
+    let html = page(id).await;
+    assert_eq!(
+        stack.audit_count().await,
+        audit,
+        "showing a body is no audited read"
+    );
+    let bodies: Vec<&str> = html.split("<pre data-result=").skip(1).collect();
+    assert_eq!(
+        bodies.len(),
+        2 * ace_gui::MAX_BODY_EMAILS,
+        "eight emails, a plain and an HTML part each: {html}"
+    );
+    let shown = ace_gui::MAX_BODY_BYTES - 1 - b"<b>bold</b> \xff ".len();
+    assert!(
+        bodies[0].contains(&format!(
+            r#"data-html="false" data-more="101">&#60;b&#62;bold&#60;/b&#62; {} {}</pre>"#,
+            '\u{fffd}',
+            "a".repeat(shown)
+        )),
+        "{}",
+        &bodies[0][..200]
+    );
+    assert!(
+        bodies[1].contains(
+            r#"data-html="true" data-more="0">&#60;p onclick=x&#62;html 0&#60;/p&#62;&#60;script&#62;alert(1)&#60;/script&#62;</pre>"#
+        ),
+        "{}",
+        bodies[1]
+    );
+    assert!(bodies[2].contains(">plain 1</pre>"), "{}", bodies[2]);
+    assert!(!html.contains("attachment 1"), "an attachment is no body");
+    assert!(
+        !html.contains("plain 8"),
+        "the ninth email is past the bound"
+    );
+    assert!(!html.contains("<script>alert(1)"), "{html}");
+
+    // the actions: the reader's, not the writers', and not one that leads off this machine
+    assert!(
+        html.contains(&format!(
+            r#"<a class="alert-action" href="http://127.0.0.1:28563/#triage={id}" target="_blank" rel="noopener noreferrer" title="The UI &#34;must&#34; run on this machine">Open &#60;in&#62; TriageTool</a></p>"#
+        )),
+        "{html}"
+    );
+    assert!(!html.contains(">Writers</a>"), "{html}");
+    assert!(!html.contains("Elsewhere"), "{html}");
+    grant_to(&stack, &alice, "alert", "write").await;
+    let html = page(id).await;
+    assert!(
+        html.contains(r#"<a class="alert-action" href="/writers" target="_blank" rel="noopener noreferrer">Writers</a>"#),
+        "{html}"
+    );
+
+    // a summary that doesn't read bodies is given none, and nothing is read
+    let plain = stack_of_db(Catalog::new(vec![]), |service, _| {
+        Gui::new(service, Transport::Plain).with_summaries(
+            ace_gui::AlertSummaries::builtin().with(ace_gui::SummaryEntry::of::<NoBodiesSummary>()),
+        )
+    })
+    .await;
+    let id = bodies_alert(&plain, &bucket, 1, b"text").await;
+    let bob = user(&plain, "bob").await;
+    grant_to(&plain, &bob, "alert", "read").await;
+    let session = session_of(&plain, "bob").await;
+    let html = plain
+        .get(&format!("/alerts/{id}"))
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("text");
+    assert!(html.contains("given 0 bodies"), "{html}");
+    assert!(!html.contains("class=\"alert-action\""), "{html}");
+}
+
+#[test]
+fn alert_action_a_link_is_a_site_path_https_or_http_to_this_machine() {
+    for good in [
+        "/alerts/x",
+        "https://example.com/a?b=c#d",
+        "https://example.com:8443/",
+        "http://127.0.0.1:28563/#triage=3f2c91ab",
+        "http://127.9.9.9/",
+        "http://localhost:9999/",
+        "http://LOCALHOST/",
+        "http://[::1]:28563/",
+        "http://[::1]/",
+    ] {
+        assert!(ace_gui::alert_actions::drawable(good), "{good}");
+    }
+    for bad in [
+        "javascript:alert(1)",
+        "file:///etc/passwd",
+        "http://203.0.113.9:28563/",
+        "http://triage_tool.example.com/",
+        "http://127.0.0.1.example.com/",
+        "http://localhost.example.com/",
+        "http://user:pass@127.0.0.1/",
+        "http://ace.example.com@127.0.0.1/",
+        "https://ace.example.com@203.0.113.9/",
+        "https:///nohost",
+        "http://127.0.0.1:99999/",
+        "http://127.0.0.1:port/",
+        "http://[::2]/",
+        "http://[::1/",
+        "//evil.example.com/",
+        "/\\evil.example.com",
+        "http://127.0.0.1/\"onmouseover=x",
+        "http://127.0.0.1/a b",
+        "http://127.0.0.1/\u{e9}",
+        "",
+    ] {
+        assert!(!ace_gui::alert_actions::drawable(bad), "{bad}");
+    }
+    assert!(!ace_gui::alert_actions::drawable(&format!(
+        "/{}",
+        "a".repeat(4096)
+    )));
+}
+
+#[test]
+fn alert_action_an_action_is_refused_for_its_name_label_or_sample_link() {
+    let action = |name: &'static str, label: &str, link: &'static str| {
+        ace_gui::AlertAction::new(
+            name,
+            label,
+            ace_service::PermissionName::new("alert", "read").expect("a name"),
+            move |target| Some(format!("{link}#triage={}", target.alert)),
+        )
+    };
+    assert_eq!(
+        action("triage_tool_open", "Open in TriageTool", "http://127.0.0.1:28563/").refusal(),
+        None
+    );
+    for (name, label, link, says) in [
+        ("TriageTool", "x", "/a", "name"),
+        ("", "x", "/a", "name"),
+        ("triage_tool_open", " ", "/a", "no label"),
+        ("triage_tool_open", "x", "http://203.0.113.9/", "isn't a path"),
+        ("triage_tool_open", "x", "javascript:alert(1)", "isn't a path"),
+    ] {
+        let refused = action(name, label, link).refusal().expect("refused");
+        assert!(refused.contains(says), "{refused}");
+    }
+    // a link the action doesn't give the sample alert is no refusal: it isn't drawn there
+    let none = ace_gui::AlertAction::new(
+        "sometimes",
+        "Sometimes",
+        ace_service::PermissionName::new("alert", "read").expect("a name"),
+        |_| None,
+    );
+    assert_eq!(none.refusal(), None);
+}
+
+#[test]
+fn alert_action_links_follow_the_order_the_permission_and_each_alert() {
+    let read = ace_service::PermissionName::new("alert", "read").expect("a name");
+    let write = ace_service::PermissionName::new("alert", "write").expect("a name");
+    let actions = ace_gui::AlertActions::empty()
+        .with(
+            ace_gui::AlertAction::new("first", "First", read.clone(), |t| {
+                Some(format!("/x/{}", t.alert))
+            })
+            .with_title("the first"),
+        )
+        .with(ace_gui::AlertAction::new(
+            "writers",
+            "Writers",
+            write.clone(),
+            |_| Some("/w".to_owned()),
+        ))
+        .with(ace_gui::AlertAction::new(
+            "typed",
+            "Typed",
+            read.clone(),
+            |t| (t.alert_type == Some("mailbox")).then(|| "http://evil.example.com/".to_owned()),
+        ))
+        .with(ace_gui::AlertAction::new(
+            "first",
+            "First again",
+            read.clone(),
+            |_| Some("/again".to_owned()),
+        ));
+    assert_eq!(
+        actions.names().collect::<Vec<_>>(),
+        ["first", "writers", "typed"]
+    );
+    let origin = serde_json::Value::Null;
+    let target = ace_gui::AlertActionTarget {
+        alert: uuid::Uuid::nil(),
+        alert_type: Some("mailbox"),
+        origin: &origin,
+    };
+    let links = actions.links(&target, |p| *p == read);
+    assert_eq!(
+        links,
+        [ace_gui::alert_actions::AlertActionLink {
+            name: "first",
+            label: "First again".to_owned(),
+            title: None,
+            href: "/again".to_owned(),
+        }],
+        "the writers' action is left out, and a link that isn't drawable is too"
+    );
+    assert_eq!(actions.links(&target, |_| true).len(), 2);
+}
+
+#[test]
+fn a_body_s_text_leaves_out_a_character_the_cut_split() {
+    use ace_gui::analysis::summary::body_text;
+    assert_eq!(body_text(b"plain"), ("plain".to_owned(), 5));
+    assert_eq!(
+        body_text("caf\u{e9}".as_bytes()),
+        ("caf\u{e9}".to_owned(), 5)
+    );
+    assert_eq!(body_text(b"caf\xc3"), ("caf".to_owned(), 3));
+    assert_eq!(body_text(b"x\xf0\x9f\x98"), ("x".to_owned(), 1));
+    // a byte that isn't UTF-8 is replaced, not left out
+    assert_eq!(body_text(b"a\xffb"), ("a\u{fffd}b".to_owned(), 3));
+    assert_eq!(body_text(b"a\xff"), ("a\u{fffd}".to_owned(), 2));
+    assert_eq!(body_text(b""), (String::new(), 0));
+}
+
+#[test]
+fn bodies_are_read_for_a_summary_that_reads_them_by_name_or_by_type() {
+    let summaries = ace_gui::AlertSummaries::builtin()
+        .with(ace_gui::SummaryEntry::of::<BodiesSummary>())
+        .with_template(
+            "site/reads.html",
+            ace_gui::SummaryEntry::of::<BodiesSummary>(),
+        );
+    let none = serde_json::Value::Null;
+    let named = serde_json::json!({"extensions": {"alert_template": " site/reads.html "}});
+    assert!(summaries.reads_email_bodies("bodies - sub", &none));
+    assert!(!summaries.reads_email_bodies("mailbox", &none));
+    assert!(!summaries.reads_email_bodies("", &none));
+    assert!(summaries.reads_email_bodies("mailbox", &named));
+    assert!(
+        !ace_gui::AlertSummaries::builtin().reads_email_bodies("mailbox", &named),
+        "a name with no summary falls to the type"
+    );
+}

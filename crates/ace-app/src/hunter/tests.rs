@@ -514,7 +514,7 @@ fn a_hunt_submission_becomes_the_core_s() {
             event_time_source: EventTimeSource::QueryTime,
             details: serde_json::Map::new(),
             extensions: serde_json::Map::new(),
-            tags: vec![],
+            tags: vec!["vpn".to_owned(), "correlated".to_owned()],
             pivot_links: vec![
                 ace_hunt::query::PivotLink {
                     url: "https://splunk.example.com/search?q=x".to_owned(),
@@ -566,6 +566,12 @@ fn a_hunt_submission_becomes_the_core_s() {
     assert_eq!(
         origin.details.as_ref().expect("details")["alert_type"],
         json!("a")
+    );
+    // the hunt's tags are the root's (decision 54), and stay in its details
+    assert_eq!(origin.tags, ["vpn", "correlated"]);
+    assert_eq!(
+        origin.details.as_ref().expect("details")["tags"],
+        json!(["vpn", "correlated"])
     );
     // the hunt's links are the root's, less those ace4 can't show (decision 32 part (b))
     assert_eq!(

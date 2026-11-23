@@ -2,6 +2,9 @@
 //! a file's download. An alert is a root a detection turned into one (`analysis.roots.alerted_at`). Each
 //! read needs `alert:read`, as ace3's routes do, and an actor without it learns nothing, not even whether
 //! the alert exists. A read writes no audit row, except a download, which ace3 audits and so does this.
+//! A file's first bytes for a page that shows its text, such as an email's body in its alert's summary
+//! (`alert_file_head`, PLAN.md decision 55), are a read like the page's own, as ace3's alert page reads
+//! the body part's file to draw it, and write none (the owner's B1 answer 4).
 //!
 //! Lists are pages in a fixed order with a cursor, so a client paging through while alerts arrive sees
 //! each one once: the alert list in the order its query asks, and an alert's observables by when each was
@@ -798,14 +801,19 @@ impl Service {
                                        ON (p.t = '' OR o.type = p.t)
                                       AND o.value_hash = analysis.value_hash(p.v) AND o.value = p.v
                                      WHERE o.root_id = r.id))
-                               -- Tag: on any of its observables or results, * matching anything
+                               -- Tag: on the root, any of its observables or its results, * matching
+                               -- anything, as ace3's `all_tags`
                                AND ($30::text[] IS NULL
+                                    OR EXISTS (SELECT FROM unnest(r.tags) t(tag)
+                                               WHERE t.tag ILIKE ANY ($30::text[]))
                                     OR EXISTS (SELECT FROM analysis.observables o, unnest(o.tags) t(tag)
                                                WHERE o.root_id = r.id AND t.tag ILIKE ANY ($30::text[]))
                                     OR EXISTS (SELECT FROM analysis.results x, unnest(x.tags) t(tag)
                                                WHERE x.root_id = r.id AND t.tag ILIKE ANY ($30::text[])))
                                AND ($31::text[] IS NULL OR NOT (
-                                    EXISTS (SELECT FROM analysis.observables o, unnest(o.tags) t(tag)
+                                    EXISTS (SELECT FROM unnest(r.tags) t(tag)
+                                            WHERE t.tag ILIKE ANY ($31::text[]))
+                                    OR EXISTS (SELECT FROM analysis.observables o, unnest(o.tags) t(tag)
                                             WHERE o.root_id = r.id AND t.tag ILIKE ANY ($31::text[]))
                                     OR EXISTS (SELECT FROM analysis.results x, unnest(x.tags) t(tag)
                                                WHERE x.root_id = r.id AND t.tag ILIKE ANY ($31::text[]))))
@@ -1162,6 +1170,82 @@ impl Service {
                 })
             })
             .await
+    }
+}
+
+/// A file's first bytes, for a page that shows them as text (`Service::alert_file_head`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileHead {
+    /// At most the bytes asked for, from the start.
+    pub bytes: Vec<u8>,
+    /// The file's whole size.
+    pub size: u64,
+}
+
+impl Service {
+    /// The first `max` bytes of a file observable of an alert, from the node's bucket, for a page that
+    /// shows a file's text inline, such as an email's body in its alert's summary (PLAN.md decision 55).
+    /// It needs `alert:read`, as the page does, and writes no audit row: it's the page's read, as ace3's
+    /// alert page reads the body part to draw it, where a download, which hands the bytes over, is
+    /// audited. `NotFound` when the alert has no such observable, `InvalidRequest` when it isn't a
+    /// file, and `Unconfigured` when this node's service has no bucket.
+    pub async fn alert_file_head(
+        &self,
+        actor: &crate::Actor,
+        id: Uuid,
+        observable: i64,
+        max: usize,
+    ) -> Result<FileHead, ServiceError> {
+        let sha256 = self
+            .gate
+            .read(actor, "alert_file_head", &ALERT_READ, &|tx| {
+                Box::pin(async move {
+                    let found = sqlx::query!(
+                        r#"SELECT o.type, o.value FROM analysis.observables o
+                           JOIN analysis.roots r ON r.id = o.root_id
+                           WHERE o.root_id = $1 AND o.id = $2 AND r.alerted_at IS NOT NULL"#,
+                        id,
+                        observable,
+                    )
+                    .fetch_optional(tx.conn())
+                    .await?;
+                    let Some(found) = found else {
+                        return Err(ServiceError::NotFound(format!(
+                            "no observable {observable} in alert {id}"
+                        )));
+                    };
+                    if found.r#type != "file" {
+                        return Err(ServiceError::InvalidRequest(format!(
+                            "observable {observable} isn't a file"
+                        )));
+                    }
+                    Ok(found.value)
+                })
+            })
+            .await?;
+        let sha256: ace_results::Sha256 = sha256.parse().map_err(|e| {
+            ServiceError::Unconfigured(format!("file observable {observable}'s value: {e}"))
+        })?;
+        let Some(bucket) = self.bucket() else {
+            return Err(ServiceError::Unconfigured(
+                "this node's service has no bucket to read a file from".to_owned(),
+            ));
+        };
+        let cached = bucket.get(ace_core::bucket::ALERT_FILES, &sha256).await?;
+        let size = cached.size;
+        let mut file = cached.file;
+        let bytes = tokio::task::spawn_blocking(move || -> std::io::Result<Vec<u8>> {
+            use std::io::Read as _;
+            let mut bytes = Vec::with_capacity(max.min(usize::try_from(size).unwrap_or(max)));
+            (&mut file)
+                .take(u64::try_from(max).unwrap_or(u64::MAX))
+                .read_to_end(&mut bytes)?;
+            Ok(bytes)
+        })
+        .await
+        .map_err(|e| ServiceError::Unconfigured(format!("reading a file's bytes: {e}")))?
+        .map_err(|e| ServiceError::Unconfigured(format!("reading a file's bytes: {e}")))?;
+        Ok(FileHead { bytes, size })
     }
 }
 

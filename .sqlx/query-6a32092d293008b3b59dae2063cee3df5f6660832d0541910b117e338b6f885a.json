@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.roots\n             SET origin = $2, alerted_at = CASE WHEN $3 THEN now() ELSE alerted_at END,\n                 tags = analysis.merged(tags, $4)\n             WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb",
+        "Bool",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6a32092d293008b3b59dae2063cee3df5f6660832d0541910b117e338b6f885a"
+}

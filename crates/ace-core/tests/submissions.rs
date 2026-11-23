@@ -432,3 +432,109 @@ async fn a_root_and_a_result_keep_their_pivot_links() {
         json!([{"url": "https://rdap.example.com/d/1", "text": "RDAP"}])
     );
 }
+
+/// PLAN.md decision 54. A root submitted in correlation mode is an alert at once, with or without a
+/// detection, as ace3's `remote_node` and its API call `ALERT` on one; in a detectable mode a submitted
+/// detection makes it an alert in correlation mode, as ace3's engine moves any root with detection
+/// points there; in a mode that isn't detectable it doesn't; and with neither, a root isn't an alert.
+/// A submitter's tags are the root's own, each once, an empty one left out.
+#[tokio::test]
+async fn a_correlation_root_or_a_submitted_detection_is_an_alert_and_tags_are_the_root_s() {
+    let stack = stack().await;
+    let db = stack.test_db.db();
+    let detected = || {
+        let mut url = ace_results::NewObservable::new(
+            ace_results::ObservableKind::Url,
+            "https://feed.example.com/a",
+        );
+        url.detections.push(ace_results::Detection {
+            description: "always-relevant intel source: feed".to_owned(),
+            details: None,
+            queue: None,
+            signature_uuid: None,
+            signature_version: None,
+            signature_family: None,
+        });
+        url
+    };
+    let make = |mode: &'static str, origin: submit::Origin| {
+        let stack = &stack;
+        async move {
+            let submission: Submission = serde_json::from_value(
+                json!({"description": format!("in {mode}"), "analysis_mode": mode}),
+            )
+            .expect("a submission");
+            let root =
+                submit::prepare(&stack.orchestrator, &submission, &origin, &[]).expect("prepares");
+            let mut tx = stack.test_db.db().begin().await.expect("begins");
+            submit::create(
+                &mut tx,
+                &stack.bucket,
+                &stack.orchestrator,
+                &root,
+                &submission,
+                &origin,
+                &[],
+                ace_core::tree::DirectivesFrom::hunt("a test"),
+            )
+            .await
+            .expect("creates");
+            tx.commit().await.expect("commits");
+            root.id
+        }
+    };
+    let state = |root: Uuid| async move {
+        sqlx::query_as::<_, (String, bool, Vec<String>)>(
+            "SELECT analysis_mode, alerted_at IS NOT NULL, tags FROM analysis.roots WHERE id = $1",
+        )
+        .bind(root)
+        .fetch_one(db.pool())
+        .await
+        .expect("the root")
+    };
+    let none = submit::Origin::default;
+
+    let correlation = make("correlation", none()).await;
+    assert_eq!(
+        state(correlation).await,
+        ("correlation".to_owned(), true, vec![])
+    );
+    let plain = make("analysis", none()).await;
+    assert_eq!(state(plain).await, ("analysis".to_owned(), false, vec![]));
+    let yara = make(
+        "yara",
+        submit::Origin {
+            observables: vec![detected()],
+            tags: vec![
+                "intel.feed:feed".to_owned(),
+                String::new(),
+                "apt".to_owned(),
+                "intel.feed:feed".to_owned(),
+            ],
+            ..none()
+        },
+    )
+    .await;
+    assert_eq!(
+        state(yara).await,
+        (
+            "correlation".to_owned(),
+            true,
+            vec!["intel.feed:feed".to_owned(), "apt".to_owned()]
+        ),
+        "a submitted detection in a detectable mode makes an alert in correlation mode"
+    );
+    let event = make(
+        "event",
+        submit::Origin {
+            observables: vec![detected()],
+            ..none()
+        },
+    )
+    .await;
+    assert_eq!(
+        state(event).await,
+        ("event".to_owned(), false, vec![]),
+        "a detection in a mode that isn't detectable makes no alert, as in ace3"
+    );
+}

@@ -28,7 +28,8 @@ use crate::error::{ApiError, ErrorBody};
 pub(crate) struct SubmissionBody {
     /// The root's title.
     description: String,
-    /// The root's analysis mode, such as `email` or `correlation`; the default mode when left out.
+    /// The root's analysis mode, such as `email` or `correlation`; the default mode when left out. A
+    /// root submitted in `correlation` is an alert at once, as in ace3.
     #[serde(default)]
     analysis_mode: Option<String>,
     /// When the event happened; the time of the submission when left out.

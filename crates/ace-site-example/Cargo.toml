@@ -27,6 +27,8 @@ serde_json = "1.0.154"
 # The ticket hunts' window and their tickets' times, and their searches' bounds (decision 40).
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 tokio = { version = "1.54.1", features = ["macros", "time"] }
+# The collector's log line for a file it already submitted.
+tracing = "0.1.44"
 
 [[bin]]
 name = "example-ace"

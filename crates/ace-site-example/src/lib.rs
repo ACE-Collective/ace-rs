@@ -48,9 +48,12 @@
 //!
 //! Its collector (PLAN.md 6.1), `example`, stands in for a site's collector over a source of its own:
 //! `ace collect example` takes each `*.ticket` file in its `directory` setting as an item keyed by the
-//! file's name, submits it as a ticket alert, and deletes the file once the core has it (a new root or
-//! a duplicate of one), as the journal collector deletes a queue message. A file the core refuses moves
-//! to `rejected/`; one it couldn't take stays for the next pass. It declares one secret,
+//! file's name, submits it as a ticket alert with its `tags` setting as the root's tags, and deletes the
+//! file once the core has it (a new root or a duplicate of one), as the journal collector deletes an
+//! queue message. It asks first whether the name already made a root (`Submitter::submitted`), and
+//! deletes such a file without reading it, as a feed's collector skips an article it submitted before
+//! it fetches it. A file the core refuses moves to `rejected/`; one it couldn't take stays for the next
+//! pass. It declares one secret,
 //! `example_collector_token`, and needs it set, as a real source's credentials would be.
 //!
 //! Its hunts search its ticket system (PLAN.md decision 40, [`hunt`]): a hunt type of its own,
@@ -62,6 +65,10 @@
 //! Its alert router type (PLAN.md 7.13) is ace3's example integration's (`integrations.example`'s
 //! `ExampleTagRouter`): an overlay entry of type `example_tag` sends a new alert carrying one tag to one
 //! queue, and does nothing to any other, so the type changes nothing until an entry and that tag appear.
+//!
+//! Its alert action (PLAN.md decision 55), `ticket_open`, puts "Open in Ticket System" beside the alert
+//! page's own links, to the ticket system's page for the alert under the overlay's
+//! `alert_actions.ticket_open.settings.ticket_url`; with no section it's off.
 
 use ace_app::App;
 use ace_gui::{AlertSummary, AnalysisView, ObservableAction, SummaryInput};
@@ -119,6 +126,7 @@ pub fn app() -> App {
         .analysis_view::<TicketAnalysis>()
         .analysis_view::<TicketFileAnalysis>()
         .observable_action(OPEN_TICKET)
+        .alert_action(TICKET_ACTION, ticket_action)
         .alert_summary::<ExampleTicketSummary>()
         // the same summary, for an alert whose hunt names it in `alert_template`
         .alert_template::<ExampleTicketSummary>(TICKET_TEMPLATE)
@@ -188,6 +196,38 @@ pub const OPEN_TICKET: ObservableAction =
             )
         })
     });
+
+/// The site's alert action (PLAN.md decision 55): "Open in Ticket System", a link to the ticket
+/// system's page for the alert, under the `ticket_url` of its overlay section `alert_actions.ticket_open`,
+/// which may be `http://` to this machine, as a desktop tool's is. With no section it's off.
+pub const TICKET_ACTION: &str = "ticket_open";
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TicketActionSettings {
+    ticket_url: String,
+}
+
+/// Builds the site's alert action from its settings (`TICKET_ACTION`).
+pub fn ticket_action(
+    settings: Option<&serde_json::Value>,
+) -> Result<Option<ace_gui::AlertAction>, String> {
+    let Some(settings) = settings else {
+        return Ok(None);
+    };
+    let settings: TicketActionSettings =
+        serde_json::from_value(settings.clone()).map_err(|e| format!("its settings: {e}"))?;
+    let base = settings.ticket_url.trim_end_matches('/').to_owned();
+    Ok(Some(
+        ace_gui::AlertAction::new(
+            TICKET_ACTION,
+            "Open in Ticket System",
+            ace_service::ALERT_READ,
+            move |target| Some(format!("{base}/alerts/{}", target.alert)),
+        )
+        .with_title("This alert's page in the ticket system"),
+    ))
+}
 
 /// The alert type the site's summary draws: what the site's own submitter would name.
 pub const TICKET_ALERT_TYPE: &str = "example - ticket";
@@ -515,6 +555,9 @@ pub struct DirectoryCollectorSettings {
     /// The ticket system's queue, which the ticket alert's summary shows.
     #[serde(default = "default_ticket_queue")]
     pub ticket_queue: String,
+    /// The tags each root gets (`Origin::tags`).
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 fn default_collector_mode() -> String {
@@ -592,6 +635,7 @@ impl DirectoryCollector {
                     "tool": "example collector",
                     "details": {"ticket_queue": self.settings.ticket_queue},
                 })),
+                tags: self.settings.tags.clone(),
                 ..Origin::default()
             },
             files: vec![SubmittedFile {
@@ -617,6 +661,20 @@ impl ace_app::collector::Collector for DirectoryCollector {
                     .file_name()
                     .map(|n| n.to_string_lossy().into_owned())
                     .unwrap_or_default();
+                // the core has it already: forget it without reading it
+                match submitter.submitted(&name).await {
+                    Ok(Some(root)) => {
+                        tracing::info!(%root, file = %name, "already submitted; not read again");
+                        std::fs::remove_file(&path)
+                            .map_err(|e| format!("{}: {e}", path.display()))?;
+                        continue;
+                    }
+                    Ok(None) => {}
+                    // the submission decides, as it would without the question
+                    Err(e) => {
+                        tracing::warn!(file = %name, "couldn't ask whether it was submitted: {e:#}")
+                    }
+                }
                 // a file that went or can't be read ends the pass; the next one tries again
                 let item = self.item(submitter, &path, &name).await?;
                 match submitter.submit(&item).await {

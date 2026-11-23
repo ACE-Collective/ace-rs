@@ -232,6 +232,7 @@ async fn file_alert(db: &Db, bucket: &Bucket) -> (Uuid, i64) {
 }
 
 /// `file_alert` with these bytes, for a test that collects them, since other tests share the bucket.
+/// The submission is in correlation mode, which makes its root an alert (PLAN.md decision 54).
 async fn file_alert_with(db: &Db, bucket: &Bucket, bytes: &[u8]) -> (Uuid, i64) {
     let (submission, files) = submission(bucket, bytes).await;
     let root = service(db)
@@ -239,11 +240,6 @@ async fn file_alert_with(db: &Db, bucket: &Bucket, bytes: &[u8]) -> (Uuid, i64) 
         .await
         .expect("submits")
         .uuid;
-    sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
-        .bind(root)
-        .execute(db.pool())
-        .await
-        .expect("makes it an alert");
     let observable = sqlx::query_scalar(
         "SELECT id FROM analysis.observables WHERE root_id = $1 AND type = 'file'",
     )
@@ -8727,6 +8723,12 @@ async fn the_alert_list_filters_and_pages_through_fixture_alerts() {
         .execute(db.pool())
         .await
         .expect("sets the viewer's queue");
+    // a root's own tags, such as a hunt's or a collector's (PLAN.md decision 54), are the alert's
+    sqlx::query("UPDATE analysis.roots SET tags = '{intel.feed:news}' WHERE id = $1")
+        .bind(d)
+        .execute(db.pool())
+        .await
+        .expect("tags the root");
 
     // no filter: every alert, newest first, the tie between B and C broken by the id
     let (newest, total) = every_alert(&service, &actor, &AlertQuery::default(), 2).await;
@@ -8779,6 +8781,8 @@ async fn the_alert_list_filters_and_pages_through_fixture_alerts() {
         (vec![text("Tag", false, &["phish"])], vec![a]),
         (vec![text("Tag", false, &["whois"])], vec![a]),
         (vec![text("Tag", true, &["phish*"])], vec![b, d]),
+        (vec![text("Tag", false, &["intel.feed:*"])], vec![d]),
+        (vec![text("Tag", true, &["intel.feed:news"])], vec![a, b, c]),
         (vec![text("Queue", false, &["triage"])], vec![b]),
         (
             vec![text("Queue", false, &["triage", "external"])],
@@ -14551,6 +14555,7 @@ fn hunt_submission() -> HuntSubmission {
             details: Some(json!({"alert_type": "hunter - splunk", "queue": "default"})),
             queue: None,
             pivot_links: Vec::new(),
+            tags: Vec::new(),
         },
         dedup_key: None,
         suppression_key: None,
@@ -49505,6 +49510,17 @@ mod search_tests {
         assert_eq!(index.asked().len(), before, "the index wasn't asked");
         assert_eq!(exact.lanes_used, vec![SearchLane::Lexical]);
         assert_eq!(exact.alert_ids(), vec![alerts[4], alerts[2]]);
+        // a root's own tag, such as a hunt's (PLAN.md decision 54), is found as its observables' are
+        sqlx::query("UPDATE analysis.roots SET tags = '{newsfeed}' WHERE id = $1")
+            .bind(alerts[1])
+            .execute(db.pool())
+            .await
+            .expect("tags the root");
+        let own = service
+            .search_alerts(&actor, &request("tag:newsfeed"))
+            .await
+            .expect("searched");
+        assert_eq!(own.alert_ids(), vec![alerts[1]]);
         // test_lane_selection
         let only_lexical = service
             .search_alerts(

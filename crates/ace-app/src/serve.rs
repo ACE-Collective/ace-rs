@@ -136,6 +136,11 @@ async fn serve(app: &App) -> Result<ExitCode> {
         ace_core::svs::log_search::LogSearchTemplate::parse(overlay.svs.log_search_url.as_deref())
             .map_err(anyhow::Error::msg)
             .context("the overlay's svs section")?;
+    // the site's actions on the alert page (PLAN.md decision 55): a refused one stops startup
+    let alert_actions = app
+        .alert_actions_for(&overlay)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's alert_actions section")?;
     // YARA validation (PLAN.md 7.10 batch 3): its repositories, bounds and workers
     let validation = ace_core::svs::yara::ValidationConfig::from_section(&overlay.svs.yara)
         .map_err(anyhow::Error::msg)
@@ -304,6 +309,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let gui = ace_gui::Gui::new(service.clone(), web_config.transport)
         .with_views(app.views().clone())
         .with_actions(app.actions().clone())
+        .with_alert_actions(alert_actions)
         .with_summaries(app.alert_summaries().clone())
         .with_icons(app.pivot_link_icons().clone());
     let web = ace_api::Web::new(service, bucket.clone(), web_config)

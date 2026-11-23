@@ -1158,7 +1158,8 @@ async fn root_count(stack: &Stack) -> i64 {
         .expect("counts")
 }
 
-/// The id of the file observable a submission made, after making its root an alert.
+/// The id of the file observable a submission made. It submits in correlation mode, which makes its
+/// root an alert at once, as ace3's API does (PLAN.md decision 54).
 async fn submitted_file(client: &mut Client<'_>, token: &str, bytes: &[u8]) -> (Uuid, i64) {
     let analysis = json!({
         "description": "a file to download",
@@ -1180,7 +1181,13 @@ async fn submitted_file(client: &mut Client<'_>, token: &str, bytes: &[u8]) -> (
         .expect("an id")
         .parse()
         .expect("a uuid");
-    alerted(client.stack, root).await;
+    let alert: bool =
+        sqlx::query_scalar("SELECT alerted_at IS NOT NULL FROM analysis.roots WHERE id = $1")
+            .bind(root)
+            .fetch_one(client.stack.test_db.db().pool())
+            .await
+            .expect("the root");
+    assert!(alert, "a correlation root is an alert at once");
     let observable: i64 = sqlx::query_scalar(
         "SELECT id FROM analysis.observables WHERE root_id = $1 AND type = 'file'",
     )
