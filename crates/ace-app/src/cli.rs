@@ -44,6 +44,19 @@ enum Command {
         /// The collector, as the binary names it.
         name: String,
     },
+    /// Run the detection export NAME, which the binary has, until a stop: it publishes the observables
+    /// enabled for detection to a system outside ACE when they change (the overlay's `exports.NAME`,
+    /// which must say `enabled: true`).
+    Export {
+        /// The export, as the binary names it.
+        name: String,
+        /// Run one pass, then exit: 0 when it published or had nothing to, 1 when it failed.
+        #[arg(long)]
+        once: bool,
+        /// With --once: publish everything, whatever the export last published.
+        #[arg(long)]
+        force: bool,
+    },
     /// Tools for one task, such as replaying it.
     #[command(subcommand)]
     Task(crate::task::TaskCommand),
@@ -118,6 +131,10 @@ fn refusal(command: &Command) -> (&'static str, &'static str) {
             "collect",
             "a collector is a service of its own, not a command",
         ),
+        Command::Export { .. } => (
+            "export",
+            "a detection export is a service of its own, and holds a credential a GUI command has none of",
+        ),
         Command::Task(_) => (
             "task",
             "a replay runs a module uncontained on purpose, so it runs from a shell",
@@ -159,6 +176,9 @@ pub fn main(app: &App) -> ExitCode {
         Command::ServeAi => crate::serve_ai::run(app, &mut telemetry),
         Command::Hunter => crate::hunter::run(app, &mut telemetry),
         Command::Collect { name } => crate::collector::run(app, &name, &mut telemetry),
+        Command::Export { name, once, force } => {
+            crate::export::run(app, &name, once, force, &mut telemetry)
+        }
         Command::Task(command) => crate::task::run(app, command),
         Command::Root(command) => crate::root::run(command),
         Command::User(command) => crate::user::run(app, command),
@@ -263,7 +283,7 @@ pub(crate) fn submitting_service(
     use ace_core::orchestrator::Orchestrator;
     use anyhow::Context;
     let components = components(&app.registry(), overlay)?;
-    let modes = app.modes_with(&components);
+    let modes = app.modes_with(&components, overlay);
     // SVS's settings, as `ace serve` has them: a hunt run's record asks the core who owns each match
     // (PLAN.md 7.10 batch 6)
     let runs = ace_core::svs::runs::RunsConfig::from_section(&overlay.svs.runs)

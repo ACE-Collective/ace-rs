@@ -205,6 +205,51 @@ pub struct Overlay {
     /// `ace_app::App::alert_action`), by action name: whether each is on and its settings, such as a
     /// link's base URL. `ace serve` reads it; nothing else does.
     pub alert_actions: BTreeMap<String, AlertActionSection>,
+    /// ace3's `analysis_mode_<mode>:` sections, as far as a site changes them here: each mode's
+    /// `cleanup` over ace3's (PLAN.md decision 56). A mode the binary hasn't stops every `ace` command.
+    pub analysis_modes: BTreeMap<String, AnalysisModeSection>,
+    /// How `ace serve`'s `root_cleanup` task deletes the finished roots that never became alerts in a
+    /// mode that cleans up (PLAN.md decision 56). `ace serve` reads it; nothing else does.
+    pub root_cleanup: RootCleanupSection,
+    /// The detection exports a site's binary registers (PLAN.md decision 58,
+    /// `ace_app::App::detection_export`), by export name, ace3's `observable_export_<name>:`. `ace export
+    /// <name>` reads its own; nothing else does.
+    pub exports: BTreeMap<String, ExportSection>,
+}
+
+/// What the overlay says about one analysis mode (`Overlay::analysis_modes`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct AnalysisModeSection {
+    /// ace3's `cleanup`: true deletes the mode's finished roots that never became alerts, false keeps
+    /// them. Left out, ace3's own for the mode.
+    pub cleanup: Option<bool>,
+}
+
+/// The settings of the deletion of finished roots that never became alerts (`Overlay::root_cleanup`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct RootCleanupSection {
+    /// How long a root waits after its last pass ended, or after it was made if it never had one,
+    /// before it's deleted: 3600 (an hour) when left out.
+    pub grace_seconds: Option<u64>,
+}
+
+/// What the overlay says about one detection export (`Overlay::exports`).
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct ExportSection {
+    /// ace3's `enabled`. Only true runs it: left out, `ace export <name>` refuses to start, so a site
+    /// turns an export on deliberately (an export writes to a system outside ACE).
+    pub enabled: Option<bool>,
+    /// What the export's builder is given, as a module's settings are.
+    pub settings: Option<Value>,
+    /// The export's slots, each bound to a connection (`crate::connections`).
+    pub connections: BTreeMap<String, String>,
+    /// How long a pass waits after the one before: 60 when left out, ace3's every minute.
+    pub interval_seconds: Option<u64>,
+    /// How long one publish may take before it's stopped and counted failed: 600 when left out.
+    pub publish_timeout_seconds: Option<u64>,
 }
 
 /// What the overlay says about one of the alert page's actions (`Overlay::alert_actions`).
@@ -1615,6 +1660,11 @@ impl Overlay {
             query_sources: None,
             // `ace serve` draws the alert page
             alert_actions: BTreeMap::new(),
+            // the core queues by mode, and `ace serve` deletes the roots that never became alerts
+            analysis_modes: BTreeMap::new(),
+            root_cleanup: RootCleanupSection::default(),
+            // an export is a process of the `ace` binary, never a pool's
+            exports: BTreeMap::new(),
         }
     }
 

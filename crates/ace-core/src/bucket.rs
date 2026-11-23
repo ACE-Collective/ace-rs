@@ -105,6 +105,9 @@ impl BucketSettings {
 /// The pool for the files in alerts.
 pub const ALERT_FILES: &str = "alert_files";
 
+/// The kind of the hold a root keeps on each of its files (`Hold::root`).
+pub const ROOT_HOLD: &str = "root";
+
 /// Something that keeps an object, such as a root its file is in.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hold {
@@ -125,7 +128,7 @@ impl Hold {
 
     /// The hold a root keeps on each of its files.
     pub fn root(root: Uuid) -> Self {
-        Hold::new("root", root.to_string())
+        Hold::new(ROOT_HOLD, root.to_string())
     }
 
     pub fn until(mut self, expires_at: DateTime<Utc>) -> Self {
@@ -834,6 +837,40 @@ pub async fn release_in(
         .await?;
     }
     Ok(released)
+}
+
+/// Releases every hold in `pool` of the holders of `kind` with these ids, such as the roots a cleanup
+/// deleted, inside the caller's transaction, as `release_in` releases one: each object that loses a
+/// hold lives for its pool's grace from now unless another hold keeps it. Returns how many holds went.
+pub async fn release_holders_in(
+    tx: &mut Tx<'_>,
+    pool: &str,
+    kind: &str,
+    ids: &[String],
+) -> Result<u64, BucketError> {
+    let mut released = sqlx::query_scalar!(
+        "DELETE FROM store.holds
+         WHERE pool = $1 AND holder_kind = $2 AND holder_id = ANY($3)
+         RETURNING sha256",
+        pool,
+        kind,
+        ids,
+    )
+    .fetch_all(tx.conn())
+    .await?;
+    let holds = released.len() as u64;
+    released.sort_unstable();
+    released.dedup();
+    if !released.is_empty() {
+        sqlx::query!(
+            "UPDATE store.objects SET last_held_at = now() WHERE pool = $1 AND sha256 = ANY($2)",
+            pool,
+            &released,
+        )
+        .execute(tx.conn())
+        .await?;
+    }
+    Ok(holds)
 }
 
 async fn take_hold(

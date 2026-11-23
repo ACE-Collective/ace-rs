@@ -4,7 +4,8 @@
 //!
 //! **What runs.** Of ace3's 25 core tasks (3 hourly, 20 daily, 2 weekly), nine have a counterpart in
 //! ace4 now, and run here on ace3's cadence (`Task::builtin`), with one of the cron jobs ace3 runs
-//! outside them, `nrd-refresh` (PLAN.md 7.4, `crate::nrd`). `daily/partitions` keeps the email
+//! outside them, `nrd-refresh` (PLAN.md 7.4, `crate::nrd`), and `root_cleanup`, which ace3's engine does
+//! at a pass's end rather than on a schedule (PLAN.md decision 56). `daily/partitions` keeps the email
 //! archive's weekly partitions and ace3's analysis result cache's daily ones; ace4 has no result
 //! cache, so only the archive's half runs, a run that drops and makes nothing for the cache. A table
 //! that needs attention fails the run, with why, as ace3's exits 1:
@@ -25,6 +26,7 @@
 //! | `svs_coverage_snapshot` | `daily/svs-coverage-snapshot`, `ace svs coverage snapshot` (PLAN.md 7.10 batch 8) | `0 5 * * *` | 1 h | `scheduler:svs_coverage_snapshot`, `svs:coverage_snapshot` and `svs:coverage_refresh` |
 //! | `nrd_refresh` | `etc/cron.yaml`'s `nrd-refresh`, `ace nrd refresh` | `*/30 * * * *` | 25 min | `scheduler:nrd_refresh`, `nrd:refresh` |
 //! | `bucket_node_stats` | `hourly/cas-node-stats`, `ace cas node-stats` (PLAN.md 7.12) | `0 * * * *` | 10 min | `scheduler:bucket_node_stats`, `monitoring:report` |
+//! | `root_cleanup` | the engine's `cleanup` of an analysis mode at a pass's end, `_handle_cleanup` (PLAN.md decision 56, `ace_core::cleanup`): the finished roots that never became alerts, an hour (`root_cleanup.grace_seconds`) after their last pass | `*/10 * * * *` | 9 min | `scheduler:root_cleanup`, `analysis:cleanup` |
 //!
 //! ace3's `monitoring` service isn't a cron task there: each of its monitors is a thread on a timer
 //! (PLAN.md 7.12, `ace_core::monitoring` lists each with what it is here). Its checks are tasks here
@@ -466,6 +468,26 @@ impl Task {
                             "rows": done.rows,
                             "deleted": done.deleted,
                         })))
+                    })
+                },
+            ),
+            Task::new(
+                "root_cleanup",
+                "*/10 * * * *",
+                Duration::from_secs(9 * 60),
+                |ctx| {
+                    Box::pin(async move {
+                        let grace = ctx
+                            .overlay
+                            .root_cleanup
+                            .grace_seconds
+                            .map_or(ace_core::cleanup::DEFAULT_GRACE, Duration::from_secs);
+                        let done = ctx
+                            .service
+                            .clean_up_roots(&ctx.actor, &ctx.bucket, grace)
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        Ok(Done::ok(summary(&done)))
                     })
                 },
             ),

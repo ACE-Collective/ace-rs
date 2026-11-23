@@ -745,6 +745,153 @@ async fn a_site_s_collector_submits_each_item_once_and_stops() {
     assert!(log.contains("collection ended"), "{log}");
 }
 
+/// PLAN.md decision 58: `ace export example_file` runs the site's detection export as a process of the
+/// site's binary. It refuses to start unless its section turns it on; with `--once` it writes the
+/// detections of its types, a subtype under the type it extends, and exits 0; a second pass with nothing
+/// changed writes nothing; `--force` writes again; a pass that fails exits 1 and records nothing. It
+/// resolves its own secret and no other, and logs a metrics event per pass.
+#[tokio::test]
+async fn a_site_s_detection_export_publishes_what_changed() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db().pool().clone();
+    let dir = tempfile::tempdir().expect("a directory");
+    let target = dir.path().join("detections.csv");
+    for (kind, value) in [
+        ("email_from", "bad@example.com"),
+        ("fqdn", "evil.example.net"),
+        ("ipv4", "10.0.0.1"),
+    ] {
+        sqlx::query(
+            "INSERT INTO lists.entries (list, match, value, ignore_case, observable_type, created_by, \
+             updated_by) VALUES ('observable_detection', 'exact', $1, false, $2, $3, $3)",
+        )
+        .bind(value)
+        .bind(kind)
+        .bind(json!({"kind": "internal", "id": "test"}))
+        .execute(&db)
+        .await
+        .expect("a detection");
+    }
+    let section = |enabled: &str, path: &Path| {
+        format!(
+            "exports:\n  example_file:\n{enabled}    settings:\n      path: {}\n\
+             \x20     export_list: [email_address, fqdn]\n\
+             secrets:\n  example_export_token: env:EXAMPLE_EXPORT_TOKEN\n  \
+             other_token: env:OTHER_TOKEN\n",
+            path.display()
+        )
+    };
+    let overlay = dir.path().join("overlay.yaml");
+    let export = |args: &[&str]| {
+        let output = Command::new(env!("CARGO_BIN_EXE_example-ace"))
+            .arg("export")
+            .args(args)
+            .env("ACE4_DATABASE_URL", database_url(test_db.name()))
+            .env("ACE4_OVERLAY", &overlay)
+            .env("EXAMPLE_EXPORT_TOKEN", "a-target-credential")
+            .env("OTHER_TOKEN", "another-process-credential")
+            .env("ACE4_LOG", "info")
+            .env_remove("ACE4_OTLP_ENDPOINT")
+            .output()
+            .expect("ace runs");
+        // without the terminal's colours
+        let log = String::from_utf8_lossy(&output.stderr).into_owned();
+        let mut plain = String::with_capacity(log.len());
+        let mut rest = log.as_str();
+        while let Some(at) = rest.find('\u{1b}') {
+            plain.push_str(&rest[..at]);
+            rest = rest[at..].split_once('m').map_or("", |(_, after)| after);
+        }
+        plain.push_str(rest);
+        (output.status, plain)
+    };
+    let outcome = |log: &str| -> Vec<String> {
+        log.lines()
+            .filter_map(|line| line.split_once("METRICS (export): ").map(|(_, json)| json))
+            .map(|json| {
+                serde_json::Deserializer::from_str(json)
+                    .into_iter::<Value>()
+                    .next()
+                    .expect("an event")
+                    .expect("JSON")["outcome"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_owned()
+            })
+            .collect()
+    };
+
+    // off until its section says so
+    std::fs::write(&overlay, section("", &target)).expect("the overlay");
+    let (status, log) = export(&["example_file", "--once"]);
+    assert!(!status.success(), "{log}");
+    assert!(
+        log.contains("the detection export example_file is off"),
+        "{log}"
+    );
+    let (status, log) = export(&["nothing", "--once"]);
+    assert!(!status.success());
+    assert!(
+        log.contains("this binary has no detection export \"nothing\""),
+        "{log}"
+    );
+
+    std::fs::write(&overlay, section("    enabled: true\n", &target)).expect("the overlay");
+    let (status, log) = export(&["example_file", "--once"]);
+    assert!(status.success(), "{log}");
+    assert_eq!(outcome(&log), ["published"], "{log}");
+    let written = std::fs::read_to_string(&target).expect("the file");
+    let lines: Vec<&str> = written.lines().collect();
+    assert_eq!(lines.len(), 2, "{written}");
+    assert!(lines[0].starts_with("email_address,") && lines[0].ends_with(",bad@example.com"));
+    assert!(lines[1].starts_with("fqdn,") && lines[1].ends_with(",evil.example.net"));
+    assert!(
+        log.contains(r#"secrets=["example_export_token"]"#),
+        "it resolves its own secret and no other: {log}"
+    );
+    assert!(!log.contains("a-target-credential"), "{log}");
+    assert!(!log.contains("another-process-credential"), "{log}");
+
+    std::fs::remove_file(&target).expect("removed");
+    let (status, log) = export(&["example_file", "--once"]);
+    assert!(status.success(), "{log}");
+    assert_eq!(outcome(&log), ["unchanged"], "{log}");
+    assert!(!target.exists(), "nothing changed, so nothing was written");
+    let (status, log) = export(&["example_file", "--once", "--force"]);
+    assert!(status.success(), "{log}");
+    assert_eq!(outcome(&log), ["published"], "{log}");
+    assert_eq!(std::fs::read_to_string(&target).expect("the file"), written);
+    let (status, log) = export(&["example_file", "--force"]);
+    assert!(!status.success());
+    assert!(log.contains("--force publishes once"), "{log}");
+
+    // a path it can't write: the pass fails, exits 1, and keeps the fingerprint it had
+    let before: Option<String> =
+        sqlx::query_scalar("SELECT fingerprint FROM export.targets WHERE name = 'example_file'")
+            .fetch_one(&db)
+            .await
+            .expect("its record");
+    std::fs::write(
+        &overlay,
+        section(
+            "    enabled: true\n",
+            &dir.path().join("missing/detections.csv"),
+        ),
+    )
+    .expect("the overlay");
+    let (status, log) = export(&["example_file", "--once"]);
+    assert_eq!(status.code(), Some(1), "{log}");
+    assert_eq!(outcome(&log), ["failed"], "{log}");
+    let (after, lease): (Option<String>, Option<String>) = sqlx::query_as(
+        "SELECT fingerprint, lease_owner FROM export.targets WHERE name = 'example_file'",
+    )
+    .fetch_one(&db)
+    .await
+    .expect("its record");
+    assert_eq!(after, before);
+    assert_eq!(lease, None, "the pass let its lease go");
+}
+
 /// `ace schema check` (PLAN.md 4.2) says what the core would, for an author with no pool running.
 #[test]
 fn the_site_binary_checks_a_result_against_its_types_schema() {

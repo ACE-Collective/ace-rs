@@ -134,7 +134,7 @@ pub(crate) struct EventBody {
     alerts: Vec<EventAlertBody>,
     /// The event's own tags.
     tags: Vec<String>,
-    /// Its alerts' tags, from their observables and results.
+    /// Its alerts' tags: each alert's own and those of its observables and results.
     alert_tags: Vec<String>,
     created_at: DateTime<Utc>,
 }

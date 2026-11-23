@@ -1273,6 +1273,7 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
         ace_service::EMAIL_ARCHIVE_MAINTAIN,
         ace_service::ANALYSIS_CACHE_MAINTAIN,
         ace_service::FILE_COLLECTION_PRUNE,
+        ace_service::ANALYSIS_CLEANUP,
         ace_service::ALERT_READ,
     ];
     for (task, holds) in [
@@ -1290,6 +1291,7 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
             ace_service::ANALYSIS_CACHE_MAINTAIN,
         ),
         ("file_collection_prune", ace_service::FILE_COLLECTION_PRUNE),
+        ("root_cleanup", ace_service::ANALYSIS_CLEANUP),
     ] {
         let actor = builtin(task).actor;
         for name in &names {
@@ -1624,6 +1626,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             // ace3's `svs.coverage.refresh_interval_seconds`, 120, and its daily cron
             ("svs_coverage_refresh", "*/2 * * * *", 600, true),
             ("svs_coverage_snapshot", "0 5 * * *", 3600, true),
+            ("root_cleanup", "*/10 * * * *", 540, true),
             ("nrd_refresh", "*/30 * * * *", 1500, true),
             // ace3's monitors (PLAN.md 7.12): every 5 or 30 seconds there, every minute here; its
             // pools' every 300 seconds; and its hourly cron for the node's read cache
@@ -1652,6 +1655,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             "internal:scheduler:svs_run_timers",
             "internal:scheduler:svs_coverage_refresh",
             "internal:scheduler:svs_coverage_snapshot",
+            "internal:scheduler:root_cleanup",
             "internal:scheduler:nrd_refresh",
             "internal:scheduler:monitor_workload",
             "internal:scheduler:monitor_delayed_analysis",
@@ -1680,7 +1684,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
         "scheduler:\n  bucket_gc:\n    schedule: '*/15 * * * *'\n    timeout_seconds: 600\n  \
          bucket_verify:\n    enabled: false\n  cas_node_stats:\n    enabled: true\n",
     );
-    assert_eq!(set.len(), 20, "the removed task is skipped");
+    assert_eq!(set.len(), 21, "the removed task is skipped");
     assert_eq!(
         (
             set[0].schedule.as_str(),
@@ -2773,4 +2777,388 @@ async fn a_monitoring_check_is_bounded() {
     check(&fixture, "monitor_queue").await;
     assert_eq!(records(db, "monitor_queue").await[0].2["running"], over);
     fixture.clean_up().await;
+}
+
+// PLAN.md decision 56: `root_cleanup`, ace3's `cleanup` of an analysis mode.
+
+/// A stack whose roots are analyzed as `ace serve`'s are: submitted through the core with their files in
+/// `alert_files` (whose grace here is none, so GC frees an object as soon as nothing holds it), their
+/// YARA tasks run to the end by a worker, in `modes`.
+struct Cleanup {
+    fixture: Fixture,
+    bucket: Bucket,
+    orchestrator: ace_core::orchestrator::Orchestrator,
+    _cache: tempfile::TempDir,
+}
+
+impl Cleanup {
+    async fn new(modes: ace_core::modes::Modes) -> Cleanup {
+        let fixture = Fixture::new().await;
+        let cache = tempfile::tempdir().expect("a cache directory");
+        let store = Store::new(
+            &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+            NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
+        )
+        .await;
+        let settings = BucketSettings::default().with_pool(
+            ace_core::bucket::ALERT_FILES,
+            PoolConfig {
+                retention: Retention::Held {
+                    grace: Duration::ZERO,
+                },
+            },
+        );
+        let bucket = Bucket::new(fixture.db().clone(), store, settings);
+        let orchestrator = ace_core::orchestrator::Orchestrator::new(
+            ace_core::eligibility::Catalog::new([ace_mod_yara::MANIFEST]),
+            modes,
+        );
+        Cleanup {
+            fixture: Fixture {
+                service: Service::new(fixture.db().clone(), orchestrator.clone()),
+                ..fixture
+            },
+            bucket,
+            orchestrator,
+            _cache: cache,
+        }
+    }
+
+    fn db(&self) -> &Db {
+        self.fixture.db()
+    }
+
+    /// Submits a root in `mode` with one file of bytes no other test has, and returns it and the file.
+    async fn submit(&self, mode: &str) -> (uuid::Uuid, Sha256) {
+        use ace_core::submit::{self, Submission, SubmittedFile};
+        let bytes = self.fixture.unique(mode);
+        let submission = Submission {
+            description: format!("a {mode} root"),
+            analysis_mode: Some(mode.to_owned()),
+            event_time: None,
+            observables: Vec::new(),
+            file_yara_meta: BTreeMap::new(),
+        };
+        let files = vec![SubmittedFile {
+            path: ace_results::AlertPath::new("sample.bin".to_owned()).expect("a path"),
+            spooled: self
+                .bucket
+                .store()
+                .spool_bytes(&bytes)
+                .await
+                .expect("spools"),
+        }];
+        let root = submit::prepare(
+            &self.orchestrator,
+            &submission,
+            &submit::Origin::default(),
+            &files,
+        )
+        .expect("prepared");
+        let (root_ref, submission, files) = (&root, &submission, &files);
+        self.db()
+            .transaction(ace_core::db::Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    submit::create(
+                        tx,
+                        &self.bucket,
+                        &self.orchestrator,
+                        root_ref,
+                        submission,
+                        &submit::Origin::default(),
+                        files,
+                        ace_core::tree::DirectivesFrom::submission("api_key:1"),
+                    )
+                    .await
+                })
+            })
+            .await
+            .expect("submits");
+        (root.id, sha256_of(&bytes))
+    }
+
+    /// Runs every task queued until none is left, as a pool would, each to its end with no result.
+    async fn analyze(&self) {
+        let modules = vec![
+            "yara_scanner_v3_4".to_owned(),
+            ace_core::queue::TYPE_STEP.to_owned(),
+        ];
+        let worker = ace_core::queue::Worker::new(
+            self.db().clone(),
+            "parsers/test/1",
+            modules,
+            Duration::from_secs(60),
+        );
+        while let Some(task) = worker.claim().await.expect("claims") {
+            worker.complete(task.id).await.expect("completes");
+        }
+    }
+
+    /// Makes the root's last pass end, and the root, `ago` back (a Postgres interval).
+    async fn ended(&self, root: uuid::Uuid, ago: &str) {
+        sqlx::query(
+            "UPDATE queue.root_completions SET completed_at = now() - $2::interval
+             WHERE root_id = $1",
+        )
+        .bind(root)
+        .bind(ago)
+        .execute(self.db().pool())
+        .await
+        .expect("ages the pass");
+        sqlx::query("UPDATE analysis.roots SET created_at = now() - $2::interval WHERE id = $1")
+            .bind(root)
+            .bind(ago)
+            .execute(self.db().pool())
+            .await
+            .expect("ages the root");
+    }
+
+    async fn exists(&self, root: uuid::Uuid) -> bool {
+        sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM analysis.roots WHERE id = $1)")
+            .bind(root)
+            .fetch_one(self.db().pool())
+            .await
+            .expect("asks")
+    }
+
+    async fn stored(&self, sha256: &Sha256) -> (bool, bool) {
+        let pool = ace_core::bucket::ALERT_FILES;
+        let indexed = self
+            .bucket
+            .object(pool, sha256)
+            .await
+            .expect("reads the index")
+            .is_some();
+        let stored = self
+            .bucket
+            .store()
+            .exists(pool, sha256)
+            .await
+            .expect("asks the bucket");
+        (indexed, stored)
+    }
+
+    /// Runs `root_cleanup` once through the scheduler, with `overlay`, as `ace serve` does.
+    async fn run(&self, overlay: ace_sdk::Overlay) -> scheduler::Run {
+        let task = builtin("root_cleanup");
+        make_due(self.db(), &task).await;
+        let scheduler = Scheduler {
+            bucket: self.bucket.clone(),
+            ..self.fixture.scheduler(vec![task], "test/1")
+        }
+        .with_overlay(overlay);
+        let stop = CancellationToken::new();
+        let running = tokio::spawn(scheduler.run(stop.clone()));
+        let runs = ended_runs(self.db(), "root_cleanup", 1).await;
+        stop.cancel();
+        running.await.expect("the scheduler stops");
+        runs.into_iter().next().expect("a run")
+    }
+
+    async fn clean_up(&self) {
+        let store = self.bucket.store();
+        for key in store
+            .list(&format!("{}/", ace_core::bucket::ALERT_FILES))
+            .await
+            .expect("lists")
+        {
+            // only this test's objects: the index of its own database names them
+            let Some(hex) = key.rsplit('/').next() else {
+                continue;
+            };
+            let named: bool = sqlx::query_scalar(
+                "SELECT EXISTS (SELECT 1 FROM store.objects WHERE pool = $1 AND sha256 = $2)",
+            )
+            .bind(ace_core::bucket::ALERT_FILES)
+            .bind(hex)
+            .fetch_one(self.db().pool())
+            .await
+            .expect("asks");
+            if named {
+                store.delete_key(&key).await.expect("deletes");
+            }
+        }
+    }
+}
+
+/// ace3's `cleanup`, end to end: a YARA-mode root that raised no detection is deleted an hour after its
+/// last pass, with its holds, and the bucket's GC then frees its file; an alert, a correlation root, a
+/// `cli` root (what `ace compare` and the e2e's samples submit), a root with work left and one still in
+/// its grace are kept, with their files.
+#[tokio::test]
+async fn root_cleanup_deletes_finished_roots_that_never_became_alerts() {
+    let cleanup = Cleanup::new(ace_core::modes::Modes::ace3()).await;
+    let (yara, yara_file) = cleanup.submit("yara").await;
+    let (alert, alert_file) = cleanup.submit("yara").await;
+    let (correlation, _) = cleanup.submit("correlation").await;
+    let (cli, cli_file) = cleanup.submit("cli").await;
+    let (recent, _) = cleanup.submit("file").await;
+    cleanup.analyze().await;
+    // the file mode root's left with work: a delayed task, as a module that waits leaves one
+    let (working, working_file) = cleanup.submit("file").await;
+    sqlx::query(
+        "UPDATE queue.tasks SET state = 'delayed', run_after = now() + interval '1 hour'
+         WHERE root_id = $1",
+    )
+    .bind(working)
+    .execute(cleanup.db().pool())
+    .await
+    .expect("delays its task");
+    // a detection made this one an alert
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+        .bind(alert)
+        .execute(cleanup.db().pool())
+        .await
+        .expect("alerts");
+    for root in [yara, alert, correlation, cli, working] {
+        cleanup.ended(root, "2 hours").await;
+    }
+    cleanup.ended(recent, "10 minutes").await;
+    let idle: Vec<bool> = {
+        let mut idle = Vec::new();
+        for root in [yara, alert, correlation, cli, recent] {
+            idle.push(
+                ace_core::queue::root_is_idle(cleanup.db(), root)
+                    .await
+                    .expect("asks"),
+            );
+        }
+        idle
+    };
+    assert_eq!(idle, [true; 5], "their passes ended");
+
+    let run = cleanup.run(ace_sdk::Overlay::default()).await;
+    assert_eq!(run.outcome.as_deref(), Some("succeeded"), "{run:?}");
+    assert_eq!(
+        run.summary,
+        Some(json!({
+            "modes": ["analysis", "binary", "email", "file", "suricata_ids", "yara"],
+            "deleted": 1,
+            "batches": 1,
+            "holds_released": 1,
+            "more": false,
+        }))
+    );
+    assert!(
+        !cleanup.exists(yara).await,
+        "the YARA root without a detection went"
+    );
+    for kept in [alert, correlation, cli, recent, working] {
+        assert!(cleanup.exists(kept).await, "{kept} is kept");
+    }
+    let tasks: i64 = sqlx::query_scalar("SELECT count(*) FROM queue.tasks WHERE root_id = $1")
+        .bind(yara)
+        .fetch_one(cleanup.db().pool())
+        .await
+        .expect("counts");
+    assert_eq!(tasks, 0, "its tree and tasks went with it");
+
+    // the bucket's GC frees the file nothing holds now, and keeps the others'
+    cleanup
+        .bucket
+        .gc(ace_core::bucket::ALERT_FILES)
+        .await
+        .expect("collects");
+    assert_eq!(cleanup.stored(&yara_file).await, (false, false), "freed");
+    for kept in [&alert_file, &cli_file, &working_file] {
+        assert_eq!(cleanup.stored(kept).await, (true, true), "kept");
+    }
+    cleanup.clean_up().await;
+}
+
+/// The overlay's `analysis_modes.<mode>.cleanup` over ace3's: off for `yara` keeps its roots, on for `cli`
+/// deletes them. A mode the binary hasn't is refused when the overlay is checked.
+#[tokio::test]
+async fn root_cleanup_takes_the_overlay_s_cleanup_flags() {
+    let overlay = ace_sdk::Overlay::from_yaml(
+        "analysis_modes:\n  yara:\n    cleanup: false\n  cli:\n    cleanup: true\n\
+         root_cleanup:\n  grace_seconds: 60\n",
+    )
+    .expect("parses");
+    let app = crate::App::new();
+    assert_eq!(app.check_overlay(&overlay), Ok(()));
+    let modes = app.modes_with(&[], &overlay);
+    assert!(!modes.cleans_up("yara"));
+    assert!(modes.cleans_up("cli"));
+    let cleanup = Cleanup::new(modes).await;
+    let (yara, _) = cleanup.submit("yara").await;
+    let (cli, cli_file) = cleanup.submit("cli").await;
+    let (minutes, _) = cleanup.submit("email").await;
+    cleanup.analyze().await;
+    cleanup.ended(yara, "2 hours").await;
+    cleanup.ended(cli, "2 hours").await;
+    // past the overlay's grace of a minute, inside the default hour
+    cleanup.ended(minutes, "5 minutes").await;
+    let run = cleanup.run(overlay).await;
+    assert_eq!(run.outcome.as_deref(), Some("succeeded"), "{run:?}");
+    assert_eq!(
+        run.summary.as_ref().map(|s| s["deleted"].clone()),
+        Some(json!(2))
+    );
+    assert!(
+        cleanup.exists(yara).await,
+        "the overlay turned yara's cleanup off"
+    );
+    assert!(!cleanup.exists(cli).await, "and cli's on");
+    assert!(!cleanup.exists(minutes).await, "the overlay's grace");
+    cleanup
+        .bucket
+        .gc(ace_core::bucket::ALERT_FILES)
+        .await
+        .expect("collects");
+    assert_eq!(cleanup.stored(&cli_file).await, (false, false), "freed");
+    cleanup.clean_up().await;
+
+    let unknown =
+        ace_sdk::Overlay::from_yaml("analysis_modes:\n  yara_typo:\n    cleanup: false\n")
+            .expect("parses");
+    let refused = app.check_overlay(&unknown).expect_err("refused");
+    assert!(
+        refused.starts_with("the overlay's analysis_modes.yara_typo: there's no analysis mode"),
+        "{refused}"
+    );
+}
+
+/// A run is bounded: it deletes at most `MAX_BATCHES` batches of `BATCH` and says it left more.
+#[tokio::test]
+async fn root_cleanup_is_bounded_and_batched() {
+    use ace_core::cleanup::{BATCH, MAX_BATCHES};
+    let fixture = Fixture::new().await;
+    let db = fixture.db();
+    let many = BATCH * i64::from(MAX_BATCHES) + 7;
+    sqlx::query(
+        "INSERT INTO analysis.roots (id, analysis_mode, event_time_source, created_at)
+         SELECT gen_random_uuid(), 'yara', 'unset', now() - interval '2 hours'
+         FROM generate_series(1, $1)",
+    )
+    .bind(many)
+    .execute(db.pool())
+    .await
+    .expect("roots with no pass");
+    let done = fixture
+        .service
+        .clean_up_roots(
+            &builtin("root_cleanup").actor,
+            &fixture.bucket,
+            Duration::from_secs(3600),
+        )
+        .await
+        .expect("cleans up");
+    assert_eq!(done.deleted, (BATCH * i64::from(MAX_BATCHES)) as u64);
+    assert_eq!(done.batches, u64::from(MAX_BATCHES));
+    assert!(done.more);
+    let left: i64 = sqlx::query_scalar("SELECT count(*) FROM analysis.roots")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(left, 7, "the next run takes the rest");
+    // nothing else may
+    let other = builtin("bucket_gc").actor;
+    assert!(matches!(
+        fixture
+            .service
+            .clean_up_roots(&other, &fixture.bucket, Duration::from_secs(3600))
+            .await,
+        Err(ace_service::ServiceError::PermissionDenied { .. })
+    ));
 }

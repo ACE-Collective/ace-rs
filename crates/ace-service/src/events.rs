@@ -20,8 +20,9 @@
 //! - An event's alerts are listed with their own state here (title, when each became an alert, its
 //!   disposition and who made it), ace3's `alerts` and `alert_details`. ace3's `owner` and `owner_time` of
 //!   an alert, and its `alert_versions`, aren't there: roots have no owner or version token.
-//! - `tags` are the event's own, ace3's `event_tag_mapping`, and `alert_tags` its alerts', from their
-//!   observables and results, each sorted by name. ace3's JSON calls its alerts' tags `tags` and sorts them
+//! - `tags` are the event's own, ace3's `event_tag_mapping`, and `alert_tags` its alerts', from each
+//!   root's own tags, its observables and its results (PLAN.md decision 57), as ace3's `tag_mapping` is
+//!   built from `all_tags`, which counts the root as one of its analyses, each sorted by name. ace3's JSON calls its alerts' tags `tags` and sorts them
 //!   by its tag scores, which ace4 doesn't have; its export has both, as here.
 //! - ace3's `companies`: roots have no company.
 //! - A threat that names malware or a threat type that isn't there is a 404, and one that's mapped
@@ -203,7 +204,7 @@ pub struct EventAlert {
     pub added_at: DateTime<Utc>,
     /// Where its analysis is, ace3's alert `status`.
     pub analysis: AnalysisState,
-    /// Its tags, from its observables and results, by name.
+    /// Its tags: the root's own and its observables' and results', by name.
     pub tags: Vec<String>,
 }
 
@@ -236,7 +237,7 @@ pub struct Event {
     pub alerts: Vec<EventAlert>,
     /// The event's own tags, by name.
     pub tags: Vec<String>,
-    /// Its alerts' tags, from their observables and results, by name.
+    /// Its alerts' tags: each root's own and its observables' and results', by name.
     pub alert_tags: Vec<String>,
     pub created_at: DateTime<Utc>,
 }
@@ -736,13 +737,15 @@ async fn load_events(
         });
     }
 
-    // each alert's tags, from its observables and results
+    // each alert's tags, from the root itself, its observables and its results, as ace3's `all_tags`
     let mut tags_of: HashMap<(i64, Uuid), Vec<String>> = HashMap::new();
     let mut alert_tags: HashMap<i64, Vec<String>> = HashMap::new();
     for row in sqlx::query!(
         r#"SELECT ea.event_id, ea.root_id, t.tag AS "tag!"
            FROM events.event_alerts ea
            CROSS JOIN LATERAL (
+               SELECT unnest(r.tags) FROM analysis.roots r WHERE r.id = ea.root_id
+               UNION
                SELECT unnest(o.tags) FROM analysis.observables o WHERE o.root_id = ea.root_id
                UNION
                SELECT unnest(x.tags) FROM analysis.results x WHERE x.root_id = ea.root_id

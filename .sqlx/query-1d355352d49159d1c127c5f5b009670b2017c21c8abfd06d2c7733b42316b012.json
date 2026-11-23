@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE export.targets\n             SET fingerprint = $3, state = $4,\n                 published_at = CASE WHEN $5 THEN now() ELSE published_at END,\n                 lease_owner = NULL, lease_expires_at = NULL, updated_at = now()\n             WHERE name = $1 AND lease_owner = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1d355352d49159d1c127c5f5b009670b2017c21c8abfd06d2c7733b42316b012"
+}

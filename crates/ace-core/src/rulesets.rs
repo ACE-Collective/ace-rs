@@ -41,7 +41,9 @@ use std::time::Duration;
 use ace_results::Sha256;
 use ace_yara::LoadOptions;
 pub use ace_yara::YARA_X_VERSION;
-use ace_yara::export::{self, Detection, ExportList};
+/// An observable enabled for detection, as `active_detections` reads it.
+pub use ace_yara::export::Detection;
+use ace_yara::export::{self, ExportList};
 pub use ace_yara::export::{ExportConfig, ExportReport};
 use ace_yara::ruleset::{self, BuildError, IncludedFile, LeftOutFile};
 pub use ace_yara::ruleset::{QaRule, RuleSignature};
@@ -153,17 +155,20 @@ pub fn built_ins_with(fingerprint: Option<&str>) -> String {
     }
 }
 
-/// The types `observable_type` extends, nearest first: none for a type this binary doesn't have.
-fn ancestors(observable_type: &str) -> Vec<String> {
-    observable_type
-        .parse::<ace_results::ObservableKind>()
-        .map(|kind| kind.ancestors().map(|k| k.as_str().to_owned()).collect())
-        .unwrap_or_default()
-}
-
 /// What the export would hold now: the live entries of the detection list that have a value, as the
 /// export's settings select them. ace3's `get_active_detections_by_type` and `build_export_list`.
 pub async fn detection_export_list(db: &Db, config: &ExportConfig) -> Result<ExportList, DbError> {
+    let detections = active_detections(db.pool()).await?;
+    Ok(export::export_list(config, &detections, ancestors))
+}
+
+/// The live entries of the detection list that have a value to export, in id order, at most
+/// `MAX_DETECTIONS_READ`: ace3's `get_active_detections_by_type`. A `regex` entry is left out, since a
+/// pattern has no value to match on; ace3's table has none. A site's detection export reads these too
+/// (`ace_app::export`, PLAN.md decision 58).
+pub async fn active_detections<'e>(
+    executor: impl sqlx::PgExecutor<'e>,
+) -> Result<Vec<Detection>, DbError> {
     let rows = sqlx::query!(
         r#"SELECT id, observable_type AS "observable_type!", value
            FROM lists.entries
@@ -173,17 +178,25 @@ pub async fn detection_export_list(db: &Db, config: &ExportConfig) -> Result<Exp
         DETECTION_LIST,
         MAX_DETECTIONS_READ,
     )
-    .fetch_all(db.pool())
+    .fetch_all(executor)
     .await?;
-    let detections: Vec<Detection> = rows
+    Ok(rows
         .into_iter()
         .map(|row| Detection {
             id: row.id,
             observable_type: row.observable_type,
             value: row.value,
         })
-        .collect();
-    Ok(export::export_list(config, &detections, ancestors))
+        .collect())
+}
+
+/// The types `observable_type` extends, nearest first: none for a type this binary doesn't have. A site's
+/// detection export selects with it.
+pub fn ancestors(observable_type: &str) -> Vec<String> {
+    observable_type
+        .parse::<ace_results::ObservableKind>()
+        .map(|kind| kind.ancestors().map(|k| k.as_str().to_owned()).collect())
+        .unwrap_or_default()
 }
 
 /// A built ruleset's row.

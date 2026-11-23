@@ -56,6 +56,12 @@
 //! pass. It declares one secret,
 //! `example_collector_token`, and needs it set, as a real source's credentials would be.
 //!
+//! Its detection export (PLAN.md decision 58), `example_file`, stands in for a site's export to a system
+//! outside ACE: `ace export example_file` writes the detections of its `export_list` types to the file
+//! `path` as `<type>,<id>,<value>` lines when they change, and again when the file it wrote is older than
+//! `republish_after_hours`, keeping the file's sha256 and when it wrote it in its record. It needs the
+//! secret `example_export_token`, as a real export needs its system's credential.
+//!
 //! Its hunts search its ticket system (PLAN.md decision 40, [`hunt`]): a hunt type of its own,
 //! `example_tickets`, with the search `ace hunter` runs its hunts with, and a correlation query source
 //! type of the same name, both through the ticket system's shared connection. Its ticket summary is
@@ -120,6 +126,9 @@ pub fn app() -> App {
         .add_to_lookup_pool("lookups", |pool| pool.module::<TicketLookup>())
         .collector(EXAMPLE_COLLECTOR, |setup| {
             Ok(std::sync::Arc::new(DirectoryCollector::new(setup)?))
+        })
+        .detection_export(EXAMPLE_EXPORT, |setup| {
+            Ok(std::sync::Arc::new(FileExport::new(setup)?))
         })
         .module_in_group("correlation", TicketLookup::NAME)
         .module_in_mode("correlation", TicketFile::NAME)
@@ -692,6 +701,105 @@ impl ace_app::collector::Collector for DirectoryCollector {
                 }
             }
             Ok(Pass::Drained)
+        })
+    }
+}
+
+/// The example detection export (the crate's docs).
+pub const EXAMPLE_EXPORT: ace_app::export::ExportSpec =
+    ace_app::export::ExportSpec::new("example_file").secrets(&[EXAMPLE_EXPORT_TOKEN]);
+
+/// The secret the example export reads, as a real one reads its system's credential.
+pub const EXAMPLE_EXPORT_TOKEN: &str = "example_export_token";
+
+/// The example export's settings.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FileExportSettings {
+    /// The file it writes.
+    pub path: std::path::PathBuf,
+    /// The types it exports, each with the types that extend it.
+    pub export_list: Vec<String>,
+    /// How old the file it wrote may get before it writes it again though nothing changed.
+    #[serde(default)]
+    pub republish_after_hours: Option<u32>,
+}
+
+/// A detection export to a file (the crate's docs).
+pub struct FileExport {
+    settings: FileExportSettings,
+}
+
+impl FileExport {
+    pub fn new(setup: &ace_app::export::ExportSetup) -> Result<FileExport, String> {
+        let settings: FileExportSettings = serde_json::from_value(
+            setup
+                .settings
+                .clone()
+                .ok_or("the example export needs settings with its path")?,
+        )
+        .map_err(|e| format!("the example export's settings: {e}"))?;
+        if setup.secrets.get(EXAMPLE_EXPORT_TOKEN).is_none() {
+            return Err(format!("the example export needs {EXAMPLE_EXPORT_TOKEN}"));
+        }
+        Ok(FileExport { settings })
+    }
+
+    /// The file's bytes for `list`: a line per entry.
+    pub fn render(list: &ace_app::export::ExportList) -> String {
+        list.entries()
+            .iter()
+            .map(|e| format!("{},{},{}\n", e.export_type, e.id, e.value))
+            .collect()
+    }
+}
+
+impl ace_app::export::DetectionExport for FileExport {
+    fn export_list(
+        &self,
+        detections: &[ace_app::export::Detection],
+    ) -> ace_app::export::ExportList {
+        ace_app::export::select(&self.settings.export_list, detections)
+    }
+
+    fn fingerprint_salt(&self) -> String {
+        // a new path or type list writes the file again
+        format!(
+            "{}|{}",
+            self.settings.path.display(),
+            self.settings.export_list.join(",")
+        )
+    }
+
+    fn due(&self, state: &serde_json::Value, now: chrono::DateTime<chrono::Utc>) -> bool {
+        let Some(hours) = self.settings.republish_after_hours else {
+            return false;
+        };
+        let written = state
+            .get("written_at")
+            .and_then(serde_json::Value::as_str)
+            .and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok());
+        written
+            .is_none_or(|t| now.signed_duration_since(t) >= chrono::TimeDelta::hours(hours.into()))
+    }
+
+    fn publish<'a>(
+        &'a self,
+        list: &'a ace_app::export::ExportList,
+        state: &'a mut serde_json::Value,
+        _force: bool,
+    ) -> ace_app::export::PublishFuture<'a> {
+        Box::pin(async move {
+            let text = Self::render(list);
+            let path = &self.settings.path;
+            // whole or not at all: a reader never sees half a file
+            let partial = path.with_extension("partial");
+            std::fs::write(&partial, &text)
+                .and_then(|()| std::fs::rename(&partial, path))
+                .map_err(|e| format!("{}: {e}", path.display()))?;
+            state["entries"] = list.len().into();
+            state["written_at"] = chrono::Utc::now().to_rfc3339().into();
+            Ok(())
         })
     }
 }

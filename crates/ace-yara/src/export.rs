@@ -635,17 +635,17 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-/// The detections a configured type covers that are long enough to be worth a string: ace3's
-/// `build_export_list` over its `select_detections`. `ancestors` gives the types a type extends,
-/// nearest first.
-pub fn export_list(
-    config: &ExportConfig,
-    detections: &[Detection],
+/// The detections the configured types cover, each with the type it's exported under: ace3's
+/// `select_detections`. A configured type covers its own detections and those of every type that extends
+/// it, and when a type and one it extends are both configured, the most specific wins, so each detection is
+/// exported once. `ancestors` gives the types a type extends, nearest first. In the order of `detections`.
+pub fn select_detections<'a>(
+    configured: &BTreeSet<&str>,
+    detections: &'a [Detection],
     ancestors: impl Fn(&str) -> Vec<String>,
-) -> ExportList {
-    let configured = config.configured();
+) -> Vec<(String, &'a Detection)> {
     let mut export_types: BTreeMap<&str, Option<String>> = BTreeMap::new();
-    let mut entries = Vec::new();
+    let mut selected = Vec::new();
     for detection in detections {
         let export_type = export_types
             .entry(&detection.observable_type)
@@ -656,19 +656,32 @@ pub fn export_list(
                     .chain(ancestors(&detection.observable_type))
                     .find(|candidate| configured.contains(candidate.as_str()))
             });
-        let Some(export_type) = export_type else {
-            continue;
-        };
-        if detection.value.chars().count() < config.minimum_length {
-            continue;
+        if let Some(export_type) = export_type {
+            selected.push((export_type.clone(), detection));
         }
-        entries.push(ExportEntry {
+    }
+    selected
+}
+
+/// The detections a configured type covers that are long enough to be worth a string: ace3's
+/// `build_export_list` over its `select_detections`. `ancestors` gives the types a type extends,
+/// nearest first.
+pub fn export_list(
+    config: &ExportConfig,
+    detections: &[Detection],
+    ancestors: impl Fn(&str) -> Vec<String>,
+) -> ExportList {
+    let configured = config.configured();
+    let entries = select_detections(&configured, detections, ancestors)
+        .into_iter()
+        .filter(|(_, detection)| detection.value.chars().count() >= config.minimum_length)
+        .map(|(export_type, detection)| ExportEntry {
             id: detection.id,
-            export_type: export_type.clone(),
+            export_type,
             observable_type: detection.observable_type.clone(),
             value: detection.value.clone(),
-        });
-    }
+        })
+        .collect();
     ExportList::new(entries)
 }
 

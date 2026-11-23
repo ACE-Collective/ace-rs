@@ -85,7 +85,7 @@ pub fn service(
     let components = overlay
         .components(&app.registry().manifests())
         .map_err(|e| format!("the overlay's modules: {e}"))?;
-    let modes = app.modes_with(&components);
+    let modes = app.modes_with(&components, overlay);
     let exclusions = ace_sdk::exclusions::Exclusions::from_section(&overlay.observable_exclusions)
         .map_err(|(path, message)| format!("the overlay's {path}: {message}"))?;
     let orchestrator =

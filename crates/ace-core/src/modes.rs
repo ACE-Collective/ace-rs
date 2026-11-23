@@ -37,6 +37,9 @@ pub struct Modes {
     modes: BTreeMap<String, AnalysisMode>,
     /// Modes in which a detection doesn't make the root an alert.
     non_detectable: BTreeSet<String>,
+    /// Modes whose roots are deleted once they're finished, if they never became alerts: ace3's
+    /// `cleanup` (`ace_core::cleanup`).
+    cleanup: BTreeSet<String>,
     default_mode: String,
 }
 
@@ -44,6 +47,17 @@ pub struct Modes {
 pub const CORRELATION: &str = "correlation";
 /// The mode an alert switches to when an analyst dispositions it.
 pub const DISPOSITIONED: &str = "dispositioned";
+
+/// The modes ace3's `etc/saq.default.yaml` sets `cleanup: true` on (its `analysis_mode_*` sections at
+/// `85c8e9e5`, lines 2818 to 2917): `correlation`, `cli`, `dispositioned` and `event` set it false.
+pub const ACE3_CLEANUP: [&str; 6] = [
+    "analysis",
+    "binary",
+    "email",
+    "file",
+    "suricata_ids",
+    "yara",
+];
 
 fn strings(names: &[&str]) -> Vec<String> {
     names.iter().map(|n| (*n).to_owned()).collect()
@@ -60,6 +74,7 @@ impl Modes {
             groups: groups.into_iter().map(|g| (g.name.clone(), g)).collect(),
             modes: modes.into_iter().map(|m| (m.name.clone(), m)).collect(),
             non_detectable: non_detectable.iter().map(|m| (*m).to_owned()).collect(),
+            cleanup: BTreeSet::new(),
             default_mode: default_mode.to_owned(),
         }
     }
@@ -213,6 +228,37 @@ impl Modes {
             &[CORRELATION, DISPOSITIONED, "event"],
             "analysis",
         )
+        .with_cleanup_in(&ACE3_CLEANUP)
+    }
+
+    fn with_cleanup_in(self, modes: &[&str]) -> Modes {
+        modes
+            .iter()
+            .fold(self, |modes, mode| modes.with_cleanup(mode, true))
+    }
+
+    /// Turns ace3's `cleanup` on or off for `mode`, as a site's `analysis_mode_<mode>: cleanup:` does:
+    /// on, the mode's finished roots that never became alerts are deleted (`ace_core::cleanup`). A mode
+    /// that isn't there is left alone; `ace_app::App` refuses that before it builds the modes.
+    pub fn with_cleanup(mut self, mode: &str, cleanup: bool) -> Modes {
+        if cleanup {
+            if self.modes.contains_key(mode) {
+                self.cleanup.insert(mode.to_owned());
+            }
+        } else {
+            self.cleanup.remove(mode);
+        }
+        self
+    }
+
+    /// True when `mode` cleans up: its finished roots that never became alerts are deleted.
+    pub fn cleans_up(&self, mode: &str) -> bool {
+        self.cleanup.contains(mode)
+    }
+
+    /// The modes that clean up, in name order.
+    pub fn cleanup_modes(&self) -> Vec<&str> {
+        self.cleanup.iter().map(String::as_str).collect()
     }
 
     /// Adds `module` to the group `group`, creating the group if there's none, as a site's
@@ -255,7 +301,8 @@ impl Modes {
         self.modes.keys().map(String::as_str)
     }
 
-    /// Adds a mode, or replaces the one with its name.
+    /// Adds a mode, or replaces the one with its name. Its `cleanup` stays what it was, off for a new
+    /// mode.
     pub fn with_mode(mut self, mode: AnalysisMode) -> Modes {
         self.modes.insert(mode.name.clone(), mode);
         self
@@ -346,6 +393,49 @@ mod tests {
         assert!(!modes.is_detectable(CORRELATION));
         assert!(!modes.is_detectable("event"));
         assert_eq!(modes.default_mode(), "analysis");
+    }
+
+    /// ace3's `cleanup` flags, and a site's override of one.
+    #[test]
+    fn modes_clean_up_as_ace3s() {
+        let modes = Modes::ace3();
+        assert_eq!(
+            modes.cleanup_modes(),
+            [
+                "analysis",
+                "binary",
+                "email",
+                "file",
+                "suricata_ids",
+                "yara"
+            ]
+        );
+        for kept in [CORRELATION, "cli", DISPOSITIONED, "event"] {
+            assert!(!modes.cleans_up(kept), "{kept}");
+        }
+        let modes = modes
+            .with_cleanup("yara", false)
+            .with_cleanup("cli", true)
+            .with_cleanup("no_such_mode", true);
+        assert!(!modes.cleans_up("yara"));
+        assert!(modes.cleans_up("cli"));
+        assert!(!modes.cleans_up("no_such_mode"));
+        // a replaced mode keeps its flag, and a new one doesn't clean up
+        let modes = modes
+            .with_mode(AnalysisMode {
+                name: "cli".to_owned(),
+                module_groups: Vec::new(),
+                enabled_modules: Vec::new(),
+                disabled_modules: Vec::new(),
+            })
+            .with_mode(AnalysisMode {
+                name: "new".to_owned(),
+                module_groups: Vec::new(),
+                enabled_modules: Vec::new(),
+                disabled_modules: Vec::new(),
+            });
+        assert!(modes.cleans_up("cli"));
+        assert!(!modes.cleans_up("new"));
     }
 
     #[test]

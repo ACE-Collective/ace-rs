@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT ea.event_id, ea.root_id, t.tag AS \"tag!\"\n           FROM events.event_alerts ea\n           CROSS JOIN LATERAL (\n               SELECT unnest(o.tags) FROM analysis.observables o WHERE o.root_id = ea.root_id\n               UNION\n               SELECT unnest(x.tags) FROM analysis.results x WHERE x.root_id = ea.root_id\n           ) t(tag)\n           WHERE ea.event_id = ANY($1)\n           GROUP BY ea.event_id, ea.root_id, t.tag\n           ORDER BY ea.event_id, lower(t.tag), t.tag, ea.root_id",
+  "query": "SELECT ea.event_id, ea.root_id, t.tag AS \"tag!\"\n           FROM events.event_alerts ea\n           CROSS JOIN LATERAL (\n               SELECT unnest(r.tags) FROM analysis.roots r WHERE r.id = ea.root_id\n               UNION\n               SELECT unnest(o.tags) FROM analysis.observables o WHERE o.root_id = ea.root_id\n               UNION\n               SELECT unnest(x.tags) FROM analysis.results x WHERE x.root_id = ea.root_id\n           ) t(tag)\n           WHERE ea.event_id = ANY($1)\n           GROUP BY ea.event_id, ea.root_id, t.tag\n           ORDER BY ea.event_id, lower(t.tag), t.tag, ea.root_id",
   "describe": {
     "columns": [
       {
@@ -43,5 +43,5 @@
       null
     ]
   },
-  "hash": "b72e08bfe201da1cc03dc7c2c861b5af17848e11732954d43e66ca789f3b3bd1"
+  "hash": "c9386fc06591a4f671a3e45bb61d4d0f645d2babe6910b0aace839bfdaf68648"
 }

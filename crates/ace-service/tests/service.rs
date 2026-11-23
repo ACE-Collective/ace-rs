@@ -1048,15 +1048,15 @@ async fn an_actor_with_no_grants_is_refused_every_write() {
         "SELECT count(*) FROM service.permissions
          WHERE component IS NULL
             OR (component NOT IN ('bootstrap', 'hunter', 'alert_routing', 'search_indexer', 'ai_api',
-                                  'collector')
+                                  'collector', 'export')
                 AND component NOT LIKE 'scheduler:%')",
     )
     .fetch_one(db.pool())
     .await
     .expect("counts");
     // the migrations' grants are the bootstrap's, the hunter's, the scheduler's tasks', alert
-    // routing's, the search indexer's, the AI API's reads and every collector's (0022, 0034, 0036,
-    // 0050, 0061, 0062, 0074)
+    // routing's, the search indexer's, the AI API's reads, every collector's and every detection
+    // export's (0022, 0034, 0036, 0050, 0061, 0062, 0074, 0085, 0086)
     assert_eq!(rows, 0, "nothing was granted, and no admin was seeded");
 }
 
@@ -1529,14 +1529,40 @@ fn write_functions() -> BTreeSet<String> {
     functions
 }
 
+/// Runs `test` on a thread of its own with an 8 MiB stack. The two tests that run every audited write in
+/// turn poll one future through about 150 writes, and a debug build's frames for that come within a
+/// tenth of a test thread's 2 MiB (measured 2026-11-22: both overflow at 1.8 MB).
+fn on_a_large_stack<F, Fut>(test: F)
+where
+    F: FnOnce() -> Fut + Send + 'static,
+    Fut: std::future::Future<Output = ()>,
+{
+    std::thread::Builder::new()
+        .stack_size(8 << 20)
+        .spawn(move || {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("a runtime")
+                .block_on(test());
+        })
+        .expect("a thread")
+        .join()
+        .unwrap_or_else(|panic| std::panic::resume_unwind(panic));
+}
+
 const WRITES_NEED_A_TEST: &str = "a service function calls Gate::write without an audit test: add it \
      to every_write_function_has_an_audit_test and every_write_fails_when_its_audit_fails";
 
 /// The Done check. Each function below runs one write and compares its whole row, and what it returns
 /// is the action read from that row, so a function counts only when a row with its name was compared.
 /// A new function that calls `Gate::write` fails this until it has one, and so does removing a line.
-#[tokio::test]
-async fn every_write_function_has_an_audit_test() {
+#[test]
+fn every_write_function_has_an_audit_test() {
+    on_a_large_stack(every_write_function_has_an_audit_test_in_turn);
+}
+
+async fn every_write_function_has_an_audit_test_in_turn() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let covered = BTreeSet::from([
@@ -3363,8 +3389,12 @@ async fn revoke_records_its_row(db: &Db) -> String {
 
 /// A write whose audit can't be stored fails and leaves no write. The constraint refuses every new row,
 /// whichever way a future bug would: this is the failure, not a stand-in for it.
-#[tokio::test]
-async fn every_write_fails_when_its_audit_fails() {
+#[test]
+fn every_write_fails_when_its_audit_fails() {
+    on_a_large_stack(every_write_fails_when_its_audit_fails_in_turn);
+}
+
+async fn every_write_fails_when_its_audit_fails_in_turn() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let service = service(db);
@@ -10761,7 +10791,7 @@ async fn remove_threat_records_its_row(db: &Db) -> String {
 }
 
 /// ace3's events as its router serves them: by id or uuid, with its alerts, its malware and their threat
-/// types, its owner, its tags and its alerts' tags, and a disposition rolled up from its alerts'; the open
+/// types, its owner, its tags and its alerts' tags (each root's own among them), and a disposition rolled up from its alerts'; the open
 /// ones a page at a time; and the export's events. `event:read` is needed for each.
 #[tokio::test]
 async fn events_are_read_as_ace3_serves_them() {
@@ -10796,6 +10826,12 @@ async fn events_are_read_as_ace3_serves_them() {
         .execute(db.pool())
         .await
         .expect("tags");
+    // the roots' own tags count too (PLAN.md decision 57), a tag an observable has as well once
+    sqlx::query("UPDATE analysis.roots SET tags = '{from_hunt, zeta}' WHERE id = $1")
+        .bind(first)
+        .execute(db.pool())
+        .await
+        .expect("tags the root");
 
     let hostile = "<script>alert(1)</script>";
     let id = event_with(db, hostile, &[second, first]).await;
@@ -10883,7 +10919,13 @@ async fn events_are_read_as_ace3_serves_them() {
     );
     assert_eq!(event.alerts[1].disposition, None);
     assert_eq!(event.tags, ["Campaign", "phish-kit"]);
-    assert_eq!(event.alert_tags, ["Alpha", "zeta"]);
+    assert_eq!(event.alert_tags, ["Alpha", "from_hunt", "zeta"]);
+    assert_eq!(
+        event.alerts[0].tags,
+        ["from_hunt", "zeta"],
+        "the first root's own"
+    );
+    assert_eq!(event.alerts[1].tags, ["Alpha", "zeta"]);
     assert_eq!(
         event
             .malware
@@ -11025,7 +11067,11 @@ async fn events_are_read_as_ace3_serves_them() {
         .await
         .expect("reads");
     assert_eq!(event.alerts.len(), 1);
-    assert!(event.alert_tags.is_empty());
+    assert_eq!(
+        event.alert_tags,
+        ["from_hunt", "zeta"],
+        "the first alert's own, and none of the deleted one's"
+    );
 }
 
 // PLAN.md 5.11's events (6b): adding alerts to an event, ace3's add_to_event.

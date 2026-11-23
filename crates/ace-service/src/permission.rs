@@ -237,6 +237,14 @@ pub(crate) fn allows<'g>(
 /// holds, and bytes with no index row (PLAN.md 6.7). ace3 has no such permission: `ace cas gc` and `ace cas
 /// orphans` run from cron with the database's credentials. Only the scheduler's components hold it.
 pub const BUCKET_GC: PermissionName = PermissionName::known("bucket", "gc");
+/// Delete the finished roots that never became alerts in a mode that cleans up (PLAN.md decision 56),
+/// as ace3's engine deletes their storage directories. ace3 has no such permission: its engine does it
+/// with the node's own access. Only the scheduler's `scheduler:root_cleanup` holds it.
+pub const ANALYSIS_CLEANUP: PermissionName = PermissionName::known("analysis", "cleanup");
+/// Read and write a detection export's record of what it last published (PLAN.md decision 58), each
+/// export its own. ace3 keeps it in a file on the node, under no permission. Only an export's component,
+/// `export:<name>`, holds it, through the class `export`.
+pub const EXPORT_RECORD: PermissionName = PermissionName::known("export", "record");
 /// Re-hash a sample of the bucket's objects and record when each was found intact, as ace3's `ace cas
 /// verify` does. Only the scheduler's `scheduler:bucket_verify` holds it.
 pub const BUCKET_VERIFY: PermissionName = PermissionName::known("bucket", "verify");
@@ -439,6 +447,11 @@ pub static CATALOG: &[CatalogEntry] = &[
         description: "Change alerts, such as their disposition.",
     },
     CatalogEntry {
+        name: ANALYSIS_CLEANUP,
+        description: "Delete the finished analyses that never became alerts, in the modes that clean up, \
+                      and let go of their files. The scheduler holds it.",
+    },
+    CatalogEntry {
         name: BUCKET_GC,
         description: "Delete what the bucket's index no longer keeps: objects nothing has held for their pool's \
                       grace, expired holds, and bytes with no index row. The scheduler holds it.",
@@ -491,6 +504,11 @@ pub static CATALOG: &[CatalogEntry] = &[
         name: EVENT_WRITE,
         description: "Make events, add alerts to them and change them, and add, rename and delete threat \
                       types and malware's threats.",
+    },
+    CatalogEntry {
+        name: EXPORT_RECORD,
+        description: "Read and write a detection export's record of what it last published. Each export \
+                      holds it for its own.",
     },
     CatalogEntry {
         name: FILE_COLLECTION_CREATE,

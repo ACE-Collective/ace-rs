@@ -54,7 +54,9 @@ impl Component {
     /// The class whose grants the component holds as well as its own, when it has one: every
     /// collector (`collector:<name>`, PLAN.md 6.1) holds what the component `collector` is granted,
     /// which migration 0074 makes `alert:create`, since a site's collector is named in the site's
-    /// binary and no migration can name it. A deny on the component itself still wins, as a deny always
+    /// binary and no migration can name it, and every detection export (`export:<name>`, PLAN.md
+    /// decision 58) holds what the component `export` is granted, which migration 0086 makes
+    /// `detection:read` and `export:record`. A deny on the component itself still wins, as a deny always
     /// does (`permission::allows`). No other component has a class: a scheduled task, a pool or the
     /// hunter holds only its own grants.
     pub fn class(&self) -> Option<&'static str> {
@@ -68,7 +70,7 @@ impl Component {
 }
 
 /// The component classes (`Component::class`).
-const COMPONENT_CLASSES: &[&str] = &["collector"];
+const COMPONENT_CLASSES: &[&str] = &["collector", "export"];
 
 /// Who is acting. A match on this must name every kind, so adding one fails the build wherever
 /// an actor's kind matters.

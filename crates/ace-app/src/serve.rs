@@ -100,7 +100,13 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let scheduled = crate::scheduler::configure(&app.scheduled_tasks(), &overlay.scheduler)
         .map_err(anyhow::Error::msg)
         .context("the overlay's scheduler section")?;
-    let modes = app.modes_with(&components);
+    let modes = app.modes_with(&components, &overlay);
+    // ace3's `cleanup` (PLAN.md decision 56): `root_cleanup` deletes these modes' finished roots that
+    // never became alerts
+    tracing::info!(
+        modes = ?modes.cleanup_modes(),
+        "finished roots that never became alerts are deleted in these modes"
+    );
     let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks)
         .context("the overlay's hooks section")?;
     // the YARA export of the detections (PLAN.md 7.16), checked even when no repository is built
@@ -197,6 +203,10 @@ async fn serve(app: &App) -> Result<ExitCode> {
     }
     // the analysis cache, ace3's `analysis_cache` (PLAN.md decision 26)
     let cache = crate::cli::analysis_cache(&overlay, &components)?;
+    // a limit naming a module the binary hasn't leaves what it limits unanalyzed (PLAN.md decision 59)
+    for unknown in app.unknown_limits(&components, &hooks) {
+        tracing::warn!("{unknown}: what it limits is analyzed by nothing");
+    }
     let orchestrator = Orchestrator::new(Catalog::of(components), modes)
         .with_hooks(hooks)
         .with_takes(takes)

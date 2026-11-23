@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH finished AS (\n               SELECT r.id FROM analysis.roots r\n               LEFT JOIN queue.root_completions c ON c.root_id = r.id AND c.pass = r.completed_pass\n               WHERE r.alerted_at IS NULL\n                 AND r.analysis_mode = ANY($1)\n                 AND r.completed_pass = r.pass\n                 AND NOT r.hooks_due\n                 AND COALESCE(c.completed_at, r.created_at) < now() - make_interval(secs => $2)\n                 AND NOT EXISTS (\n                     SELECT 1 FROM queue.tasks t\n                     WHERE t.root_id = r.id AND t.state IN ('queued', 'delayed', 'running'))\n                 AND NOT EXISTS (\n                     SELECT 1 FROM queue.action_roots ar\n                     JOIN queue.actions a ON a.id = ar.action_id\n                     WHERE ar.root_id = r.id AND a.status <> 'COMPLETED')\n               ORDER BY r.created_at, r.id\n               LIMIT $3\n               FOR UPDATE OF r SKIP LOCKED)\n           DELETE FROM analysis.roots WHERE id IN (SELECT id FROM finished)\n           RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "14f0118ed146163cddff3f84d4db89328c8fb77f49fae07c2c0b744b8bb67587"
+}

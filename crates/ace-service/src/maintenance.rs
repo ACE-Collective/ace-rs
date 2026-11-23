@@ -15,6 +15,10 @@
 //!   what a put left when its transaction didn't commit.
 //! - The verify deletes nothing. It records `verified_at`, and lists what's missing or corrupt.
 //!
+//! `clean_up_roots` (PLAN.md decision 56) is ace3's `cleanup` of an analysis mode, run as
+//! `scheduler:root_cleanup` under `analysis:cleanup` (migration 0085); it writes no audit row either, and
+//! its docs say why.
+//!
 //! Each run's counts are in its row of `scheduler.runs`, which is the record of what ran.
 //! They work in the core's own transactions (`ace_core::bucket`), batch by batch, since they delete
 //! from the bucket and the index together and an S3 call can't join a transaction.
@@ -24,8 +28,8 @@ use std::collections::BTreeMap;
 use ace_core::bucket::{Bucket, GcStats, OrphanStats, Retention, VerifyStats};
 
 use crate::permission::{
-    ANALYSIS_CACHE_MAINTAIN, BUCKET_GC, BUCKET_VERIFY, EMAIL_ARCHIVE_MAINTAIN, NRD_REFRESH,
-    PermissionName,
+    ANALYSIS_CACHE_MAINTAIN, ANALYSIS_CLEANUP, BUCKET_GC, BUCKET_VERIFY, EMAIL_ARCHIVE_MAINTAIN,
+    NRD_REFRESH, PermissionName,
 };
 use crate::{Actor, Service, ServiceError};
 
@@ -35,6 +39,19 @@ pub type PoolGc = BTreeMap<String, GcStats>;
 pub type PoolOrphans = BTreeMap<String, OrphanStats>;
 /// What the verify found, by pool.
 pub type PoolVerify = BTreeMap<String, VerifyStats>;
+
+/// What one run of the cleanup of roots that never became alerts did (`Service::clean_up_roots`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+pub struct RootsCleaned {
+    /// The modes it cleaned up.
+    pub modes: Vec<String>,
+    pub deleted: u64,
+    pub batches: u64,
+    /// The holds on the bucket's objects the deleted roots had.
+    pub holds_released: u64,
+    /// True when it stopped at its bound with more left, for the next run.
+    pub more: bool,
+}
 
 impl Service {
     /// GC of every held pool (`Bucket::gc`): objects nothing has held for the pool's grace, the
@@ -125,6 +142,56 @@ impl Service {
         self.require(actor, "maintain_analysis_cache", &ANALYSIS_CACHE_MAINTAIN)
             .await?;
         Ok(ace_core::cache::maintain(self.gate.db(), settings, now, false).await?)
+    }
+
+    /// The finished roots that never became alerts in a mode that cleans up, deleted with their holds on
+    /// the bucket's objects (`ace_core::cleanup`, PLAN.md decision 56): at most `cleanup::BATCH` a
+    /// transaction and `cleanup::MAX_BATCHES` a run, a pause between batches. The modes are the
+    /// orchestrator's (`Modes::cleans_up`). Needs `analysis:cleanup`. No audit row: deleting them is ace3's
+    /// `cleanup` of their mode, applied, which ace3 audits nowhere either (its engine removes the storage
+    /// directory); how many each run deleted is in its row, and each root deleted is in the log at debug.
+    pub async fn clean_up_roots(
+        &self,
+        actor: &Actor,
+        bucket: &Bucket,
+        grace: std::time::Duration,
+    ) -> Result<RootsCleaned, ServiceError> {
+        use ace_core::cleanup;
+        self.require(actor, "clean_up_roots", &ANALYSIS_CLEANUP)
+            .await?;
+        let modes: Vec<String> = self
+            .orchestrator
+            .modes()
+            .cleanup_modes()
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        let pools: Vec<String> = bucket.pools().map(|(name, _)| name.to_owned()).collect();
+        let mut done = RootsCleaned {
+            modes: modes.clone(),
+            ..RootsCleaned::default()
+        };
+        for batch in 0..cleanup::MAX_BATCHES {
+            if batch > 0 {
+                tokio::time::sleep(cleanup::BATCH_PAUSE).await;
+            }
+            let deleted =
+                cleanup::delete_batch(self.gate.db(), &modes, grace, cleanup::BATCH, &pools)
+                    .await?;
+            for root in &deleted.roots {
+                tracing::debug!(%root, "deleted a finished root that never became an alert");
+            }
+            done.deleted += deleted.roots.len() as u64;
+            done.holds_released += deleted.holds;
+            if !deleted.roots.is_empty() {
+                done.batches += 1;
+            }
+            if (deleted.roots.len() as i64) < cleanup::BATCH {
+                return Ok(done);
+            }
+        }
+        done.more = true;
+        Ok(done)
     }
 
     /// The newly registered domains list's state, for deciding whether to rebuild it (PLAN.md 7.4).

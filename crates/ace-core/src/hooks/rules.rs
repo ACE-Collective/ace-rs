@@ -1065,6 +1065,21 @@ pub fn summary(matched: &[Value]) -> Option<String> {
     ))
 }
 
+/// The modules each enabled rule's `limit_analysis` names, by rule, for `ace serve` to warn about one the
+/// binary hasn't (PLAN.md decision 59): a file such a rule limits isn't analyzed by anything.
+pub fn limited_to(rules: &Rules) -> BTreeMap<&str, BTreeSet<&str>> {
+    let mut named: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
+    for rule in rules.rules.iter().filter(|r| r.enabled) {
+        if !rule.actions.limit_analysis.is_empty() {
+            named
+                .entry(rule.name.as_str())
+                .or_default()
+                .extend(rule.actions.limit_analysis.iter().map(String::as_str));
+        }
+    }
+    named
+}
+
 /// The modules each rule names in an action, by rule, for the core to warn about one it doesn't know.
 pub fn named_modules(rules: &Rules) -> BTreeMap<&str, BTreeSet<&str>> {
     let mut named: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();

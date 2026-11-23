@@ -33,8 +33,8 @@
 //! `scheduled_task`), remediators, remediation probes and file collectors (7.9, `LookupPool::action`),
 //! alert routers and their types (7.13, `alert_router`, `alert_router_type`), the alert page's
 //! actions (decision 55, `alert_action`),
-//! collectors (6.1, `collector`, run by `ace collect <name>`), and the rest with the phases that
-//! build them.
+//! collectors (6.1, `collector`, run by `ace collect <name>`), detection exports (decision 58,
+//! `detection_export`, run by `ace export <name>`), and the rest with the phases that build them.
 //!
 //! A site builds on the open-source list rather than repeating it: `ace::app()` is an `App`, and
 //! `add_to_parser_pool`, `add_to_lookup_pool` and `add_to_scanner_pool` add to one of its pools by
@@ -50,6 +50,7 @@ pub mod ai;
 mod cli;
 pub mod collector;
 mod compare;
+pub mod export;
 pub mod hunter;
 pub mod nrd;
 mod pools;
@@ -103,6 +104,7 @@ pub struct App {
     router_types: ace_service::routing::RouterTypes,
     ai_backend_types: Vec<(String, ai::AiBackendType)>,
     collectors: Vec<(collector::CollectorSpec, collector::CollectorFactory)>,
+    exports: Vec<(export::ExportSpec, export::ExportFactory)>,
     alert_actions: Vec<(&'static str, AlertActionFactory)>,
 }
 
@@ -762,6 +764,42 @@ impl App {
         self
     }
 
+    /// Adds a detection export (PLAN.md decision 58, ace3's `observable_export_<name>`): `ace export
+    /// <name>` builds it with `build` from its overlay section, `exports.<name>`, and the secrets and
+    /// connections its spec names; `build` may say why it can't, which stops `ace export`. It acts as the
+    /// component `export:<name>` (`export`'s module docs). One with an export's name already added takes
+    /// its place.
+    ///
+    /// # Panics
+    ///
+    /// When `spec.name` can't name an export: 1 to 64 lowercase letters, digits and `- _ .`.
+    pub fn detection_export(
+        mut self,
+        spec: export::ExportSpec,
+        build: impl Fn(&export::ExportSetup) -> Result<Arc<dyn export::DetectionExport>, String>
+        + Send
+        + Sync
+        + 'static,
+    ) -> App {
+        assert!(
+            !spec.name.is_empty()
+                && spec.name.len() <= 64
+                && spec.name.chars().all(|c| {
+                    c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '-' | '_' | '.')
+                }),
+            "{:?} can't name a detection export: use 1 to 64 lowercase letters, digits and - _ .",
+            spec.name
+        );
+        self.exports.retain(|(s, _)| s.name != spec.name);
+        self.exports.push((spec, Arc::new(build)));
+        self
+    }
+
+    /// The detection exports' names, as `ace export` takes them.
+    pub fn export_names(&self) -> Vec<&'static str> {
+        self.exports.iter().map(|(spec, _)| spec.name).collect()
+    }
+
     /// The collectors' names, as `ace collect` takes them.
     pub fn collector_names(&self) -> Vec<&'static str> {
         self.collectors.iter().map(|(spec, _)| spec.name).collect()
@@ -1206,7 +1244,7 @@ impl App {
     }
 
     /// Every connection type a component of the binary takes (`ace_sdk::connections`): its modules',
-    /// action handlers', collectors', AI backend types', command types', hunt types' searches' and
+    /// action handlers', collectors', detection exports', AI backend types', command types', hunt types' searches' and
     /// query source types' slots, the built-in Splunk ones (`splunk`) among them.
     pub fn connection_kinds(&self) -> Vec<ace_sdk::ConnectionKind> {
         let modules = self
@@ -1221,6 +1259,10 @@ impl App {
             .flat_map(|(spec, _)| spec.connections.iter().copied());
         let collectors = self
             .collectors
+            .iter()
+            .flat_map(|(spec, _)| spec.connections.iter().copied());
+        let exports = self
+            .exports
             .iter()
             .flat_map(|(spec, _)| spec.connections.iter().copied());
         let backends = self
@@ -1243,6 +1285,7 @@ impl App {
         for slot in modules
             .chain(actions)
             .chain(collectors)
+            .chain(exports)
             .chain(backends)
             .chain(commands)
             .chain(searches)
@@ -1324,7 +1367,8 @@ impl App {
     /// component's `connections:` against its slots (the modules', the action handlers', the
     /// collectors', the AI backends', the command types', the hunt types' searches' and the query
     /// sources'), a `command_types:` or `hunt_types:` entry, or a `query_sources:` type, the binary
-    /// hasn't, a search registered for a hunt type the binary hasn't, and every `module_in_group` module that no pool registers against the
+    /// hasn't, a search registered for a hunt type the binary hasn't, an `analysis_modes:` entry for a mode
+    /// there isn't, an `exports:` entry for an export the binary hasn't or with bindings its spec refuses, and every `module_in_group` module that no pool registers against the
     /// overlay's instances. Each error names the path.
     pub fn check_overlay(&self, overlay: &ace_sdk::Overlay) -> Result<(), String> {
         overlay
@@ -1357,6 +1401,20 @@ impl App {
                     )
                     .map_err(|e| e.to_string())?;
             }
+        }
+        for (name, section) in &overlay.exports {
+            let Some((spec, _)) = self.exports.iter().find(|(spec, _)| spec.name == name) else {
+                return Err(format!(
+                    "the overlay's exports.{name}: this binary has no detection export {name}"
+                ));
+            };
+            overlay
+                .bind(
+                    &format!("exports.{name}.connections"),
+                    spec.connections,
+                    &section.connections,
+                )
+                .map_err(|e| e.to_string())?;
         }
         let backend_types = self.ai_backend_types();
         for (name, backend) in &overlay.ai_api.backends {
@@ -1420,17 +1478,84 @@ impl App {
                 )
                 .map_err(|e| e.to_string())?;
         }
+        let modes = self.modes();
+        if let Some(unknown) = overlay
+            .analysis_modes
+            .keys()
+            .find(|mode| modes.mode(mode).is_none())
+        {
+            let names: Vec<&str> = modes.mode_names().collect();
+            return Err(format!(
+                "the overlay's analysis_modes.{unknown}: there's no analysis mode {unknown} (the modes are {})",
+                names.join(", ")
+            ));
+        }
         self.check_group_instances(&components)
             .map_err(|wrong| format!("the binary's list and the overlay: {wrong}"))
     }
 
-    /// The modes with the overlay's instances in the groups they join (`InstanceSection::groups`).
-    fn modes_with(&self, components: &[ace_sdk::Component]) -> Modes {
-        components.iter().fold(self.modes(), |modes, component| {
+    /// Each analysis limit that names a module the binary hasn't (PLAN.md decision 59), one line each: a
+    /// module's `Module::LIMITS_ANALYSIS_TO` (decision 48), and an enabled `observable_modifier` rule's
+    /// `limit_analysis` in the overlay's `hooks:`. A file or observable limited to such a name is
+    /// analyzed by nothing, where ace3 logs an error each time, so `ace serve` warns once at its start. A
+    /// name the binary has is one of its modules, an instance the overlay makes of one (`components`),
+    /// the type step (`file_type`) or one of the core's hooks.
+    pub fn unknown_limits(
+        &self,
+        components: &[ace_sdk::Component],
+        hooks: &ace_core::hooks::Hooks,
+    ) -> Vec<String> {
+        let manifests = self.registry().manifests();
+        let known = |name: &str| {
+            manifests.iter().any(|m| m.name == name)
+                || components.iter().any(|c| c.key == name)
+                || [
+                    ace_core::queue::TYPE_STEP,
+                    ace_core::hooks::OBSERVABLE_MODIFIER,
+                    ace_core::hooks::CONFIGURATION_DEFINED_TAGGING,
+                    ace_core::hooks::SVS_ALERT_TAGGER,
+                ]
+                .contains(&name)
+        };
+        let mut unknown = Vec::new();
+        for manifest in &manifests {
+            for name in manifest.limits_analysis_to {
+                if !known(name) {
+                    unknown.push(format!(
+                        "the module {} may limit what analyzes a file it adds to {name}, which this binary hasn't",
+                        manifest.name
+                    ));
+                }
+            }
+        }
+        if let Some(rules) = hooks.rules() {
+            for (rule, names) in ace_core::hooks::rules::limited_to(rules) {
+                for name in names.into_iter().filter(|n| !known(n)) {
+                    unknown.push(format!(
+                        "the overlay's hooks.observable_modifier rule {rule:?} limits analysis to {name}, which this binary hasn't"
+                    ));
+                }
+            }
+        }
+        unknown
+    }
+
+    /// The modes with the overlay's instances in the groups they join (`InstanceSection::groups`), and
+    /// the overlay's `cleanup` over each mode's (`Overlay::analysis_modes`, PLAN.md decision 56), which
+    /// `check_overlay` has checked names only modes there are.
+    fn modes_with(&self, components: &[ace_sdk::Component], overlay: &ace_sdk::Overlay) -> Modes {
+        let modes = components.iter().fold(self.modes(), |modes, component| {
             component.groups.iter().fold(modes, |modes, group| {
                 modes.with_module_in_group(group, &component.key)
             })
-        })
+        });
+        overlay
+            .analysis_modes
+            .iter()
+            .fold(modes, |modes, (mode, section)| match section.cleanup {
+                Some(cleanup) => modes.with_cleanup(mode, cleanup),
+                None => modes,
+            })
     }
 
     /// The pools and their modules, as `ACE4_POOLS` lists them: the core's default.
@@ -1682,6 +1807,73 @@ mod tests {
     fn a_site_can_t_add_to_a_pool_the_list_hasn_t() {
         let _ =
             base().add_to_lookup_pool("network", |pool| pool.module::<ace_mod_dns::FqdnAnalyzer>());
+    }
+
+    /// A lookup whose results may limit what analyzes a file they add to a module the binary has and one
+    /// it hasn't (PLAN.md decision 59).
+    struct Limiter;
+
+    impl ace_sdk::Module for Limiter {
+        const NAME: &'static str = "test_limiter";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const LIMITS_ANALYSIS_TO: &'static [&'static str] =
+            &["email_analyzer", "test_unpacker", "file_type"];
+        type Output = ace_sdk::example::ResolvedAddresses;
+        type Settings = ace_sdk::example::ResolverSettings;
+
+        fn init(_: &Self::Settings) -> Result<Self, ace_sdk::ModuleError> {
+            Ok(Limiter)
+        }
+    }
+
+    impl Lookup for Limiter {
+        const TCP_PORTS: &'static [u16] = &[];
+
+        async fn analyze(
+            &self,
+            _: &ace_sdk::TaskContext<Self::Settings>,
+        ) -> Result<ace_sdk::Outcome<Self::Output>, ace_sdk::ModuleError> {
+            Ok(ace_sdk::Outcome::Skipped("a test".to_owned()))
+        }
+    }
+
+    /// PLAN.md decision 59: a limit naming a module the binary hasn't, a module's or an observable
+    /// modifier rule's, is reported for `ace serve`'s warning at its start; a module, an overlay instance,
+    /// the type step and the core's hooks are all names the binary has, and a disabled rule's limit isn't
+    /// looked at.
+    #[test]
+    fn a_limit_naming_a_module_the_binary_hasn_t_is_reported() {
+        let app = base().add_to_lookup_pool("lookups", |pool| pool.module::<Limiter>());
+        let overlay = ace_sdk::Overlay::from_yaml(
+            "modules:\n  email_analyzer:\n    instances:\n      email_copy: {}\n\
+             hooks:\n  observable_modifier:\n    rules:\n\
+             \x20     - name: to the copy\n        uuid: 00000000-0000-0000-0000-000000000001\n        conditions: {observable_types: [file]}\n\
+             \x20       actions: {limit_analysis: [email_copy, configuration_defined_tagging]}\n\
+             \x20     - name: to nothing\n        uuid: 00000000-0000-0000-0000-000000000002\n        conditions: {observable_types: [file]}\n\
+             \x20       actions: {limit_analysis: [unpacker_typo]}\n\
+             \x20     - name: off\n        uuid: 00000000-0000-0000-0000-000000000003\n        enabled: false\n        conditions: {observable_types: [file]}\n\
+             \x20       actions: {limit_analysis: [also_missing]}\n",
+        )
+        .expect("parses");
+        let components = overlay
+            .components(&app.registry().manifests())
+            .expect("components");
+        let hooks =
+            ace_core::hooks::Hooks::from_section(&overlay.hooks).expect("the rules compile");
+        assert_eq!(
+            app.unknown_limits(&components, &hooks),
+            [
+                "the module test_limiter may limit what analyzes a file it adds to test_unpacker, \
+                 which this binary hasn't",
+                "the overlay's hooks.observable_modifier rule \"to nothing\" limits analysis to \
+                 unpacker_typo, which this binary hasn't",
+            ]
+        );
+        assert!(
+            base()
+                .unknown_limits(&[], &ace_core::hooks::Hooks::none())
+                .is_empty()
+        );
     }
 
     /// A collector's name is its component's, so it can't hold a `:`.

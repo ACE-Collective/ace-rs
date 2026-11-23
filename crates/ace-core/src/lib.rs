@@ -13,12 +13,14 @@
 //! through the lease API as they lease tasks (PLAN.md 7.9). `svs` is the model of SVS, the Signature
 //! Validation System, which the rest of SVS builds on (PLAN.md 7.10). `metrics` is the event a root's
 //! pass logs when it ends, ace3's per-root metrics event. `limits` is ace3's automation limit, which
-//! eligibility applies.
+//! eligibility applies. `cleanup` deletes the finished roots that never became alerts in a mode that cleans
+//! up (PLAN.md decision 56).
 
 pub mod actions;
 pub mod api;
 pub mod bucket;
 pub mod cache;
+pub mod cleanup;
 pub mod commands;
 pub mod db;
 pub mod eligibility;

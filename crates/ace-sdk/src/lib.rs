@@ -74,8 +74,9 @@ pub use module::{
 };
 pub use overlay::{
     ACE3_DISPOSITION_CLASSES, ActionSection, AlertActionSection, AlertRouterSection,
-    CollectorSection, CommandTypeSection, Component, DispositionClass, DispositionSection, NrdList,
-    NrdSection, Overlay, OverlayError, ScheduledTaskSection, SecretSource, SvsCatalogRepository,
+    AnalysisModeSection, CollectorSection, CommandTypeSection, Component, DispositionClass,
+    DispositionSection, ExportSection, NrdList, NrdSection, Overlay, OverlayError,
+    RootCleanupSection, ScheduledTaskSection, SecretSource, SvsCatalogRepository,
     SvsCatalogSection, SvsObservationWindow, SvsRepository, SvsRunsSection, SvsSection,
     SvsYaraSection, is_attack_release_name,
 };
