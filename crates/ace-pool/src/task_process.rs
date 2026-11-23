@@ -105,6 +105,8 @@ pub fn main(registry: &Registry, secrets: TaskSecrets<'_>) -> ExitCode {
         reader: None,
         tools,
         scan_output: request.scan_output.as_deref(),
+        // a parser's tools have its scratch directory
+        task_dir: None,
     });
     let reply = match serde_json::to_vec(&end) {
         Ok(reply) => reply,

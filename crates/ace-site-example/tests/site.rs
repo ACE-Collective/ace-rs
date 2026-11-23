@@ -175,7 +175,8 @@ fn the_site_binary_draws_its_results_with_its_own_view() {
             "file_download_as_zip",
             "add_comment",
             "add_directive",
-            "example_open_ticket"
+            "example_open_ticket",
+            "example_ticket_history"
         ]
     );
     let ticket = |kind: &str| ace_service::AlertObservable {
@@ -205,6 +206,8 @@ fn the_site_binary_draws_its_results_with_its_own_view() {
             "/alerts/00000000-0000-0000-0000-000000000000/observables/7/comment",
             "/alerts/00000000-0000-0000-0000-000000000000/observables/7/directives",
             "https://tickets.example.com/ticket/TICKET-a%20b%2F%3Cc%3E",
+            // decision 60: the form with the site's directive ticked
+            "/alerts/00000000-0000-0000-0000-000000000000/observables/7/directives?directive=example_ticket_history",
         ]
     );
     assert_eq!(app.actions().links(Uuid::nil(), &ticket("fqdn")).len(), 2);

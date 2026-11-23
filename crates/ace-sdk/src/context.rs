@@ -285,6 +285,8 @@ pub struct TaskContext<S> {
     tools: Option<Arc<dyn ToolRunner>>,
     /// The task's latest scan (PLAN.md 7.7), for a module that asked for one.
     scan: Option<Scan>,
+    /// A lookup's own directory for the task's temporary files (PLAN.md decision 61).
+    task_dir: Option<PathBuf>,
 }
 
 impl<S> TaskContext<S> {
@@ -336,6 +338,7 @@ impl<S> TaskContext<S> {
             declared_tools: M::TOOLS,
             tools: None,
             scan: None,
+            task_dir: None,
         }
     }
 
@@ -402,6 +405,21 @@ impl<S> TaskContext<S> {
     /// None when the task has no tool runner.
     pub fn scratch_dir(&self) -> Option<&std::path::Path> {
         self.tools.as_deref().map(ToolRunner::scratch)
+    }
+
+    /// The task's own directory, where the pool puts a lookup's task.
+    pub fn with_task_dir(mut self, dir: Option<PathBuf>) -> Self {
+        self.task_dir = dir;
+        self
+    }
+
+    /// A directory of the task's own, empty when the task starts, for a lookup's temporary files,
+    /// such as a download streamed to disk (PLAN.md decision 61). The pool removes it, and all it
+    /// holds, when the task ends, however it ends, as it does a task's input. A contained lookup pool
+    /// may write there. None for a parser, whose tools have `scratch_dir`, and for a context
+    /// built without one.
+    pub fn task_dir(&self) -> Option<&std::path::Path> {
+        self.task_dir.as_deref()
     }
 
     /// Writes to ACE's own data (PLAN.md 7.2), a write the module declared in `Module::WRITES`.

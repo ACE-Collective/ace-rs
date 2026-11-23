@@ -98,6 +98,14 @@ impl TaskDir {
     pub fn outputs(&self) -> PathBuf {
         self.dir.path().join("outputs")
     }
+
+    /// The directory a lookup gets for its temporary files (`TaskContext::task_dir`, PLAN.md
+    /// decision 61), made empty inside the task's, so it goes when the task's does.
+    pub fn lookup_dir(&self) -> std::io::Result<PathBuf> {
+        let dir = self.dir.path().join("lookup");
+        std::fs::create_dir(&dir)?;
+        Ok(dir)
+    }
 }
 
 /// Downloads a file task's input into the task's directory and returns where it is. None for a task
@@ -311,6 +319,11 @@ pub async fn run_in_process(
         client.reads(),
     );
     let tools = modules.local_tools(&task.module)?;
+    // a lookup's own directory for its temporary files, removed with the task's when this returns
+    let lookup_dir = match modules.lookup(&task.module) {
+        Some(_) => Some(dir.lookup_dir()?),
+        None => None,
+    };
     let joined = if modules.parser(&task.module).is_some() {
         tokio::task::spawn_blocking(move || match owned_modules.parser(&owned_task.module) {
             Some(parser) => span.in_scope(|| {
@@ -325,6 +338,7 @@ pub async fn run_in_process(
                     reader: None,
                     tools,
                     scan_output: scan_output.as_deref(),
+                    task_dir: None,
                 })
             }),
             None => unknown_module(&owned_task),
@@ -347,6 +361,7 @@ pub async fn run_in_process(
                                 reader: Some(Arc::new(reads)),
                                 tools: None,
                                 scan_output: None,
+                                task_dir: lookup_dir.as_deref(),
                             })
                             .await
                     }

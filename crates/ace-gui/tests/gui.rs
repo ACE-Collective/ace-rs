@@ -4867,12 +4867,17 @@ fn the_directive_form_names_what_it_does_not_offer() {
             value: "<script>alert(1)</script>".to_owned(),
             choices,
             others: others.clone(),
+            refused: vec!["<b>refused</b>".to_owned()],
         }
         .render()
         .expect("renders")
     };
     let html = page(choices.clone());
     assert!(inline_free(&html));
+    assert!(
+        html.contains("so it isn't ticked: <code>&#60;b&#62;refused&#60;/b&#62;</code>"),
+        "{html}"
+    );
     assert!(
         html.contains("Also set: <code>original_email</code>"),
         "{html}"
@@ -4889,6 +4894,159 @@ fn the_directive_form_names_what_it_does_not_offer() {
     let html = page(all_set);
     assert!(!html.contains(">Add Directive</button>"));
     assert!(html.contains("The observable has every directive this list offers."));
+}
+
+/// PLAN.md decision 60: the Add Directive form's link ticks the boxes it names in advance, and only
+/// that: following it adds nothing, a name the list doesn't offer ticks nothing and is named back
+/// escaped, one the observable has stays ticked and disabled, and the analyst's post adds what's ticked
+/// with its permission check and audit row, as any other.
+#[tokio::test]
+async fn a_link_ticks_the_add_directive_form_in_advance() {
+    let stack = stack_from(|service| {
+        Gui::new(
+            service.with_directives(
+                ace_sdk::directives::directive_list(&[LOCATE_FILE]).expect("a valid list"),
+            ),
+            Transport::Plain,
+        )
+    })
+    .await;
+    let carol = user(&stack, "carol").await;
+    grant_alert_read(&stack, &carol).await;
+    let Actor::User { id, .. } = &carol else {
+        panic!("a user")
+    };
+    stack
+        .service
+        .grant(
+            &bootstrap(),
+            &Holder::User(*id),
+            &PermissionPattern::new("observable", "write").expect("a pattern"),
+            Effect::Allow,
+        )
+        .await
+        .expect("granted");
+    let session = session_of(&stack, "carol").await;
+    let (root, fqdn) = splunk_alert(&stack).await;
+    let target = ace_gui::actions::ActionTarget {
+        alert: root,
+        observable: fqdn.0,
+        kind: "fqdn",
+        value: "www.example.com",
+        has_file: false,
+    };
+    let path = format!("/alerts/{root}/observables/{}/directives", fqdn.0);
+    assert_eq!(ace_gui::actions::add_directive_href(&target, &[]), path);
+    let form = |href: String| {
+        let request = stack.get(&href).header("cookie", cookie(&session));
+        async move {
+            let response = request.send().await.expect("answered");
+            assert_eq!(response.status(), StatusCode::OK, "{href}");
+            let page = response.text().await.expect("a page");
+            assert!(inline_free(&page));
+            page
+        }
+    };
+    let directives = || async {
+        sqlx::query_scalar::<_, Vec<String>>(
+            "SELECT directives FROM analysis.observables WHERE id = $1",
+        )
+        .bind(fqdn.0)
+        .fetch_one(stack.test_db.db().pool())
+        .await
+        .expect("reads")
+    };
+    let audits = stack.audit_count().await;
+
+    // a box ticked by the link, the others not, and nothing added by following it
+    let href = ace_gui::actions::add_directive_href(&target, &["locate_file"]);
+    assert_eq!(href, format!("{path}?directive=locate_file"));
+    let page = form(href).await;
+    contains_all(
+        &page,
+        &[
+            &format!(r#"<form method="post" action="{path}" class="section">"#),
+            r#"<input type="checkbox" name="directive" value="locate_file" checked> <code>locate_file</code>"#,
+            r#"<input type="checkbox" name="directive" value="crawl"> <code>crawl</code>"#,
+            r#"<button type="submit">Add Directive</button>"#,
+        ],
+    );
+    assert_eq!(page.matches(" checked").count(), 1, "{page}");
+    assert!(!page.contains(r#"class="warning""#), "{page}");
+    // two at once
+    let page = form(ace_gui::actions::add_directive_href(
+        &target,
+        &["crawl", "locate_file"],
+    ))
+    .await;
+    assert_eq!(page.matches(" checked>").count(), 2, "{page}");
+    assert_eq!(stack.audit_count().await, audits);
+    assert!(directives().await.is_empty());
+
+    // a name the list doesn't offer, one only ACE adds among them, ticks nothing and is named back
+    let page = form(format!(
+        "{path}?directive=no_such_directive&directive=exclude_all&directive=no_such_directive"
+    ))
+    .await;
+    assert!(!page.contains(" checked"), "{page}");
+    assert_eq!(page.matches(r#"name="directive""#).count(), 6);
+    assert!(
+        page.contains(
+            "so it isn't ticked: <code>no_such_directive</code>, <code>exclude_all</code></p>"
+        ),
+        "{page}"
+    );
+    // a hostile one is escaped, and cut short
+    let hostile = format!("<script>alert(1)</script>\"><img src=x>{}", "a".repeat(200));
+    let page = form(format!(
+        "{path}?directive={}",
+        ace_gui::actions::encode(&hostile)
+    ))
+    .await;
+    assert!(!page.contains("<script>alert(1)"), "{page}");
+    assert!(!page.contains("<img src=x>"), "{page}");
+    assert!(
+        page.contains(
+            "<code>&#60;script&#62;alert(1)&#60;/script&#62;&#34;&#62;&#60;img src=x&#62;aaa"
+        ),
+        "{page}"
+    );
+    assert!(!page.contains(&"a".repeat(64)), "cut to 64 characters");
+    assert!(!page.contains(" checked"), "{page}");
+
+    // the analyst's post of the ticked form adds it, under observable:write, with its audit row
+    let added = stack
+        .post(&path, &[("directive", "locate_file")])
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(added.status(), StatusCode::SEE_OTHER);
+    assert_eq!(stack.audit_count().await, audits + 1);
+    assert_eq!(directives().await, ["locate_file"]);
+    let sources: Vec<String> = sqlx::query_scalar(
+        "SELECT source::text FROM analysis.directive_sources WHERE observable_id = $1 AND directive = 'locate_file'",
+    )
+    .bind(fqdn.0)
+    .fetch_all(stack.test_db.db().pool())
+    .await
+    .expect("reads");
+    assert_eq!(sources, ["analyst"]);
+
+    // one the observable has already is ticked and disabled, as without the link
+    let page = form(ace_gui::actions::add_directive_href(
+        &target,
+        &["locate_file", "crawl"],
+    ))
+    .await;
+    contains_all(
+        &page,
+        &[
+            r#"value="locate_file" checked disabled> <code>locate_file</code>"#,
+            r#"value="crawl" checked> <code>crawl</code>"#,
+        ],
+    );
+    assert_eq!(stack.audit_count().await, audits + 1);
 }
 
 // PLAN.md 5.10: the alert list.

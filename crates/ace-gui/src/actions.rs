@@ -29,6 +29,14 @@
 //! menu of the observable itself leads to the same choice, the directives the binary lists with ace3's
 //! descriptions, as boxes to tick, since several may be added at once as in ace3's multiselect. A
 //! directive the observable has is shown ticked and can't be ticked off: ace3 has no way to remove one.
+//!
+//! The form's link can name directives to tick in advance, `?directive=upload_to_vt` once for each
+//! (PLAN.md decision 60), so a site's action, such as a site's "Upload To VT", is a link to the form with
+//! its box ticked, and the analyst confirms with one click (`add_directive_href`). Ticking in advance
+//! only checks a box: nothing is added until the analyst posts the form, which goes through the same
+//! permission check and audit row as any other. A name the list doesn't offer ticks nothing, and the
+//! page says it wasn't offered (escaped, as every value is); one the observable has already stays
+//! ticked and disabled.
 
 use ace_service::AlertObservable;
 use askama::Template;
@@ -137,11 +145,33 @@ pub const DOWNLOAD_FILE_AS_ZIP: ObservableAction =
 /// "Add Directive": the form of the directives an analyst may add to the observable (PLAN.md decision 31).
 pub const ADD_DIRECTIVE: ObservableAction =
     ObservableAction::new("add_directive", "Add Directive", |target| {
-        Some(format!(
-            "/alerts/{}/observables/{}/directives",
-            target.alert, target.observable
-        ))
+        Some(add_directive_href(target, &[]))
     });
+
+/// The Add Directive form's path for an observable, with the boxes of `directives` ticked in advance
+/// (PLAN.md decision 60), for a site's action that asks for one or more directives, such as
+/// ```
+/// use ace_gui::actions::{ObservableAction, add_directive_href};
+///
+/// const UPLOAD_TO_VT: ObservableAction =
+///     ObservableAction::new("upload_to_vt", "Upload To VT", |target| {
+///         (target.kind == "file" && target.has_file)
+///             .then(|| add_directive_href(target, &["upload_to_vt"]))
+///     });
+/// ```
+/// The analyst still posts the form, so nothing is added by following the link.
+pub fn add_directive_href(target: &ActionTarget<'_>, directives: &[&str]) -> String {
+    let mut href = format!(
+        "/alerts/{}/observables/{}/directives",
+        target.alert, target.observable
+    );
+    for (index, directive) in directives.iter().enumerate() {
+        href.push(if index == 0 { '?' } else { '&' });
+        href.push_str("directive=");
+        href.push_str(&encode(directive));
+    }
+    href
+}
 
 /// The binary's actions, in the order the menu lists them.
 #[derive(Debug, Clone)]
@@ -330,6 +360,8 @@ pub struct DirectiveChoice {
     pub description: &'static str,
     /// The observable has it already, so the box is ticked and can't be ticked off.
     pub set: bool,
+    /// The form's link asked for it (PLAN.md decision 60), so its box starts ticked.
+    pub ticked: bool,
 }
 
 /// `/alerts/{id}/observables/{observable}/directives`: the directives an analyst may add to the observable,
@@ -346,6 +378,9 @@ pub struct DirectivePage {
     pub choices: Vec<DirectiveChoice>,
     /// The observable's directives that the form doesn't offer, such as those only ACE adds.
     pub others: Vec<String>,
+    /// What the form's link asked to tick that the list doesn't offer, so nothing was ticked for it
+    /// (`tick`).
+    pub refused: Vec<String>,
 }
 
 impl DirectivePage {
@@ -366,6 +401,7 @@ pub fn directive_choices(
             name: directive.name,
             description: directive.description,
             set: observable.directives.iter().any(|d| d == directive.name),
+            ticked: false,
         })
         .collect();
     let others = observable
@@ -377,7 +413,33 @@ pub fn directive_choices(
     (choices, others)
 }
 
-/// `GET /alerts/{id}/observables/{observable}/directives`.
+/// How many names the page shows of those a link asks for that the list doesn't offer, and how many
+/// characters of each.
+const MAX_REFUSED: usize = 8;
+const MAX_REFUSED_CHARS: usize = 64;
+
+/// Ticks the boxes of the directives a link asks for (`?directive=`, PLAN.md decision 60). A box of
+/// one the observable has already stays as it is. Returns what was asked for that the list doesn't
+/// offer, each once, at most `MAX_REFUSED` of them cut to `MAX_REFUSED_CHARS` characters, for the page
+/// to say they weren't ticked: they are never ticked and never added from here.
+pub fn tick(choices: &mut [DirectiveChoice], asked: &[String]) -> Vec<String> {
+    let mut refused: Vec<String> = Vec::new();
+    for name in asked {
+        match choices.iter_mut().find(|choice| choice.name == name) {
+            Some(choice) => choice.ticked = true,
+            None => {
+                let shown: String = name.chars().take(MAX_REFUSED_CHARS).collect();
+                if refused.len() < MAX_REFUSED && !refused.contains(&shown) {
+                    refused.push(shown);
+                }
+            }
+        }
+    }
+    refused
+}
+
+/// `GET /alerts/{id}/observables/{observable}/directives`, with the boxes its query's `directive`s name
+/// ticked (`tick`).
 pub(crate) async fn directive_page(
     State(gui): State<Gui>,
     viewer: SignedIn,
@@ -389,7 +451,12 @@ pub(crate) async fn directive_page(
             Ok(target) => target,
             Err(failure) => return failure.into_response(),
         };
-    let (choices, others) = directive_choices(gui.service.directives(), &observable);
+    let (mut choices, others) = directive_choices(gui.service.directives(), &observable);
+    let asked = crate::list::all(
+        &crate::list::pairs(parts.uri.query().unwrap_or_default().as_bytes()),
+        "directive",
+    );
+    let refused = tick(&mut choices, &asked);
     render(&DirectivePage {
         layout: viewer.layout,
         alert_id,
@@ -399,6 +466,7 @@ pub(crate) async fn directive_page(
         value: observable.value,
         choices,
         others,
+        refused,
     })
 }
 

@@ -419,6 +419,50 @@ async fn a_lookup_reads_its_input_file_only_when_it_declares_it() {
     );
 }
 
+/// PLAN.md decision 61: a lookup in a contained pool gets a directory of its task's own, empty and
+/// writable while `analyze` runs, and the pool removes it with the task's directory when the task ends.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_lookup_gets_a_task_directory_that_goes_with_the_task() {
+    let core = Core::start(
+        testing::test_manifests(),
+        &["test_task_dir"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let root = run_contained(
+        &core,
+        json!({}),
+        "test_task_dir",
+        &["one.example.com", "two.example.com"],
+    )
+    .await;
+    let notes: Vec<String> = sqlx::query_scalar(
+        "SELECT details->>'note' FROM analysis.results WHERE root_id = $1 AND module = 'test_task_dir'",
+    )
+    .bind(root)
+    .fetch_all(core.test_db.db().pool())
+    .await
+    .expect("the results");
+    assert_eq!(notes.len(), 2, "{notes:?}");
+    let mut dirs = Vec::new();
+    for note in &notes {
+        let (dir, rest) = note.split_once(" held ").expect("the directory");
+        assert!(rest == "0; wrote and read back 15 bytes", "{note}");
+        let dir = std::path::PathBuf::from(dir);
+        // inside the task's own directory, in the temp directory containment lets it write
+        assert!(dir.starts_with(std::env::temp_dir()), "{note}");
+        assert_eq!(dir.file_name().and_then(|n| n.to_str()), Some("lookup"));
+        assert!(!dir.exists(), "{note}: still there");
+        assert!(
+            !dir.parent().expect("the task's directory").exists(),
+            "{note}: the task's directory is still there"
+        );
+        dirs.push(dir);
+    }
+    dirs.dedup();
+    assert_eq!(dirs.len(), 2, "each task has its own: {notes:?}");
+}
+
 fn signal(pool: &PoolProcess, signal: i32) {
     let pid = i32::try_from(pool.pid()).expect("a pid");
     // SAFETY: kill takes integers only; the pid is this test's child, not yet reaped

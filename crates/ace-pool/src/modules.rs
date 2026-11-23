@@ -69,6 +69,8 @@ pub struct Run<'a> {
     pub tools: Option<Arc<dyn ToolRunner>>,
     /// The task's latest scan's output archive on this machine (PLAN.md 7.7).
     pub scan_output: Option<&'a Path>,
+    /// A lookup's directory for its temporary files, inside the task's own (PLAN.md decision 61).
+    pub task_dir: Option<&'a Path>,
 }
 
 impl Run<'_> {
@@ -182,7 +184,8 @@ impl<M: ace_sdk::Module> Entry<M> {
         .with_tree(run.task.tree.clone())
         .with_tree_files(run.tree_files.map(Path::to_path_buf))
         .with_tool_runner(run.tools.clone())
-        .with_scan(run.scan());
+        .with_scan(run.scan())
+        .with_task_dir(run.task_dir.map(Path::to_path_buf));
         match &run.task.delayed {
             Some(delayed) => ctx.with_delayed(delayed.clone()),
             None => ctx,
@@ -658,6 +661,7 @@ mod tests {
                 reader: None,
                 tools: None,
                 scan_output: None,
+                task_dir: None,
             }
             .carrying_email()
         };

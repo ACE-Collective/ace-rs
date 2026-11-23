@@ -68,6 +68,7 @@ pub fn registry() -> Registry {
         .lookup::<LookupWrites>()
         .lookup::<ReadsFile>()
         .lookup::<FileRecord>()
+        .lookup::<UsesTaskDir>()
         .parser::<Capabilities>()
         .parser::<PanickingParser>()
         .parser::<Spin>()
@@ -159,6 +160,7 @@ pub fn test_manifests() -> Vec<ace_sdk::Manifest> {
         ace_sdk::Manifest::lookup::<LookupWrites>(),
         ace_sdk::Manifest::lookup::<ReadsFile>(),
         ace_sdk::Manifest::lookup::<FileRecord>(),
+        ace_sdk::Manifest::lookup::<UsesTaskDir>(),
         ace_sdk::Manifest::parser::<Capabilities>(),
         ace_sdk::Manifest::parser::<PanickingParser>(),
         ace_sdk::Manifest::parser::<Spin>(),
@@ -206,6 +208,7 @@ note_type!(
 );
 note_type!(ReadsFileNote, "test_reads_file_note", "test_reads_file");
 note_type!(FileRecordNote, "test_file_record_note", "test_file_record");
+note_type!(TaskDirNote, "test_task_dir_note", "test_task_dir");
 note_type!(
     CapabilitiesNote,
     "test_capabilities_note",
@@ -434,6 +437,47 @@ impl Lookup for FileRecord {
     async fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<FileRecordNote>, ModuleError> {
         Ok(Outcome::Done(ResultEnvelope::new(FileRecordNote {
             note: what_it_read(ctx)?,
+        })))
+    }
+}
+
+/// A lookup that writes a temporary file in its task's directory (`TaskContext::task_dir`, PLAN.md
+/// decision 61), as a download streamed to disk does, reads it back, and says where the directory
+/// was and what it held.
+pub struct UsesTaskDir;
+
+impl Module for UsesTaskDir {
+    const NAME: &'static str = "test_task_dir";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+    type Output = TaskDirNote;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(UsesTaskDir)
+    }
+}
+
+impl Lookup for UsesTaskDir {
+    const TCP_PORTS: &'static [u16] = &[];
+
+    async fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<TaskDirNote>, ModuleError> {
+        let dir = ctx
+            .task_dir()
+            .ok_or_else(|| ModuleError::other("no task directory"))?;
+        let io = |e: std::io::Error| ModuleError::other(format!("{}: {e}", dir.display()));
+        let before = std::fs::read_dir(dir).map_err(io)?.count();
+        let path = dir.join("download.part");
+        let value = &ctx.observable().value;
+        tokio::fs::write(&path, value.as_bytes())
+            .await
+            .map_err(io)?;
+        let back = tokio::fs::read(&path).await.map_err(io)?;
+        Ok(Outcome::Done(ResultEnvelope::new(TaskDirNote {
+            note: format!(
+                "{} held {before}; wrote and read back {} bytes",
+                dir.display(),
+                back.len()
+            ),
         })))
     }
 }

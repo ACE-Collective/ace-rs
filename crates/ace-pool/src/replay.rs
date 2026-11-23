@@ -56,6 +56,16 @@ pub async fn replay_task(
     let email_parts = crate::run::fetch_email_parts(client, task, dir).await?;
     let tree_files = crate::run::fetch_tree_files(client, task, dir).await?;
     let outputs = Arc::new(LocalFileStore::new(dir.join("outputs"))?);
+    // a lookup's directory for its temporary files (PLAN.md decision 61), kept in `dir` with its
+    // input and outputs for whoever replays it to look at
+    let lookup_dir = match modules.lookup(&task.module) {
+        Some(_) => {
+            let lookup_dir = dir.join("lookup");
+            std::fs::create_dir_all(&lookup_dir)?;
+            Some(lookup_dir)
+        }
+        None => None,
+    };
     eprintln!(
         "replaying task {} ({} on {} {}) uncontained, in process {}, from {}",
         task.id,
@@ -78,6 +88,7 @@ pub async fn replay_task(
         // and runs its tools as plain processes, as it runs the module
         tools: modules.local_tools(&task.module)?,
         scan_output: None,
+        task_dir: lookup_dir.as_deref(),
     };
     if let Some(parser) = modules.parser(&task.module) {
         Ok(tokio::task::block_in_place(|| parser.run(run)))

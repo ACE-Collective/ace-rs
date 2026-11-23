@@ -518,8 +518,7 @@ impl<M: Lookup> Harness<M> {
         &self,
         observable: Observable,
     ) -> Result<Outcome<M::Output>, HarnessError> {
-        let ctx = self.context(observable, None);
-        check_outcome(ace_sdk::run_lookup(&self.module, &ctx).await?)
+        Ok(self.lookup(observable, None).await?.0)
     }
 
     /// Runs the lookup and returns its result with what it wrote to ACE's data (`Module::WRITES`),
@@ -528,9 +527,7 @@ impl<M: Lookup> Harness<M> {
         &self,
         observable: Observable,
     ) -> Result<(Outcome<M::Output>, Vec<WireWrite>), HarnessError> {
-        let ctx = self.context(observable, None);
-        let outcome = check_outcome(ace_sdk::run_lookup(&self.module, &ctx).await?)?;
-        Ok((outcome, ctx.take_writes()))
+        self.lookup(observable, None).await
     }
 
     /// Runs the lookup again after a delay.
@@ -539,8 +536,24 @@ impl<M: Lookup> Harness<M> {
         observable: Observable,
         delayed: DelayedRun,
     ) -> Result<Outcome<M::Output>, HarnessError> {
-        let ctx = self.context(observable, Some(delayed));
-        check_outcome(ace_sdk::run_lookup(&self.module, &ctx).await?)
+        Ok(self.lookup(observable, Some(delayed)).await?.0)
+    }
+
+    /// Runs the lookup with a task directory of its own (`TaskContext::task_dir`), removed when the
+    /// run ends, as a pool's is.
+    async fn lookup(
+        &self,
+        observable: Observable,
+        delayed: Option<DelayedRun>,
+    ) -> Result<(Outcome<M::Output>, Vec<WireWrite>), HarnessError> {
+        let task_dir = tempfile::Builder::new()
+            .prefix("task-")
+            .tempdir_in(self._dir.path())?;
+        let ctx = self
+            .context(observable, delayed)
+            .with_task_dir(Some(task_dir.path().to_path_buf()));
+        let outcome = check_outcome(ace_sdk::run_lookup(&self.module, &ctx).await?)?;
+        Ok((outcome, ctx.take_writes()))
     }
 }
 

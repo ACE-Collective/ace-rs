@@ -162,3 +162,71 @@ fn a_result_that_fails_its_schema_fails_the_harness() {
     };
     assert_eq!(invalid.fields()[0].path, "/details/count");
 }
+
+/// A lookup that writes a temporary file in its task's directory and says where that was.
+struct TempWriter;
+
+#[derive(Debug, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct TempWriterDetails {
+    dir: String,
+    held: usize,
+}
+
+impl AnalysisType for TempWriterDetails {
+    const NAME: &'static str = "temp_writer";
+    const VERSION: u32 = 1;
+    const MODULE: &'static str = "temp_writer";
+}
+
+impl Module for TempWriter {
+    const NAME: &'static str = "temp_writer";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::Test];
+    type Output = TempWriterDetails;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(TempWriter)
+    }
+}
+
+impl ace_sdk::Lookup for TempWriter {
+    const TCP_PORTS: &'static [u16] = &[];
+
+    async fn analyze(
+        &self,
+        ctx: &TaskContext<()>,
+    ) -> Result<Outcome<TempWriterDetails>, ModuleError> {
+        let dir = ctx
+            .task_dir()
+            .ok_or_else(|| ModuleError::other("no task directory"))?;
+        let held = std::fs::read_dir(dir).map_err(ModuleError::other)?.count();
+        std::fs::write(dir.join("download.part"), b"bytes").map_err(ModuleError::other)?;
+        Ok(Outcome::Done(ResultEnvelope::new(TempWriterDetails {
+            dir: dir.display().to_string(),
+            held,
+        })))
+    }
+}
+
+/// PLAN.md decision 61: the harness gives a lookup an empty task directory of its own for each run,
+/// and removes it when the run ends, as a pool does.
+#[tokio::test]
+async fn a_lookup_gets_a_task_directory_for_each_run() {
+    let harness = Harness::<TempWriter>::new().expect("harness");
+    let mut dirs = Vec::new();
+    for _ in 0..2 {
+        let outcome = harness
+            .run_lookup(harness.observable(ObservableKind::Test, "x"))
+            .await
+            .expect("runs");
+        let Outcome::Done(result) = outcome else {
+            panic!("expected a result, got {outcome:?}");
+        };
+        assert_eq!(result.details.held, 0);
+        let dir = std::path::PathBuf::from(&result.details.dir);
+        assert!(!dir.exists(), "{} is still there", dir.display());
+        dirs.push(dir);
+    }
+    assert_ne!(dirs[0], dirs[1]);
+}

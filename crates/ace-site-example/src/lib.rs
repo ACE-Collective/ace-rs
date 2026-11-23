@@ -135,6 +135,7 @@ pub fn app() -> App {
         .analysis_view::<TicketAnalysis>()
         .analysis_view::<TicketFileAnalysis>()
         .observable_action(OPEN_TICKET)
+        .observable_action(TICKET_HISTORY_ACTION)
         .alert_action(TICKET_ACTION, ticket_action)
         .alert_summary::<ExampleTicketSummary>()
         // the same summary, for an alert whose hunt names it in `alert_template`
@@ -204,6 +205,16 @@ pub const OPEN_TICKET: ObservableAction =
                 ace_gui::actions::encode(target.value)
             )
         })
+    });
+
+/// An action that asks for the site's directive (PLAN.md decision 60): a link to the Add Directive form
+/// with `example_ticket_history` ticked, so the analyst confirms with one click, as a site's "Upload To
+/// VT" does. Following it adds nothing; the form's post does, under `observable:write`, with its audit
+/// row.
+pub const TICKET_HISTORY_ACTION: ObservableAction =
+    ObservableAction::new("example_ticket_history", "Ticket History", |target| {
+        (target.kind == TICKET.as_str())
+            .then(|| ace_gui::actions::add_directive_href(target, &[TICKET_HISTORY.name]))
     });
 
 /// The site's alert action (PLAN.md decision 55): "Open in Ticket System", a link to the ticket
