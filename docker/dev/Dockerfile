@@ -224,3 +224,8 @@ RUN echo "wireshark-common wireshark-common/install-setuid boolean false" | debc
 # above stay cached
 COPY --from=search-model /model /usr/local/share/ace4/search-model/all-MiniLM-L6-v2
 ENV ACE4_SEARCH_MODEL=/usr/local/share/ace4/search-model/all-MiniLM-L6-v2
+# The coverage report (`make coverage`): cargo-llvm-cov and the llvm-tools component it reads the
+# profiles with, at the end so the layers above stay cached.
+RUN rustup component add llvm-tools \
+    && cargo install --locked cargo-llvm-cov@0.6.16 \
+    && rm -rf /usr/local/cargo/registry /usr/local/cargo/git
