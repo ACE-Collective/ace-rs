@@ -33,8 +33,12 @@ jobs:
       - name: cargo clippy
         run: docker run --rm -v "$PWD:/workspace" -w /workspace ace4-dev:ci cargo clippy --workspace --all-targets --locked -- -D warnings
 
-      - name: cargo test
-        run: docker compose run --rm -T -e CI=true dev cargo test --workspace --locked
+      # nextest runs tests of different test programs at once; it doesn't run doctests.
+      - name: cargo nextest
+        run: docker compose run --rm -T -e CI=true dev cargo nextest run --workspace --locked
+
+      - name: doctests
+        run: docker compose run --rm -T -e CI=true dev cargo test --doc --workspace --locked
 
       # Fails when .sqlx/, the query data builds check queries against, doesn't match the
       # queries and the migrations. sqlx-cli needs a database even with --check, so this runs

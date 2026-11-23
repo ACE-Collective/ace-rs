@@ -3,7 +3,9 @@
 #
 #   make build      compile every crate and its tests in the dev container
 #   make images     build the stack's images (the dev container's, Postgres's and ace4's own)
-#   make test       formatting, lints, the sqlx and layering checks, then every crate's tests
+#   make test       formatting, lints, the sqlx and layering checks, then every crate's tests:
+#                   cargo nextest, which runs tests of different test programs at once, then
+#                   cargo test --doc for the doctests, which nextest doesn't run
 #   make test-all   make test, then the end-to-end test (tests/e2e/run), which compares the
 #                   sample set with ace3's trees
 #   make coverage   every crate's tests with coverage: an HTML report in coverage/html/index.html
@@ -22,7 +24,7 @@ DEV_CI  := $(COMPOSE) exec -T -e CI=true dev
 .PHONY: help build images up down check test e2e test-all coverage hooks
 
 help:
-	@sed -n '1,14p' Makefile | sed 's/^# \{0,1\}//'
+	@sed -n '1,16p' Makefile | sed 's/^# \{0,1\}//'
 
 build: up
 	$(DEV) cargo build --workspace --all-targets --locked
@@ -39,11 +41,12 @@ down:
 check: up
 	$(DEV) cargo fmt --all --check
 	$(DEV) cargo clippy --workspace --all-targets --locked -- -D warnings
-	$(DEV) sh -c 'cargo sqlx migrate run && cargo sqlx prepare --workspace --check'
+	$(DEV) tools/sqlx-check
 	$(DEV) cargo run --locked --quiet -p ace-layering
 
 test: check
-	$(DEV_CI) cargo test --workspace --locked --no-fail-fast
+	$(DEV_CI) cargo nextest run --workspace --locked --no-fail-fast
+	$(DEV_CI) cargo test --doc --workspace --locked
 
 e2e:
 	tests/e2e/run

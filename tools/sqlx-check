@@ -1,0 +1,32 @@
+#!/bin/sh
+# Applies the migrations and checks sqlx's offline query data (.sqlx/) against the queries, as
+# CI's "sqlx offline data" step does, for `make check`. Run in the dev container.
+#
+# `cargo sqlx prepare --check` touches the root file of every target that uses sqlx's macros, so
+# that cargo expands the macros again, and that leaves the next test build recompiling those
+# crates (about 65 s of every `make test`). The files' contents don't change, so afterwards this
+# puts back the modification time of each one whose contents are still what they were before;
+# a file edited while the check ran keeps its new time and is rebuilt as usual.
+set -u
+cd "$(dirname "$0")/.."
+before=$(mktemp)
+trap 'rm -f "$before"' EXIT
+
+# mtime, sha1 and path of every Rust source under crates/, before the check touches any
+find crates -name '*.rs' -type f -print0 \
+    | xargs -0 stat -c '%.9Y %n' \
+    | while read -r mtime path; do
+        printf '%s %s %s\n' "$mtime" "$(sha1sum < "$path" | cut -d' ' -f1)" "$path"
+    done > "$before"
+
+cargo sqlx migrate run && cargo sqlx prepare --workspace --check
+status=$?
+
+while read -r mtime sha path; do
+    [ -f "$path" ] || continue
+    [ "$(stat -c '%.9Y' "$path")" = "$mtime" ] && continue
+    [ "$(sha1sum < "$path" | cut -d' ' -f1)" = "$sha" ] || continue
+    touch -m -d "@$mtime" "$path"
+done < "$before"
+
+exit $status
