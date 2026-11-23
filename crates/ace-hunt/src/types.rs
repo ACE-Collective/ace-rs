@@ -4,7 +4,7 @@
 //! (`saq/configuration/schema.py`, `HuntTypeConfig`), and an integration adds its own. Here a type
 //! is a [`HuntType`], and a site adds its own through `ace_app::App::hunt_type` (2.31). ace3's
 //! open-source configuration has one, Splunk (`etc/saq.splunk.default.yaml`). A site's integration
-//! adds LogScale, EndpointVendor's query language, whose validation is here beside Splunk's so the
+//! adds LogScale, a query language whose validation is here beside Splunk's so the
 //! signatures' LogScale hunts can be checked; a site's binary adds it with `App::hunt_type`. A hunt
 //! of a type no binary adds isn't loaded: no rule directory is read for it, and one found in another
 //! type's directory fails as a hunt of the wrong type.
