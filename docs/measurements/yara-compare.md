@@ -20,8 +20,8 @@ ACE4_STACK=ace4-yara ACE4_ACE3_CHECKOUT=/path/to/ace3 tools/ace3/yara/compare-re
 
 It writes three working directories with `tools/ace3/yara/make-workdir` and runs both children on each:
 
-- **every-rule-file.** All 97 rule files in the checkout, one namespace per directory that holds any (`yara/site`, `yara/svs_marker`, `analyst_rules_a`, `analyst_rules_b`, `vti`), and no units. ace3's yara service loads only the 87 under `yara/`.
-- **samples.** The 87 files ace3's yara service loads, in its namespaces `site`, `svs_marker` and the empty `observable_export`, and one unit per distinct (sha256, path inside the alert, meta tags) in `samples/manifest.json`, as ace3's `corpus.py` makes units. That is 52 units from 53 samples, because `sample_rfc822.in` and `splunk_logging.email.rfc822` are the same bytes with the same path and tags. 35 units carry `type=email.attachment` and 17 carry no tags, as the manifest gives them.
+- **every-rule-file.** All 97 rule files in the checkout, one namespace per directory that holds any (the site's rule directory under `yara/`, `yara/svs_marker`, two analyst rule directories and a VirusTotal Livehunt directory), and no units. ace3's yara service loads only the 87 under `yara/`.
+- **samples.** The 87 files ace3's yara service loads, in its namespaces for the site's rules, `svs_marker` and the empty `observable_export`, and one unit per distinct (sha256, path inside the alert, meta tags) in `samples/manifest.json`, as ace3's `corpus.py` makes units. That is 52 units from 53 samples, because `sample_rfc822.in` and `splunk_logging.email.rfc822` are the same bytes with the same path and tags. 35 units carry `type=email.attachment` and 17 carry no tags, as the manifest gives them.
 - **rule-sources.** A supplementary set, not part of the plan's sample set. The same 87 files, with each rule file scanned as a unit twice: once with all 12 tags the rules' `meta_tags` directives name, once with none. A rule's strings are in its own source, so this set exercises far more rules than the samples do.
 
 The compile half compares, file by file, whether each scanner left the file out, and for each file both include, the rules it defines (name, private, global, tags) and each rule's meta. The match half compares, unit by unit, every rule that matched before the meta filter: its namespace and name, every string occurrence's offset, identifier and length, whether the filter kept it, and the scan errors. A unit's path is where it was written in the working directory, such as `/tmp/ace4-yara-work/samples/u/7/files/email.rfc822`, in both, as in ace3's replay.
@@ -48,7 +48,7 @@ The comparison ran three times on 2026-11-02, with the same counts each time. Th
 
 Step 1.12 marks each difference as a yara-x incompatibility or a port bug. The comparison found none to mark, and a fourth run after this section was written found none either.
 
-**yara-x incompatibilities: none.** yara-x compiles all 87 files ace3's yara service loads, and 96 of the 97 in the checkout. The one it leaves out, `vti/signature_name_8.yar`, yara-python leaves out too, so it isn't a yara-x incompatibility. Nothing needs changing in the signatures repository for yara-x. One rule leans on a field yara-x marks deprecated: `site/signature_name_4.yar` uses `pe.number_of_signatures`, which a later yara-x could drop. `pe.signatures.len()` replaces it.
+**yara-x incompatibilities: none.** yara-x compiles all 87 files ace3's yara service loads, and 96 of the 97 in the checkout. The one it leaves out, a Livehunt rule file, yara-python leaves out too, so it isn't a yara-x incompatibility. Nothing needs changing in the signatures repository for yara-x. One rule leans on a field yara-x marks deprecated: one rule file uses `pe.number_of_signatures`, which a later yara-x could drop. `pe.signatures.len()` replaces it.
 
 **Port bugs: none found by the comparison.** Each step's tests caught three before the comparison ran, and the fix landed in that step:
 
@@ -60,20 +60,20 @@ Step 1.12 marks each difference as a yara-x incompatibility or a port bug. The c
 
 All 97 rule files in the checkout:
 
-- Both scanners leave out one file, `vti/signature_name_8.yar`, for the same reason. It uses `vt.net.url.new_url`, a field of VirusTotal's `vt` module that only VT Livehunt's URL rulesets have. yara-python says `invalid field name "net"`, and yara-x says `vt.net is not supported in rulesets matching against files`. ace3's yara service doesn't load `vti/`.
+- Both scanners leave out one file, a Livehunt rule file, for the same reason. It uses `vt.net.url.new_url`, a field of VirusTotal's `vt` module that only VT Livehunt's URL rulesets have. yara-python says `invalid field name "net"`, and yara-x says `vt.net is not supported in rulesets matching against files`. ace3's yara service doesn't load the Livehunt directory.
 - The other 96 files compile alone in both, with 301 rules between them, and every file defines the same rules with the same meta in both.
-- The 96 don't compile together in either scanner, because `analyst_rules_a/signature_name_7.yar` and `signature_name_9.yar` both define `signature_name_6`, and this job puts them in one namespace. Both report it the same way. ace3's service never loads that directory, so this says nothing about production.
+- The 96 don't compile together in either scanner, because two files in one analyst rule directory define a rule of the same name, and this job puts them in one namespace. Both report it the same way. ace3's service never loads that directory, so this says nothing about production.
 
-The 87 files ace3's yara service loads all compile in both, alone and together, with the same 288 rules: 287 in `site` and 1 in `svs_marker`.
+The 87 files ace3's yara service loads all compile in both, alone and together, with the same 288 rules: 287 in the site's namespace and 1 in `svs_marker`.
 
-yara-x warns where libyara doesn't: 149 warnings on the 87 files, in 9 files, against libyara's 5. Warnings don't leave anything out. By kind: 88 `potentially_slow_loop` (for example `for any i in (1..#comment)`), 42 `text_as_hex`, 14 `unintended_pattern_in_set` (a pattern such as `$a1` also caught by a set such as `$a*`), 4 `duplicate_pattern_value`, and 1 `deprecated_field` (`pe.number_of_signatures` in `site/signature_name_4.yar`; yara-x suggests `pe.signatures.len()`).
+yara-x warns where libyara doesn't: 149 warnings on the 87 files, in 9 files, against libyara's 5. Warnings don't leave anything out. By kind: 88 `potentially_slow_loop` (for example `for any i in (1..#comment)`), 42 `text_as_hex`, 14 `unintended_pattern_in_set` (a pattern such as `$a1` also caught by a set such as `$a*`), 4 `duplicate_pattern_value`, and 1 `deprecated_field` (`pe.number_of_signatures` in one rule file; yara-x suggests `pe.signatures.len()`).
 
 ## Match half: the sample set
 
 52 units against the 288 loaded rules, scanned with a 10-second timeout per scan (ace3's `service_yara.default_timeout`).
 
 - 3 rules matched before the filter, once each, with 9 string occurrences between them. Both scanners found the same occurrences.
-- The filter dropped all 3 in both, because each rule's `meta_tags` names a tag the unit doesn't carry: `signature_name_1` (wants `type=intel.article`) on `too_many_files.jar`, `signature_name_10` (wants `type=email.combined`) on `sample_pdf_with_qr_code.pdf`, and `signature_name_2` (wants `type=email.attachment` and a file name ending `.eml`) on the untagged `encrypted_zip_password_in_body.email.rfc822`.
+- The filter dropped all 3 in both, because each rule's `meta_tags` names a tag the unit doesn't carry: an intel article rule (wants `type=intel.article`) on `too_many_files.jar`, an email IOC rule (wants `type=email.combined`) on `sample_pdf_with_qr_code.pdf`, and a nested phish rule (wants `type=email.attachment` and a file name ending `.eml`) on the untagged `encrypted_zip_password_in_body.email.rfc822`.
 - So no match survives the filter on this set, and no scan errors or timeouts occurred.
 
 That is the coverage the plan's sample set gives: 52 units, 3 of 288 rules with a match, 0 rules with a kept match. It can't show much about how the two engines match.
@@ -96,7 +96,7 @@ ace4's libmagic (`ace yara scan --json` with no rules) and ace3's `file -b --mim
 
 One run each, so these are not a benchmark. The compile figures for ace4 include yara-x's code generation for its WebAssembly runtime, which libyara doesn't do.
 
-| Namespace `site`, 287 rules | ace3 | ace4 |
+| The site's namespace, 287 rules | ace3 | ace4 |
 |---|---|---|
 | Compile the namespace alone | 0.03 s | 0.42 s |
 | Scan the 52 sample units | 0.04 s | 0.05 s |

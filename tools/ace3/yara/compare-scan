@@ -42,10 +42,11 @@ TAGS = [
     "type=document.pdf.annotation_uris", "type=executable",
 ]
 
+# The signatures' first two rule files under yara/, by path, which name nothing here.
+RULE_FILES = sorted(p.relative_to(ACE3) for p in (ACE3 / "signatures" / "yara").rglob("*.yar"))[:2]
 CASES = [
     ("/opt/ace/tests/saq/modules/test_file_analysis/sample_pdf_with_qr_code.pdf", TAGS),
-    ("/opt/ace/signatures/yara/site/signature_name_3.yar", TAGS),
-    ("/opt/ace/signatures/yara/site/signature_name_5.yar", []),
+    *[(f"/opt/ace/{path}", tags) for path, tags in zip(RULE_FILES, [TAGS, []])],
     ("/opt/ace/tests/saq/modules/test_file_analysis/evil.zip", TAGS),
 ]
 
