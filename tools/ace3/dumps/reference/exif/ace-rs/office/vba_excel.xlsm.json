@@ -1,0 +1,126 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:21 15:09:39+00:00",
+          "File:FileInodeChangeDate": "2026:11:21 15:09:39+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
+          "File:FileName": "vba_excel.xlsm",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 11473,
+          "File:FileType": "XLSM",
+          "File:FileTypeExtension": "XLSM",
+          "File:MIMEType": "application/vnd.ms-excel.sheet.macroEnabled.12",
+          "SourceFile": "<root>/files/vba_excel.xlsm",
+          "ZIP:ZipBitFlag": 0,
+          "ZIP:ZipCRC": 3478320526,
+          "ZIP:ZipCompressedSize": 208,
+          "ZIP:ZipCompression": 8,
+          "ZIP:ZipFileName": "[Content_Types].xml",
+          "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+          "ZIP:ZipRequiredVersion": 20,
+          "ZIP:ZipUncompressedSize": 344
+        },
+        "output_dir": "<root>/files/vba_excel.xlsm.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "vba_excel.xlsm.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "95981e1be1514afe910b0e0c98b45f7a72399a189dd3823f7366873bbf5b8a02"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 863,
+          "tags": [],
+          "type": "file",
+          "value": "7f0c579b000c42de2ee91ddd1afe21640827c612030baaff305a1601afb16ff1",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=3478320526, ZipCompressedSize=208, ZipUncompressedSize=344, ZipFileName=[Content_Types].xml",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "type": "Microsoft Excel 2007+"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Microsoft Excel 2007+ (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) (ms office document) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/vba_excel.xlsm",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "vba_excel.xlsm",
+      "size": 11473,
+      "type": "file",
+      "value": "95981e1be1514afe910b0e0c98b45f7a72399a189dd3823f7366873bbf5b8a02"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "vba_excel.xlsm",
+    "relationships": [],
+    "size": 11473,
+    "tags": [
+      "microsoft_office",
+      "zip"
+    ],
+    "type": "file",
+    "value": "95981e1be1514afe910b0e0c98b45f7a72399a189dd3823f7366873bbf5b8a02",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

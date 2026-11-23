@@ -30,7 +30,7 @@ impl AnalysisType for EmailArchiveResults {
 #[serde(deny_unknown_fields)]
 pub struct MessageIdAnalysis {
     /// ace3 has this key and never sets it. ace3 marks the analysis failed (`Analysis.error`) only
-    /// when adding the file fails after the analysis exists, which ace4's result can't do.
+    /// when adding the file fails after the analysis exists, which ace-rs's result can't do.
     pub extracted_email: Option<String>,
 }
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""6.3's Done check over the signatures: ace4 renders every template of every hunt in the
+"""6.3's Done check over the signatures: ace-rs renders every template of every hunt in the
 signatures checkout and diffs the results with what ace3's Jinja rendered (PLAN.md step 6.3).
 
     tools/ace3/hunts/compare-templates
 
-It runs crates/ace-hunt's render_templates example in a one-off `dev` container of ace4's stack,
+It runs crates/ace-hunt's render_templates example in a one-off `dev` container of ace-rs's stack,
 with the signatures checkout bind-mounted read only at /opt/ace/signatures, against
 reference/templates-signatures.json, which make-templates wrote from ace3. That file holds the
 hunts' own text and the events each template rendered against, so it's git-ignored: run
@@ -12,7 +12,7 @@ hunts' own text and the events each template rendered against, so it's git-ignor
 `templates-signatures` row of differences.md explains and each such row that explains none, and
 exits 1 if there are any. ace3 needn't be running.
 
-ACE4_ACE3_CHECKOUT is ace3's checkout on the host (default: ../ace3 beside this checkout), and the
+ACE_RS_ACE3_CHECKOUT is ace3's checkout on the host (default: ../ace3 beside this checkout), and the
 signatures are its signatures/. The checkout must be at the commit the reference records
 (`root_commit`); rerun make-templates when it moves.
 """
@@ -25,7 +25,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
-SIGNATURES = (Path(os.environ.get("ACE4_ACE3_CHECKOUT", REPO.parent / "ace3")) / "signatures").resolve()
+SIGNATURES = (Path(os.environ.get("ACE_RS_ACE3_CHECKOUT", REPO.parent / "ace3")) / "signatures").resolve()
 
 
 def main():

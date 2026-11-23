@@ -14,10 +14,10 @@
 //! code Docker gave, and removes the container. The JSON it reads is Docker's and the core's. The
 //! module's next run, a contained parser, is the first to open the archive.
 //!
-//! Containers carry labels: the stack (`ACE4_STACK`), this pool's host, the scanner, the scan and
+//! Containers carry labels: the stack (`ACE_RS_STACK`), this pool's host, the scanner, the scan and
 //! the deadline. ace3's managers reap only containers labelled `phishkit.stack=<theirs>`, and this
-//! pool only ones labelled `ace4.scanner.stack=<ours>`, so neither touches the other's, nor another
-//! ace4 stack's. When the pool starts it removes every container its host left, which a crash of the
+//! pool only ones labelled `ace-rs.scanner.stack=<ours>`, so neither touches the other's, nor another
+//! ace-rs stack's. When the pool starts it removes every container its host left, which a crash of the
 //! pool leaves running; and every `SWEEP` it removes any of its stack's whose deadline passed more
 //! than `SWEEP_GRACE` ago, which a pool whose container was recreated, with a new host name, leaves.
 //! The core ends the scans such a pool held as abandoned when their leases expire (`ace_core::scans`).
@@ -44,12 +44,12 @@ use crate::client::{ClientError, LeaseClient};
 use docker::{Docker, DockerError};
 
 /// The labels a scan's container carries.
-pub const LABEL_STACK: &str = "ace4.scanner.stack";
-pub const LABEL_HOST: &str = "ace4.scanner.host";
-pub const LABEL_SCANNER: &str = "ace4.scanner.name";
-pub const LABEL_SCAN: &str = "ace4.scanner.scan";
+pub const LABEL_STACK: &str = "ace-rs.scanner.stack";
+pub const LABEL_HOST: &str = "ace-rs.scanner.host";
+pub const LABEL_SCANNER: &str = "ace-rs.scanner.name";
+pub const LABEL_SCAN: &str = "ace-rs.scanner.scan";
 /// When the scan's deadline is, in seconds since the epoch.
-pub const LABEL_DEADLINE: &str = "ace4.scanner.deadline";
+pub const LABEL_DEADLINE: &str = "ace-rs.scanner.deadline";
 
 /// How often the pool looks for its stack's containers left past their deadline.
 pub const SWEEP: Duration = Duration::from_secs(60);
@@ -65,7 +65,7 @@ const BACKOFF: Duration = Duration::from_secs(5);
 /// What a scanner pool runs and as whom.
 #[derive(Debug, Clone)]
 pub struct ScannerPoolConfig {
-    /// The Compose stack, `ACE4_STACK`, which every container's labels and name carry.
+    /// The Compose stack, `ACE_RS_STACK`, which every container's labels and name carry.
     pub stack: String,
     /// This pool's host, which its containers' labels carry, so that it can tell its own.
     pub host: String,
@@ -396,7 +396,7 @@ async fn run_scan(
         let end = failed(format!("this pool has no scanner {:?}", scan.scanner));
         return client.end_scan(scan.id, &end).await;
     };
-    let work = tempfile::Builder::new().prefix("ace4-scan-").tempdir()?;
+    let work = tempfile::Builder::new().prefix("ace-rs-scan-").tempdir()?;
     let mut container: Option<String> = None;
     let ended = run_container(
         client,
@@ -746,7 +746,7 @@ mod tests {
     #[test]
     fn containers_get_their_specs_limits_and_labels() {
         let specs = [JS_DEOBFUSCATOR, PHISHKIT];
-        let config = ScannerPoolConfig::new("ace4", "host1", &specs, &env(&[]));
+        let config = ScannerPoolConfig::new("ace-rs", "host1", &specs, &env(&[]));
         let js = create_body(
             &config,
             &JS_DEOBFUSCATOR,
@@ -755,9 +755,9 @@ mod tests {
         );
         assert_eq!(js["HostConfig"]["NetworkMode"], "none");
         assert!(js["HostConfig"].get("Memory").is_none());
-        assert_eq!(js["Image"], "ace4-js-deobfuscator:latest");
+        assert_eq!(js["Image"], "ace-rs-js-deobfuscator:latest");
         assert_eq!(js["Cmd"], json!(["node", "/opt/app/harness.js", "/a"]));
-        assert_eq!(js["Labels"][LABEL_STACK], "ace4");
+        assert_eq!(js["Labels"][LABEL_STACK], "ace-rs");
         assert_eq!(js["Labels"][LABEL_HOST], "host1");
         assert_eq!(js["Labels"][LABEL_SCAN], "7");
         assert_eq!(js["Labels"][LABEL_DEADLINE], "99");
@@ -782,16 +782,16 @@ mod tests {
                 .all(|k| !k.starts_with("phishkit."))
         );
         let e2e = ScannerPoolConfig::new(
-            "ace4-e2e",
+            "ace-rs-e2e",
             "h",
             &specs,
             &env(&[
-                ("ACE4_PHISHKIT_NETWORK", "ace4-e2e_default"),
-                ("ACE4_PHISHKIT_IMAGE", "x:1"),
+                ("ACE_RS_PHISHKIT_NETWORK", "ace-rs-e2e_default"),
+                ("ACE_RS_PHISHKIT_IMAGE", "x:1"),
             ]),
         );
         let pk = create_body(&e2e, &PHISHKIT, &scan("phishkit", &[]), 1);
-        assert_eq!(pk["HostConfig"]["NetworkMode"], "ace4-e2e_default");
+        assert_eq!(pk["HostConfig"]["NetworkMode"], "ace-rs-e2e_default");
         assert_eq!(pk["Image"], "x:1");
         // a scanner with no network gets none whatever the environment says
         let js = create_body(&e2e, &JS_DEOBFUSCATOR, &scan("js-deobfuscator", &[]), 1);

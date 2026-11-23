@@ -3,7 +3,7 @@
 //!
 //! A cached output is kept under ace3's key, `hunt_cache:` and the sha256 of the command's
 //! arguments as Python's `json.dumps(sort_keys=True)` writes them, for the cache's time to live.
-//! ace3 keeps it in Redis, shared by its hunters and kept across restarts. ace4 has no Redis: the
+//! ace3 keeps it in Redis, shared by its hunters and kept across restarts. ace-rs has no Redis: the
 //! hunter keeps it in its own memory ([`MemoryCache`]), within a bound, so a restart starts it
 //! empty and the next run asks the data source again. A cache that fails is a miss, as in ace3.
 
@@ -204,7 +204,7 @@ impl Cache for MemoryCache {
         }
         if value.len() > self.max_bytes {
             return Err(format!(
-                "ace4 limit: an output of {} bytes is past the cache's {} bytes",
+                "ace-rs limit: an output of {} bytes is past the cache's {} bytes",
                 value.len(),
                 self.max_bytes
             ));

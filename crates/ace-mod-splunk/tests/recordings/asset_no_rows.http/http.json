@@ -1,5 +1,5 @@
 {
-  "about": "Written by hand for ace-mod-splunk's tests of PLAN.md decisions 52 and 53 (see tickets_overflow's about). The instance is example_tickets_on_asset on the hostname ws01.example.com, a 30-day-before, 1-minute-after <TIMESPEC>, use_index_time true, with <O_VALUE> inside a double-quoted string of a subsearch (escaped the same in ace3 and ace4: backslash, double and single quote). No rows: no summary (ace3's generate_summary returns None), no pivot links, no overflow link.",
+  "about": "Written by hand for ace-mod-splunk's tests of PLAN.md decisions 52 and 53 (see tickets_overflow's about). The instance is example_tickets_on_asset on the hostname ws01.example.com, a 30-day-before, 1-minute-after <TIMESPEC>, use_index_time true, with <O_VALUE> inside a double-quoted string of a subsearch (escaped the same in ace3 and ace-rs: backslash, double and single quote). No rows: no summary (ace3's generate_summary returns None), no pivot links, no overflow link.",
   "exchanges": [
     {
       "method": "GET",

@@ -10,7 +10,7 @@
 //! engine marks that analysis failed with the exception, construct's `StreamError`, and so is the
 //! result here (`ResultEnvelope::error`), in ace3's words without its crash report's id.
 //!
-//! Where ace4 departs: ace3's root takes at most 500 files, the file itself one of them, so this writes at most 499. Two
+//! Where ace-rs departs: ace3's root takes at most 500 files, the file itself one of them, so this writes at most 499. Two
 //! payloads whose sha256 start alike overwrite one file in ace3, with both observables naming it;
 //! here the first is written and the second is only listed.
 

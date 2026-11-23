@@ -12,7 +12,7 @@
 //!
 //! What differs from ace3:
 //! - Proxies aren't carried over: ace3's `proxy` setting names a proxy configuration with its
-//!   credentials, which ace4 doesn't have yet, and its manager parses the scanner's `requests.json` to
+//!   credentials, which ace-rs doesn't have yet, and its manager parses the scanner's `requests.json` to
 //!   decide whether to try again without the proxy, which here would be this module's next run. With no
 //!   proxy, ace3's manager runs the scanner once and writes `proxy.json` as this module makes it.
 //! - The manager's `--config` is a copy of `etc/phishkit_config.yaml`; here the scanner reads the copy

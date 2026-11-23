@@ -2,8 +2,8 @@
 """Write ace3's tree of each sample in the normal form (PLAN.md 3.2).
 
 Each sample runs through ace3's cli analysis mode, in ace3's dev container, with the modules
-ace4 has ported. So that both
-systems see the same world, as tests/e2e/run gives ace4:
+ace-rs has ported. So that both
+systems see the same world, as tests/e2e/run gives ace-rs:
 
 - RDAP is answered from the recording tests/e2e/run's responder replays, and WHOIS fails;
 - the Splunk module has the same query as tests/e2e/site/overlay.yaml's instance, against
@@ -11,11 +11,11 @@ systems see the same world, as tests/e2e/run gives ace4:
 - YARA scans with tools/ace3/trees/signatures, the rule tests/e2e/run gives the stack;
 - brocess is tools/ace3/trees/brocess.json, empty: its smtplog for the frequency module and its
   thread store for the thread module (run_module.py --brocess-store), as tests/e2e/run empties
-  ace4's before its comparison;
+  ace-rs's before its comparison;
 - the newly registered domains list is tools/ace3/trees/nrd.json, unverified by RDAP, as
-  tests/e2e/run gives ace4 the same list;
+  tests/e2e/run gives ace-rs the same list;
 - DNS is answered by fake_dns.py from tools/ace3/dumps/fixtures/dns/zone.json, and what it answered
-  is kept in tools/ace3/trees/dns.json, which tests/e2e/run's responder replays to ace4;
+  is kept in tools/ace3/trees/dns.json, which tests/e2e/run's responder replays to ace-rs;
 - the email archive is empty (run_module.py --email-archive-store), under the dumps' test-only key, as
   tests/e2e/run's stack starts with an empty archive. No sample has the archive directive, so the
   archiver archives nothing;
@@ -23,10 +23,10 @@ systems see the same world, as tests/e2e/run gives ace4:
   --detections), which ace3's own export also writes as YARA rules into the rule directory, as its
   export-observables cron does every minute (--export-detections, PLAN.md 7.16), each detection's id its
   place in the file from 1, and the tags analysts mapped to observables tools/ace3/trees/observable_tags.json
-  (--observable-tags), as tests/e2e/run gives ace4's observable_detection list and
+  (--observable-tags), as tests/e2e/run gives ace-rs's observable_detection list and
   analysis.observable_tags the same before its comparison;
 - the site tagger reads tools/ace3/trees/site_tags.csv, the text tests/e2e/site/overlay.yaml gives
-  ace4's site_tagger;
+  ace-rs's site_tagger;
 - the core's hooks (PLAN.md 7.6) are tests/e2e/site/overlay.yaml's `hooks:` section. ace3 ships
   configuration_defined_tagging disabled, so it's enabled here, over ace3's own `tags:` section, which
   the overlay's tags have to equal (checked in the container, which has PyYAML). ace3 ships
@@ -34,11 +34,11 @@ systems see the same world, as tests/e2e/run gives ace4:
   YAML with ace3's names for the modules they name (MODULE_PATHS).
 
     tools/ace3/trees/make-trees                     every sample
-    tools/ace3/trees/make-trees ace4/email/e2e...   the samples named, by path under samples/
+    tools/ace3/trees/make-trees ace-rs/email/e2e...   the samples named, by path under samples/
 
 The trees go to tools/ace3/trees/reference/<sample>.json, with index.json naming ace3's commit.
 The comparison follows the newest ace3 (PLAN.md decision 14), so rerun this after ace3 moves.
-Everything runs under the container's /tmp/ace4-dumps; nothing is written under /opt/ace. Samples
+Everything runs under the container's /tmp/ace-rs-dumps; nothing is written under /opt/ace. Samples
 under samples/local/ are git-ignored, so make them or copy them in first.
 """
 
@@ -83,9 +83,9 @@ ENABLE = [
 ]
 OVERLAY = REPO / "tests" / "e2e" / "site" / "overlay.yaml"
 MODIFIER_RULES = f"{REMOTE}/trees-observable_modifier_rules.yaml"
-# ace4 names a module by its key, where ace3's rules name the Python path of what they mean: a tree
+# ace-rs names a module by its key, where ace3's rules name the Python path of what they mean: a tree
 # condition's analysis_type and reset_analysis an Analysis class, exclude_analysis an analyzer class.
-# limit_analysis takes ace3's module names, which are ace4's keys.
+# limit_analysis takes ace3's module names, which are ace-rs's keys.
 MODULE_PATHS = {
     "analysis": {
         "email_analyzer": "saq.modules.email.rfc822:EmailAnalysis",
@@ -145,7 +145,7 @@ analysis_module_proxy_domain_splunk:
   python_module: saq.modules.splunk
   python_class: SplunkAPIAnalyzer
   enabled: true
-  api_name: ace4_fake
+  api_name: ace_rs_fake
   valid_observable_types: [fqdn]
   question: Was this domain seen in proxy logs?
   summary: Proxy correlation
@@ -238,7 +238,7 @@ def save_dns_recording(recorded):
     DNS_RECORDING.write_text(json.dumps({
         "about": "What tools/ace3/dumps/fake_dns.py answered ace3's DNS lookups with while "
         "tools/ace3/trees/make-trees ran, one answer per name and type. tests/e2e/run's responder "
-        "replays it to ace4.",
+        "replays it to ace-rs.",
         "exchanges": [exchanges[key] for key in sorted(exchanges)],
     }, indent=2) + "\n")
 

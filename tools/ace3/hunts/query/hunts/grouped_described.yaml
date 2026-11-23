@@ -4,7 +4,7 @@ rule:
   uuid: 00000000-0000-0000-0000-00000000a003
   name: mail to many
   description: grouped by a multivalue field, each group described by another field
-  query: index=mail ace4case=grouped_described
+  query: index=mail ace_rs_case=grouped_described
   group_by: recipient
   description_field: subject
   observable_mapping:

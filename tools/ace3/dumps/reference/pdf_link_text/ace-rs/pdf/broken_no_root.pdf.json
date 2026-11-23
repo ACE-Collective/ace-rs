@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/pdf/broken_no_root.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "broken_no_root.pdf",
+      "size": 53,
+      "type": "file",
+      "value": "17f3d2e616df8f89774a0f65751c3145fc466483c33b2708b076d2ab6dcca6cf"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "broken_no_root.pdf",
+    "relationships": [],
+    "size": 53,
+    "tags": [],
+    "type": "file",
+    "value": "17f3d2e616df8f89774a0f65751c3145fc466483c33b2708b076d2ab6dcca6cf",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

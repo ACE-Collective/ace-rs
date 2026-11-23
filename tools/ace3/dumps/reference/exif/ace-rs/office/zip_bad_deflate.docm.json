@@ -1,0 +1,126 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:21 15:12:08+00:00",
+          "File:FileInodeChangeDate": "2026:11:21 15:12:08+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
+          "File:FileName": "zip_bad_deflate.docm",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 11478,
+          "File:FileType": "DOCM",
+          "File:FileTypeExtension": "DOCM",
+          "File:MIMEType": "application/vnd.ms-word.document.macroEnabled.12",
+          "SourceFile": "<root>/files/zip_bad_deflate.docm",
+          "ZIP:ZipBitFlag": 0,
+          "ZIP:ZipCRC": 2615452004,
+          "ZIP:ZipCompressedSize": 206,
+          "ZIP:ZipCompression": 8,
+          "ZIP:ZipFileName": "[Content_Types].xml",
+          "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+          "ZIP:ZipRequiredVersion": 20,
+          "ZIP:ZipUncompressedSize": 348
+        },
+        "output_dir": "<root>/files/zip_bad_deflate.docm.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "zip_bad_deflate.docm.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 889,
+          "tags": [],
+          "type": "file",
+          "value": "c56bf471c5d8233551a31ead815033b517b54ff462326ccd98bbcf1cf75cdaf8",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=2615452004, ZipCompressedSize=206, ZipUncompressedSize=348, ZipFileName=[Content_Types].xml",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "type": "Microsoft Word 2007+"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Microsoft Word 2007+ (application/vnd.openxmlformats-officedocument.wordprocessingml.document) (ms office document) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/zip_bad_deflate.docm",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "zip_bad_deflate.docm",
+      "size": 11478,
+      "type": "file",
+      "value": "d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "zip_bad_deflate.docm",
+    "relationships": [],
+    "size": 11478,
+    "tags": [
+      "microsoft_office",
+      "zip"
+    ],
+    "type": "file",
+    "value": "d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

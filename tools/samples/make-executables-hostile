@@ -16,9 +16,9 @@ to a directory given here, not into the repository.
 - de4dot_methods_300k.exe: 300,000 small methods, which de4dot detects as an unknown obfuscator and
   runs out of its 1 GB heap cleaning; ilspy_nops_70m.exe: one method of 70 million nops, whose IL
   passes the runner's 1 GiB file size limit. Both made by tools/samples/make-executables' generator
-  (System.Reflection.Emit) on the .NET SDK of docker/ace4/Dockerfile's dotnet-tools stage.
+  (System.Reflection.Emit) on the .NET SDK of docker/ace-rs/Dockerfile's dotnet-tools stage.
 
-Needs Docker: upx runs in the dev image (ace4-dev), the .NET generator in that stage.
+Needs Docker: upx runs in the dev image (ace-rs-dev), the .NET generator in that stage.
 """
 
 import importlib.machinery
@@ -103,7 +103,7 @@ def upx_zeros(out, size):
         with (Path(work) / "zeros.exe").open("wb") as fp:
             fp.write(head)
             write_zeros(fp, zeros)
-        subprocess.run(["docker", "run", "--rm", "-v", f"{work}:/w", "-w", "/w", "ace4-dev:latest", "upx", "-q",
+        subprocess.run(["docker", "run", "--rm", "-v", f"{work}:/w", "-w", "/w", "ace-rs-dev:latest", "upx", "-q",
                         "-o", "packed.exe", "zeros.exe"], check=True, stdout=subprocess.DEVNULL)
         out.write_bytes((Path(work) / "packed.exe").read_bytes())
 

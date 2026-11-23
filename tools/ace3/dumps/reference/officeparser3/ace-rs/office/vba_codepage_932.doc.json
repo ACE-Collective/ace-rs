@@ -1,0 +1,186 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/x-ole-storage",
+        "type": "Composite Document File V2 Document, Cannot read section info"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_3_0.dat",
+          "stream_4_0.dat",
+          "stream_5_0.dat",
+          "stream_6_0.dat"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_codepage_932.doc.officeparser/stream_3_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 282,
+          "tags": [],
+          "type": "file",
+          "value": "41736906213110bd4cf9d6bb55a782a635f05f2e8a3aa3885e35bb38a56fdb32",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_codepage_932.doc.officeparser/stream_4_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 55,
+          "tags": [],
+          "type": "file",
+          "value": "c9ddec51ab1e6b56f418393ede5eefcb52fd091b9372667bd26bacad85591937",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_codepage_932.doc.officeparser/stream_5_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 7,
+          "tags": [],
+          "type": "file",
+          "value": "4bc03d883e84c6e66e0e608c1a98f8a4347cd41642277aacfdbb48255334ac60",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "vba_codepage_932.doc.officeparser/stream_6_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 84,
+          "tags": [],
+          "type": "file",
+          "value": "28dd658b12c64129abf541d07a2edbadba999ab9dee32df07042ab4f1e94686b",
+          "yara_meta": []
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 4 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/vba_codepage_932.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "vba_codepage_932.doc",
+      "size": 3584,
+      "type": "file",
+      "value": "cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "vba_codepage_932.doc",
+    "relationships": [],
+    "size": 3584,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

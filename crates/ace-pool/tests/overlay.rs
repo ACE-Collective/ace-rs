@@ -38,7 +38,7 @@ async fn splunkd() -> HttpReplay {
     .expect("the recording loads")
 }
 
-/// A Splunk instance (`connections:`) at `replay`, logging in as ace4 with the secret
+/// A Splunk instance (`connections:`) at `replay`, logging in as ace-rs with the secret
 /// `splunk_<name>_password`, ace3's name for it.
 fn splunk(replay: &HttpReplay, name: &str) -> Value {
     json!({
@@ -46,7 +46,7 @@ fn splunk(replay: &HttpReplay, name: &str) -> Value {
         "settings": {
             "host": "127.0.0.1",
             "base_url": replay.local_url(SPLUNKD),
-            "username": "ace4",
+            "username": "ace-rs",
             "request_timeout_seconds": 10,
         },
         "secrets": {"password": format!("splunk_{name}_password")},
@@ -94,8 +94,8 @@ async fn two_splunk_instances_run_different_queries_on_one_observable() {
             },
         },
         "secrets": {
-            "splunk_proxy_password": "env:ACE4_TEST_UNSET",
-            "splunk_dns_password": "env:ACE4_TEST_UNSET",
+            "splunk_proxy_password": "env:ACE_RS_TEST_UNSET",
+            "splunk_dns_password": "env:ACE_RS_TEST_UNSET",
         },
     });
     let overlay = Overlay::from_yaml(&overlay.to_string()).expect("the overlay loads");
@@ -140,8 +140,8 @@ async fn two_splunk_instances_run_different_queries_on_one_observable() {
     assert_eq!(queued.len(), 2, "one task per instance");
 
     let secrets = Secrets::new()
-        .with("splunk_proxy_password", Secret::new("ace4-fake-password"))
-        .with("splunk_dns_password", Secret::new("ace4-fake-password"));
+        .with("splunk_proxy_password", Secret::new("ace-rs-fake-password"))
+        .with("splunk_dns_password", Secret::new("ace-rs-fake-password"));
     let modules = registry
         .build(&components, &secrets)
         .expect("the pool's modules");

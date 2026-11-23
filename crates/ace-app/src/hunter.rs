@@ -43,8 +43,8 @@
 //! database call by the pool's acquire and statement timeouts (`DbConfig`), and a stop ends a run's
 //! wait at once, cancelling its job; the run's window is then left to the next start.
 //!
-//! It reads `ACE4_HUNTER`, a JSON file ([`HunterConfig`]), `ACE4_DATABASE_URL`, the `ACE4_BUCKET_*`
-//! variables and the overlay at `ACE4_OVERLAY`.
+//! It reads `ACE_RS_HUNTER`, a JSON file ([`HunterConfig`]), `ACE_RS_DATABASE_URL`, the `ACE_RS_BUCKET_*`
+//! variables and the overlay at `ACE_RS_OVERLAY`.
 //!
 //! **Correlation** (PLAN.md 6.6). A hunt with a `correlate` block has its rows run through
 //! `ace_hunt::correlate::engine` before they're processed, on the run's thread, with every wait
@@ -103,7 +103,7 @@ use crate::App;
 
 pub use splunk::{SplunkQuery, SplunkSearch};
 
-/// The hunter's configuration, the file `ACE4_HUNTER` names.
+/// The hunter's configuration, the file `ACE_RS_HUNTER` names.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct HunterConfig {
@@ -897,7 +897,7 @@ fn log_correlation(config: &ace_hunt::HuntConfig, correlated: &Correlated) {
 
 /// A hunt's submission as the core takes it: the root's description, mode and event time, and the
 /// rest as its origin (`ace_core::submit::Origin`). The hunt's detection is on its `signature_id`
-/// observable, since ace4's detections are on an observable; ace3's is on the root.
+/// observable, since ace-rs's detections are on an observable; ace3's is on the root.
 pub fn to_core(submission: &query::Submission) -> (Submission, Origin) {
     let mut observables = Vec::new();
     for observable in &submission.observables {
@@ -959,7 +959,7 @@ pub fn to_core(submission: &query::Submission) -> (Submission, Origin) {
         // the hunt's queue, ace3's `RootAnalysis.queue` (PLAN.md 7.13)
         queue: Some(submission.queue.clone()),
         // the links the hunt rendered for its alert, ace3's root pivot links (decision 32 part
-        // (b)); one ace4 can't show (not https://, or an icon that isn't a name) is left out
+        // (b)); one ace-rs can't show (not https://, or an icon that isn't a name) is left out
         pivot_links: submission
             .pivot_links
             .iter()
@@ -1123,7 +1123,7 @@ async fn hunt(app: &App) -> Result<ExitCode> {
     use ace_core::db::{Db, DbConfig};
 
     let path =
-        std::env::var_os("ACE4_HUNTER").context("ACE4_HUNTER names no hunter configuration")?;
+        std::env::var_os("ACE_RS_HUNTER").context("ACE_RS_HUNTER names no hunter configuration")?;
     let text = std::fs::read_to_string(&path)
         .with_context(|| format!("{}", Path::new(&path).display()))?;
     let config: HunterConfig =
@@ -1160,7 +1160,7 @@ async fn hunt(app: &App) -> Result<ExitCode> {
     let db = Db::connect(&DbConfig::from_env("ace-hunter")?)
         .await
         .context("connecting to Postgres")?;
-    let bucket = crate::cli::submitting_bucket(&db, "ace4-hunter-cache").await?;
+    let bucket = crate::cli::submitting_bucket(&db, "ace-rs-hunter-cache").await?;
     let service = crate::cli::submitting_service(app, &overlay, db)?;
     let actor = ace_service::Actor::Internal {
         id: ace_service::Component::new("hunter")?,

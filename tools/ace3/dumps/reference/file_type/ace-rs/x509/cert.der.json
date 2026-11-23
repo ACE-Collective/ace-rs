@@ -1,0 +1,64 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": true,
+        "is_zip_file": false,
+        "mime": "application/octet-stream",
+        "type": "Certificate, Version=3"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Certificate, Version=3 (application/octet-stream) (x.509 certificate)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/x509/cert.der",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "cert.der",
+      "size": 527,
+      "type": "file",
+      "value": "632e2973acdd48febc6cb5016863a6a032623d3955dd198be8a4cb313cdda068"
+    }
+  },
+  "module": "file_type",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=certificate.x509",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "cert.der",
+    "relationships": [],
+    "size": 527,
+    "tags": [
+      "x509"
+    ],
+    "type": "file",
+    "value": "632e2973acdd48febc6cb5016863a6a032623d3955dd198be8a4cb313cdda068",
+    "yara_meta": [
+      "type=certificate.x509",
+      "type=email.attachment"
+    ]
+  }
+}

@@ -10,7 +10,7 @@
 //! The parser is `ace-mod-oletools`' port of Python's feed parser, with the stock header pattern,
 //! raising `RecursionError` where ace3's does.
 //!
-//! Where ace4 departs: ace3's root takes at most 500 files, the file itself one of them, so this writes at most 499. ace3 names
+//! Where ace-rs departs: ace3's root takes at most 500 files, the file itself one of them, so this writes at most 499. ace3 names
 //! each part by its path on its node, `<root>/files/<file>.mime/extracted-<n>`; this names it by its
 //! path in the alert.
 

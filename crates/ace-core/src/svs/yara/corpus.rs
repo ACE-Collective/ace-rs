@@ -14,7 +14,7 @@
 //! to the first copy, never to the node's cache, which the scan could then change. A path that is absolute
 //! or climbs out with `..` isn't replayed.
 //!
-//! **Bounds** (new in ace4): a corpus with more than `max_files` distinct files or `max_bytes` of them fails
+//! **Bounds** (new in ace-rs): a corpus with more than `max_files` distinct files or `max_bytes` of them fails
 //! the validation once it reaches that, rather than leaving samples out of a report that would read as
 //! complete. ace3's `wrong_node` has no counterpart: the bucket is one, shared by every node.
 

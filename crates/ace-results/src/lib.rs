@@ -1,4 +1,4 @@
-//! The contract between ace4's core and its analysis modules: observable kinds, result types, the
+//! The contract between ace-rs's core and its analysis modules: observable kinds, result types, the
 //! analysis type registry and the types' JSON Schemas.
 //!
 //! The API, the GUI and the search indexer depend on this crate and on no `ace-mod-*` crate, so

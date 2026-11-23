@@ -1,7 +1,7 @@
 //! `email_address_fqdn_analyzer`: ace3's `EmailAddressFQDNAnalyzer` (`saq/modules/email/address.py`).
 //!
 //! An email address, of any of its kinds, gives what follows its first `@` as an `fqdn`, when that
-//! is a domain ace3's fqdn check takes. ace3 adds it volatile; ace4 has no volatile flag, which in
+//! is a domain ace3's fqdn check takes. ace3 adds it volatile; ace-rs has no volatile flag, which in
 //! ace3 only the GUI's pruning and the analysis cache read.
 
 use ace_results::types::values::EmailAddressFqdnAnalysis;

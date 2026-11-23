@@ -4,8 +4,8 @@ It runs inside ace3's dev container on ace3's Python, as run_module.py does, wit
 writes under its work directory in /tmp:
 
     docker exec -i -e PYTHONDONTWRITEBYTECODE=1 -e SAQ_SKIP_LOCAL_SAQ_YAML=1 ace-dev-1 \\
-        /venv/bin/python3 - --work /tmp/ace4-dumps/runs/nrd --fixtures /tmp/ace4-dumps/fixtures/nrd \\
-        --out /tmp/ace4-dumps/runs/nrd/reference.json < tools/ace3/dumps/nrd_reference.py
+        /venv/bin/python3 - --work /tmp/ace-rs-dumps/runs/nrd --fixtures /tmp/ace-rs-dumps/fixtures/nrd \\
+        --out /tmp/ace-rs-dumps/runs/nrd/reference.json < tools/ace3/dumps/nrd_reference.py
 
 It writes three things to --out, which make-dumps keeps as tools/ace3/dumps/reference/nrd/:
 

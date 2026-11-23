@@ -158,12 +158,12 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
     compared.extend(compare::<LnkParseAnalyzer>(
         "lnk_parser",
         "LnkParseAnalysis",
-        Some(("ace4/lnk/shortcut.lnk", "lnk_shortcut")),
+        Some(("ace-rs/lnk/shortcut.lnk", "lnk_shortcut")),
     ));
     compared.extend(compare::<X509Analyzer>(
         "x509_analyzer",
         "X509Analysis",
-        Some(("ace4/x509/cert.pem", "x509_cert_pem")),
+        Some(("ace-rs/x509/cert.pem", "x509_cert_pem")),
     ));
     compared.extend(compare_with::<DHashImageAnalyzer>(
         "dhash",

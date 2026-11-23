@@ -4,9 +4,9 @@
 //!
 //! Each of ace3's monitors is a check here: a function that reads what the monitor reads and returns
 //! its records, which the scheduler (6.7) runs as a task of its own (`ace_app::scheduler`). ace3's
-//! records go to fluent-bit, and optionally to its log, stdout or an in-memory cache. ace4 has no
-//! fluent-bit: a record is a log line (`emit`, under the target `ace_monitor`, so `ACE4_LOG` can
-//! filter them), which is where ace4's logs are shipped from, and a row of `monitoring.records`,
+//! records go to fluent-bit, and optionally to its log, stdout or an in-memory cache. ace-rs has no
+//! fluent-bit: a record is a log line (`emit`, under the target `ace_monitor`, so `ACE_RS_LOG` can
+//! filter them), which is where ace-rs's logs are shipped from, and a row of `monitoring.records`,
 //! where a check's run replaces its last run's rows (`replace`), so the administration area shows
 //! each check's state as of its last run.
 //!
@@ -16,7 +16,7 @@
 //! | `distributed_delayed_analysis`, 5 s | `workload.distributed.delayed_analysis` | `delayed_analysis`: the delayed tasks, by root and module |
 //! | `distributed_locks`, 5 s | `workload.distributed.locks` | `leases`: the running tasks' leases. ace3 locks a root while a worker analyzes it; a task's lease is what a worker holds here |
 //! | `local_workload`, 5 s | `workload.local` | none: ace3 counts what its collectors have collected on this node and not yet delivered (`incoming_workload`). A submission here is one transaction that makes the root and its tasks, so nothing waits between the two |
-//! | `node_status`, 30 s | `node.status` | replaced by `queue` (`workload.queue`): ace4 keeps no table of nodes, no heartbeat and no drain. A pool is a set of processes that lease tasks, and one that is gone shows as its modules' tasks waiting longer and its leases expiring, which is what `queue` reports for each module |
+//! | `node_status`, 30 s | `node.status` | replaced by `queue` (`workload.queue`): ace-rs keeps no table of nodes, no heartbeat and no drain. A pool is a set of processes that lease tasks, and one that is gone shows as its modules' tasks waiting longer and its leases expiring, which is what `queue` reports for each module |
 //! | `cas_pools`, 300 s | `cas.pool` | `bucket_pools`: the bucket's index, by pool |
 //! | cron `hourly/cas-node-stats` | `cas.node` | `node_cache`: the read cache of the node that runs it |
 //! | fluent-bit's `cron-jobs` records, one per cron run | | `scheduled_tasks` (`scheduler.task`): each scheduled task's state from `scheduler.tasks` and `scheduler.runs`, which 6.7 left for this step to read |
@@ -30,7 +30,7 @@
 //! - ace3's emitter gates a record by its path's definition (`monitor.definitions`: enabled, a
 //!   suppression window, dedup). A check here is turned off or slowed by its task's entry in the
 //!   overlay's `scheduler:` section, and there are no definitions.
-//! - The records name no company: ace4 has none.
+//! - The records name no company: ace-rs has none.
 //!
 //! ace3's other record of this kind isn't a monitor's: the engine's per-root metrics event, which it
 //! sends to fluent-bit under the tag `metrics` when it has finished a work item. Here it is

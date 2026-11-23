@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Writes the samples of PLAN.md 7.5 batch 12's macOS image modules (dmg_analyzer,
-cve_2021_30657_analyzer) into samples/ace4/macos/ and adds them to samples/manifest.json, replacing
+cve_2021_30657_analyzer) into samples/ace-rs/macos/ and adds them to samples/manifest.json, replacing
 any it added before.
 
 ace3 has no DMG of its own: its tests stand a zip or a 7z archive in for the image dmg2img writes.
@@ -48,8 +48,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
 SAMPLES = REPO / "samples"
-OUT = SAMPLES / "ace4" / "macos"
-IMAGE = "ace4-macos-tools:latest"
+OUT = SAMPLES / "ace-rs" / "macos"
+IMAGE = "ace-rs-macos-tools:latest"
 LIBDMG_COMMIT = "7ac55ec64c96f7800d9818ce64c79670e7f02b67"
 
 TOOLS_DOCKERFILE = f"""\

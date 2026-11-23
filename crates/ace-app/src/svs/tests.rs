@@ -302,7 +302,7 @@ async fn validate_failure() {
     assert_eq!(err, "validation failed: unknown commit\n");
 }
 
-/// test_svs_cli.py's `test_layout_prints_every_repository`, for ace4's one layout: a signature directory,
+/// test_svs_cli.py's `test_layout_prints_every_repository`, for ace-rs's one layout: a signature directory,
 /// or the repository's top. ace3's linked layout and its configuration errors have no counterpart (`layout`'s
 /// docs in `ace_core::svs::yara`).
 #[test]
@@ -370,7 +370,7 @@ fn layout_with_no_repositories() {
     assert_eq!(layout(&ValidationConfig::default()), "");
 }
 
-/// test_svs_cli.py's `test_prune_dry_run_and_force`: ace4 has no primary node, so there's no `--force`
+/// test_svs_cli.py's `test_prune_dry_run_and_force`: ace-rs has no primary node, so there's no `--force`
 /// and ace3's `test_prune_skips_a_node_that_is_not_primary` has no counterpart.
 #[tokio::test]
 async fn prune_dry_run_and_prune() {

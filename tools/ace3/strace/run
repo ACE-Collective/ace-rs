@@ -9,15 +9,15 @@
 # pass1 counts threads and processes for every tool; pass2 tries larger inputs and the filters;
 # pass3 compares outputs with and without the filters and the thread limits; pass4 covers the
 # programs whose modules go to crates. Needs Docker, ace3's image (ACE3_IMAGE, default
-# ace3:latest) and ace3's checkout (ACE4_ACE3_CHECKOUT, default ~/Development/public/ace3), which
+# ace3:latest) and ace3's checkout (ACE_RS_ACE3_CHECKOUT, default ~/Development/public/ace3), which
 # it mounts read-only. The DMG sample is made with hdiutil, so on another host pass1 skips it.
-# Works in a directory under ACE4_STRACE_TMP (default /tmp, which Docker Desktop and Rancher share),
+# Works in a directory under ACE_RS_STRACE_TMP (default /tmp, which Docker Desktop and Rancher share),
 # which it removes.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
-ACE3=${ACE4_ACE3_CHECKOUT:-$HOME/Development/public/ace3}
+ACE3=${ACE_RS_ACE3_CHECKOUT:-$HOME/Development/public/ace3}
 IMAGE=${ACE3_IMAGE:-ace3:latest}
-WORK=$(mktemp -d "${ACE4_STRACE_TMP:-/tmp}/ace4-strace.XXXXXX")
+WORK=$(mktemp -d "${ACE_RS_STRACE_TMP:-/tmp}/ace-rs-strace.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$WORK/d" "$WORK/src/T.app/Contents/MacOS"
 printf '#!/bin/sh\necho hi\n' > "$WORK/src/T.app/Contents/MacOS/run"

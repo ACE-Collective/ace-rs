@@ -23,7 +23,7 @@
 //! - `tags` are the event's own, ace3's `event_tag_mapping`, and `alert_tags` its alerts', from each
 //!   root's own tags, its observables and its results (PLAN.md decision 57), as ace3's `tag_mapping` is
 //!   built from `all_tags`, which counts the root as one of its analyses, each sorted by name. ace3's JSON calls its alerts' tags `tags` and sorts them
-//!   by its tag scores, which ace4 doesn't have; its export has both, as here.
+//!   by its tag scores, which ace-rs doesn't have; its export has both, as here.
 //! - ace3's `companies`: roots have no company.
 //! - A threat that names malware or a threat type that isn't there is a 404, and one that's mapped
 //!   already is a 409, where ace3's database refuses them with a 500.
@@ -115,7 +115,7 @@
 //! What adding an alert to an event does to its analysis: nothing, here or in ace3. ace3's GUI only
 //! writes the mapping (`app/analysis/views/edit/event.py`). Its `alert_added_to_event` module, which
 //! dispositioned mode runs, switches an alert in an event to `event` mode, which runs no modules in
-//! ace3's configuration; ace3 ships it disabled and marks it "TODO trash this". ace4 has no such module,
+//! ace3's configuration; ace3 ships it disabled and marks it "TODO trash this". ace-rs has no such module,
 //! so 2.12's dispositioned mode finds none to run, and no step ports it.
 
 use std::collections::HashMap;
@@ -208,7 +208,7 @@ pub struct EventAlert {
     pub tags: Vec<String>,
 }
 
-/// An event, with everything ace3's `Event.json` gives that ace4 has.
+/// An event, with everything ace3's `Event.json` gives that ace-rs has.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Event {
     pub id: i64,

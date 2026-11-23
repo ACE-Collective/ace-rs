@@ -79,7 +79,7 @@ With `curl`, using the example lab's values:
 
 ```bash
 ACE=https://ace.example.com
-KEY=...   # the launcher's API key, ace4k_...
+KEY=...   # the launcher's API key, ace-rs-k_...
 
 curl -s -X POST "$ACE/api/svs/v1/runs" -H "Authorization: Bearer $KEY" \
      -H 'Content-Type: application/json' \

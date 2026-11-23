@@ -1,6 +1,6 @@
 //! `ace root`: tools for one root. `ace root normal-form <uuid>` (PLAN.md 3.1) prints the root's
 //! tree in the form ace3's can be compared with. It reads Postgres directly, so it runs where
-//! `ace serve` does, with `ACE4_DATABASE_URL`.
+//! `ace serve` does, with `ACE_RS_DATABASE_URL`.
 
 use std::process::ExitCode;
 

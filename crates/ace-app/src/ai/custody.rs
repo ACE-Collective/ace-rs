@@ -7,7 +7,7 @@
 //!
 //! | ace3's check | here | what it refuses |
 //! |---|---|---|
-//! | `check_no_encryption_capability`: `SAQ_ENC` is set | [`check_no_encryption_capability`] | `ACE4_ENCRYPTION_KEY` in the environment, set or empty |
+//! | `check_no_encryption_capability`: `SAQ_ENC` is set | [`check_no_encryption_capability`] | `ACE_RS_ENCRYPTION_KEY` in the environment, set or empty |
 //! | the same: the encryption subsystem is unlocked | the same | a database role that can read the email archive, which that key seals |
 //! | `check_local_overlay_skipped`: the dev overlay would merge in | [`check_overlay_is_its_own`] | an overlay with any section but the process's own |
 //! | `check_infra_secrets_neutralized`: the node-to-node API key | [`check_infra_secrets`] | the lease API's pool and admin tokens, or a main API key, in the environment |
@@ -20,27 +20,27 @@
 //!
 //! Where each differs from ace3's, and why:
 //!
-//! - **The encryption capability.** ace3 unlocks a secrets table with a password. ace4 has no such
-//!   table: `ACE4_ENCRYPTION_KEY` is the email archive's key, which only `ace serve` holds, and the
+//! - **The encryption capability.** ace3 unlocks a secrets table with a password. ace-rs has no such
+//!   table: `ACE_RS_ENCRYPTION_KEY` is the email archive's key, which only `ace serve` holds, and the
 //!   variable is its only source. So the capability is the variable, and, apart from it, whether the
 //!   process's database role can read the archive's rows at all.
 //! - **The local overlay.** ace3's dev overlay, `etc/saq.yaml`, may hold live credentials and merges
 //!   into every container unless `SAQ_SKIP_LOCAL_SAQ_YAML` is set; the AI container's only
-//!   configuration is `etc/saq.ai.yaml`. ace4 reads one overlay and merges nothing, but the site's
+//!   configuration is `etc/saq.ai.yaml`. ace-rs reads one overlay and merges nothing, but the site's
 //!   overlay can hold credentials too, in a module's settings or a repository's URL. So the AI
 //!   process is given an overlay of its own, and one that holds another process's section is refused.
 //! - **The GUI's key.** ace3 signs a session cookie with a key, which the AI container replaces with a
-//!   sentinel. An ace4 session is a row, so there is no key to hold: the equivalent is the role that
+//!   sentinel. An ace-rs session is a row, so there is no key to hold: the equivalent is the role that
 //!   can't read the row. The AI listener doesn't read a cookie either (`ace_api::AiWeb`).
 //! - **The node-to-node key.** ace3's `api.api_key` is what nodes call each other with. Here it is the
 //!   lease API's tokens: a pool's, and the admin token that replays a task.
 //! - **The allow-list.** ace3 walks its configuration for a secret written as a literal that no
-//!   enabled backend declares, and permits a reference it can't decrypt. An ace4 overlay names where
+//!   enabled backend declares, and permits a reference it can't decrypt. An ace-rs overlay names where
 //!   a secret comes from, never its value, so the walk is over `secrets:`: a source this process can
 //!   read, an environment variable that is set or a file that is there, has to be one an enabled
 //!   backend lists. A source it can't read is permitted, as ace3's encrypted reference is.
 //! - **The limiter's store.** ace3's sweep leaves out `redis.password`, which the container needs for
-//!   its rate limiter. ace4's limiter is in Postgres, under the same role as everything else, so there
+//!   its rate limiter. ace-rs's limiter is in Postgres, under the same role as everything else, so there
 //!   is nothing to leave out.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -50,11 +50,11 @@ use ace_service::ai::role::RolePrivileges;
 use serde_json::Value;
 
 /// The email archive's key (`ace_core::email_archive::ArchiveConfig`).
-pub const ENCRYPTION_KEY: &str = "ACE4_ENCRYPTION_KEY";
-/// The lease API's tokens and a main API key, by variable: `ACE4_POOL_TOKEN_<POOL>` too
+pub const ENCRYPTION_KEY: &str = "ACE_RS_ENCRYPTION_KEY";
+/// The lease API's tokens and a main API key, by variable: `ACE_RS_POOL_TOKEN_<POOL>` too
 /// ([`LEASE_TOKEN_PREFIX`]).
-pub const INFRA_SECRETS: &[&str] = &["ACE4_ADMIN_TOKEN", "ACE4_POOL_TOKEN", "ACE4_API_KEY"];
-pub const LEASE_TOKEN_PREFIX: &str = "ACE4_POOL_TOKEN_";
+pub const INFRA_SECRETS: &[&str] = &["ACE_RS_ADMIN_TOKEN", "ACE_RS_POOL_TOKEN", "ACE_RS_API_KEY"];
+pub const LEASE_TOKEN_PREFIX: &str = "ACE_RS_POOL_TOKEN_";
 /// The bucket's credential: its static keys, and the variables through which the AWS credential
 /// chain, which the bucket signs with when it has no static keys, finds one (`ace_store::aws`).
 /// A profile in `~/.aws` and the instance metadata service aren't variables, so this can't see

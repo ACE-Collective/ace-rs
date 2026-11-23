@@ -21,7 +21,7 @@ Python has none but the recursion limit and the timer; there a macro runs until 
 `tools/samples/make-xlm-hostile` writes the set. Two commands measure it, on 2026-11-07, on the dev container of `docs/measurements/build-loop.md`, with ace3's and budge's stacks idle.
 
 - **The port, optimized:** `tools/library-diff`'s side, `target/release/xlmdeobfuscator`, both passes, one run each, under `RLIMIT_AS` 2 GiB. Peak is `ru_maxrss`, which holds both passes and the JSON the side writes.
-- **In a task:** `ACE4_XLM_HOSTILE=<dir> cargo test -p ace-pool --features test-pools --test supervisor measure_hostile_xlm -- --ignored --nocapture`, a debug build in the real supervisor, one run each. That harness doesn't read the pool's stderr, so it stalls after eight files: the set was run in three parts.
+- **In a task:** `ACE_RS_XLM_HOSTILE=<dir> cargo test -p ace-pool --features test-pools --test supervisor measure_hostile_xlm -- --ignored --nocapture`, a debug build in the real supervisor, one run each. That harness doesn't read the pool's stderr, so it stalls after eight files: the set was run in three parts.
 
 | File | Port s | Port peak MiB | Task s, debug | Files out | `-f` | `-x` |
 |---|---:|---:|---:|---:|---|---|

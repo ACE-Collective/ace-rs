@@ -1,7 +1,7 @@
 //! Every alert's detections (PLAN.md 5.6's `detection_points`), for reports and exports: ace3's
 //! `/api/v2/detection-points` list and its alerts router's `/alerts/{uuid}/detection-points`.
 //!
-//! ace3 copies each alert's detection points into `detection_points` when the alert syncs. ace4's
+//! ace3 copies each alert's detection points into `detection_points` when the alert syncs. ace-rs's
 //! `analysis.detections` (2.10) is already that table: a row per detection, on the observable it's on, with
 //! the result that raised it. A detection on a root no detection made an alert isn't listed, as ace3 has no
 //! row for it, and reading one needs `alert:read`, as there. A read writes no row.

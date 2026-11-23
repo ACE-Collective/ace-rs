@@ -1,16 +1,16 @@
-# Uses each thing the rules allow: an ACE4_ port, an ephemeral port, an ace4-* image
+# Uses each thing the rules allow: an ACE_RS_ port, an ephemeral port, an ace-rs-* image
 # that's built here, a volume and a network named by Compose, a mem_limit, and a one-shot
 # service that needs none.
-name: ${ACE4_STACK:-ace4}
+name: ${ACE_RS_STACK:-ace-rs}
 services:
   web:
     build: .
-    image: ace4-web:latest
+    image: ace-rs-web:latest
     ports:
-      - "${ACE4_BIND_ADDRESS:-127.0.0.1}:${ACE4_PORT_HTTPS:-7443}:443"
-      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::5432"
+      - "${ACE_RS_BIND_ADDRESS:-127.0.0.1}:${ACE_RS_PORT_HTTPS:-7443}:443"
+      - "${ACE_RS_BIND_ADDRESS:-127.0.0.1}::5432"
       - target: 80
-        published: "${ACE4_PORT_HTTP:-7080}"
+        published: "${ACE_RS_PORT_HTTP:-7080}"
     volumes:
       - data:/data
     networks: [inner]

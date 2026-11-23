@@ -6,12 +6,12 @@
 //! `type=script.javascript`, with a DOM snapshot of the document for the JavaScript deobfuscator,
 //! and each external script's source as a `url` or `uri_path` observable.
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
 //! - The DOM snapshots are in the result's `dom_snapshots`, with the files whose `.dom.json`
-//!   sidecar each is, since ace4 keeps no file outside the tree. Past 16 MiB of them in one result,
+//!   sidecar each is, since ace-rs keeps no file outside the tree. Past 16 MiB of them in one result,
 //!   a document's snapshot isn't kept and its sidecars aren't listed.
-//! - ace3's root takes at most 500 files and 500 URLs (`maximum_observable_count`), which ace4's
+//! - ace3's root takes at most 500 files and 500 URLs (`maximum_observable_count`), which ace-rs's
 //!   core doesn't, so this writes at most 500 scripts and adds at most 500 URLs, as ace3 would
 //!   when nothing else in the root had any. Where ace3 has no limit, on `uri_path` observables, this
 //!   stops at 500 too, so a crafted document can't add hundreds of thousands.

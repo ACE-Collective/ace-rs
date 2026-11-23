@@ -1,0 +1,54 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "RarEncryptionAnalysis",
+      "details": {
+        "email": false,
+        "email_body": null,
+        "encryption_info": null,
+        "password": null,
+        "word_list": []
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.encryption.rar:RarEncryptionAnalysis",
+      "observables": [],
+      "summary": "Rar Encryption Analysis: no associated email detected",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/archive/encrypted_rar4_headers.rar",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "encrypted_rar4_headers.rar",
+      "size": 332,
+      "type": "file",
+      "value": "2371efa0001bc82d64be39324705c799c24ba83087b9b13e481c180d2582de9b"
+    }
+  },
+  "module": "rar_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "encrypted_rar4_headers.rar",
+    "relationships": [],
+    "size": 332,
+    "tags": [
+      "encrypted_rar"
+    ],
+    "type": "file",
+    "value": "2371efa0001bc82d64be39324705c799c24ba83087b9b13e481c180d2582de9b",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

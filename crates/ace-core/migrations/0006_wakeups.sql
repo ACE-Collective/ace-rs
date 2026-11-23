@@ -1,4 +1,4 @@
--- Wakeups (PLAN.md 2.8): a notification on channel ace4_tasks, with the task's module as the
+-- Wakeups (PLAN.md 2.8): a notification on channel ace_rs_tasks, with the task's module as the
 -- payload, whenever a task becomes claimable now. Workers LISTEN instead of polling, with a
 -- bounded wait as the fallback. Notifications go out when the transaction commits, and
 -- Postgres sends one per distinct payload per transaction, so queueing many tasks for one
@@ -7,7 +7,7 @@ CREATE FUNCTION queue.notify_claimable() RETURNS trigger
     LANGUAGE plpgsql AS $$
 BEGIN
     IF NEW.state IN ('queued', 'delayed') AND NEW.run_after <= now() THEN
-        PERFORM pg_notify('ace4_tasks', NEW.module);
+        PERFORM pg_notify('ace_rs_tasks', NEW.module);
     END IF;
     RETURN NULL;
 END

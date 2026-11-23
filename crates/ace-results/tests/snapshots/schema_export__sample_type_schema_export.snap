@@ -478,7 +478,7 @@ expression: text
     },
     "PivotLink": {
       "additionalProperties": false,
-      "description": "A link out of ACE with a label and, if it has one, an icon: ace3's `PivotLink`. Only an\n`https://` URL of printable ASCII with nothing an attribute or a browser would read differently\n(no quote, angle bracket, backslash or backtick) is taken, so a link can't run script or break out\nof the page. The icon is the name of an image the binary registers and ACE serves itself\n(`ace_app::App::pivot_link_icon`); ace3 also takes a `data:` URL or another site's image, which\nace4 refuses, as its pages load images from ACE alone.",
+      "description": "A link out of ACE with a label and, if it has one, an icon: ace3's `PivotLink`. Only an\n`https://` URL of printable ASCII with nothing an attribute or a browser would read differently\n(no quote, angle bracket, backslash or backtick) is taken, so a link can't run script or break out\nof the page. The icon is the name of an image the binary registers and ACE serves itself\n(`ace_app::App::pivot_link_icon`); ace3 also takes a `data:` URL or another site's image, which\nace-rs refuses, as its pages load images from ACE alone.",
       "properties": {
         "icon": {
           "description": "The registered icon's name: 1 to 64 of a-z, 0-9, `_` and `-`.",

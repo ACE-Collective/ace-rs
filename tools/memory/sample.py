@@ -29,7 +29,7 @@ import time
 CGROUP_ROOT = "/sys/fs/cgroup/docker"
 PARSERS = "parsers"
 TASK_ARG = "task"
-TASK_UID = 10001  # ace4-task, docker/ace4/Dockerfile
+TASK_UID = 10001  # ace-rs-task, docker/ace-rs/Dockerfile
 SLOW = 0.25
 
 FIELDS = {

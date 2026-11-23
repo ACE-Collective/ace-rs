@@ -4,7 +4,7 @@
 #
 # Rancher Desktop mounts the checkout into its VM with virtiofs, and a save on the host
 # raises no inotify event in the VM, so bacon never sees it. This loop runs as the dev
-# container's main process. Every ACE4_POLL_INTERVAL seconds it finds the files whose
+# container's main process. Every ACE_RS_POLL_INTERVAL seconds it finds the files whose
 # mtime moved since its last pass and runs `touch -r f f` on each. touch opens the file
 # for writing, sets its times to the values they already have and closes it, which
 # raises IN_CLOSE_WRITE inside the container without changing the file's contents or
@@ -22,8 +22,8 @@
 
 set -uo pipefail
 
-root=${ACE4_POLL_ROOT:-/workspace}
-interval=${ACE4_POLL_INTERVAL:-1}
+root=${ACE_RS_POLL_ROOT:-/workspace}
+interval=${ACE_RS_POLL_INTERVAL:-1}
 state=/tmp/poll-host-changes
 
 mkdir -p "$state"

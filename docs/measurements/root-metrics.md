@@ -10,7 +10,7 @@ About 0.3 to 0.45 ms, once per pass, on a root with 3,600 tasks: 0.30 ms in the 
 
 ## In the core, with the event and without it
 
-`the_metrics_events_cost_at_a_pass_s_end` in `crates/ace-core/tests/completion.rs`, an ignored test, builds a root with as many tasks as the comparison's `ace3/archive/test.jar`: 71 observables and 3,621 tasks, one of 51 modules on each observable, plus the one task that ends the pass. It ends a pass 200 times. Each time it queues that task again, leases it and times the call that ends it (`Worker::complete`), which is the pass's whole last transaction: the task's end, the completion check, the event's statement, the routing and search inserts and the commit. The event is taken on every other pass and not taken on the rest, which is what `ACE4_LOG` without `ace_metrics` does: the statement doesn't run. Then it times the statement alone, 200 times in one open transaction.
+`the_metrics_events_cost_at_a_pass_s_end` in `crates/ace-core/tests/completion.rs`, an ignored test, builds a root with as many tasks as the comparison's `ace3/archive/test.jar`: 71 observables and 3,621 tasks, one of 51 modules on each observable, plus the one task that ends the pass. It ends a pass 200 times. Each time it queues that task again, leases it and times the call that ends it (`Worker::complete`), which is the pass's whole last transaction: the task's end, the completion check, the event's statement, the routing and search inserts and the commit. The event is taken on every other pass and not taken on the rest, which is what `ACE_RS_LOG` without `ace_metrics` does: the statement doesn't run. Then it times the statement alone, 200 times in one open transaction.
 
 ```
 docker compose exec -T -e CI=true dev cargo test --release -p ace-core --test completion -- \
@@ -43,7 +43,7 @@ pgbench -n -M prepared -c 1 -t 500 -f metrics-root.sql -l --log-prefix=/tmp/m
 | Root | Tasks | Observables | Heap pages of its tasks | Prepared: medians of three runs | Range | Planned each time: medians | Range |
 |---|---:|---:|---:|---|---|---|---|
 | `ace3/archive/test.jar` | 3,603 | 184 | 283 | 0.470, 0.430, 0.430 ms | 0.366 to 4.470 ms | 0.605, 0.533, 0.601 ms | 0.477 to 4.073 ms |
-| `ace4/rtf/objects.rtf`, the root with the most tasks | 4,808 | 182 | 810 | 0.645, 0.722, 0.645 ms | 0.555 to 5.020 ms | 0.782, 0.861, 0.737 ms | 0.666 to 4.768 ms |
+| `ace-rs/rtf/objects.rtf`, the root with the most tasks | 4,808 | 182 | 810 | 0.645, 0.722, 0.645 ms | 0.555 to 5.020 ms | 0.782, 0.861, 0.737 ms | 0.666 to 4.768 ms |
 
 So on the real root it is 0.43 ms (median of the three runs), against 0.29 ms on the test's root with the same number of tasks. The difference is where the rows are: the comparison ran eight samples at once, so a root's tasks are spread over more pages than a root built alone. `objects.rtf`'s 4,808 tasks sit on 810 pages and take 0.65 ms.
 
@@ -102,11 +102,11 @@ So:
 
 ## On the real root
 
-After a whole `tests/e2e/run` on this change, kept up with `--keep`, the e2e stack's Postgres held 479 roots, 165,446 tasks and 480 completions. Since decision 23 the root with the most tasks is `ace4/rtf/objects.rtf`, with 3,403 tasks (on 631 heap pages) and 182 observables; `ace3/archive/test.jar` has 2,473. The statement as it was and as it is were each run for both roots with `pgbench` in the Postgres container, as above: one connection, `-M prepared`, 500 executions a run, the two statements in turn, three runs each. The root's id and its pass (1) are written in, and `now()` stands for the completion's time.
+After a whole `tests/e2e/run` on this change, kept up with `--keep`, the e2e stack's Postgres held 479 roots, 165,446 tasks and 480 completions. Since decision 23 the root with the most tasks is `ace-rs/rtf/objects.rtf`, with 3,403 tasks (on 631 heap pages) and 182 observables; `ace3/archive/test.jar` has 2,473. The statement as it was and as it is were each run for both roots with `pgbench` in the Postgres container, as above: one connection, `-M prepared`, 500 executions a run, the two statements in turn, three runs each. The root's id and its pass (1) are written in, and `now()` stands for the completion's time.
 
 | Root | Tasks | Before: medians of three runs | Now: medians of three runs | Difference, each run | Range, before and now |
 |---|---:|---|---|---|---|
-| `ace4/rtf/objects.rtf` | 3,403 | 0.506, 0.582, 0.601 ms | 0.790, 0.783, 0.776 ms | 0.284, 0.201, 0.175 ms | 0.460 to 4.807, 0.662 to 5.792 ms |
+| `ace-rs/rtf/objects.rtf` | 3,403 | 0.506, 0.582, 0.601 ms | 0.790, 0.783, 0.776 ms | 0.284, 0.201, 0.175 ms | 0.460 to 4.807, 0.662 to 5.792 ms |
 | `ace3/archive/test.jar` | 2,473 | 0.370, 0.327, 0.324 ms | 0.549, 0.621, 0.532 ms | 0.179, 0.294, 0.208 ms | 0.262 to 4.213, 0.462 to 4.868 ms |
 
 On the root with the most tasks the statement takes 0.78 ms where it took 0.58, 0.20 ms more (median of the three differences, range 0.18 to 0.28). `EXPLAIN (ANALYZE, BUFFERS)` of it reads 664 buffers, all in memory, the same pages as before: the root, the observables through `observables_in_root` and the tasks through `tasks_by_root`. What is new is the work on rows already read, grouping them by module and summing two columns. Two of the 6,000 logged executions had a latency of 0 in `pgbench`'s log and were left out.

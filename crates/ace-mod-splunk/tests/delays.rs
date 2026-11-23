@@ -161,7 +161,7 @@ async fn a_search_is_delayed_while_it_runs_and_then_gives_its_rows() {
             "/servicesNS/nobody/search/search/v2/jobs/1767225600.1/results"
         )
     );
-    assert_eq!(body(0), "username=ace4&password=ace4-fake-password");
+    assert_eq!(body(0), "username=ace-rs&password=ace-rs-fake-password");
     for request in &sent[1..] {
         assert_eq!(
             request.header("authorization"),

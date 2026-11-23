@@ -12,7 +12,7 @@
 //! A custom command type is ace3's `CorrelationCommand`, registered by name with
 //! [`CommandTypes::register`], as `App::command_type` does for the binary. ace3 builds each from
 //! `hunter.correlation.command_types` with its `kwargs`, and hands it the whole configuration in its
-//! context; ace4's integration builds its handler with what it needs, so the context has no
+//! context; ace-rs's integration builds its handler with what it needs, so the context has no
 //! configuration and no temporary directory, which a handler makes for itself if it needs one.
 
 use std::collections::BTreeMap;

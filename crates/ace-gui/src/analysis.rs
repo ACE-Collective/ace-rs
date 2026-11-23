@@ -739,7 +739,7 @@ pub const MAX_MATCH_CONTEXT: usize = 4096;
 pub const MAX_PLAIN_DUMP: usize = 2048;
 
 /// `yara_scan_results`, from ace3's `yara_analysis_v3_4.html`: a panel a rule, with its target, meta and
-/// tags, and its string matches under a summary that opens them. ace4's results have no rule source,
+/// tags, and its string matches under a summary that opens them. ace-rs's results have no rule source,
 /// string patterns or disassembly, so those parts of ace3's view aren't here, and nor is its
 /// `hide_intel` setting.
 #[derive(Debug, Template)]
@@ -1252,7 +1252,7 @@ pub const MAX_CELL: usize = 1024;
 /// `splunk_api_analysis`, from ace3's `api_analysis.html`: the question and summary, an error, the
 /// query under a summary that opens it, the rows as a table, and the raw details. ace3's table sorts
 /// and resizes its columns with an inline jQuery script, which the page's policy refuses, so this one
-/// doesn't; and ace4's results have no `gui_link` yet.
+/// doesn't; and ace-rs's results have no `gui_link` yet.
 #[derive(Debug, Template)]
 #[template(path = "analysis/api_analysis.html")]
 pub struct SplunkView<'a> {

@@ -635,7 +635,7 @@ macro_rules! assert_outcome_snapshot {
 
 /// Checks that `crates/ace-gui/tests/fixtures/<name>.json` is this outcome's result, as JSON, so the
 /// GUI's analysis views are drawn from what the module writes (PLAN.md 5.8 and 5.9). With
-/// `ACE4_WRITE_FIXTURES=1` it writes the fixture first. Panics unless the outcome is a result and
+/// `ACE_RS_WRITE_FIXTURES=1` it writes the fixture first. Panics unless the outcome is a result and
 /// the fixture matches it.
 pub fn check_view_fixture<D: AnalysisType>(name: &str, outcome: &Outcome<D>) {
     let Outcome::Done(result) = outcome else {
@@ -647,7 +647,7 @@ pub fn check_view_fixture<D: AnalysisType>(name: &str, outcome: &Outcome<D>) {
     let written = serde_json::to_string_pretty(&result.to_raw().expect("serializes"))
         .expect("serializes")
         + "\n";
-    if std::env::var_os("ACE4_WRITE_FIXTURES").is_some() {
+    if std::env::var_os("ACE_RS_WRITE_FIXTURES").is_some() {
         fs::create_dir_all(path.parent().expect("a directory")).expect("makes it");
         fs::write(&path, &written).expect("writes the fixture");
     }
@@ -660,7 +660,7 @@ pub fn check_view_fixture<D: AnalysisType>(name: &str, outcome: &Outcome<D>) {
     let written: Value = serde_json::from_str(&written).expect("JSON");
     assert!(
         fixture == written,
-        "{} isn't this module's result; ACE4_WRITE_FIXTURES=1 writes it",
+        "{} isn't this module's result; ACE_RS_WRITE_FIXTURES=1 writes it",
         path.display()
     );
 }

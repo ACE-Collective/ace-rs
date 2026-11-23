@@ -10,7 +10,7 @@
 //!
 //! What's checked here, as ace3's `parse_command`: the line splits as a shell would (`shlex`), a leading
 //! `ace` is dropped, and it can't start with an option but `-h`, `--help`, `-V` or `--version`, which are
-//! the only global options `ace` has. ace4's commands take no secret on their command line, so there is no
+//! the only global options `ace` has. ace-rs's commands take no secret on their command line, so there is no
 //! list of secret options to refuse; the line is stored as typed, as in ace3. The command runs as the
 //! pool's task user, with no paths, no ports and no credentials, so what it can do is what `ace`'s own
 //! parser does in that process (`ace_app`'s `cli::run_contained` says which commands run).

@@ -1,0 +1,83 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "LnkParseAnalysis",
+      "details": {
+        "info": {
+          "data": {
+            "relative_path": "cmd.exe"
+          },
+          "extra": {},
+          "header": {
+            "accessed_time": "2020-12-03T12:26:52.345679+0000",
+            "creation_time": "2020-12-03T12:26:40.000000+0000",
+            "file_flags": [
+              "FILE_ATTRIBUTE_ARCHIVE"
+            ],
+            "file_size": 1234,
+            "guid": "00021401-0000-0000-C000-000000000046",
+            "header_size": 76,
+            "hotkey": "CONTROL - A {0x4102}",
+            "icon_index": 0,
+            "link_flags": [
+              "HasRelativePath",
+              "HasArguments",
+              "IsUnicode"
+            ],
+            "modified_time": null,
+            "r_file_flags": 32,
+            "r_hotkey": 577,
+            "r_link_flags": 168,
+            "reserved0": 0,
+            "reserved1": 0,
+            "reserved2": 0,
+            "windowstyle": "SW_SHOWNORMAL"
+          },
+          "link_info": {},
+          "size": 92
+        }
+      },
+      "detections": [],
+      "error": "sequence item 1: expected str instance, NoneType found",
+      "module_path": "saq.modules.file_analysis.lnk_parser:LnkParseAnalysis",
+      "observables": [],
+      "summary": "LnkParse Analysis: sequence item 1: expected str instance, NoneType found",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/lnk/missing_args.lnk",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "missing_args.lnk",
+      "size": 92,
+      "type": "file",
+      "value": "6452a3ba59a9a9c0b745a5276b7b38037224dbfb1676c5f884b64709688a9f6b"
+    }
+  },
+  "module": "lnk_parser",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "missing_args.lnk",
+    "relationships": [],
+    "size": 92,
+    "tags": [
+      "lnk"
+    ],
+    "type": "file",
+    "value": "6452a3ba59a9a9c0b745a5276b7b38037224dbfb1676c5f884b64709688a9f6b",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

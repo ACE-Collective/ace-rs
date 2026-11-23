@@ -1,7 +1,7 @@
 //! PLAN.md 7.5 batch 8: the lure and mailbox modules against ace3's reference dumps, made by
 //! `tools/ace3/dumps/make-dumps emailtree`, which kept each run's whole root (`run_module.py
 //! --tree-view`). Each module gets that root as the core's tree, and the email module's result for
-//! the email, which ace4's email module makes from the same file, as the core sends a module that
+//! the email, which ace-rs's email module makes from the same file, as the core sends a module that
 //! depends on it. Every difference is listed and explained in differences.md, next to this file.
 
 use std::path::Path;
@@ -29,7 +29,7 @@ fn sample(dump: &Dump) -> String {
     }
 }
 
-/// The email's file, and ace4's email module's result for it.
+/// The email's file, and ace-rs's email module's result for it.
 fn email(dump: &Dump) -> (Observable, Value) {
     let harness = Harness::<EmailAnalyzer>::new()
         .expect("harness")
@@ -75,7 +75,7 @@ fn crawled(dump: &Dump, primary: &Value) -> Value {
     if crawled { json!([primary]) } else { json!([]) }
 }
 
-/// ace3's lure analysis without the uuids it gives observables, which ace4's don't have.
+/// ace3's lure analysis without the uuids it gives observables, which ace-rs's don't have.
 fn ace3_lure(dump: &Dump) -> Value {
     let Some(analysis) = dump.analysis("LureURLAnalysis") else {
         return json!({"analysis": null, "crawl": []});
@@ -142,10 +142,10 @@ fn the_lure_module_matches_the_reference_dumps_or_lists_each_difference() {
         let outcome = harness
             .run_parser(observable)
             .unwrap_or_else(|e| panic!("{}: {e}", dump.name));
-        let ace4 = match &outcome {
+        let ace_rs = match &outcome {
             Outcome::Done(result) => {
                 found += 1;
-                if dump.short_name() == "ace4/email/lure_button.email.rfc822" {
+                if dump.short_name() == "ace-rs/email/lure_button.email.rfc822" {
                     ace_testkit::check_view_fixture("lure_url_button", &outcome);
                 }
                 let crawl: Vec<&String> = result
@@ -169,7 +169,7 @@ fn the_lure_module_matches_the_reference_dumps_or_lists_each_difference() {
         };
         compared.push((
             format!("lure_url_analyzer/{}", dump.short_name()),
-            diff(&ace3_lure(&dump), &ace4),
+            diff(&ace3_lure(&dump), &ace_rs),
         ));
     }
     assert!(found >= 15, "only {found} lure results");
@@ -225,10 +225,10 @@ fn the_mailbox_module_matches_the_reference_dumps_or_lists_each_difference() {
         let outcome = harness
             .run_parser(observable.with_directive("original_email"))
             .unwrap_or_else(|e| panic!("{}: {e}", dump.name));
-        if dump.short_name() == "ace4/email/lure_button.email.rfc822" {
+        if dump.short_name() == "ace-rs/email/lure_button.email.rfc822" {
             ace_testkit::check_view_fixture("mailbox_lure_button", &outcome);
         }
-        let ace4 = match &outcome {
+        let ace_rs = match &outcome {
             Outcome::Done(result) => {
                 let root = result.root.as_ref().expect("the root's changes");
                 let merged = root.details.clone().map(Value::Object);
@@ -258,7 +258,7 @@ fn the_mailbox_module_matches_the_reference_dumps_or_lists_each_difference() {
             }
             Outcome::Skipped(_) => json!({
                 "analysis": null,
-                "description": "ace4 reference dump",
+                "description": "ace-rs reference dump",
                 "details": [],
                 "tracked": [],
             }),
@@ -268,7 +268,7 @@ fn the_mailbox_module_matches_the_reference_dumps_or_lists_each_difference() {
         };
         compared.push((
             format!("mailbox_email_analyzer/{}", dump.short_name()),
-            diff(&ace3_mailbox(&dump), &ace4),
+            diff(&ace3_mailbox(&dump), &ace_rs),
         ));
     }
     if let Err(report) = listed().check(&compared, &[]) {
@@ -284,7 +284,7 @@ fn a_mailbox_email_with_only_its_outbound_tag_is_unparsable() {
     let dumps = Dump::all("mailbox_email_analyzer").expect("the dumps read");
     let dump = dumps
         .iter()
-        .find(|d| d.short_name() == "ace4/email/lure_button.email.rfc822")
+        .find(|d| d.short_name() == "ace-rs/email/lure_button.email.rfc822")
         .expect("the dump");
     let (observable, _) = email(dump);
     let mut tree = dump.tree_view(this(dump, &observable), &["MailboxEmailAnalysis"]);

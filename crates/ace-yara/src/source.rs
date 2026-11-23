@@ -8,9 +8,9 @@
 //! Its uuid is its `uuid` meta, trimmed; a rule without one isn't tracked by ace3's inventory, and is
 //! listed here with none so a caller can say it can't be tested.
 //!
-//! ace3 parses with plyara and ace4 with yara-x's own parser. They agree on well-formed rules; on a file
+//! ace3 parses with plyara and ace-rs with yara-x's own parser. They agree on well-formed rules; on a file
 //! neither can make sense of, each finds what it can. A file that isn't UTF-8 has no rules here: yara-x's
-//! parser needs text, and ace4's loader leaves such a file out (`crate::load`). Nor has a file past
+//! parser needs text, and ace-rs's loader leaves such a file out (`crate::load`). Nor has a file past
 //! `crate::guard`'s bounds, which the loader leaves out too: yara-x's parser would overflow its stack on it.
 
 use sha2::{Digest, Sha256};

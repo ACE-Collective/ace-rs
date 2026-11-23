@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Runs ace3's retrieval regression against ace4's Postgres index and against Qdrant (PLAN.md 7.11).
+"""Runs ace3's retrieval regression against ace-rs's Postgres index and against Qdrant (PLAN.md 7.11).
 
     tools/search/compare            the retrieval cases on both sides, their measurements, and the model's cost
     tools/search/compare --scale    also both indexes at production's size: 26,000 alerts of six chunks,
-                                    or ACE4_SEARCH_SCALE_ALERTS of ACE4_SEARCH_SCALE_CHUNKS_PER_ALERT
+                                    or ACE_RS_SEARCH_SCALE_ALERTS of ACE_RS_SEARCH_SCALE_CHUNKS_PER_ALERT
     tools/search/compare --keep     leave the Qdrant up afterwards
 
-It needs ace4's dev stack up (`docker compose up -d --wait dev postgres bucket`). It starts a
-throwaway Qdrant of ace3's version in the Compose project `ace4-search`
+It needs ace-rs's dev stack up (`docker compose up -d --wait dev postgres bucket`). It starts a
+throwaway Qdrant of ace3's version in the Compose project `ace-rs-search`
 (tools/search/qdrant.compose.yaml), runs ace-search's tests in the dev container, the Postgres ones
-and then the ones ignored without a Qdrant, with ACE4_TEST_QDRANT_URL pointing at it, prints what
+and then the ones ignored without a Qdrant, with ACE_RS_TEST_QDRANT_URL pointing at it, prints what
 they measured, and removes the Qdrant and its volume. It never touches ace3's Qdrant.
 docs/decisions/0002-search-index.md holds the numbers of the run it was written from.
 """
@@ -21,7 +21,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 QDRANT = ["docker", "compose", "-f", str(ROOT / "tools/search/qdrant.compose.yaml")]
-DEV = ["docker", "compose", "exec", "-T", "-e", "ACE4_TEST_QDRANT_URL=http://qdrant:6333"]
+DEV = ["docker", "compose", "exec", "-T", "-e", "ACE_RS_TEST_QDRANT_URL=http://qdrant:6333"]
 
 
 def run(command, **kwargs):
@@ -30,7 +30,7 @@ def run(command, **kwargs):
 
 def tests(filter_, ignored, scale):
     command = [*DEV]
-    for name in ("ACE4_SEARCH_SCALE_ALERTS", "ACE4_SEARCH_SCALE_CHUNKS_PER_ALERT", "ACE4_SEARCH_SCALE_HOLD"):
+    for name in ("ACE_RS_SEARCH_SCALE_ALERTS", "ACE_RS_SEARCH_SCALE_CHUNKS_PER_ALERT", "ACE_RS_SEARCH_SCALE_HOLD"):
         if scale and name in os.environ:
             command += ["-e", f"{name}={os.environ[name]}"]
     command += ["dev", "cargo", "test", "--locked", "-p", "ace-search", filter_, "--", "--nocapture",

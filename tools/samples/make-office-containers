@@ -6,7 +6,7 @@ with the compound file writer of tools/samples/make-oletools. It needs only Pyth
 bytes each time.
 
     tools/samples/make-office-containers    writes tools/ace3/dumps/fixtures/office, the dumps' files,
-                                             and a few samples under samples/ace4/office, in the manifest
+                                             and a few samples under samples/ace-rs/office, in the manifest
 """
 
 import base64
@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SAMPLES = ROOT / "samples"
-OFFICE = SAMPLES / "ace4" / "office"
+OFFICE = SAMPLES / "ace-rs" / "office"
 FIXTURES = ROOT / "tools" / "ace3" / "dumps" / "fixtures" / "office"
 SOURCE_DOCM = SAMPLES / "ace3" / "office" / "mortgage_payment-0873821-0565.docm"
 SOURCE = "tools/samples/make-office-containers"
@@ -415,7 +415,7 @@ def main():
     with zipfile.ZipFile(SOURCE_DOCM) as archive:
         real_vba = archive.read("word/vbaProject.bin")
     ole = ole_fixtures(real_vba)
-    mht = (SAMPLES / "ace4" / "office" / "vba_mht.mht").read_bytes()
+    mht = (SAMPLES / "ace-rs" / "office" / "vba_mht.mht").read_bytes()
     write(FIXTURES / "onenote", onenote_fixtures())
     write(FIXTURES / "activemime", activemime_fixtures(ole["native.doc"]))
     write(FIXTURES / "mime", hidden_mime_fixtures(mht))
@@ -431,7 +431,7 @@ def main():
         (OFFICE / name).write_bytes(data)
         made.append(
             {
-                "path": f"ace4/office/{name}",
+                "path": f"ace-rs/office/{name}",
                 "sha256": hashlib.sha256(data).hexdigest(),
                 "size": len(data),
                 "kinds": ["office/containers"],

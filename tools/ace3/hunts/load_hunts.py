@@ -5,7 +5,7 @@ It runs inside ace3's dev container on ace3's Python, writing only under its wor
 /tmp, and reads the hunts where they are:
 
     docker exec -i -e PYTHONDONTWRITEBYTECODE=1 -e SAQ_SKIP_LOCAL_SAQ_YAML=1 ace-dev-1 \\
-        /venv/bin/python3 - --work /tmp/ace4-dumps/hunts --root /opt/ace/signatures \\
+        /venv/bin/python3 - --work /tmp/ace-rs-dumps/hunts --root /opt/ace/signatures \\
         --rule-dir splunk=hunts/splunk \\
         < tools/ace3/hunts/load_hunts.py
 
@@ -66,8 +66,8 @@ splunk_config_default:
   enabled: true
   host: 127.0.0.1
   port: 8089
-  username: ace4
-  password: ace4-unused
+  username: ace-rs
+  password: ace-rs-unused
   timezone: GMT
   performance_logging_dir: ""
   request_timeout: 10

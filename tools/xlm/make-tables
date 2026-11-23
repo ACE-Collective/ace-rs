@@ -6,7 +6,7 @@ by hand, because which formulas parse, and into what tree, decides what the macr
 Run it on the library's image, with this file's directory mounted at /w:
 
     docker run --rm -v "$PWD/tools/xlm":/w --entrypoint python \
-        ace4-library-diff-python-libraries:<tag> /w/make-tables > crates/ace-mod-oletools/src/xlmdeob/grammar_tables.rs
+        ace-rs-library-diff-python-libraries:<tag> /w/make-tables > crates/ace-mod-oletools/src/xlmdeob/grammar_tables.rs
 """
 
 import os

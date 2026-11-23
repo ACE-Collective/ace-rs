@@ -19,9 +19,9 @@ use ace_store::{BucketConfig, NodeCache, Store};
 use uuid::Uuid;
 
 /// The test pool's token.
-pub const TOKEN: &str = "ace4-test-pool-token";
+pub const TOKEN: &str = "ace-rs-test-pool-token";
 /// The admin token, for replays.
-pub const ADMIN_TOKEN: &str = "ace4-test-admin-token";
+pub const ADMIN_TOKEN: &str = "ace-rs-test-admin-token";
 
 /// A core serving the lease API on a test database. Pools reach it through a proxy on `port`, so a test
 /// can stop the API, which cuts every connection, and start a new one on the same port, as when
@@ -99,7 +99,7 @@ impl Core {
         let test_db = TestDb::new().await;
         let cache = tempfile::tempdir().expect("a cache directory");
         let store = Store::new(
-            &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+            &BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
             NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
         )
         .await;
@@ -251,9 +251,9 @@ pub fn test_pool(core: &Core, args: &[&str]) -> std::process::Command {
         .args(args)
         .env_clear()
         .env("PATH", std::env::var("PATH").unwrap_or_default())
-        .env("ACE4_API_URL", &core.url)
-        .env("ACE4_POOL_TOKEN", TOKEN)
-        .env("ACE4_LOG", "info");
+        .env("ACE_RS_API_URL", &core.url)
+        .env("ACE_RS_POOL_TOKEN", TOKEN)
+        .env("ACE_RS_LOG", "info");
     command
 }
 

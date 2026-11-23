@@ -3,7 +3,7 @@
 //! An IP address in any of the site's networks gets the names of those it's in, and an `asset`
 //! observable of the same address.
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
 //! - ace3 reads the networks from a CSV file on its node, `data/etc/local_networks.csv`, once when
 //!   the module starts, with the header `Indicator,Indicator_Type` and a row per network, and its

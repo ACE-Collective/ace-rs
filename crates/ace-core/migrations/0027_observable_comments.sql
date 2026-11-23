@@ -1,6 +1,6 @@
 -- The observable_comments router (PLAN.md 5.6): an analyst's comment on an observable, by its type and
 -- value, so it applies to that observable in every alert, as ace3's `observable_comments` does through
--- its index of every observable. ace4 has no such index, so a comment holds the type and value itself,
+-- its index of every observable. ace-rs has no such index, so a comment holds the type and value itself,
 -- matched as 5.5's lookup matches `analysis.observables`: by type, value_hash and value.
 --
 -- A comment is a person's: `author_id` is the user, and `created_by` the actor that wrote it, which is a

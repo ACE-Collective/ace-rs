@@ -16,7 +16,7 @@ connections:
     settings:
       host: 127.0.0.1
       base_url: http://responder:443/https/127.0.0.1:8089
-      username: ace4
+      username: ace-rs
       request_timeout_seconds: 10
     secrets:
       password: splunk_default_password
@@ -122,4 +122,4 @@ hooks:
         actions: {ignore: true}
 # The AI investigation API (PLAN.md 7.15) isn't here: `ace serve-ai` reads ai.yaml, beside this file.
 secrets:
-  splunk_default_password: env:ACE4_SPLUNK_PASSWORD
+  splunk_default_password: env:ACE_RS_SPLUNK_PASSWORD

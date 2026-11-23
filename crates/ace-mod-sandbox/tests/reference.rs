@@ -98,7 +98,7 @@ fn compare_with<M: Parser>(
             observable = observable.with_directive(directive);
         }
         // the core doesn't queue a module for an observable without its required directives
-        let ace4 = if M::REQUIRED_DIRECTIVES
+        let ace_rs = if M::REQUIRED_DIRECTIVES
             .iter()
             .all(|d| observable.has_directive(d))
         {
@@ -115,13 +115,13 @@ fn compare_with<M: Parser>(
         } else {
             serde_json::Value::Null
         };
-        let differences = diff(&dump.normal_form(class), &ace4);
+        let differences = diff(&dump.normal_form(class), &ace_rs);
         compared.push((format!("{module}/{}", dump.short_name()), differences));
     }
     compared
 }
 
-/// The CVE module's dumps: each DMG through ace4's dmg_analyzer, and the image it adds, which
+/// The CVE module's dumps: each DMG through ace-rs's dmg_analyzer, and the image it adds, which
 /// dmg_analyzer added and which redirects to the DMG, through the CVE module, as the core would
 /// queue it.
 fn compare_cve(view: (&str, &str)) -> Vec<(String, Vec<Difference>)> {
@@ -139,7 +139,7 @@ fn compare_cve(view: (&str, &str)) -> Vec<(String, Vec<Difference>)> {
             Outcome::Done(result) => result.files.into_iter().next(),
             _ => None,
         };
-        let ace4 = match image {
+        let ace_rs = match image {
             Some(image) => {
                 let harness = Harness::<Cve202130657Analyzer>::new()
                     .expect("harness")
@@ -159,7 +159,7 @@ fn compare_cve(view: (&str, &str)) -> Vec<(String, Vec<Difference>)> {
             }
             None => serde_json::Value::Null,
         };
-        let differences = diff(&dump.normal_form("CVE_2021_30657_Analysis"), &ace4);
+        let differences = diff(&dump.normal_form("CVE_2021_30657_Analysis"), &ace_rs);
         compared.push((
             format!("cve_2021_30657_analyzer/{}", dump.short_name()),
             differences,
@@ -201,7 +201,7 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
     compared.extend(compare_with::<PdfLinkTextAnalyzer>(
         "pdf_link_text",
         "PDFLinkTextAnalysis",
-        Some(("ace4/pdf/link_text.pdf", "pdf_link_text_links")),
+        Some(("ace-rs/pdf/link_text.pdf", "pdf_link_text_links")),
         pdf_link_text_settings,
     ));
     // its view's fixture is written by hand: ExifTool's dates are the run's
@@ -239,7 +239,7 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
     compared.extend(compare::<IlspyAnalyzer>(
         "ilspy",
         "IlspyAnalysis",
-        Some(("ace4/executables/hello_dotnet.dll", "ilspy_hello_dotnet")),
+        Some(("ace-rs/executables/hello_dotnet.dll", "ilspy_hello_dotnet")),
     ));
     assert!(
         compared.len() - qr_dumps >= 5 * 10,
@@ -251,7 +251,7 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
     let before = compared.len();
     compared.extend(compare::<DmgAnalyzer>("dmg_analyzer", "DMGAnalysis", None));
     compared.extend(compare_cve((
-        "ace4/macos/script_app.dmg",
+        "ace-rs/macos/script_app.dmg",
         "cve_2021_30657_analyzer_script_app",
     )));
     assert!(

@@ -20,7 +20,7 @@
 //! core's audit setting before relying on it.
 //!
 //! `directives` lists the directives an analyst may add to an observable, those of ace3's
-//! `GUI_DIRECTIVES` an ace4 module reads, to which a site adds its own (PLAN.md decision 31).
+//! `GUI_DIRECTIVES` an ace-rs module reads, to which a site adds its own (PLAN.md decision 31).
 //!
 //! A module whose result is worth keeping across roots, such as one that runs OCR or asks a vendor,
 //! opts into the analysis cache with `Module::CACHE` (PLAN.md decision 26): `cache`'s docs say what

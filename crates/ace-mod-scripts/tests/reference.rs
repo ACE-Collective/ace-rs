@@ -64,7 +64,7 @@ fn compare<M: Parser>(
         if let Some(file_type) = dump.file_type() {
             harness = harness.dependency_result("file_type", file_type.clone());
         }
-        // rtfole's tag on what it writes: ace4's core says rtfole's result added the file
+        // rtfole's tag on what it writes: ace-rs's core says rtfole's result added the file
         if strings(&dump.value["input"]["tags"]).contains(&"extracted_rtf") {
             harness = harness.added_by(&["rtfole"]);
         }
@@ -119,13 +119,13 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
     }
 }
 
-/// The decoder's output for each file in `ACE4_MSE_DIR`, one JSON line each: the file's name, and
+/// The decoder's output for each file in `ACE_RS_MSE_DIR`, one JSON line each: the file's name, and
 /// the sha256 and length of what it printed or the message it died with, for a comparison with
 /// `bin/jscript.decode.pl` itself (`docs/measurements/scripts.md`).
 #[test]
 #[ignore = "a comparison, with files a script writes"]
 fn decoder_outputs() {
-    let dir = std::env::var("ACE4_MSE_DIR").expect("ACE4_MSE_DIR");
+    let dir = std::env::var("ACE_RS_MSE_DIR").expect("ACE_RS_MSE_DIR");
     let mut names: Vec<_> = std::fs::read_dir(&dir)
         .expect("the directory")
         .map(|e| {

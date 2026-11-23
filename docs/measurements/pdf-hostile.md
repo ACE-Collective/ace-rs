@@ -4,7 +4,7 @@ PLAN.md 4.9 asks what a crafted PDF can make libqpdf and the `pdf-parser.py` por
 
 `tools/samples/make-pdf-hostile` writes the set. Two commands measure it, once each, on 2026-11-07, on the dev container of `docs/measurements/build-loop.md`, with ace3's and budge's stacks idle on the same VM:
 
-- **In a task.** `ACE4_PDF_HOSTILE=<dir> cargo test -p ace-pool --features test-pools --test supervisor measure_hostile -- --ignored --nocapture` submits each file to the real supervisor, with the module's limits, as `ace4-task`, under Landlock and seccomp. This is a debug build, with libqpdf at `-O0`, so its times are upper bounds. They start when the root is submitted and include the upload, and `ACE4_BUCKET_MEM_LIMIT=6g` kept the bucket up (below).
+- **In a task.** `ACE_RS_PDF_HOSTILE=<dir> cargo test -p ace-pool --features test-pools --test supervisor measure_hostile -- --ignored --nocapture` submits each file to the real supervisor, with the module's limits, as `ace-rs-task`, under Landlock and seccomp. This is a debug build, with libqpdf at `-O0`, so its times are upper bounds. They start when the root is submitted and include the upload, and `ACE_RS_BUCKET_MEM_LIMIT=6g` kept the bucket up (below).
 - **By part, optimized.** `pikepdf` (libqpdf and the reads) and `pdf-parser --task-limits`, from `cargo build --release -p ace-mod-pdf --bins`, each run once with `RLIMIT_AS` 2 GiB and `RLIMIT_CPU` 60 s, and `wait4`'s peak RSS. This is without containment. `pikepdf` also builds a JSON reply the task doesn't, so its peaks are upper bounds.
 
 | File | Size | Task, debug | Task's end | Files out | libqpdf s | libqpdf peak MiB | Parser s | Parser peak MiB |
@@ -38,4 +38,4 @@ What this shows:
 
 ## The bucket
 
-With its default `ACE4_BUCKET_MEM_LIMIT` of 1 GiB, the dev stack's bucket was OOM-killed (exit 137) during this set, by uploads of tens of MB each, several times. The task then stays `running` while its upload fails. It was at 993 MiB after the set with a 6 GiB limit. So 256 MiB of output, the first limit tried here, became 64 MiB. The cause is outside this module, and any module that writes large files meets it, so it's reported to the plan rather than fixed here.
+With its default `ACE_RS_BUCKET_MEM_LIMIT` of 1 GiB, the dev stack's bucket was OOM-killed (exit 137) during this set, by uploads of tens of MB each, several times. The task then stays `running` while its upload fails. It was at 993 MiB after the set with a 6 GiB limit. So 256 MiB of output, the first limit tried here, became 64 MiB. The cause is outside this module, and any module that writes large files meets it, so it's reported to the plan rather than fixed here.

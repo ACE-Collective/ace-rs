@@ -287,7 +287,7 @@ fn test_event_query_captures_event_anchored_time_range() {
 #[test]
 fn test_executable_transform_has_no_query_timespec() {
     // an executable runs against no query source, so the timespec fields stay None; /bin/echo is
-    // no script type in ace4, so the step fails, and they stay None all the same
+    // no script type in ace-rs, so the step fails, and they stay None all the same
     let config = logic(
         json!([{"transform": {"type": "event", "method": "property", "property_name": "enriched",
         "property_type": "str", "command": {"type": "executable", "path": "/bin/echo", "args": ["x"]}}}]),
@@ -507,7 +507,7 @@ fn test_midevent_timeout_is_visible_and_fails_safe() {
 #[test]
 fn test_secret_export_failure_does_not_fail_steps() {
     // ace3 loads its secret store only to scrub output, so a store that fails doesn't stop a step;
-    // ace4's caller hands over the secrets, and this case's step is an executable printing "ok"
+    // ace-rs's caller hands over the secrets, and this case's step is an executable printing "ok"
     let config = logic(
         json!([{"transform": {"type": "event", "method": "property", "property_name": "result",
         "command": {"type": "executable", "path": super::echo_path(), "args": ["print", "ok"]}}}]),

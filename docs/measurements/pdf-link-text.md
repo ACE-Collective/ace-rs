@@ -2,11 +2,11 @@
 
 `pdf_link_text` (ace3 `b4badb2c`, ported on 2026-11-16) reads a PDF's link annotations with libqpdf in its task and runs `pdftotext -bbox` in the sandbox runner. This asks what a crafted PDF can make the two do against the task's limits: a 60 s deadline, 60 s of CPU and 2 GiB of address space (`crates/ace-mod-pdf/src/links.rs`, the PDF module's, whose libqpdf it shares), and for pdftotext 10 s (ace3's `PDFTOTEXT_TIMEOUT_SECONDS`) and the runner's 64 MiB of output.
 
-`tools/samples/make-pdf-link-hostile` writes the set. Measured on 2026-11-16 in ace4's dev container, debug builds, while `tools/ace3/trees/make-trees` ran in ace3's container on the same VM, so the times are upper bounds.
+`tools/samples/make-pdf-link-hostile` writes the set. Measured on 2026-11-16 in ace-rs's dev container, debug builds, while `tools/ace3/trees/make-trees` ran in ace3's container on the same VM, so the times are upper bounds.
 
 ## In a task
 
-`ACE4_CRAFTED=<dir> cargo test -p ace-pool --test hung_tasks crafted -- --ignored --nocapture` gives the test pool one task per file, as `ace4-task`, under Landlock and seccomp, with the module's limits. One run of the set below; four of the files ran twice more in an earlier form of the set, which had no cross-reference tables, and those times are in brackets. The time is from the task's queuing to its root's idle, so it includes the upload.
+`ACE_RS_CRAFTED=<dir> cargo test -p ace-pool --test hung_tasks crafted -- --ignored --nocapture` gives the test pool one task per file, as `ace-rs-task`, under Landlock and seccomp, with the module's limits. One run of the set below; four of the files ran twice more in an earlier form of the set, which had no cross-reference tables, and those times are in brackets. The time is from the task's queuing to its root's idle, so it includes the upload.
 
 | File | Size | Ends | Time | Result |
 |---|---:|---|---:|---|

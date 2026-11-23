@@ -99,7 +99,7 @@ fn run() -> Result<ExitCode, String> {
         &std::fs::read(&reference).map_err(|e| format!("{}: {e}", reference.display()))?,
     )
     .map_err(|e| e.to_string())?;
-    // ace3 may have loaded a type ace4 doesn't, such as Rapid7's, which the owner left out: only the
+    // ace3 may have loaded a type ace-rs doesn't, such as Rapid7's, which the owner left out: only the
     // hunts under the rule directories given here are compared
     if let Some(hunts) = reference["hunts"].as_array_mut() {
         let before = hunts.len();

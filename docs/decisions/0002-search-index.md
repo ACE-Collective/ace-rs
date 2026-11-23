@@ -76,7 +76,7 @@ Both dense lanes found the same number of alerts for every query (50.8 on averag
 
 So Postgres is two to five times slower per lane and stays under a tenth of a second at the median. A search runs the dense and the sparse lane once each, and once more each when test-run alerts exist to be counted. Adding the medians above to the 16 ms of embedding gives about 105 to 140 ms for a free-text search in Postgres and about 45 ms with Qdrant, and about 190 to 260 ms against 75 ms with the counting pass. That is arithmetic on the lanes' medians: a whole search wasn't timed at this size.
 
-What the numbers include and leave out: one run of 50 queries each; a dev build of ace4 and the laptop's Docker VM for both; synthetic vectors and words, not real alerts; a test database with nothing else running. Real chunks are longer than 100 words in places and a real vocabulary is larger, which lengthens the sparse lane on both sides.
+What the numbers include and leave out: one run of 50 queries each; a dev build of ace-rs and the laptop's Docker VM for both; synthetic vectors and words, not real alerts; a test database with nothing else running. Real chunks are longer than 100 words in places and a real vocabulary is larger, which lengthens the sparse lane on both sides.
 
 ## Size and writes
 
@@ -92,7 +92,7 @@ Postgres writes slower because each insert maintains the HNSW index. An alert is
 
 ## What the model costs
 
-The model is the same on both sides and stays whichever is chosen. `ace serve` loads it once: 85 to 140 ms, and 104 MB more resident memory (10.6 MB before, 114.6 MB loaded, 119.8 MB after embedding). The ace image grows by its file, a 91.4 MB layer: `docker image ls` shows `ace4-ace` at 561 MB before and 744 MB after, since this Docker's image store counts a layer both packed and unpacked, and the weights barely compress. Nothing is downloaded at run time, and nothing an alert holds leaves the process to be embedded.
+The model is the same on both sides and stays whichever is chosen. `ace serve` loads it once: 85 to 140 ms, and 104 MB more resident memory (10.6 MB before, 114.6 MB loaded, 119.8 MB after embedding). The ace image grows by its file, a 91.4 MB layer: `docker image ls` shows `ace-rs-ace` at 561 MB before and 744 MB after, since this Docker's image store counts a layer both packed and unpacked, and the weights barely compress. Nothing is downloaded at run time, and nothing an alert holds leaves the process to be embedded.
 
 ## Operational cost
 

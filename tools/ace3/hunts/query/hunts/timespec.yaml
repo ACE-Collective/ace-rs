@@ -14,7 +14,7 @@ rule:
     TIMESPEC_WIDE:
       duration_before: "01:00:00:00"
   query: |
-    index=auth ace4case=timespec <TIMESPEC> [ search index=assets <TIMESPEC_WIDE> | fields host ]
+    index=auth ace_rs_case=timespec <TIMESPEC> [ search index=assets <TIMESPEC_WIDE> | fields host ]
   observable_mapping:
     - field: host
       type: hostname

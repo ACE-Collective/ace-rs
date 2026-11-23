@@ -81,7 +81,7 @@ pub fn apply(
 }
 
 /// A stream event must be a JSON object: ace3 takes any JSON value into its stream and then fails
-/// on the first step or extraction that reads one as a dict, which ends its run; ace4 ends it here.
+/// on the first step or extraction that reads one as a dict, which ends its run; ace-rs ends it here.
 fn stream_event(value: Value) -> Result<Map, TransformError> {
     match value {
         Value::Map(m) => Ok(m),

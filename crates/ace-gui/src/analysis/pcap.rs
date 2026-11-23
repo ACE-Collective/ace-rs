@@ -1,7 +1,7 @@
 //! The packet capture results' view (PLAN.md 7.5 batch 13), from ace3's `analysis/pcap_analysis.html`
 //! and its `PcapAnalysisPresenter` (`saq/modules/file_analysis/pcap.py`): a line naming the capture,
 //! a notice of what the page lacks, and the tables. ace3's cells that pivot to the alerts with an
-//! observable are its text here: ace4's alert view links observables itself.
+//! observable are its text here: ace-rs's alert view links observables itself.
 
 use askama::Template;
 use chrono::{DateTime, Utc};

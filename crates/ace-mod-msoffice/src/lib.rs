@@ -249,7 +249,7 @@ pub fn crack<'a>(
 /// The delay of a task whose file may have come in an email that isn't parsed yet, longer each time:
 /// None when the task knows its carrying email, or that none carried it. An outer email adds a nested
 /// email's attachments too, before the nested one has been parsed, and that's the email whose body has
-/// the password. ace3 analyzes the attachment once per path, and ace4 once, so a module that reads the
+/// the password. ace3 analyzes the attachment once per path, and ace-rs once, so a module that reads the
 /// body waits for the root's emails, once it knows its file is one it cracks.
 pub fn wait_for_emails<S>(ctx: &TaskContext<S>) -> Option<Delay> {
     if !matches!(ctx.carrying_email(), CarryingEmail::Pending) {
@@ -401,7 +401,7 @@ impl Parser for MsofficeEncryption {
         } else {
             // An outer email adds a nested email's attachments too, before the nested one has been
             // parsed, and that's the email whose body has the password. ace3 analyzes the attachment
-            // once per path, and ace4 once, so it waits for the root's emails. This is only for a file
+            // once per path, and ace-rs once, so it waits for the root's emails. This is only for a file
             // that's encrypted: every file gets here, and the rest are done above.
             if let Some(delay) = wait_for_emails(ctx) {
                 return Ok(Outcome::Delay(delay));
@@ -427,7 +427,7 @@ mod tests {
 
     use super::*;
 
-    const NO_EMAIL: &str = "ace4/office/encrypted_no_email.docx";
+    const NO_EMAIL: &str = "ace-rs/office/encrypted_no_email.docx";
 
     fn harness() -> Harness<MsofficeEncryption> {
         Harness::new().expect("a harness")
@@ -475,32 +475,32 @@ mod tests {
         let dir = tempfile::tempdir().expect("a directory");
         for (sample, password, body) in [
             (
-                "ace4/office/encrypted_agile.docx",
+                "ace-rs/office/encrypted_agile.docx",
                 "Secr3tPw",
                 &b"The password is Secr3tPw\n"[..],
             ),
             (
-                "ace4/office/encrypted_standard.docx",
+                "ace-rs/office/encrypted_standard.docx",
                 "St4ndard",
                 b"The password is St4ndard\n",
             ),
             (
-                "ace4/office/encrypted_rc4.doc",
+                "ace-rs/office/encrypted_rc4.doc",
                 "R4Binary1",
                 b"The password is R4Binary1\n",
             ),
             (
-                "ace4/office/encrypted_cryptoapi.doc",
+                "ace-rs/office/encrypted_cryptoapi.doc",
                 "CryptoAp1",
                 b"The password is CryptoAp1\n",
             ),
             (
-                "ace4/office/encrypted_rc4.xls",
+                "ace-rs/office/encrypted_rc4.xls",
                 "R4Binary1",
                 b"The password is R4Binary1\n",
             ),
             (
-                "ace4/office/encrypted_cryptoapi.ppt",
+                "ace-rs/office/encrypted_cryptoapi.ppt",
                 "CryptoAp1",
                 b"The password is CryptoAp1\n",
             ),
@@ -508,7 +508,7 @@ mod tests {
             let harness = harness().carrying_email(body_file(dir.path(), body));
             let input = harness.sample(sample).expect("a sample");
             let outcome = harness.run_parser(input).expect("runs");
-            if sample == "ace4/office/encrypted_agile.docx" {
+            if sample == "ace-rs/office/encrypted_agile.docx" {
                 // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
                 ace_testkit::check_view_fixture("msoffice_encrypted_agile_docx", &outcome);
             }
@@ -537,7 +537,7 @@ mod tests {
         let harness =
             harness().carrying_email(body_file(dir.path(), b"The password is Secr3tPw\n"));
         let input = harness
-            .sample("ace4/office/encrypted_agile_sha1.docx")
+            .sample("ace-rs/office/encrypted_agile_sha1.docx")
             .expect("a sample");
         let result = done(harness.run_parser(input).expect("runs"));
         assert_eq!(result.details.password.as_deref(), Some("Secr3tPw"));
@@ -550,7 +550,7 @@ mod tests {
         let harness =
             harness().carrying_email(body_file(dir.path(), b"The password is Secr3tPw\n"));
         let input = harness
-            .sample("ace4/office/encrypted_agile_sha256.docx")
+            .sample("ace-rs/office/encrypted_agile_sha256.docx")
             .expect("a sample");
         let result = done(harness.run_parser(input).expect("runs"));
         assert_eq!(
@@ -565,7 +565,7 @@ mod tests {
 
     #[test]
     fn a_default_password_needs_no_email() {
-        let result = done(run(harness(), "ace4/office/encrypted_velvet.docx"));
+        let result = done(run(harness(), "ace-rs/office/encrypted_velvet.docx"));
         assert_eq!(result.details.password.as_deref(), Some("VelvetSweatshop"));
         assert!(!result.details.email);
         assert_eq!(result.files.len(), 1);
@@ -636,7 +636,7 @@ mod tests {
         let harness =
             harness().carrying_email(body_file(dir.path(), b"The password is Secr3tPw\n"));
         let input = harness
-            .sample("ace4/office/encrypted_not_zip.docx")
+            .sample("ace-rs/office/encrypted_not_zip.docx")
             .expect("a sample");
         let result = done(harness.run_parser(input).expect("runs"));
         assert_eq!(result.details.password.as_deref(), Some("Secr3tPw"));
@@ -653,10 +653,10 @@ mod tests {
         for sample in [
             "ace3/office/doc.docx",
             "ace3/office/doc.doc",
-            "ace4/office/encrypted_extensible.docx",
-            "ace4/office/msoffcrypto_plain.ppt",
-            "ace4/office/msoffcrypto_plain.xls",
-            "ace4/office/ole_short.doc",
+            "ace-rs/office/encrypted_extensible.docx",
+            "ace-rs/office/msoffcrypto_plain.ppt",
+            "ace-rs/office/msoffcrypto_plain.xls",
+            "ace-rs/office/ole_short.doc",
         ] {
             let outcome = run(harness().carrying_email(CarryingEmail::Pending), sample);
             assert!(
@@ -685,11 +685,11 @@ mod tests {
     fn john_has_no_format_for_xor_so_nothing_is_tried_and_no_email_is_needed() {
         for (sample, verifier) in [
             (
-                "ace4/office/encrypted_xor.doc",
+                "ace-rs/office/encrypted_xor.doc",
                 "Password Verifier : b'78563412'",
             ),
             (
-                "ace4/office/encrypted_xor.xls",
+                "ace-rs/office/encrypted_xor.xls",
                 "key : b'cdab', hash : b'3412'",
             ),
         ] {

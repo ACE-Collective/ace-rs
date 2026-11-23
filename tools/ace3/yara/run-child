@@ -15,7 +15,7 @@ child there on ace3's Python with the environment replay.py gives it, copies its
 to WORKDIR/result.ace3.json, and deletes the copy. replay.py runs the child in a Landlock
 sandbox; this doesn't.
 
-ACE4_ACE3_CONTAINER names the container (default ace-dev-1).
+ACE_RS_ACE3_CONTAINER names the container (default ace-dev-1).
 """
 
 import io
@@ -27,12 +27,12 @@ import tarfile
 import time
 from pathlib import Path
 
-CONTAINER = os.environ.get("ACE4_ACE3_CONTAINER", "ace-dev-1")
-CONTAINER_ROOT = "/tmp/ace4-yara-work/"
+CONTAINER = os.environ.get("ACE_RS_ACE3_CONTAINER", "ace-dev-1")
+CONTAINER_ROOT = "/tmp/ace-rs-yara-work/"
 CHILD = Path(__file__).resolve().parent / "child.py"
 # what replay.py's _sandbox_env gives the child, with HOME the working directory
 MAGIC_FILE = "/usr/lib/file/magic.mgc"
-OUTPUTS = {"result.json", "progress.json", "result.ace3.json", "result.ace4.json"}
+OUTPUTS = {"result.json", "progress.json", "result.ace3.json", "result.ace-rs.json"}
 
 
 def docker(*args, stdin=None):

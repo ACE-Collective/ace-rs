@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/executables/marker_only.exe",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "marker_only.exe",
+      "size": 4096,
+      "type": "file",
+      "value": "f2e58e0356a65d9d8d1518570fa3632164b609a7ce9828faf4f42ef72889e488"
+    }
+  },
+  "module": "ilspy",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "marker_only.exe",
+    "relationships": [],
+    "size": 4096,
+    "tags": [],
+    "type": "file",
+    "value": "f2e58e0356a65d9d8d1518570fa3632164b609a7ce9828faf4f42ef72889e488",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

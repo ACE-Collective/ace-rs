@@ -5,7 +5,7 @@
 //! in the analysts' dhash directory: a score per reference image, and a detection when the score
 //! reaches the threshold in the image's `.score` file.
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
 //! - ace3 reads `<analyst_data_dir>/dhash` on each run. A contained task can't open it, so the
 //!   module reads the directory once when it starts (`source_dir`), hashes each reference image

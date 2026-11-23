@@ -270,7 +270,7 @@ pub const ADMIN_READ: PermissionName = PermissionName::known("admin", "read");
 /// listed here: the overlay names the backends.
 pub const AI_ALERT: PermissionName = PermissionName::known("ai", "alert");
 /// List the AI investigation API's backends and which of them the key reaches. ace3 asks only for a
-/// valid key; ace4 has no route but the ping that asks for no permission.
+/// valid key; ace-rs has no route but the ping that asks for no permission.
 pub const AI_BACKENDS: PermissionName = PermissionName::known("ai", "backends");
 /// Read an event through the AI investigation API: ace3's `ai:event`.
 pub const AI_EVENT: PermissionName = PermissionName::known("ai", "event");
@@ -399,7 +399,7 @@ pub struct CatalogEntry {
 }
 
 /// Every permission this workspace checks, as ace3's `PERMISSION_CATALOG` is for ace3. It holds only
-/// what ace4 enforces, so a router that brings a permission adds it here, and `tests/service.rs` fails
+/// what ace-rs enforces, so a router that brings a permission adds it here, and `tests/service.rs` fails
 /// when a `PermissionName::known` in this crate isn't listed. ace3 keeps a copy in a table for its
 /// management page; the GUI here is in the same binary, so it reads this. A grant whose pattern covers
 /// nothing here is logged as a likely typo, as ace3 warns, and a key's own scope must cover something.

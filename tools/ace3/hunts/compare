@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""6.2's Done check over the signatures: ace4 loads every hunt in the signatures checkout and diffs
+"""6.2's Done check over the signatures: ace-rs loads every hunt in the signatures checkout and diffs
 the result with what ace3's loader made of it (PLAN.md step 6.2).
 
     tools/ace3/hunts/compare
 
-It runs crates/ace-hunt's load_hunts example in a one-off `dev` container of ace4's stack, with
+It runs crates/ace-hunt's load_hunts example in a one-off `dev` container of ace-rs's stack, with
 the signatures checkout bind-mounted read only at /opt/ace/signatures, the path ace3's container
 reads it from, against reference/signatures.json, which make-hunts wrote from ace3. That file holds the hunts'
 own text, which belongs to the signatures repository, so it's git-ignored: run make-hunts once
@@ -12,8 +12,8 @@ before this, in ace3's dev container. It prints each
 difference no `signatures` row of differences.md explains and each such row that explains none, and
 exits 1 if there are any. ace3 needn't be running.
 
-ACE4_ACE3_CHECKOUT is ace3's checkout on the host (default: ../ace3 beside this checkout), as for
-tools/ace3/yara/compare-scan, and the signatures are its signatures/. Compose reads ACE4_STACK and the other ACE4_ variables as usual. The checkout must
+ACE_RS_ACE3_CHECKOUT is ace3's checkout on the host (default: ../ace3 beside this checkout), as for
+tools/ace3/yara/compare-scan, and the signatures are its signatures/. Compose reads ACE_RS_STACK and the other ACE_RS_ variables as usual. The checkout must
 be at the commit reference/signatures.json records (`root_commit`); rerun make-hunts when it moves.
 """
 
@@ -25,7 +25,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
-SIGNATURES = (Path(os.environ.get("ACE4_ACE3_CHECKOUT", REPO.parent / "ace3")) / "signatures").resolve()
+SIGNATURES = (Path(os.environ.get("ACE_RS_ACE3_CHECKOUT", REPO.parent / "ace3")) / "signatures").resolve()
 
 
 def main():

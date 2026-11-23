@@ -2,7 +2,7 @@
 //!
 //! The database is read before containment, which can't open it, and a cookie is made from those
 //! bytes in the task. libmagic and the database are the ones ace3's image has, 5.46 (the dev image
-//! and `docker/ace4/Dockerfile` pin both). `file` opens the file by its path, and so does
+//! and `docker/ace-rs/Dockerfile` pin both). `file` opens the file by its path, and so does
 //! `magic_file` here: by a descriptor or a buffer libmagic answers some files differently, an empty
 //! file's mime type among them.
 
@@ -34,7 +34,7 @@ const MAGIC_SYMLINK: c_int = 0x0000002;
 /// `--mime-type`.
 const MAGIC_MIME_TYPE: c_int = 0x0000010;
 
-/// Where ace4's images keep the database, the one `file` reads in ace3's image.
+/// Where ace-rs's images keep the database, the one `file` reads in ace3's image.
 pub const DATABASE: &str = "/usr/lib/file/magic.mgc";
 
 /// What `file` prints: the description, or its mime type.

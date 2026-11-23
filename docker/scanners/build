@@ -7,14 +7,14 @@ files that Dockerfile copies, as ace3's commit has them, pinned as ace3 pins the
 with `git show` from ace3's checkout, writes them into a build context of its own under
 target/scanners/<image>/, and builds:
 
-    ace4-js-deobfuscator:latest    node 26 with webcrack and harness.js
-    ace4-phishkit:latest           Ubuntu 22.04, Chrome, SeleniumBase and scanner.py
+    ace-rs-js-deobfuscator:latest    node 26 with webcrack and harness.js
+    ace-rs-phishkit:latest           Ubuntu 22.04, Chrome, SeleniumBase and scanner.py
 
 so a build here never replaces ace3's own `phishkit` and `js-deobfuscator` images, and nothing in
 ace3's checkout changes. Each image is labelled with the ace3 commit it came from.
 
-ACE4_ACE3_CHECKOUT is ace3's checkout (default: ../ace3 beside this checkout, or
-~/Development/public/ace3), and ACE4_ACE3_COMMIT the commit to build from (default: its HEAD).
+ACE_RS_ACE3_CHECKOUT is ace3's checkout (default: ../ace3 beside this checkout, or
+~/Development/public/ace3), and ACE_RS_ACE3_COMMIT the commit to build from (default: its HEAD).
 
 Usage: docker/scanners/build [js-deobfuscator] [phishkit]     (both by default)
 """
@@ -42,14 +42,14 @@ IMAGES = {
 
 
 def checkout():
-    if "ACE4_ACE3_CHECKOUT" in os.environ:
-        candidates = [Path(os.environ["ACE4_ACE3_CHECKOUT"])]
+    if "ACE_RS_ACE3_CHECKOUT" in os.environ:
+        candidates = [Path(os.environ["ACE_RS_ACE3_CHECKOUT"])]
     else:
         candidates = [REPO.parent / "ace3", Path.home() / "Development" / "public" / "ace3"]
     for candidate in candidates:
         if (candidate / "phishkit" / "Dockerfile.phishkit").exists():
             return candidate
-    sys.exit("scanners: no ace3 checkout; set ACE4_ACE3_CHECKOUT")
+    sys.exit("scanners: no ace3 checkout; set ACE_RS_ACE3_CHECKOUT")
 
 
 def show(ace3, commit, path):
@@ -67,10 +67,10 @@ def build(ace3, commit, name):
         dest = context / path
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(show(ace3, commit, path))
-    tag = f"ace4-{name}:latest"
+    tag = f"ace-rs-{name}:latest"
     print(f"scanners: building {tag} from ace3 {commit[:12]}", flush=True)
     subprocess.run(["docker", "build", "--tag", tag, "--file", str(context / dockerfile),
-                    "--label", f"ace4.scanner.ace3-commit={commit}", str(context)], check=True)
+                    "--label", f"ace-rs.scanner.ace3-commit={commit}", str(context)], check=True)
 
 
 def main():
@@ -79,7 +79,7 @@ def main():
     if unknown:
         sys.exit(f"scanners: no image {', '.join(unknown)}; there are {', '.join(IMAGES)}")
     ace3 = checkout()
-    commit = os.environ.get("ACE4_ACE3_COMMIT") or subprocess.run(
+    commit = os.environ.get("ACE_RS_ACE3_COMMIT") or subprocess.run(
         ["git", "-C", str(ace3), "rev-parse", "HEAD"], check=True, capture_output=True,
         text=True).stdout.strip()
     for name in names:

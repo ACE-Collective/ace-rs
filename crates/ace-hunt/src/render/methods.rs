@@ -757,7 +757,7 @@ fn str_method(s: &str, name: &str, pos: &[Value], kwargs: Option<&Kwargs>) -> Re
         "istitle" => bool_value(!s.is_empty() && title(s) == s && s.chars().any(is_cased)),
         "format" | "format_map" => Err(Error::new(
             ErrorKind::InvalidOperation,
-            "str.format isn't ported (ace4); no hunt template uses it",
+            "str.format isn't ported (ace-rs); no hunt template uses it",
         )),
         _ => Err(Error::new(
             ErrorKind::UndefinedError,

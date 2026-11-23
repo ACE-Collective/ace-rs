@@ -1,5 +1,5 @@
 //! 6.3's comparison with ace3: the calls tools/ace3/hunts/render_templates.py makes, made with
-//! ace4, in the same shape, so `normal::diff` can diff the two.
+//! ace-rs, in the same shape, so `normal::diff` can diff the two.
 //!
 //! A call names one of ace3's rendering functions (render_templates.py lists them), and a result
 //! is the text, `null` for ace3's `None`, `{"undefined": true}` for an UndefinedError that escaped,
@@ -119,7 +119,7 @@ pub fn detail_of(spec: &Map, template: &str) -> SummaryDetail {
     }
 }
 
-/// The cases of templates/cases.yaml rendered with ace4, in render_templates.py's shape: each
+/// The cases of templates/cases.yaml rendered with ace-rs, in render_templates.py's shape: each
 /// case's `path` and `renders`.
 pub fn cases(renderer: &Renderer, cases: &Value) -> Json {
     let mut out = Vec::new();
@@ -141,7 +141,7 @@ pub fn cases(renderer: &Renderer, cases: &Value) -> Json {
         let mut renders = JsonMap::new();
         for call in strings(case.get("calls")) {
             if call == "shared" {
-                // ace4 renders each template against its own copy of the event
+                // ace-rs renders each template against its own copy of the event
                 for (e, event) in events.iter().enumerate() {
                     let first = templates.first().cloned().unwrap_or_default();
                     let second = templates.get(1).cloned().unwrap_or_default();
@@ -353,7 +353,7 @@ pub fn coverage(
 }
 
 /// One hunt of the signatures: ace3's renders reduced to each key's call, templates and result,
-/// and ace4's of the same key, rendering the hunt as ace4 loaded it against the events ace3 used.
+/// and ace-rs's of the same key, rendering the hunt as ace-rs loaded it against the events ace3 used.
 pub fn signature_hunt(
     renderer: &Renderer,
     path: &str,

@@ -15,7 +15,7 @@ module binds (in plaintext, on its configured port), and answers from a director
 Attribute values in the fixture are strings, or {"hex": "..."} for bytes. Every search is written
 to the recording, as its base, scope, filter (in ldap3's string form), attributes and paging, so a
 port's tests can check they ask what ace3 asked. ace_testkit::ldap serves the same fixture the same
-way for ace4's tests.
+way for ace-rs's tests.
 
     python3 -I fake_ldap.py --directory directory.json --port 3890 --record ldap.json --pid-file pid
 """

@@ -13,7 +13,7 @@ Measured on 2026-11-09 on the dev container of `build-loop.md` (Rancher Desktop,
 
 ## The decoder against the Perl
 
-`tools/samples/compare-mse-decoder COUNT SEED` writes the inputs: the 21 fixtures of `tools/ace3/dumps/fixtures/scripts/mse`, the 3 samples under `samples/ace4/scripts`, 27 edge cases written by hand (each step's markers and numbers present, missing, empty or `0`, every escape, an escape at the end, bytes past 0x7f, NUL, two blocks) and COUNT more made from them by a seeded generator, which cuts them short, changes, inserts and deletes bytes, inserts markers, numbers, escapes, newlines and high bytes, and writes random bytes after a start marker. The Perl runs on each in ace3's dev container and the port in ace4's, through `cargo test -p ace-mod-scripts --test reference decoder_outputs -- --ignored`, and the script compares, for each input, the sha256 of what each printed and the message each died with.
+`tools/samples/compare-mse-decoder COUNT SEED` writes the inputs: the 21 fixtures of `tools/ace3/dumps/fixtures/scripts/mse`, the 3 samples under `samples/ace-rs/scripts`, 27 edge cases written by hand (each step's markers and numbers present, missing, empty or `0`, every escape, an escape at the end, bytes past 0x7f, NUL, two blocks) and COUNT more made from them by a seeded generator, which cuts them short, changes, inserts and deletes bytes, inserts markers, numbers, escapes, newlines and high bytes, and writes random bytes after a start marker. The Perl runs on each in ace3's dev container and the port in ace-rs's, through `cargo test -p ace-mod-scripts --test reference decoder_outputs -- --ignored`, and the script compares, for each input, the sha256 of what each printed and the message each died with.
 
 | Seed | Inputs | Died | Printed nothing | Decoded | Differ |
 |---|---|---|---|---|---|
@@ -31,10 +31,10 @@ Of the crafted files below, `big_90mb.vbe`'s decoded script is the Perl's to the
 
 `tools/samples/make-scripts-hostile <dir>` writes the files. In the dev container:
 
-    ACE4_SCRIPTS_HOSTILE=<dir> ACE4_SCRIPTS_MODULE=<module> cargo test -p ace-pool --features test-pools \
+    ACE_RS_SCRIPTS_HOSTILE=<dir> ACE_RS_SCRIPTS_MODULE=<module> cargo test -p ace-pool --features test-pools \
         --test supervisor measure_scripts -- --ignored --nocapture
 
-submits each file whose name starts with the module's to the real supervisor, which runs the module as `ace4-task` under Landlock and seccomp with its limits. 3 runs each, each in a new root under a new name. The time runs from the root's submission to the end of the module's task on the file, so it includes the upload, the lease, the task process's start and the upload of the file the module writes. It's a dev build, unoptimized.
+submits each file whose name starts with the module's to the real supervisor, which runs the module as `ace-rs-task` under Landlock and seccomp with its limits. 3 runs each, each in a new root under a new name. The time runs from the root's submission to the end of the module's task on the file, so it includes the upload, the lease, the task process's start and the upload of the file the module writes. It's a dev build, unoptimized.
 
 | File | Size | Module | End | Files | Seconds, 3 runs |
 |---|---|---|---|---|---|
@@ -63,6 +63,6 @@ The Perl, as ace3's module runs it, in ace3's dev container on the same files, t
 | `high_90mb.vbe` | exit 0 | 11.82 | 8,322 MB |
 | `no_end_90mb.vbe` | dies, `End marker not found` | 0.04 | 184 MB |
 
-The Perl holds about 90 bytes for each byte of the file. In other runs while the VM was busy, the kernel killed it for memory (exit 137) on `big_90mb.vbe`, `escapes_90mb.vbe`, `high_90mb.vbe` and `markers_90mb.vbe`, after it had written part of its output. ace3's `run_tool` returns a killed process as finished, so the module then adds the part written as the decoded script, where ace4 adds all of it.
+The Perl holds about 90 bytes for each byte of the file. In other runs while the VM was busy, the kernel killed it for memory (exit 137) on `big_90mb.vbe`, `escapes_90mb.vbe`, `high_90mb.vbe` and `markers_90mb.vbe`, after it had written part of its output. ace3's `run_tool` returns a killed process as finished, so the module then adds the part written as the decoded script, where ace-rs adds all of it.
 
-ace3's own modules through `tools/ace3/dumps/run_module.py`, one run each, including ace3's start: `vbscript_analyzer` on `hex_90mb.vbs` 6.8 s and on `runs_90mb.vbs` 9.1 s, and `nowhitespace_analyzer` on `mixed_90mb.rtf` 2.6 s, each with the result ace4 gives.
+ace3's own modules through `tools/ace3/dumps/run_module.py`, one run each, including ace3's start: `vbscript_analyzer` on `hex_90mb.vbs` 6.8 s and on `runs_90mb.vbs` 9.1 s, and `nowhitespace_analyzer` on `mixed_90mb.rtf` 2.6 s, each with the result ace-rs gives.

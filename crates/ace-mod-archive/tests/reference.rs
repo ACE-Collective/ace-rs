@@ -72,8 +72,8 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
 }
 
 /// Where ace3 hit the file limit, it picked files in the order its filesystem listed them, and
-/// ace4 picks them in archive order, so the two extract different files. With no limit, every
-/// file ace3 extracted is among ace4's, with the same bytes, except the JAR entries whose CRC
+/// ace-rs picks them in archive order, so the two extract different files. With no limit, every
+/// file ace3 extracted is among ace-rs's, with the same bytes, except the JAR entries whose CRC
 /// doesn't match: ace3's zipfile raised at the end of each one and left it empty.
 #[test]
 fn without_a_limit_every_file_ace3_extracted_matches() {
@@ -106,7 +106,7 @@ fn without_a_limit_every_file_ace3_extracted_matches() {
         for theirs in analysis["observables"].as_array().into_iter().flatten() {
             let path = theirs["file_path"].as_str().expect("a file path");
             let Some((sha256, size)) = ours.get(path) else {
-                // the ACE archive is the one format ace4 doesn't open
+                // the ACE archive is the one format ace-rs doesn't open
                 assert!(dump.name.ends_with(".ace"), "{}: no {path}", dump.name);
                 continue;
             };

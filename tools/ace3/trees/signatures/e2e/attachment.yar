@@ -1,4 +1,4 @@
-rule ace4_e2e_attachment
+rule ace_rs_e2e_attachment
 {
     meta:
         uuid = "4f6e2b9a-0d3c-4e5f-9a8b-7c6d5e4f3a2b"

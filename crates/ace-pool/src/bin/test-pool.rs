@@ -1,5 +1,5 @@
 //! A pool of test modules, for ace-pool's tests (feature `test-pools`). It holds only the lease
-//! API's URL (`ACE4_API_URL`) and its pool's token (`ACE4_POOL_TOKEN`).
+//! API's URL (`ACE_RS_API_URL`) and its pool's token (`ACE_RS_POOL_TOKEN`).
 //!
 //! ```text
 //! test-pool once [--settings JSON]
@@ -24,7 +24,7 @@
 //!     a task process: read a task on stdin, build its module from the settings it carries,
 //!     contain, run it, write its end on stdout
 //! test-pool replay ID [--settings JSON]
-//!     replay task ID uncontained, with ACE4_ADMIN_TOKEN, and print how it ended
+//!     replay task ID uncontained, with ACE_RS_ADMIN_TOKEN, and print how it ended
 //! ```
 //!
 //! `once` exits 0 when it ran a task, 1 when there was none to lease, and 2 on an error.
@@ -128,7 +128,7 @@ fn main() -> ExitCode {
         return ace_pool::tools::tool_main();
     }
     // logs now; span export, which starts threads, once any containment is in place
-    let mut telemetry = ace_pool::telemetry::init("ace4-test-pool", "info");
+    let mut telemetry = ace_pool::telemetry::init("ace-rs-test-pool", "info");
     // a task's process builds the one module its task names, with the settings the task carries
     if std::env::args().nth(1).as_deref() == Some("task") {
         return ace_pool::task_process::main(&ace_pool::testing::registry(), &|_| {
@@ -173,7 +173,7 @@ fn main() -> ExitCode {
         "lookups" => {
             if args.contained {
                 let Some(port) = client.api_port() else {
-                    eprintln!("no port in ACE4_API_URL");
+                    eprintln!("no port in ACE_RS_API_URL");
                     return ExitCode::from(2);
                 };
                 let endpoint = std::env::var(ace_pool::pool::BUCKET_ENDPOINT_VAR).ok();
@@ -268,11 +268,11 @@ fn main() -> ExitCode {
 
 async fn replay(id: String, modules: Arc<Modules>) -> ExitCode {
     let (Ok(base), Ok(token), Ok(id)) = (
-        std::env::var("ACE4_API_URL"),
-        std::env::var("ACE4_ADMIN_TOKEN"),
+        std::env::var("ACE_RS_API_URL"),
+        std::env::var("ACE_RS_ADMIN_TOKEN"),
         id.parse::<i64>(),
     ) else {
-        eprintln!("replay needs a task id, ACE4_API_URL and ACE4_ADMIN_TOKEN");
+        eprintln!("replay needs a task id, ACE_RS_API_URL and ACE_RS_ADMIN_TOKEN");
         return ExitCode::from(2);
     };
     let client = match LeaseClient::new(&base, &token, "replay") {
@@ -282,7 +282,7 @@ async fn replay(id: String, modules: Arc<Modules>) -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    let dir = match tempfile::Builder::new().prefix("ace4-replay-").tempdir() {
+    let dir = match tempfile::Builder::new().prefix("ace-rs-replay-").tempdir() {
         Ok(dir) => dir,
         Err(e) => {
             eprintln!("{e}");

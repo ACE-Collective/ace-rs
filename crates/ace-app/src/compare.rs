@@ -4,7 +4,7 @@
 //!
 //! # Running it
 //!
-//! It needs what `tests/e2e/run` sets up, so that ace4 sees the world ace3's trees saw: the fixture
+//! It needs what `tests/e2e/run` sets up, so that ace-rs sees the world ace3's trees saw: the fixture
 //! signatures repository, `tests/e2e/site/overlay.yaml` and the responder. So that script is how
 //! to run it:
 //!
@@ -16,14 +16,14 @@
 //!
 //! The report goes to `target/e2e/compare/`. With the stack left up, the command runs again in a
 //! one-off `ace` container, with the checkout's directories mounted and the variables that script
-//! gives the stack, and an API key that can submit in `ACE4_API_KEY`, which `ace user create-key` makes.
-//! Without `ACE4_SITE`, the overlay has no Splunk instance, and that module would be skipped.
+//! gives the stack, and an API key that can submit in `ACE_RS_API_KEY`, which `ace user create-key` makes.
+//! Without `ACE_RS_SITE`, the overlay has no Splunk instance, and that module would be skipped.
 //!
 //! ```text
-//! export ACE4_STACK=ace4-e2e ACE4_SITE="$PWD/tests/e2e/site"
-//! export ACE4_API_KEY=$(docker compose exec -T ace ace user create-key compare --grant alert:create \
+//! export ACE_RS_STACK=ace-rs-e2e ACE_RS_SITE="$PWD/tests/e2e/site"
+//! export ACE_RS_API_KEY=$(docker compose exec -T ace ace user create-key compare --grant alert:create \
 //!     | sed -n 's/^token (shown once): //p')
-//! docker compose --profile e2e run --rm --no-deps --user "$(id -u):$(id -g)" -e ACE4_API_KEY \
+//! docker compose --profile e2e run --rm --no-deps --user "$(id -u):$(id -g)" -e ACE_RS_API_KEY \
 //!     -v "$PWD/samples:/compare/samples:ro" -v "$PWD/tools/ace3/trees:/compare/trees:ro" \
 //!     -v "$PWD/target/compare:/compare/report" \
 //!     ace ace compare --samples /compare/samples --trees /compare/trees --report /compare/report
@@ -49,15 +49,15 @@
 //! - *explained*: a row under any heading but these two. The systems differ on purpose or the
 //!   difference is known and harmless.
 //! - *unported*: a row under `## Effects of modules not ported`. What a skipped module adds outside
-//!   its result. A row here only matches what ace3 has and ace4 doesn't, because a module that
-//!   doesn't exist can't have added anything in ace4.
+//!   its result. A row here only matches what ace3 has and ace-rs doesn't, because a module that
+//!   doesn't exist can't have added anything in ace-rs.
 //! - *harness*: a row under `## Harness limits`. The two runs didn't see the same world, so the
 //!   difference says nothing about the port.
 //! - *unexplained*: no row. A port isn't accepted with any of these (`docs/acceptance.md`).
 //!
-//! A row's fourth cell narrows it: `ace4 only` matches only what ace3 doesn't have,
-//! `ace3 holds <text>` only a value of ace3's with that text in it, `ace4 holds <text>` only a value
-//! of ace4's with it, and `same members` only an element of a list that holds the same values on
+//! A row's fourth cell narrows it: `ace-rs only` matches only what ace3 doesn't have,
+//! `ace3 holds <text>` only a value of ace3's with that text in it, `ace-rs holds <text>` only a value
+//! of ace-rs's with it, and `same members` only an element of a list that holds the same values on
 //! both sides, in another order.
 //!
 //! Some files have new bytes each run, on both systems: Ghostscript's rewrite of a PDF, `.gs.pdf`,
@@ -161,7 +161,7 @@ const TREE: &str = "(tree)";
 ///
 /// Run it with `tests/e2e/run --compare`, which sets up the stack it needs and writes the report
 /// to target/e2e/compare/. See crates/ace-app/src/compare.rs for running it against a stack that's
-/// already up. It needs ACE4_DATABASE_URL, ACE4_OVERLAY as the stack has it, and in ACE4_API_KEY an
+/// already up. It needs ACE_RS_DATABASE_URL, ACE_RS_OVERLAY as the stack has it, and in ACE_RS_API_KEY an
 /// API key holding alert:create, which `ace user create-key` makes.
 ///
 /// Differences don't fail it unless --threshold says so. It fails when a sample can't be submitted
@@ -260,7 +260,7 @@ struct SampleResult {
     found: Vec<Found>,
     /// Results of modules not ported, by module.
     skipped: BTreeMap<String, u64>,
-    /// Results compared, by module: how many ace3's tree has and how many ace4's.
+    /// Results compared, by module: how many ace3's tree has and how many ace-rs's.
     compared: BTreeMap<String, (u64, u64)>,
     failed_tasks: Vec<FailedTask>,
 }
@@ -312,11 +312,11 @@ impl Counts {
 enum When {
     Always,
     /// ace3 has nothing there.
-    Ace4Only,
+    AceRsOnly,
     /// ace3's value holds this text.
     Ace3Holds(String),
-    /// ace4's value holds this text.
-    Ace4Holds(String),
+    /// ace-rs's value holds this text.
+    AceRsHolds(String),
     /// The list the difference is an element of holds the same values on each side.
     SameMembers,
 }
@@ -325,13 +325,13 @@ impl When {
     fn parse(row: &Listed) -> Result<When> {
         match row.when.as_deref() {
             None => Ok(When::Always),
-            Some("ace4 only") => Ok(When::Ace4Only),
+            Some("ace-rs only") => Ok(When::AceRsOnly),
             Some("same members") => Ok(When::SameMembers),
             Some(when) => {
                 if let Some(text) = when.strip_prefix("ace3 holds ") {
                     Ok(When::Ace3Holds(text.to_owned()))
-                } else if let Some(text) = when.strip_prefix("ace4 holds ") {
-                    Ok(When::Ace4Holds(text.to_owned()))
+                } else if let Some(text) = when.strip_prefix("ace-rs holds ") {
+                    Ok(When::AceRsHolds(text.to_owned()))
                 } else {
                     Err(anyhow!(
                         "the row for {} has the condition {when:?}",
@@ -346,15 +346,15 @@ impl When {
         match self {
             When::Always => true,
             When::SameMembers => {
-                forms.is_some_and(|(ace3, ace4)| same_members(ace3, ace4, &difference.path))
+                forms.is_some_and(|(ace3, ace_rs)| same_members(ace3, ace_rs, &difference.path))
             }
-            When::Ace4Only => difference.ace3.is_none(),
+            When::AceRsOnly => difference.ace3.is_none(),
             When::Ace3Holds(text) => difference
                 .ace3
                 .as_ref()
                 .is_some_and(|value| value.to_string().contains(text)),
-            When::Ace4Holds(text) => difference
-                .ace4
+            When::AceRsHolds(text) => difference
+                .ace_rs
                 .as_ref()
                 .is_some_and(|value| value.to_string().contains(text)),
         }
@@ -402,8 +402,8 @@ impl Rows {
         let mut class = None;
         for (i, row) in self.listed.iter().enumerate() {
             let row_class = Rows::class_of(row);
-            // what's missing from ace4 is all a module ace4 doesn't have can explain
-            if row_class == Class::Unported && difference.ace4.is_some() {
+            // what's missing from ace-rs is all a module ace-rs doesn't have can explain
+            if row_class == Class::Unported && difference.ace_rs.is_some() {
                 continue;
             }
             if self.when[i].holds(difference, forms)
@@ -432,7 +432,7 @@ impl Rows {
 
 /// Whether the difference at `path` is an element of a list that holds the same values, counted,
 /// in both forms.
-fn same_members(ace3: &Value, ace4: &Value, path: &str) -> bool {
+fn same_members(ace3: &Value, ace_rs: &Value, path: &str) -> bool {
     let Some((parent, index)) = path.rsplit_once('/') else {
         return false;
     };
@@ -440,7 +440,7 @@ fn same_members(ace3: &Value, ace4: &Value, path: &str) -> bool {
         return false;
     }
     let (Some(Value::Array(a)), Some(Value::Array(b))) =
-        (ace3.pointer(parent), ace4.pointer(parent))
+        (ace3.pointer(parent), ace_rs.pointer(parent))
     else {
         return false;
     };
@@ -590,11 +590,11 @@ fn key_volatile_files(form: &mut Value) -> Result<()> {
 fn compare_forms(
     sample: &str,
     mut ace3: Value,
-    mut ace4: Value,
+    mut ace_rs: Value,
     ported: &BTreeSet<String>,
     rows: &mut Rows,
 ) -> Result<SampleResult> {
-    for (who, form) in [("ace3's tree", &ace3), ("ace4's tree", &ace4)] {
+    for (who, form) in [("ace3's tree", &ace3), ("ace-rs's tree", &ace_rs)] {
         if form["form"] != json!(FORM) {
             bail!(
                 "{who} of {sample} is in form {}, and this binary compares form {FORM}",
@@ -604,22 +604,22 @@ fn compare_forms(
     }
     let mut skipped = remove_skipped(&mut ace3, ported);
     key_volatile_files(&mut ace3)?;
-    key_volatile_files(&mut ace4)?;
-    for (module, count) in remove_skipped(&mut ace4, ported) {
+    key_volatile_files(&mut ace_rs)?;
+    for (module, count) in remove_skipped(&mut ace_rs, ported) {
         *skipped.entry(module).or_insert(0) += count;
     }
     let mut compared: BTreeMap<String, (u64, u64)> = BTreeMap::new();
     for (module, count) in results_by_module(&ace3) {
         compared.entry(module).or_default().0 = count;
     }
-    for (module, count) in results_by_module(&ace4) {
+    for (module, count) in results_by_module(&ace_rs) {
         compared.entry(module).or_default().1 = count;
     }
-    let found = diff(&ace3, &ace4)
+    let found = diff(&ace3, &ace_rs)
         .into_iter()
         .map(|difference| Found {
             module: module_of(&difference.path).to_owned(),
-            class: rows.classify_in(sample, &difference, Some((&ace3, &ace4))),
+            class: rows.classify_in(sample, &difference, Some((&ace3, &ace_rs))),
             difference,
         })
         .collect();
@@ -810,19 +810,19 @@ impl Outcome {
     }
 
     /// What was compared of each module on this run: results and the samples that had one, each as
-    /// (ace3's, ace4's). A module with no results on ace3's side was compared with nothing.
+    /// (ace3's, ace-rs's). A module with no results on ace3's side was compared with nothing.
     fn compared_by_module(&self) -> BTreeMap<String, [u64; 4]> {
         let mut modules: BTreeMap<String, [u64; 4]> = BTreeMap::new();
         for module in &self.ported {
             modules.entry(module.clone()).or_default();
         }
         for result in &self.results {
-            for (module, (ace3, ace4)) in &result.compared {
+            for (module, (ace3, ace_rs)) in &result.compared {
                 let entry = modules.entry(module.clone()).or_default();
                 entry[0] += ace3;
-                entry[1] += ace4;
+                entry[1] += ace_rs;
                 entry[2] += u64::from(*ace3 > 0);
-                entry[3] += u64::from(*ace4 > 0);
+                entry[3] += u64::from(*ace_rs > 0);
             }
         }
         modules
@@ -873,7 +873,7 @@ impl Outcome {
                         "class": f.class.name(),
                         "path": f.difference.path,
                         "ace3": kept(&f.difference.ace3),
-                        "ace4": kept(&f.difference.ace4),
+                        "ace-rs": kept(&f.difference.ace_rs),
                     })).collect::<Vec<_>>(),
                 })
             })
@@ -898,8 +898,8 @@ impl Outcome {
             "skipped": self.skipped(),
             "compared_by_module": self.compared_by_module().iter().map(|(module, n)| {
                 (module.clone(), json!({
-                    "ace3_results": n[0], "ace4_results": n[1],
-                    "ace3_samples": n[2], "ace4_samples": n[3],
+                    "ace3_results": n[0], "ace_rs_results": n[1],
+                    "ace3_samples": n[2], "ace_rs_samples": n[3],
                 }))
             }).collect::<Map<_, _>>(),
             "rows": self.rows.listed.iter().zip(&self.rows.matched).map(|(row, matched)| json!({
@@ -921,7 +921,7 @@ impl Outcome {
         writeln!(out, "# ace compare\n")?;
         writeln!(
             out,
-            "ace3 at `{}`; ace4's modules here: {}.\n",
+            "ace3 at `{}`; ace-rs's modules here: {}.\n",
             self.ace3_commit,
             self.ported
                 .iter()
@@ -1007,7 +1007,7 @@ impl Outcome {
         )?;
         writeln!(
             out,
-            "| Module | ace3's results | ace4's results | Samples with one in ace3 | In ace4 |\n\
+            "| Module | ace3's results | ace-rs's results | Samples with one in ace3 | In ace-rs |\n\
              |---|---:|---:|---:|---:|"
         )?;
         for (module, n) in self.compared_by_module() {
@@ -1022,7 +1022,7 @@ impl Outcome {
         writeln!(out, "## Modules skipped\n")?;
         writeln!(
             out,
-            "ace3's trees have results from these, and ace4 has no such module, so they aren't \
+            "ace3's trees have results from these, and ace-rs has no such module, so they aren't \
              compared.\n"
         )?;
         writeln!(out, "| Module | Results |\n|---|---:|")?;
@@ -1122,10 +1122,10 @@ impl Outcome {
             {
                 writeln!(
                     out,
-                    "- `{}`\n  - ace3: `{}`\n  - ace4: `{}`",
+                    "- `{}`\n  - ace3: `{}`\n  - ace-rs: `{}`",
                     found.difference.path,
                     shown(&found.difference.ace3, SHOWN_LIMIT),
-                    shown(&found.difference.ace4, SHOWN_LIMIT)
+                    shown(&found.difference.ace_rs, SHOWN_LIMIT)
                 )?;
             }
             out.push('\n');
@@ -1149,11 +1149,11 @@ fn threshold_failures(outcome: &Outcome) -> Vec<String> {
             .filter(|f| f.class == Class::Unexplained)
         {
             failures.push(format!(
-                "{}: not in differences.md: {}\n    ace3: {}\n    ace4: {}",
+                "{}: not in differences.md: {}\n    ace3: {}\n    ace-rs: {}",
                 result.path,
                 found.difference.path,
                 shown(&found.difference.ace3, 300),
-                shown(&found.difference.ace4, 300)
+                shown(&found.difference.ace_rs, 300)
             ));
         }
     }
@@ -1216,8 +1216,8 @@ pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
     std::fs::create_dir_all(&args.report)
         .with_context(|| format!("making {}", args.report.display()))?;
 
-    let token = std::env::var("ACE4_API_KEY").context(
-        "ACE4_API_KEY isn't set: make a key with `ace user create-key NAME --grant alert:create`",
+    let token = std::env::var("ACE_RS_API_KEY").context(
+        "ACE_RS_API_KEY isn't set: make a key with `ace user create-key NAME --grant alert:create`",
     )?;
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -1298,7 +1298,7 @@ pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
                 let mut result = compare_forms(
                     &sample.path,
                     ran.ace3,
-                    ran.ace4,
+                    ran.ace_rs,
                     &outcome.ported,
                     &mut outcome.rows,
                 )?;
@@ -1387,7 +1387,7 @@ pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
 struct Ran {
     root: Uuid,
     ace3: Value,
-    ace4: Value,
+    ace_rs: Value,
     failed_tasks: Vec<FailedTask>,
 }
 
@@ -1442,14 +1442,14 @@ async fn run_through(
         );
     }
     let ace3 = read_json(tree)?;
-    let (root, ace4) = stack.run_sample(sample, &bytes, limit).await?;
+    let (root, ace_rs) = stack.run_sample(sample, &bytes, limit).await?;
     let failed_tasks = failed_tasks(&stack.db, root)
         .await
         .with_context(|| format!("reading root {root}'s failed tasks"))?;
     Ok(Ran {
         root,
         ace3,
-        ace4,
+        ace_rs,
         failed_tasks,
     })
 }
@@ -1501,10 +1501,10 @@ mod tests {
             "file_type": {"summary": "zip"},
             "archive": {"summary": "same"},
         }}}));
-        let ace4 = form(json!({"file:a": {"results": {"archive": {"summary": "same"}}}}));
+        let ace_rs = form(json!({"file:a": {"results": {"archive": {"summary": "same"}}}}));
         let mut rows = listed(&[]);
         let result =
-            compare_forms("s", ace3, ace4, &ported(&["archive"]), &mut rows).expect("compares");
+            compare_forms("s", ace3, ace_rs, &ported(&["archive"]), &mut rows).expect("compares");
         assert!(result.found.is_empty(), "{:?}", result.found);
         assert_eq!(
             result.skipped,
@@ -1518,10 +1518,10 @@ mod tests {
             "file:a": {"results": {"archive": {}, "file_type": {}}},
             "file:b": {"results": {"archive": {}}},
         }});
-        let ace4 = json!({"form": 1, "observables": {"file:a": {"results": {"archive": {}}}}});
+        let ace_rs = json!({"form": 1, "observables": {"file:a": {"results": {"archive": {}}}}});
         let mut rows = listed(&[]);
         let result =
-            compare_forms("s", ace3, ace4, &ported(&["archive"]), &mut rows).expect("compares");
+            compare_forms("s", ace3, ace_rs, &ported(&["archive"]), &mut rows).expect("compares");
         assert_eq!(
             result.compared,
             BTreeMap::from([("archive".to_owned(), (2, 1))])
@@ -1529,12 +1529,12 @@ mod tests {
     }
 
     #[test]
-    fn a_ported_module_missing_from_ace4_is_its_difference() {
+    fn a_ported_module_missing_from_ace_rs_is_its_difference() {
         let ace3 = form(json!({"file:a": {"results": {"archive": {"summary": "x"}}}}));
-        let ace4 = form(json!({"file:a": {"results": {}}}));
+        let ace_rs = form(json!({"file:a": {"results": {}}}));
         let mut rows = listed(&[]);
         let result =
-            compare_forms("s", ace3, ace4, &ported(&["archive"]), &mut rows).expect("compares");
+            compare_forms("s", ace3, ace_rs, &ported(&["archive"]), &mut rows).expect("compares");
         assert_eq!(result.found.len(), 1);
         assert_eq!(result.found[0].module, "archive");
         assert_eq!(result.found[0].class, Class::Unexplained);
@@ -1571,7 +1571,7 @@ mod tests {
                 "archive": {"details": {"x": 1, "y": 1}},
             },
         }}));
-        let ace4 = form(json!({"file:a": {
+        let ace_rs = form(json!({"file:a": {
             "tags": {},
             "results": {
                 "rdap_analyzer": {"summary": "404"},
@@ -1581,7 +1581,7 @@ mod tests {
         let result = compare_forms(
             "s",
             ace3,
-            ace4,
+            ace_rs,
             &ported(&["archive", "rdap_analyzer"]),
             &mut rows,
         )
@@ -1612,11 +1612,11 @@ mod tests {
     }
 
     #[test]
-    fn a_module_not_ported_only_explains_what_ace4_lacks() {
+    fn a_module_not_ported_only_explains_what_ace_rs_lacks() {
         let mut rows = listed(&[("*", "/observables/*/tags/zip", Some(UNPORTED_SECTION))]);
         let ace3 = form(json!({"file:a": {"tags": {}}}));
-        let ace4 = form(json!({"file:a": {"tags": {"zip": true}}}));
-        let result = compare_forms("s", ace3, ace4, &ported(&[]), &mut rows).expect("compares");
+        let ace_rs = form(json!({"file:a": {"tags": {"zip": true}}}));
+        let result = compare_forms("s", ace3, ace_rs, &ported(&[]), &mut rows).expect("compares");
         assert_eq!(result.found[0].class, Class::Unexplained);
         assert_eq!(rows.matched, [0]);
     }
@@ -1676,17 +1676,17 @@ mod tests {
             }],
         })
         .expect("the condition reads");
-        let difference = |ace3: Value, ace4: Value| Difference {
+        let difference = |ace3: Value, ace_rs: Value| Difference {
             path: "/l/0".to_owned(),
             ace3: Some(ace3),
-            ace4: Some(ace4),
+            ace_rs: Some(ace_rs),
         };
-        let (ace3, ace4) = (json!({"l": ["a", "b"]}), json!({"l": ["b", "a"]}));
+        let (ace3, ace_rs) = (json!({"l": ["a", "b"]}), json!({"l": ["b", "a"]}));
         assert_eq!(
             rows.classify_in(
                 "s",
                 &difference(json!("a"), json!("b")),
-                Some((&ace3, &ace4))
+                Some((&ace3, &ace_rs))
             ),
             Class::Explained
         );
@@ -1709,9 +1709,9 @@ mod tests {
     fn a_row_s_condition_narrows_it() {
         let mut rows = Rows::new(ListedDifferences {
             rows: [
-                ("/a", "ace4 only"),
+                ("/a", "ace-rs only"),
                 ("/b", "ace3 holds nothing recorded"),
-                ("/c", "ace4 holds .gs.pdf"),
+                ("/c", "ace-rs holds .gs.pdf"),
             ]
             .map(|(path, when)| Listed {
                 dumps: "*".to_owned(),
@@ -1723,10 +1723,10 @@ mod tests {
             .to_vec(),
         })
         .expect("conditions read");
-        let difference = |path: &str, ace3: Option<Value>, ace4: Option<Value>| Difference {
+        let difference = |path: &str, ace3: Option<Value>, ace_rs: Option<Value>| Difference {
             path: path.to_owned(),
             ace3,
-            ace4,
+            ace_rs,
         };
         assert_eq!(
             rows.classify("s", &difference("/a", None, Some(json!(1)))),
@@ -1798,7 +1798,7 @@ mod tests {
         let difference = Difference {
             path: "/used".to_owned(),
             ace3: None,
-            ace4: None,
+            ace_rs: None,
         };
         rows.classify("ace3/a", &difference);
         let stale: Vec<&str> = rows

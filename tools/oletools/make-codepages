@@ -2,8 +2,8 @@
 """Writes crates/ace-mod-oletools/src/codepage_tables.{rs,bin}: what Python's codecs say of every code
 page oletools can name, so the port decodes a VBA project's text as Python does, 'replace' included.
 
-    docker build -f docker/ace4/Dockerfile --target python-libraries -t ace4-python-libraries:latest .
-    docker run --rm -i -v "$PWD:/w" -w /w ace4-python-libraries:latest python -I tools/oletools/make-codepages
+    docker build -f docker/ace-rs/Dockerfile --target python-libraries -t ace-rs-python-libraries:latest .
+    docker run --rm -i -v "$PWD:/w" -w /w ace-rs-python-libraries:latest python -I tools/oletools/make-codepages
 
 Each byte of a single-byte codec maps to a BMP character or to U+FFFD. Each lead byte of a multibyte
 codec has 256 entries, by trail byte: a BMP character, or 0xFFFF where Python's error covers one byte

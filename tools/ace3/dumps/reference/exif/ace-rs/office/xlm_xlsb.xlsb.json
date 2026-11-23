@@ -1,0 +1,126 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:21 15:12:03+00:00",
+          "File:FileInodeChangeDate": "2026:11:21 15:12:03+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
+          "File:FileName": "xlm_xlsb.xlsb",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 2435,
+          "File:FileType": "XLSB",
+          "File:FileTypeExtension": "XLSB",
+          "File:MIMEType": "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
+          "SourceFile": "<root>/files/xlm_xlsb.xlsb",
+          "ZIP:ZipBitFlag": 0,
+          "ZIP:ZipCRC": 2175702475,
+          "ZIP:ZipCompressedSize": 587,
+          "ZIP:ZipCompression": 0,
+          "ZIP:ZipFileName": "[Content_Types].xml",
+          "ZIP:ZipModifyDate": "2020:01:01 00:00:00",
+          "ZIP:ZipRequiredVersion": 20,
+          "ZIP:ZipUncompressedSize": 587
+        },
+        "output_dir": "<root>/files/xlm_xlsb.xlsb.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "xlm_xlsb.xlsb.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "a1021c3991487674597bfd9db6b9859d36e3b713ba220f381994caac53c12360"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 865,
+          "tags": [],
+          "type": "file",
+          "value": "0d5bf36a59d1b9deccb5f643b6ef29cf2f75a24ee1a98a109c500c6fc61215f4",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=0, ZipModifyDate=2020:01:01 00:00:00, ZipCRC=2175702475, ZipCompressedSize=587, ZipUncompressedSize=587, ZipFileName=[Content_Types].xml",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "type": "Microsoft Excel 2007+"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Microsoft Excel 2007+ (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) (ms office document) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/xlm_xlsb.xlsb",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "xlm_xlsb.xlsb",
+      "size": 2435,
+      "type": "file",
+      "value": "a1021c3991487674597bfd9db6b9859d36e3b713ba220f381994caac53c12360"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "xlm_xlsb.xlsb",
+    "relationships": [],
+    "size": 2435,
+    "tags": [
+      "microsoft_office",
+      "zip"
+    ],
+    "type": "file",
+    "value": "a1021c3991487674597bfd9db6b9859d36e3b713ba220f381994caac53c12360",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -3,10 +3,10 @@
 //! matches (2.27), the worker that runs the core's hooks at the end of a root's pass (7.6,
 //! `ace_core::hooks`), the worker that routes an alert to its queue when its pass completes (7.13,
 //! `ace_service::routing`), the indexer that keeps an alert's text searchable (7.11, `ace_search`,
-//! `ace_service::search`) when `ACE4_SEARCH_MODEL` names the embedding model's directory, the
+//! `ace_service::search`) when `ACE_RS_SEARCH_MODEL` names the embedding model's directory, the
 //! scheduler of ace3's maintenance tasks (6.7, `crate::scheduler`), and the ruleset
-//! builder (2.25) when `ACE4_SIGNATURES_REPO` names the signatures repository's checkout
-//! (`SignatureRepo::from_env`), every `ACE4_RULESET_POLL_SECONDS` (60), and SVS's YARA validation workers
+//! builder (2.25) when `ACE_RS_SIGNATURES_REPO` names the signatures repository's checkout
+//! (`SignatureRepo::from_env`), every `ACE_RS_RULESET_POLL_SECONDS` (60), and SVS's YARA validation workers
 //! (7.10 batch 3, `ace_core::svs::validations`) when the overlay's `svs.yara` names a repository, each
 //! validation's scans in this binary again, contained.
 //!
@@ -14,12 +14,12 @@
 //! `ace serve` already holds, and no data source's secret. Every replica runs it, and the tasks'
 //! rows in Postgres give each due run to one of them.
 //!
-//! It reads `ACE4_DATABASE_URL`, the `ACE4_BUCKET_*` variables, the pools and their tokens
-//! (`ACE4_POOLS`, by default the binary's own; `ACE4_POOL_TOKEN_<POOL>`, see `ApiConfig::from_env`),
-//! `ACE4_API_LISTEN` for the lease API (default `0.0.0.0:8080`), `ACE4_WEB_LISTEN` for the JSON API and
-//! the GUI (default `0.0.0.0:8000`), `ACE4_WEB_TLS` (`false`), `ACE4_MAX_SUBMISSION_BYTES` (1 GiB), `ACE4_CACHE_DIR` for the node's bucket
-//! cache, the site overlay at `ACE4_OVERLAY` (`site`), and the email archive's key in
-//! `ACE4_ENCRYPTION_KEY`, 64 hex digits, with its retention (`ace_core::email_archive::ArchiveConfig`).
+//! It reads `ACE_RS_DATABASE_URL`, the `ACE_RS_BUCKET_*` variables, the pools and their tokens
+//! (`ACE_RS_POOLS`, by default the binary's own; `ACE_RS_POOL_TOKEN_<POOL>`, see `ApiConfig::from_env`),
+//! `ACE_RS_API_LISTEN` for the lease API (default `0.0.0.0:8080`), `ACE_RS_WEB_LISTEN` for the JSON API and
+//! the GUI (default `0.0.0.0:8000`), `ACE_RS_WEB_TLS` (`false`), `ACE_RS_MAX_SUBMISSION_BYTES` (1 GiB), `ACE_RS_CACHE_DIR` for the node's bucket
+//! cache, the site overlay at `ACE_RS_OVERLAY` (`site`), and the email archive's key in
+//! `ACE_RS_ENCRYPTION_KEY`, 64 hex digits, with its retention (`ace_core::email_archive::ArchiveConfig`).
 //! Only this process holds the key: the core seals and opens archived emails for the workers, which
 //! never see it.
 //!
@@ -31,7 +31,7 @@
 //! prefixes would expose the lease API, and its `/api/admin/v1` replay, wherever people reach ACE.
 //! 5.7's GUI (`ace-gui`) joins the JSON API's listener, so its pages and the API share an origin and a
 //! cookie. Its session cookie is `Transport::Plain` until TLS comes (PLAN.md's Deferred), and then
-//! `ACE4_WEB_TLS=true` (`WebConfig::transport`) turns on `Secure` for both.
+//! `ACE_RS_WEB_TLS=true` (`WebConfig::transport`) turns on `Secure` for both.
 
 use std::process::ExitCode;
 use std::time::Duration;
@@ -70,9 +70,9 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .await
         .context("connecting to Postgres")?;
     db.migrate().await.context("migrating")?;
-    let cache_dir = std::env::var("ACE4_CACHE_DIR")
+    let cache_dir = std::env::var("ACE_RS_CACHE_DIR")
         .map(std::path::PathBuf::from)
-        .unwrap_or_else(|_| std::env::temp_dir().join("ace4-cache"));
+        .unwrap_or_else(|_| std::env::temp_dir().join("ace-rs-cache"));
     let store = Store::new(
         &BucketConfig::from_env()?,
         NodeCache::new(&cache_dir, DEFAULT_CACHE_MAX_BYTES)
@@ -86,7 +86,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .context("the email archive's settings")?;
     if archive_config.key.is_none() {
         tracing::warn!(
-            "ACE4_ENCRYPTION_KEY isn't set: the email archive can't archive or open an email"
+            "ACE_RS_ENCRYPTION_KEY isn't set: the email archive can't archive or open an email"
         );
     }
     let archive = ace_core::email_archive::EmailArchive::new(
@@ -190,7 +190,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let takes = ace_core::takes::TakesMode::from_env().map_err(anyhow::Error::msg)?;
     if takes == ace_core::takes::TakesMode::Audit {
         tracing::warn!(
-            "ACE4_TAKES_AUDIT is set: every task is queued, and the ones a module's declaration declines are marked"
+            "ACE_RS_TAKES_AUDIT is set: every task is queued, and the ones a module's declaration declines are marked"
         );
     }
     for component in components.iter().filter(|c| !c.takes.is_everything()) {
@@ -339,12 +339,13 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let hooks_orchestrator = orchestrator.clone();
     let api = Api::new(db.clone(), bucket.clone(), orchestrator, config).await?;
     let stopping_api = api.clone();
-    let listen = std::env::var("ACE4_API_LISTEN").unwrap_or_else(|_| "0.0.0.0:8080".to_owned());
+    let listen = std::env::var("ACE_RS_API_LISTEN").unwrap_or_else(|_| "0.0.0.0:8080".to_owned());
     let listener = tokio::net::TcpListener::bind(&listen)
         .await
         .with_context(|| format!("binding {listen}"))?;
     eprintln!("ace: the lease API listens on {listen}");
-    let web_listen = std::env::var("ACE4_WEB_LISTEN").unwrap_or_else(|_| "0.0.0.0:8000".to_owned());
+    let web_listen =
+        std::env::var("ACE_RS_WEB_LISTEN").unwrap_or_else(|_| "0.0.0.0:8000".to_owned());
     let web_listener = tokio::net::TcpListener::bind(&web_listen)
         .await
         .with_context(|| format!("binding {web_listen}"))?;
@@ -385,7 +386,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let scheduler = tokio::spawn(scheduler.run(stop.clone()));
     let validators = validators.map(|workers| tokio::spawn(workers.run(stop.clone())));
     let builder = signatures.map(|repo| {
-        let every = std::env::var("ACE4_RULESET_POLL_SECONDS")
+        let every = std::env::var("ACE_RS_RULESET_POLL_SECONDS")
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(60);

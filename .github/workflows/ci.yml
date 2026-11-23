@@ -18,7 +18,7 @@ jobs:
       # ace-yara links libmagic and checks its answers against the magic database the dev
       # image pins (PLAN.md 1.7), so every step runs in the dev image.
       - name: Build the dev image
-        run: docker build -t ace4-dev:ci -t ace4-dev:latest docker/dev
+        run: docker build -t ace-rs-dev:ci -t ace-rs-dev:latest docker/dev
 
       # ace-core's, ace-service's, ace-api's, ace-store's and ace-pool's tests need Postgres and the bucket, ace-pool's
       # telemetry test needs the telemetry profile's collector, and the sqlx check needs
@@ -28,10 +28,10 @@ jobs:
         run: docker compose --profile telemetry up -d --wait postgres bucket collector
 
       - name: cargo fmt
-        run: docker run --rm -v "$PWD:/workspace" -w /workspace ace4-dev:ci cargo fmt --all --check
+        run: docker run --rm -v "$PWD:/workspace" -w /workspace ace-rs-dev:ci cargo fmt --all --check
 
       - name: cargo clippy
-        run: docker run --rm -v "$PWD:/workspace" -w /workspace ace4-dev:ci cargo clippy --workspace --all-targets --locked -- -D warnings
+        run: docker run --rm -v "$PWD:/workspace" -w /workspace ace-rs-dev:ci cargo clippy --workspace --all-targets --locked -- -D warnings
 
       # nextest runs tests of different test programs at once; it doesn't run doctests.
       - name: cargo nextest
@@ -48,9 +48,9 @@ jobs:
 
       # Fails when ace-results, ace-api, ace-gui or ace-search depends on an ace-mod-* crate.
       - name: Layering check
-        run: docker run --rm -v "$PWD:/workspace" -w /workspace ace4-dev:ci cargo run --locked --quiet -p ace-layering
+        run: docker run --rm -v "$PWD:/workspace" -w /workspace ace-rs-dev:ci cargo run --locked --quiet -p ace-layering
 
-  # PLAN.md 2.30: the end-to-end test, against the images docker/ace4/Dockerfile builds, under
+  # PLAN.md 2.30: the end-to-end test, against the images docker/ace-rs/Dockerfile builds, under
   # a Compose project of its own. It makes its own signatures repository and replays recorded
   # RDAP and Splunk APIs, so it reaches nothing outside the runner.
   e2e:

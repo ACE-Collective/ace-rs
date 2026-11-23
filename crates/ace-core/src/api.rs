@@ -29,13 +29,13 @@
 //! - `GET /api/worker/v1/yara/ruleset`: the ruleset YARA pools should scan with, the latest the
 //!   core built (PLAN.md 2.26), with a presigned URL for its bytes; 204 before the first build.
 //! - `POST /api/worker/v1/commands/lease`: a GUI command (PLAN.md 5.12), for a pool whose list in
-//!   `ACE4_POOLS` has `@commands`, or 204 after waiting. Its claim starts its clock, and the answer says
+//!   `ACE_RS_POOLS` has `@commands`, or 204 after waiting. Its claim starts its clock, and the answer says
 //!   how long it has until its deadline.
 //! - `POST /api/worker/v1/commands/<id>/report`: the command's output so far, which renews its lease; the
 //!   answer says whether it was cancelled.
 //! - `POST /api/worker/v1/commands/<id>/end`: how the command ended, with all it wrote.
 //! - `POST /api/worker/v1/scans/lease`: a scan (PLAN.md 7.7, `scans.rs`) of a scanner the pool's list in
-//!   `ACE4_POOLS` names as `@scan/<scanner>`, or 204 after waiting, with a presigned URL for each input.
+//!   `ACE_RS_POOLS` names as `@scan/<scanner>`, or 204 after waiting, with a presigned URL for each input.
 //!   Its claim starts its clock, and the answer says how long it has until its deadline.
 //! - `POST /api/worker/v1/scans/<id>/renew`: extends the scan's lease; the answer says whether its root
 //!   was cancelled.
@@ -45,7 +45,7 @@
 //!   the root, and wakes the task. A task's delay can carry the scan it waits for (`TaskEnd::Delay`):
 //!   each input the module wrote is uploaded first, as a result's files are.
 //! - `POST /api/worker/v1/actions/lease`: an action (PLAN.md 7.9, `actions.rs`) of a handler the pool's
-//!   list in `ACE4_POOLS` names as `@<kind>/<name>`, or 204 after waiting. An action past its deadline,
+//!   list in `ACE_RS_POOLS` names as `@<kind>/<name>`, or 204 after waiting. An action past its deadline,
 //!   or a check another source confirmed first, is ended here without being handed out.
 //! - `POST /api/worker/v1/actions/<id>/renew`: extends the action's lease; the answer says whether
 //!   someone cancelled it, in which case the pool sends no end.
@@ -70,7 +70,7 @@
 //!   token and no lease.
 //!
 //! Every request carries `Authorization: Bearer <token>`, and the token says which pool the
-//! worker is in. A task-scoped request also names the worker in `x-ace4-worker`. A task's lease
+//! worker is in. A task-scoped request also names the worker in `x-ace-rs-worker`. A task's lease
 //! owner is `<pool>/<worker>`, so one pool's token can't touch another pool's tasks, and one
 //! worker can't end another worker's.
 
@@ -111,11 +111,11 @@ use crate::queue::{HELD_BACK_BY, QueueError, TASKS_CHANNEL, Task, TaskId, Worker
 use crate::scans::{EndedScan, ScanRowState, ScanWorker};
 use crate::tree::{self, PATH_HOLD_LIMIT};
 
-/// What a pool's list in `ACE4_POOLS` names a scanner it runs with (`ace_sdk::scanners::pool_entry`).
+/// What a pool's list in `ACE_RS_POOLS` names a scanner it runs with (`ace_sdk::scanners::pool_entry`).
 const SCAN_PREFIX: &str = "@scan/";
 
 /// The header a task-scoped request names its worker in.
-pub const WORKER_HEADER: &str = "x-ace4-worker";
+pub const WORKER_HEADER: &str = "x-ace-rs-worker";
 
 /// How long a task that runs last first waits for the rest of its root, doubling up to 32 s while the
 /// same thing holds it back (`tree::HeldBack`). Every file has one, so it starts low: most roots are
@@ -137,7 +137,7 @@ enum Choose {
 }
 
 /// The target of the lease's timing events: one a claimed task from the core and one a lease request
-/// from a pool, at debug, so `ACE4_LOG=info,ace_lease=debug` turns them on
+/// from a pool, at debug, so `ACE_RS_LOG=info,ace_lease=debug` turns them on
 /// (`docs/measurements/lease.md`).
 pub const LEASE_TIMING: &str = "ace_lease";
 
@@ -339,20 +339,20 @@ impl ApiConfig {
         self
     }
 
-    /// The pools in `ACE4_POOLS`, as `<pool>:<module>,<module>;<pool>:...`, each with the
-    /// token in `ACE4_POOL_TOKEN_<POOL>`, the admin token in `ACE4_ADMIN_TOKEN`, and the lease's
-    /// length in `ACE4_LEASE_SECONDS` (60), and the snort rules in `ACE4_SNORT_RULES`. Each has a
+    /// The pools in `ACE_RS_POOLS`, as `<pool>:<module>,<module>;<pool>:...`, each with the
+    /// token in `ACE_RS_POOL_TOKEN_<POOL>`, the admin token in `ACE_RS_ADMIN_TOKEN`, and the lease's
+    /// length in `ACE_RS_LEASE_SECONDS` (60), and the snort rules in `ACE_RS_SNORT_RULES`. Each has a
     /// dev default: `default_pools`, the binary's own pools and their modules in the same form,
-    /// and tokens named `ace4-dev-<pool>-token`.
+    /// and tokens named `ace-rs-dev-<pool>-token`.
     pub fn from_env(default_pools: &str) -> Self {
-        let pools = std::env::var("ACE4_POOLS").unwrap_or_else(|_| default_pools.to_owned());
+        let pools = std::env::var("ACE_RS_POOLS").unwrap_or_else(|_| default_pools.to_owned());
         let pools = pools
             .split(';')
             .filter_map(|pool| pool.split_once(':'))
             .map(|(name, modules)| {
                 let name = name.trim();
-                let token = std::env::var(format!("ACE4_POOL_TOKEN_{}", name.to_uppercase()))
-                    .unwrap_or_else(|_| format!("ace4-dev-{name}-token"));
+                let token = std::env::var(format!("ACE_RS_POOL_TOKEN_{}", name.to_uppercase()))
+                    .unwrap_or_else(|_| format!("ace-rs-dev-{name}-token"));
                 let modules = modules
                     .split(',')
                     .map(|m| m.trim().to_owned())
@@ -361,23 +361,23 @@ impl ApiConfig {
                 PoolAccess::new(name, &token, modules)
             })
             .collect();
-        let admin =
-            std::env::var("ACE4_ADMIN_TOKEN").unwrap_or_else(|_| "ace4-dev-admin-token".to_owned());
+        let admin = std::env::var("ACE_RS_ADMIN_TOKEN")
+            .unwrap_or_else(|_| "ace-rs-dev-admin-token".to_owned());
         let mut config = ApiConfig::new(pools).admin_token(&admin);
-        if let Some(seconds) = std::env::var("ACE4_LEASE_SECONDS")
+        if let Some(seconds) = std::env::var("ACE_RS_LEASE_SECONDS")
             .ok()
             .and_then(|s| s.parse::<u64>().ok())
         {
             config = config.lease(Duration::from_secs(seconds));
         }
-        if let Some(path) = std::env::var_os("ACE4_SNORT_RULES").filter(|p| !p.is_empty()) {
+        if let Some(path) = std::env::var_os("ACE_RS_SNORT_RULES").filter(|p| !p.is_empty()) {
             config = config.snort_rules(path);
         }
         config
     }
 
     /// Lets each pool lease every instance of a module it lists (PLAN.md 2.23): a pool's list in
-    /// `ACE4_POOLS` names module types, and an instance's tasks carry the instance's key.
+    /// `ACE_RS_POOLS` names module types, and an instance's tasks carry the instance's key.
     pub fn with_instances(mut self, catalog: &crate::eligibility::Catalog) -> Self {
         for pool in &mut self.pools {
             for component in catalog.iter() {
@@ -565,7 +565,7 @@ impl Api {
         self.inner.orchestrator.clone()
     }
 
-    /// The pool a command request comes from, as a command worker named by `x-ace4-worker` or `name`.
+    /// The pool a command request comes from, as a command worker named by `x-ace-rs-worker` or `name`.
     fn command_worker(
         &self,
         headers: &HeaderMap,
@@ -595,7 +595,7 @@ impl Api {
         ))
     }
 
-    /// The pool a scan request comes from, as a scan worker named by `x-ace4-worker` or `name`, and
+    /// The pool a scan request comes from, as a scan worker named by `x-ace-rs-worker` or `name`, and
     /// the scanners it runs.
     fn scan_worker(
         &self,
@@ -629,7 +629,7 @@ impl Api {
         ))
     }
 
-    /// The pool an action request comes from, as an action worker named by `x-ace4-worker` or `name`,
+    /// The pool an action request comes from, as an action worker named by `x-ace-rs-worker` or `name`,
     /// and the handlers it runs.
     #[allow(clippy::type_complexity)]
     fn action_worker(
@@ -2986,7 +2986,7 @@ mod tests {
     use crate::eligibility::Catalog;
 
     /// A pool that lists a module leases the overlay's instances of it, which `ace serve`
-    /// couldn't before: the default `ACE4_POOLS` names `splunk_api`, and an instance's tasks
+    /// couldn't before: the default `ACE_RS_POOLS` names `splunk_api`, and an instance's tasks
     /// carry the instance's key.
     #[test]
     fn a_pool_leases_the_instances_of_its_modules() {

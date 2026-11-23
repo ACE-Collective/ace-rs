@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Checks that ace4's Compose stack can run beside ace3's on one Docker host.
+"""Checks that ace-rs's Compose stack can run beside ace3's on one Docker host.
 
 Reads `docker compose config --format json` and fails on anything PLAN.md's
 "Running beside ace3" rules out:
 
 - the project name `ace`, which is ace3's
-- a published host port in ace3's fixed list, or one not set from an ACE4_ variable
-- an image name that ace3 builds, or an image ace4 builds that isn't named ace4-*
+- a published host port in ace3's fixed list, or one not set from an ACE_RS_ variable
+- an image name that ace3 builds, or an image ace-rs builds that isn't named ace-rs-*
 - a container_name
 - an explicitly named or external volume or network
 - the fluentd log driver
@@ -34,12 +34,12 @@ ACE3_PROJECT = "ace"
 ACE3_PORTS = {5000, 5001, 8443, 9443, 24224}
 # The images ace3's own docker compose build produces.
 ACE3_IMAGES = {"ace3", "phishkit", "phishkit-manager", "js-deobfuscator", "js-deobfuscator-manager"}
-ACE4_IMAGE_PREFIX = "ace4-"
+ACE_RS_IMAGE_PREFIX = "ace-rs-"
 # A project name no real stack uses. Rendering under it shows which volume and network
 # names Compose derives from the project name and which are fixed.
-PROBE_PROJECT = "ace4-coexistence-probe"
-# A published port that comes from one ACE4_ variable, such as ${ACE4_PORT_HTTPS:-7443}.
-ACE4_VARIABLE = re.compile(r"^\$\{?ACE4_[A-Z0-9_]*(:?-[^}]*)?\}?$")
+PROBE_PROJECT = "ace-rs-coexistence-probe"
+# A published port that comes from one ACE_RS_ variable, such as ${ACE_RS_PORT_HTTPS:-7443}.
+ACE_RS_VARIABLE = re.compile(r"^\$\{?ACE_RS_[A-Z0-9_]*(:?-[^}]*)?\}?$")
 VARIABLE = re.compile(r"\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_]*")
 
 
@@ -100,7 +100,7 @@ def check(config, raw, probe):
     problems = []
     if config.get("name") == ACE3_PROJECT:
         problems.append(
-            f"the project name is {ACE3_PROJECT!r}, which is ace3's; set ACE4_STACK and "
+            f"the project name is {ACE3_PROJECT!r}, which is ace3's; set ACE_RS_STACK and "
             "unset COMPOSE_PROJECT_NAME"
         )
 
@@ -117,18 +117,18 @@ def check(config, raw, probe):
         raw_service = raw.get("services", {}).get(service_name, {})
         for port in raw_service.get("ports", []):
             host_port = raw_published(port)
-            if host_port and not ACE4_VARIABLE.match(host_port):
+            if host_port and not ACE_RS_VARIABLE.match(host_port):
                 problems.append(
-                    f"{where}: host port {host_port!r} is not set from an ACE4_ variable; "
-                    "publish on an ephemeral port or use ${ACE4_PORT_...}"
+                    f"{where}: host port {host_port!r} is not set from an ACE_RS_ variable; "
+                    "publish on an ephemeral port or use ${ACE_RS_PORT_...}"
                 )
 
         image = service.get("image")
         if image and image_name(image) in ACE3_IMAGES:
             problems.append(f"{where}: image {image!r} has a name that ace3 builds")
-        if "build" in service and not (image and image_name(image).startswith(ACE4_IMAGE_PREFIX)):
+        if "build" in service and not (image and image_name(image).startswith(ACE_RS_IMAGE_PREFIX)):
             problems.append(
-                f"{where}: an image ace4 builds must be named {ACE4_IMAGE_PREFIX}*, "
+                f"{where}: an image ace-rs builds must be named {ACE_RS_IMAGE_PREFIX}*, "
                 f"not {image!r}"
             )
 
@@ -140,7 +140,7 @@ def check(config, raw, probe):
 
         if service.get("restart") != "no" and not service.get("mem_limit"):
             problems.append(
-                f"{where}: no mem_limit; ace4 shares the Docker VM's memory with ace3, so every "
+                f"{where}: no mem_limit; ace-rs shares the Docker VM's memory with ace3, so every "
                 "long-running service sets one"
             )
 
@@ -155,7 +155,7 @@ def check(config, raw, probe):
             what = f"{kind[:-1]} {key}"
             if item.get("external"):
                 problems.append(
-                    f"{what} is external; ace4 uses only volumes and networks its own "
+                    f"{what} is external; ace-rs uses only volumes and networks its own "
                     "project creates"
                 )
             elif item.get("name") != f"{PROBE_PROJECT}_{key}":

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PLAN.md 3.5: measures each pool's private memory while `ace compare` runs.
 
-Each run brings up the end-to-end test's stack under project ace4-e2e from nothing, waits for the
+Each run brings up the end-to-end test's stack under project ace-rs-e2e from nothing, waits for the
 parser pool to load its ruleset, starts tools/memory/sample.py, and then goes through three phases:
 
   idle-before   IDLE seconds with nothing queued
@@ -18,7 +18,7 @@ only counts as load.
 
 Usage: tools/memory/measure OUT_DIR [--runs N] [--idle SECONDS] [--signatures PATH]
 Writes OUT_DIR/run-N/. tools/memory/summarize.py OUT_DIR reads them. Needs docker compose and
-python3 on the host, and runs the helper container from image ace4-dev:latest.
+python3 on the host, and runs the helper container from image ace-rs-dev:latest.
 """
 
 import argparse
@@ -34,8 +34,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
-HELPER_IMAGE = "ace4-dev:latest"
-HELPER = "ace4-e2e-memory-sampler"
+HELPER_IMAGE = "ace-rs-dev:latest"
+HELPER = "ace-rs-e2e-memory-sampler"
 # the responder is the test's and restarts during the comparison, so its cgroup goes away
 SAMPLED = ["ace", "parsers", "lookups", "postgres", "bucket"]
 
@@ -104,7 +104,7 @@ def record_load(e2e, out, seconds, exit_code):
     results = e2e.sql("SELECT count(*) FROM analysis.results")[0][0]
     ruleset_bytes = e2e.compose(
         "exec", "-T", "parsers", "sh", "-c",
-        "find /var/lib/ace4/rulesets -type f -printf '%s %p\\n' | sort -n | tail -1",
+        "find /var/lib/ace-rs/rulesets -type f -printf '%s %p\\n' | sort -n | tail -1",
         capture=True,
     ).strip()
     report = {}

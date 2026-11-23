@@ -54,7 +54,7 @@ pub struct PhishkitAnalysis {
     pub exit_code: Option<i64>,
     pub stdout: Option<String>,
     pub stderr: Option<String>,
-    /// Where the scan's files were kept. ace3's is a temporary directory on its node; ace4's is the
+    /// Where the scan's files were kept. ace3's is a temporary directory on its node; ace-rs's is the
     /// scan's directory in the alert, `phishkit/<job_id>`.
     pub output_dir: Option<String>,
     /// The scan's id: ace3's Celery task id, and here a UUID made from the module and the observable.

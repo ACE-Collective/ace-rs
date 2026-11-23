@@ -757,7 +757,7 @@ Each file `crates/ace-api/src/svs_<resource>.rs` holds the handlers and the requ
 of one resource. A handler authenticates the request, calls one service function and maps the result;
 it runs no SQL and decides nothing. The response types derive `ToSchema`, and `openapi.json` is the
 document utoipa derives from them. The test `the_committed_document_is_current` fails when the file is
-out of date, and `ACE4_WRITE_OPENAPI=1 cargo test -p ace-api` rewrites it.
+out of date, and `ACE_RS_WRITE_OPENAPI=1 cargo test -p ace-api` rewrites it.
 
 **Statuses.** `crates/ace-api/src/error.rs` maps a `ServiceError` to a status: a refused parameter or
 body is 400, a request that is not authenticated 401, a missing permission or a refused registration 403,
@@ -983,7 +983,7 @@ field and add it to the page's test in `crates/ace-gui/tests/gui.rs`.
    implementation beside it.
 3. Add its column to `HEADER` and its cell to `cells()` of `ExportRow for RunRowBody`, in the same
    position in both.
-4. Regenerate `openapi.json` with `ACE4_WRITE_OPENAPI=1`.
+4. Regenerate `openapi.json` with `ACE_RS_WRITE_OPENAPI=1`.
 5. Add API cases to `svs_run_reads` in `crates/ace-api/tests/api.rs`, and show the field in
    `templates/svs/runs.html` or `run.html` (through `RunLine` or the run's view struct in
    `crates/ace-gui/src/svs.rs`) if a page shows it. Renaming or removing a field is a breaking change

@@ -13,7 +13,7 @@
 //!
 //! **Who may call.** Each route needs its own permission, ace3's: `ai:<backend>` for a backend's
 //! query, `ai:alert`, `ai:event`, `ai:search` and `ai:export`. Listing the backends needs
-//! `ai:backends`, which is ace4's: ace3 lets any authenticated key list them, and ace4 has no route but
+//! `ai:backends`, which is ace-rs's: ace3 lets any authenticated key list them, and ace-rs has no route but
 //! the ping that asks for nothing. Only an API key may call, as in ace3, where no browser talks to the
 //! app: a session is refused even if its user holds the permission.
 //!
@@ -48,7 +48,7 @@
 //!
 //! What differs from ace3, and what isn't here:
 //! - ace3 runs this as a separate app in a container that holds no encryption key and no credential
-//!   but its backends'. So does ace4: `ace serve-ai` (`ace-app`'s `serve_ai`), under a database role
+//!   but its backends'. So does ace-rs: `ace serve-ai` (`ace-app`'s `serve_ai`), under a database role
 //!   that can do only what these functions do ([`role`]), with ace3's startup custody checks
 //!   (`ace-app`'s `ai::custody`). Where ace3's limiter keeps its state in Redis, whose password the
 //!   container holds, this one's is in Postgres, under the same role.
@@ -57,7 +57,7 @@
 //! - The export pages the alert list oldest first with the list's cursor: roots record no time they
 //!   last changed, so there is no `changed_since`. A page is at most 200 alerts, and an alert's
 //!   observables are in its row, up to 500, since
-//!   ace4 has no index of observables to look ids up in; ace3's `POST /export/observables` has no
+//!   ace-rs has no index of observables to look ids up in; ace3's `POST /export/observables` has no
 //!   counterpart.
 //! - The backend's `python_module` and `python_class` are a type the binary registers
 //!   (`ace_app::App::ai_backend_type`), named in the overlay.

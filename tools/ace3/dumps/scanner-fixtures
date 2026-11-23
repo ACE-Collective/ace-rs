@@ -6,8 +6,8 @@ ace3's js-deobfuscator and phishkit modules ask a Celery manager to run a scanne
 the directory it leaves. Running them through ace3's live managers would make every dump depend on
 what a browser fetched that day, so the scanners run here once, on the host, from the images
 docker/scanners/build builds from ace3's own sources, as the managers run them, and their directories
-are kept under fixtures/scanners/. The dumps then run ace3's modules on those directories, and ace4's
-tests run ace4's on the same ones.
+are kept under fixtures/scanners/. The dumps then run ace3's modules on those directories, and ace-rs's
+tests run ace-rs's on the same ones.
 
 - js/<case>/: `docker run --rm --network none ... node /opt/app/harness.js <input> <output>/deobfuscated.js`,
   with the input, and its DOM snapshot when it has one, under /js-deobfuscator/input/<job>/, and
@@ -35,15 +35,15 @@ REPO = HERE.parents[2]
 SAMPLES = REPO / "samples"
 OUT = HERE / "fixtures" / "scanners"
 FIXED_JOB = "00000000-0000-4000-8000-000000000000"
-JS_IMAGE = os.environ.get("ACE4_JS_DEOBFUSCATOR_IMAGE", "ace4-js-deobfuscator:latest")
-PHISHKIT_IMAGE = os.environ.get("ACE4_PHISHKIT_IMAGE", "ace4-phishkit:latest")
+JS_IMAGE = os.environ.get("ACE_RS_JS_DEOBFUSCATOR_IMAGE", "ace-rs-js-deobfuscator:latest")
+PHISHKIT_IMAGE = os.environ.get("ACE_RS_PHISHKIT_IMAGE", "ace-rs-phishkit:latest")
 
 # case -> (sample, the name the script has, the DOM snapshot beside it: a dump's sidecar or None)
 JS_CASES = {
-    "dropper": ("ace4/js/dropper.js", "dropper.js", None),
-    "broken": ("ace4/js/broken.js", "broken.js", None),
-    "blob_redirect": ("ace4/js/blob_redirect.js", "blob_redirect.js", None),
-    "runtime_error": ("ace4/js/runtime_error.js", "runtime_error.js", None),
+    "dropper": ("ace-rs/js/dropper.js", "dropper.js", None),
+    "broken": ("ace-rs/js/broken.js", "broken.js", None),
+    "blob_redirect": ("ace-rs/js/blob_redirect.js", "blob_redirect.js", None),
+    "runtime_error": ("ace-rs/js/runtime_error.js", "runtime_error.js", None),
     # html_js_extraction's first inline script of scripts.html, with the snapshot ace3 wrote for it
     "scripts_inline": (
         None, "scripts_js_inline_0_f2dac8e8.js",
@@ -52,7 +52,7 @@ JS_CASES = {
 }
 SCRIPTS_INLINE = "var redirect = document.getElementById('d').getAttribute('data-u'); window.location = redirect;"
 
-PHISHKIT_PAGE = "ace4/web/phishkit_page.html"
+PHISHKIT_PAGE = "ace-rs/web/phishkit_page.html"
 
 
 def work():
@@ -63,7 +63,7 @@ def work():
 
 
 def js_case(case, sample, name, sidecar):
-    with tempfile.TemporaryDirectory(prefix="ace4-js-fixture-", dir=work()) as tmp:
+    with tempfile.TemporaryDirectory(prefix="ace-rs-js-fixture-", dir=work()) as tmp:
         volume = Path(tmp)
         os.chmod(volume, 0o777)
         input_dir = volume / "input" / FIXED_JOB
@@ -104,7 +104,7 @@ NO_PROXY = {
 
 
 def phishkit_file():
-    with tempfile.TemporaryDirectory(prefix="ace4-phishkit-fixture-", dir=work()) as tmp:
+    with tempfile.TemporaryDirectory(prefix="ace-rs-phishkit-fixture-", dir=work()) as tmp:
         volume = Path(tmp)
         input_dir = volume / "input" / FIXED_JOB
         output_dir = volume / "output" / FIXED_JOB

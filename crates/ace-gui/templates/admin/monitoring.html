@@ -75,7 +75,7 @@
   {#- what an operator finds only in the log: the checks' records as lines, and the per-root metrics
       event (ace_core::metrics), which no check emits and no table keeps -#}
   <h2>In the log</h2>
-  <p class="muted">A check's records are also log lines, under the target <code>ace_monitor</code>. And when a root's analysis pass completes, ACE logs one metrics event for the root under the target <code>ace_metrics</code>, the message <code>METRICS (root): </code> and the event as JSON on one line, and then one for each module that ran in the pass, the message <code>METRICS (module): </code> and its JSON. All are INFO, so <code>ACE4_LOG</code> must allow them.</p>
+  <p class="muted">A check's records are also log lines, under the target <code>ace_monitor</code>. And when a root's analysis pass completes, ACE logs one metrics event for the root under the target <code>ace_metrics</code>, the message <code>METRICS (root): </code> and the event as JSON on one line, and then one for each module that ran in the pass, the message <code>METRICS (module): </code> and its JSON. All are INFO, so <code>ACE_RS_LOG</code> must allow them.</p>
   <p class="muted">A task's run is one claim of it: from when its lease was taken to when its end or its delay reached the core. That is the module's work with what surrounds it, the task process's start, its file's download and its result's upload, but not the time the task waited for a pool or a delay. A delayed task's runs add up.</p>
   <table class="keys metrics-fields">
     <thead><tr><th>Field of the root's event</th><th>What it is</th></tr></thead>

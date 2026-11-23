@@ -1,0 +1,81 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PDFTextAnalysis",
+      "details": {
+        "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+        "stderr": "",
+        "stdout": ""
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pdf:PDFTextAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.pdf.text"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.archive:<class 'saq.modules.file_analysis.archive.ArchiveAnalyzer'>"
+          ],
+          "file_path": "js_names_name.pdf.txt",
+          "redirection": {
+            "type": "file",
+            "value": "59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1,
+          "tags": [],
+          "type": "file",
+          "value": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+          "yara_meta": [
+            "type=document.pdf.text"
+          ]
+        }
+      ],
+      "summary": "PDF Text Analysis",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/pdf/js_names_name.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "js_names_name.pdf",
+      "size": 349,
+      "type": "file",
+      "value": "59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a"
+    }
+  },
+  "module": "pdftotext",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "js_names_name.pdf",
+    "relationships": [],
+    "size": 349,
+    "tags": [],
+    "type": "file",
+    "value": "59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

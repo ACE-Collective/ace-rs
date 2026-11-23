@@ -6,4 +6,4 @@ connections:
     settings: {host: splunk.example.com, timezone: GMT}
     secrets: {token: splunk_default_token}
 secrets:
-  splunk_default_token: env:ACE4_TEST_UNSET
+  splunk_default_token: env:ACE_RS_TEST_UNSET

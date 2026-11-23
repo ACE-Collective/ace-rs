@@ -33,7 +33,7 @@ pub use js::JavaScriptDeobfuscationAnalyzer;
 pub use phishkit::PhishkitAnalyzer;
 
 /// The most files a module keeps from one scan's output directory. ace3 keeps every one, up to its
-/// root's limit of observables, which ace4's core doesn't have.
+/// root's limit of observables, which ace-rs's core doesn't have.
 pub const MAX_FILES: usize = 1000;
 /// The most of a log stream, and of a file a module reads into memory, that's read.
 pub const MAX_TEXT_BYTES: u64 = 64 << 20;

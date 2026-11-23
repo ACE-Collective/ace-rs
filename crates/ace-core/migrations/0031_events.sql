@@ -10,7 +10,7 @@
 --
 -- Left out of ace3's model:
 -- - `company` and `company_mapping`: roots have no company here (PLAN.md 5.6's `common` note).
--- - The event's `wiki` (always empty in ace3) and `alert_versions` (ace4 has no version token).
+-- - The event's `wiki` (always empty in ace3) and `alert_versions` (ace-rs has no version token).
 -- - The roll-up disposition is computed from the alerts when an event is read, as ace3's
 --   `Event.disposition` property is. It isn't a column.
 CREATE SCHEMA events;

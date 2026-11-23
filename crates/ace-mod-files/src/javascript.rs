@@ -1,7 +1,7 @@
 //! `is_javascript_file` of ace3's `is_file_type.py`: `node --check` passes on the file, and grep
 //! finds a JavaScript keyword, an arrow, a `.then(` or a call in it.
 //!
-//! ace3 runs node 24 on the file, hard-linked to a name ending in `.js` when it has none. ace4
+//! ace3 runs node 24 on the file, hard-linked to a name ending in `.js` when it has none. ace-rs
 //! parses with oxc (PLAN.md 7.3), as node checks a `.js` file: as a CommonJS module, wrapped in a
 //! function, and when that fails as an ES module, which node 24 tries when CommonJS fails on module
 //! syntax. oxc's semantic pass adds the early errors V8 raises, such as a redeclared `let`, and
@@ -346,7 +346,7 @@ mod oracle {
     use base64::Engine;
     use serde_json::Value;
 
-    /// The sources where ace4 and node disagree, with node's answer.
+    /// The sources where ace-rs and node disagree, with node's answer.
     fn disagreements() -> (usize, Vec<(String, bool)>) {
         let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/js_cases.json");
         let cases: Value =
@@ -425,17 +425,17 @@ mod depth {
     }
 }
 
-/// `ACE4_JS_DEPTH=<n> ACE4_JS_KIND=<prefix> cargo test -p ace-mod-files --lib probe_depth -- --ignored`
+/// `ACE_RS_JS_DEPTH=<n> ACE_RS_JS_KIND=<prefix> cargo test -p ace-mod-files --lib probe_depth -- --ignored`
 /// parses the prefix repeated n times on an 8 MiB stack, for docs/measurements/javascript-check.md.
 #[cfg(test)]
 #[test]
 #[ignore]
 fn probe_depth() {
-    let n: usize = std::env::var("ACE4_JS_DEPTH")
+    let n: usize = std::env::var("ACE_RS_JS_DEPTH")
         .expect("depth")
         .parse()
         .expect("number");
-    let kind = std::env::var("ACE4_JS_KIND").expect("kind");
+    let kind = std::env::var("ACE_RS_JS_KIND").expect("kind");
     let text = format!("{}1", kind.repeat(n));
     std::thread::Builder::new()
         .stack_size(8 << 20)

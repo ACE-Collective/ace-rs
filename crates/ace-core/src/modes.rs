@@ -6,7 +6,7 @@
 //! plan read), and the non-detectable modes and default mode are its `service_engine`
 //! `non_detectable_modes` and `default_analysis_mode`.
 //!
-//! The lists name modules ace4 doesn't have yet. Eligibility only considers modules it has a
+//! The lists name modules ace-rs doesn't have yet. Eligibility only considers modules it has a
 //! manifest for, so a name with none is skipped, as ace3 skips a module with no config (#916).
 //! A module's name is a string so a named instance (PLAN.md 2.23) can join a group.
 

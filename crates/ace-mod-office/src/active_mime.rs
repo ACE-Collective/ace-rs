@@ -6,7 +6,7 @@
 //! typed `document.activemime`. A header that runs past the file's end, a tail type field that isn't
 //! four bytes, or a stream zlib refuses leaves no result, as ace3 logs it and creates none.
 //!
-//! Where ace4 departs: ace3 inflates into memory with no limit, so a bomb grows until Python raises
+//! Where ace-rs departs: ace3 inflates into memory with no limit, so a bomb grows until Python raises
 //! `MemoryError` and the module fails. Here the payload stops at 256 MiB, as `olevba`'s ActiveMime
 //! does (`ace-mod-oletools`), and a larger one leaves no result. ace3 names the payload by its path
 //! on its node, `<root>/files/<file>.activemime`; this names it by its path in the alert.

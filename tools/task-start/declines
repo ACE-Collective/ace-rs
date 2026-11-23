@@ -12,11 +12,11 @@ docs/measurements/task-start.md's tables come from this. It reads two things fro
               JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id
               LEFT JOIN analysis.results r ON r.root_id = t.root_id
                   AND r.observable_id = t.observable_id AND r.module = t.module" \\
-              ace4-e2e-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -F "	" -c "$QUERY"' > TASKS
+              ace-rs-e2e-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -F "	" -c "$QUERY"' > TASKS
 
   LOG     the core's log, which has a line for each task a module skipped, with its reason:
 
-          docker logs ace4-e2e-ace-1 > LOG 2>&1
+          docker logs ace-rs-e2e-ace-1 > LOG 2>&1
 
     tools/task-start/declines TASKS LOG [--modules]
 

@@ -2,7 +2,7 @@
 //! `saq/svs/yara/repository.py`.
 //!
 //! Each repository in `svs.yara.repositories` gets a bare mirror under the mirror directory, fetched from
-//! its URL. It is never the checkout the ruleset build reads (`ACE4_SIGNATURES_REPO`), so a validation can
+//! its URL. It is never the checkout the ruleset build reads (`ACE_RS_SIGNATURES_REPO`), so a validation can
 //! neither change what production scans nor see a working tree someone edited by hand, and fetching only
 //! reads the repository it fetches from.
 //!
@@ -16,7 +16,7 @@
 //!
 //! What differs from ace3's: ace3 exports with `git archive` and unpacks with tarfile's `data` filter, which
 //! honours the commit's `.gitattributes` (`export-ignore`, `export-subst`) and keeps a symbolic link that
-//! stays inside the tree. ace4's ruleset build does neither, so the export doesn't either.
+//! stays inside the tree. ace-rs's ruleset build does neither, so the export doesn't either.
 //!
 //! **The SSH key.** ace3 fetches with its `git_repo_*` section's `ssh_key_path`, a file on the node, as
 //! `GIT_SSH_COMMAND="ssh -i <path> -o IdentitiesOnly=yes -o StrictHostKeyChecking=no"` (`saq/git.py`). Here
@@ -1133,7 +1133,7 @@ mod tests {
         assert!(mirror.ensure(&["no-such-target"], &[]).is_err());
     }
 
-    /// test_repository.py's `test_an_escaping_symlink_is_skipped_and_recorded`. ace4's ruleset build reads
+    /// test_repository.py's `test_an_escaping_symlink_is_skipped_and_recorded`. ace-rs's ruleset build reads
     /// only regular files, so a link that stays inside the tree isn't written either.
     #[test]
     fn a_symlink_is_skipped_and_recorded() {

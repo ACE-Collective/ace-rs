@@ -2,8 +2,8 @@
 """Writes crates/ace-mod-oletools/src/tables.rs from oletools' own tables, so the port's keywords, CLSIDs
 and file types can't drift from them by a typo.
 
-    docker build -f docker/ace4/Dockerfile --target python-libraries -t ace4-python-libraries:latest .
-    docker run --rm -i -v "$PWD:/w" -w /w ace4-python-libraries:latest python -I tools/oletools/make-tables
+    docker build -f docker/ace-rs/Dockerfile --target python-libraries -t ace-rs-python-libraries:latest .
+    docker run --rm -i -v "$PWD:/w" -w /w ace-rs-python-libraries:latest python -I tools/oletools/make-tables
 """
 
 import inspect

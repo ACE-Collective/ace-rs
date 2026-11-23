@@ -37,8 +37,8 @@ The three slowest kinds, at HEAD:
 
 | Sample | Seconds (two runs) | running | blind | Tasks | Delays |
 |---|---|---:|---:|---:|---:|
-| `ace4/email/encrypted_in_zip.email.rfc822` | 58.0, 56.5 | 25.6 | 29.5 | 2,490 | 430 |
-| `ace4/email/encrypted_rc4_xls.email.rfc822` | 50.2, 50.4 | 7.7 | 40.0 | | 153 |
+| `ace-rs/email/encrypted_in_zip.email.rfc822` | 58.0, 56.5 | 25.6 | 29.5 | 2,490 | 430 |
+| `ace-rs/email/encrypted_rc4_xls.email.rfc822` | 50.2, 50.4 | 7.7 | 40.0 | | 153 |
 | `ace3/archive/test.jar` | 37.0, 27.5 | | | 3,603 | 436 |
 
 The phases are the second run's; `test.jar` ran before the sampler started, and its task table has its first run-last task ending at 22.6 s and its root at 27.2 s. The task and delay counts of the first two are the director's, from an earlier run.
@@ -61,8 +61,8 @@ The three samples, one at a time, in seconds:
 
 | Sample | HEAD | S2: woken, 4 slots | S1: woken, 8 slots | ace3 (floor, below) |
 |---|---:|---:|---:|---:|
-| `ace4/email/encrypted_in_zip.email.rfc822` | 58.0, 56.5 | 28.4 | 30.0 | 8.9 |
-| `ace4/email/encrypted_rc4_xls.email.rfc822` | 50.2, 50.4 | 10.3 | 9.3 | 7.4 |
+| `ace-rs/email/encrypted_in_zip.email.rfc822` | 58.0, 56.5 | 28.4 | 30.0 | 8.9 |
+| `ace-rs/email/encrypted_rc4_xls.email.rfc822` | 50.2, 50.4 | 10.3 | 9.3 | 7.4 |
 | `ace3/archive/test.jar` | 37.0, 27.5 | 24.7 | 19.9 | 19.0 |
 
 What is left of the blind time is the wait for a run-last task below: a file's own run-last tasks wait for those of the files under it, asking again after 0.25 s, 0.5 s and so on. `encrypted_in_zip` still has 7.2 s of it in S1. Waking those too at each such task's end would cost an ask per waiting task per end, which grows with the square of a root's files, so it was left.
@@ -101,8 +101,8 @@ Two runs of the same code never give the same `report.json`, one at a time or no
 1. `seconds` and `root`.
 2. Ghostscript's rewrite of a PDF, `<name>.gs.pdf`, has new bytes each run. So do its hashes, which the tree holds as `md5:`, `sha1:` and `sha256:` observables that ace3 doesn't have. Their number per sample is the same each run.
 3. pdftotext's text of a PDF and of its rewrite is one file observable, redirected to whichever of the two PDFs has the lower sha256 (`tree::upsert_observable`). The rewrite's sha256 is new each run, so it is a coin toss whether the redirection is ace3's, which is the rewrite. 38 and 41 of them differed from ace3 in the two HEAD runs, in 20 samples a different number. This is the whole of "the count of explained differences moves by a few".
-4. Values of ace4's that hold a time or a task's temporary directory: exif's `File:FileAccessDate`, `File:FileInodeChangeDate` and `File:FileModifyDate` (368 each), `dmg_analyzer`'s stderr (9), `de4dot`'s stdout (3), and `file_hash_analyzer`'s hashes of a rewrite (2 of each).
-5. One value that `report.json` cut at 2,000 characters: an observable only ace4 has, whose results came in the order they landed. `ace compare` now sorts a value's keys before it cuts it.
+4. Values of ace-rs's that hold a time or a task's temporary directory: exif's `File:FileAccessDate`, `File:FileInodeChangeDate` and `File:FileModifyDate` (368 each), `dmg_analyzer`'s stderr (9), `de4dot`'s stdout (3), and `file_hash_analyzer`'s hashes of a rewrite (2 of each).
+5. One value that `report.json` cut at 2,000 characters: an observable only ace-rs has, whose results came in the order they landed. `ace compare` now sorts a value's keys before it cuts it.
 
 With those set aside the script compares everything else exactly: the samples and their order, the absent and failed ones, the threshold's result, stale rows, what each row matched, each sample's failed tasks and skipped results, and for every sample each difference's path, module, class and both values.
 
@@ -146,11 +146,11 @@ The core logs a warning when it passes the path hold, and none was logged in any
 | Sample | Seconds | Less the trivial sample |
 |---|---|---:|
 | `ace3/pcap/sslkeylog.txt` (trivial) | 6.64, 5.98, 6.06 | |
-| `ace4/email/encrypted_in_zip.email.rfc822` | 14.99, 14.94, 14.77 | 8.9 |
+| `ace-rs/email/encrypted_in_zip.email.rfc822` | 14.99, 14.94, 14.77 | 8.9 |
 | `ace3/archive/test.jar` | 25.05, 25.28, 24.92 | 19.0 |
-| `ace4/email/encrypted_rc4_xls.email.rfc822` | 13.46, 13.63, 13.38 | 7.4 |
+| `ace-rs/email/encrypted_rc4_xls.email.rfc822` | 13.46, 13.63, 13.38 | 7.4 |
 
-What this is: one Python process that runs every enabled module on the sample in turn, with no queue, no database, no containment and no second process, after copying fixtures in and starting its fake Splunk and DNS. The trivial sample's time is that setup plus Python's start and ace3's imports. It is not ace3's engine, whose workers, database and message queue would add to it, so it is a floor for ace3. ace4's times for the same three are in the tables above and below.
+What this is: one Python process that runs every enabled module on the sample in turn, with no queue, no database, no containment and no second process, after copying fixtures in and starting its fake Splunk and DNS. The trivial sample's time is that setup plus Python's start and ace3's imports. It is not ace3's engine, whose workers, database and message queue would add to it, so it is a floor for ace3. ace-rs's times for the same three are in the tables above and below.
 
 ## The image build
 

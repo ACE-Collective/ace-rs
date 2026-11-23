@@ -503,9 +503,9 @@ mod tests {
         // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
         ace_testkit::check_view_fixture(
             "xlm_obfuscated_xlsm",
-            &run("ace4/office/xlm_obfuscated.xlsm", json!({})),
+            &run("ace-rs/office/xlm_obfuscated.xlsm", json!({})),
         );
-        let result = done("ace4/office/xlm_obfuscated.xlsm");
+        let result = done("ace-rs/office/xlm_obfuscated.xlsm");
         assert_eq!(result.details.cell_count, 13);
         assert_eq!(
             result.summary.as_deref(),
@@ -544,7 +544,7 @@ mod tests {
             ),
             ("xlm_xlsb.xlsb", 3, "http://xlm-xlsb.example.com/stage2.exe"),
         ] {
-            let result = done(&format!("ace4/office/{name}"));
+            let result = done(&format!("ace-rs/office/{name}"));
             assert_eq!(result.details.cell_count, cells, "{name}");
             assert!(result.observables.iter().any(|o| o.value == url), "{name}");
         }
@@ -553,11 +553,11 @@ mod tests {
     #[test]
     fn no_cells_and_a_workbook_that_wont_load_have_their_tags() {
         assert_eq!(
-            done("ace4/office/xlm_no_cells.xlsm").analyzed.tags,
+            done("ace-rs/office/xlm_no_cells.xlsm").analyzed.tags,
             ["xlm4:no_cells"]
         );
         assert_eq!(
-            done("ace4/office/xlm_broken.xlsm").analyzed.tags,
+            done("ace-rs/office/xlm_broken.xlsm").analyzed.tags,
             ["xlm4:no_cells", "xlm4:error"]
         );
     }
@@ -565,7 +565,8 @@ mod tests {
     #[test]
     fn a_pass_out_of_time_is_tagged_and_the_next_still_runs() {
         let started = Instant::now();
-        let Outcome::Done(result) = run("ace4/office/xlm_loop.xlsm", json!({"timeout": 1})) else {
+        let Outcome::Done(result) = run("ace-rs/office/xlm_loop.xlsm", json!({"timeout": 1}))
+        else {
             panic!("not analyzed");
         };
         assert!(
@@ -589,13 +590,13 @@ mod tests {
         );
         let data = std::fs::read(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../samples/ace4/office/xlm_biff8.xls"
+            "/../../samples/ace-rs/office/xlm_biff8.xls"
         ))
         .expect("a sample");
         assert!(has_macros(&data, &[], &names).expect("scans"));
         assert!(matches!(
             run(
-                "ace4/office/xlm_obfuscated.xlsm",
+                "ace-rs/office/xlm_obfuscated.xlsm",
                 json!({"maximum_size_mb": 0})
             ),
             Outcome::Skipped(_)

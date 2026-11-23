@@ -13,8 +13,8 @@ The owner's direction, which every item here is measured against:
   away.
 - What decides an alert depends on its type, so the top of the page is chosen by alert type.
 - Don't add an always-visible section to the alert page without saying what it displaces.
-- ace4's own CSS only: no framework and no outside assets. The CSP stays as strict as it is. A page gets
-  a script of ace4's own only for a behaviour that can't be a link, a form or a Datastar expression, as
+- ace-rs's own CSS only: no framework and no outside assets. The CSP stays as strict as it is. A page gets
+  a script of ace-rs's own only for a behaviour that can't be a link, a form or a Datastar expression, as
   a same-origin file loaded with the nonce: the graph and the alert list's range selection are the two.
   No need to resemble ace3.
 
@@ -61,7 +61,7 @@ The owner's direction, which every item here is measured against:
   Time column for the duration's tooltip loses anything; whether the panel should start open on an
   email alert; and how an alert with hundreds of deliveries reads.
 - [ ] **Add Directive is a page of its own** (PLAN.md decision 31), as Add Comment is: the observable's
-  Actions menu links to a form of every directive the binary lists, the five built in (those of ace3's `GUI_DIRECTIVES` an ace4 module reads) and the site's, as boxes
+  Actions menu links to a form of every directive the binary lists, the five built in (those of ace3's `GUI_DIRECTIVES` an ace-rs module reads) and the site's, as boxes
   to tick, and the form goes back to the observable in the whole tree. ace3 takes them in its Add
   Observable modal's multiselect. Check with analysts whether 16-plus boxes on a page read well, whether
   the list should be filtered by the observable's type (ace3 offers every one on every type), and whether
@@ -129,7 +129,7 @@ The pass styled these through the shared foundation but nobody viewed them:
 - [ ] **Bulk actions over search results.** The search page is its own page, not a mode of the alert
   list.
 - [ ] **A `scheduler.runs` page** beyond what `/admin/monitoring` shows.
-- [ ] **Dialogs.** ace4 has none. A reason is a field beside the buttons, and a confirmation is a page.
+- [ ] **Dialogs.** ace-rs has none. A reason is a field beside the buttons, and a confirmation is a page.
   Check which of ace3's dialogs analysts miss.
 - [ ] **A Sepia theme,** which ace3 gained in `e477e14f`. Not now, by the owner's decision of
   2026-11-16; not built.

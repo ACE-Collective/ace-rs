@@ -133,7 +133,7 @@ async fn compare_protected() -> Compared {
         let parsed = harness
             .run_parser(observable.clone())
             .unwrap_or_else(|e| panic!("{}: {e}", dump.name));
-        let ace4 = if protected::is_one_drive_link(&observable.value) {
+        let ace_rs = if protected::is_one_drive_link(&observable.value) {
             assert!(
                 matches!(parsed, Outcome::Skipped(_)),
                 "{}: the parser leaves a 1drv.ms link to the lookup",
@@ -161,7 +161,7 @@ async fn compare_protected() -> Compared {
             }
             normal_form(&parsed)
         };
-        let differences = diff(&dump.normal_form("ProtectedURLAnalysis"), &ace4);
+        let differences = diff(&dump.normal_form("ProtectedURLAnalysis"), &ace_rs);
         compared.push((
             format!("protected_url_analyzer/{}", dump.short_name()),
             differences,

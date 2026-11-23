@@ -26,7 +26,7 @@ const SPLUNKD: &str = "https://127.0.0.1:8089";
 /// proxy_domain_lookup as ace-mod-splunk's tests run it (its tests/common/mod.rs).
 fn proxy_domain_lookup(base_url: &str) -> Value {
     json!({
-        "splunk": {"host": "127.0.0.1", "base_url": base_url, "username": "ace4", "request_timeout_seconds": 10},
+        "splunk": {"host": "127.0.0.1", "base_url": base_url, "username": "ace-rs", "request_timeout_seconds": 10},
         "question": "Was this domain seen in proxy logs?",
         "summary": "Proxy correlation",
         "query": "index=proxy (transport=HTTPS OR transport=HTTP) hostname=\"<O_VALUE>\"\n| eval full_url = lower(transport) . \"://\" . url\n",
@@ -67,7 +67,7 @@ async fn the_splunk_module_runs_again_after_each_delay_it_asks_for() {
     let connections = ace_sdk::Connections::new().with(
         SLOT.name,
         ace_sdk::Connection::new("default", "splunk", Some(block["splunk"].clone()))
-            .with_secret(PASSWORD, Secret::new("ace4-fake-password")),
+            .with_secret(PASSWORD, Secret::new("ace-rs-fake-password")),
     );
 
     let worker = worker(

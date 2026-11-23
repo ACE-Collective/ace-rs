@@ -15,9 +15,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-CONTAINER = os.environ.get("ACE4_ACE3_CONTAINER", "ace-dev-1")
-REMOTE = "/tmp/ace4-dumps/search"
-MODEL = os.environ.get("ACE4_ACE3_SEARCH_MODEL", "/opt/ace/data/search/models/all-minilm-l6-v2")
+CONTAINER = os.environ.get("ACE_RS_ACE3_CONTAINER", "ace-dev-1")
+REMOTE = "/tmp/ace-rs-dumps/search"
+MODEL = os.environ.get("ACE_RS_ACE3_SEARCH_MODEL", "/opt/ace/data/search/models/all-minilm-l6-v2")
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parents[2] / "crates" / "ace-search" / "src" / "fixtures" / "ace3-reference.json"
 

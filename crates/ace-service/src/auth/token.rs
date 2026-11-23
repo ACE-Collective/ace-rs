@@ -21,8 +21,8 @@ pub(super) enum Kind {
 impl Kind {
     fn prefix(self) -> &'static str {
         match self {
-            Kind::ApiKey => "ace4k",
-            Kind::Session => "ace4s",
+            Kind::ApiKey => "ace-rs-k",
+            Kind::Session => "ace-rs-s",
         }
     }
 }

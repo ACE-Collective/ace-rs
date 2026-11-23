@@ -1,7 +1,7 @@
 //! Paths as Python's `os.path` handles them on POSIX, as strings.
 //!
 //! ace3's loader keeps an include's path as `os.path.join` makes it, unnormalized, and remembers
-//! which files it has read by that text, so ace4 does the same with the same functions.
+//! which files it has read by that text, so ace-rs does the same with the same functions.
 
 use std::path::{Path, PathBuf};
 

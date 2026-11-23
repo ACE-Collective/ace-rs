@@ -1,0 +1,84 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "dmg_analyzer"
+  ],
+  "analyses": [
+    {
+      "class": "CVE_2021_30657_Analysis",
+      "details": {
+        "suspect_files": {
+          "evil": "text/x-shellscript"
+        }
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.cve:CVE_2021_30657_Analysis",
+      "observables": [
+        {
+          "detections": [
+            {
+              "description": "Possible CVE-2021-30657 attack: a file in DMG format file zip_inside.img is a script",
+              "details": null
+            }
+          ],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "evil",
+          "relationships": [],
+          "size": 105,
+          "tags": [
+            "CVE-2021-30657"
+          ],
+          "type": "file",
+          "value": "00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4",
+          "yara_meta": []
+        }
+      ],
+      "summary": "CVE-2021-30657 Analysis: evil",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "dump_file": "zip_inside.img",
+    "label": "ace-rs/macos/zip_inside.dmg",
+    "meta_tags": [
+      "type=archive.dmg"
+    ],
+    "observable": {
+      "file_path": "zip_inside.img",
+      "size": 1024,
+      "type": "file",
+      "value": "dd7f4122628896e3e5d64e0a1eb5a76762cb981cc85ab9f1bb4f862303a127e7"
+    },
+    "tags": [
+      "dmg",
+      "macos"
+    ]
+  },
+  "module": "cve_2021_30657_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=archive.dmg"
+    ],
+    "excluded_analysis": [],
+    "file_path": "zip_inside.img",
+    "redirection": {
+      "type": "file",
+      "value": "4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78"
+    },
+    "relationships": [],
+    "size": 1024,
+    "tags": [
+      "dmg",
+      "macos"
+    ],
+    "type": "file",
+    "value": "dd7f4122628896e3e5d64e0a1eb5a76762cb981cc85ab9f1bb4f862303a127e7",
+    "yara_meta": [
+      "type=archive.dmg"
+    ]
+  }
+}

@@ -1,0 +1,337 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": false,
+          "compauth_reason": null,
+          "compauth_result": null,
+          "decoded_subject": "the attached file",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": null,
+          "env_rcpt_to": [],
+          "from": "sender@example.com",
+          "from_address": "sender@example.com",
+          "headers": [
+            [
+              "From",
+              "sender@example.com"
+            ],
+            [
+              "To",
+              "recipient@example.com"
+            ],
+            [
+              "Subject",
+              "the attached file"
+            ],
+            [
+              "Date",
+              "Mon, 09 Nov 2026 12:00:00 +0000"
+            ],
+            [
+              "Message-ID",
+              "<encrypted_zip_wrong@example.com>"
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ],
+            [
+              "Content-Type",
+              "multipart/mixed; boundary=\"ace4-encrypted_zip_wrong\""
+            ]
+          ],
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "log_entry": {
+            "attachment_count": 2,
+            "attachment_hashes": [
+              "fa91ec23df742219008373502c4990082536e23154bbd51e9f35e07148973e33",
+              "640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445"
+            ],
+            "attachment_names": [
+              "email.rfc822.unknown_text_plain_000.txt",
+              "invoice.zip"
+            ],
+            "attachment_sizes": [
+              25,
+              445
+            ],
+            "attachment_types": [
+              "text/plain",
+              "application/octet-stream"
+            ],
+            "authentication_failed": false,
+            "bcc": [],
+            "cc": [],
+            "compauth_reason": null,
+            "compauth_result": null,
+            "date": "2026-11-21 13:52:43.703844 +0000",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": null,
+            "env_rcpt_to": [],
+            "first_received": null,
+            "headers": [
+              "From: sender@example.com",
+              "To: recipient@example.com",
+              "Subject: the attached file",
+              "Date: Mon, 09 Nov 2026 12:00:00 +0000",
+              "Message-ID: <encrypted_zip_wrong@example.com>",
+              "MIME-Version: 1.0",
+              "Content-Type: multipart/mixed; boundary=\"ace4-encrypted_zip_wrong\""
+            ],
+            "in_reply_to": null,
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "last_received": null,
+            "mail_from": "sender@example.com",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "recipient@example.com"
+            ],
+            "message_directionality": null,
+            "message_id": "<encrypted_zip_wrong@example.com>",
+            "originating_ip": null,
+            "path": [],
+            "refereneces": null,
+            "reply_to": null,
+            "size": 1185,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "the attached file",
+            "subject_raw": "the attached file",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<encrypted_zip_wrong@example.com>",
+          "message_directionality": null,
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "the attached file",
+          "to": [
+            "recipient@example.com"
+          ],
+          "to_addresses": [
+            "recipient@example.com"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null,
+        "parts": [
+          {
+            "content_type": "text/plain",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "role": "body"
+          },
+          {
+            "content_type": "application/octet-stream",
+            "path": "invoice.zip",
+            "role": "attachment"
+          }
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "sender@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "recipient@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "sender@example.com|recipient@example.com"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "the attached file"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "type": "message_id",
+          "value": "<encrypted_zip_wrong@example.com>"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 25,
+          "tags": [],
+          "type": "file",
+          "value": "fa91ec23df742219008373502c4990082536e23154bbd51e9f35e07148973e33",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "render",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "invoice.zip",
+          "relationships": [],
+          "size": 445,
+          "tags": [
+            "zip"
+          ],
+          "type": "file",
+          "value": "640b0ef74cccb322abcf96664e7182363eb21bdbf5be76b455c3e6c974210445",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.headers",
+          "relationships": [],
+          "size": 246,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "0392a8d9b0ed95d92b063dbd80682c244aa4d98806e81c31f1c0fd4f24650ad0",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.combined",
+          "relationships": [],
+          "size": 275,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "ea549289fcdb161c1225df2a1a05f013c99f1807ced2d7572b330d09113299b8",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "news or mail, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/email/encrypted_zip_wrong.email.rfc822",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 1185,
+      "type": "file",
+      "value": "d99f406fcd0a7e565933ab09fb3d603130256e48b03e591f81f8b5a8cab81739"
+    }
+  },
+  "module": "email_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 1185,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "d99f406fcd0a7e565933ab09fb3d603130256e48b03e591f81f8b5a8cab81739",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

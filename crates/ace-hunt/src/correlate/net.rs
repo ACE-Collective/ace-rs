@@ -1,7 +1,7 @@
 //! The network a hunt script's command type uses (PLAN.md decision 16), as the calls the scripts
 //! make: dnspython's `Resolver.resolve`, urllib's `urlopen`, and a TLS handshake that hands back the
 //! peer's certificate. ace-hunt has no network of its own: `ace hunter` gives the real one
-//! (`ace_app::hunter::net`, hickory's wire format, ace4's HTTP client with verified TLS, rustls),
+//! (`ace_app::hunter::net`, hickory's wire format, ace-rs's HTTP client with verified TLS, rustls),
 //! and tests a fake that answers from a fixture. Each call is bounded by its own timeout, which the
 //! caller also keeps inside the command's deadline.
 

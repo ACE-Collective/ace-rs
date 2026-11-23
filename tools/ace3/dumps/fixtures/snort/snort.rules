@@ -1,7 +1,7 @@
 # Rules written for the snort_signature_analysis_v1 reference dumps (PLAN.md 7.4), as a rules
 # file ace3's `ace signatures build-db` indexes. None of them is from a real ruleset.
-alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ACE4 TEST fixture beacon"; flow:established,to_server; content:"/ace4-beacon"; http_uri; classtype:trojan-activity; sid:9000001; rev:3;)
-alert dns $HOME_NET any -> any any (msg:"ACE4 TEST fixture lookup"; dns.query; content:"ace4-fixture.example"; nocase; rev:1; sid:9000002;)
-	alert tcp any any -> any 445 (msg:"ACE4 TEST fixture indented"; sid:9000003; rev:2;)   
-#alert tcp any any -> any any (msg:"ACE4 TEST fixture commented out"; sid:9000004; rev:1;)
-alert tcp any any -> any any (msg:"ACE4 TEST fixture without a rev"; sid:9000005;)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ACE_RS TEST fixture beacon"; flow:established,to_server; content:"/ace-rs-beacon"; http_uri; classtype:trojan-activity; sid:9000001; rev:3;)
+alert dns $HOME_NET any -> any any (msg:"ACE_RS TEST fixture lookup"; dns.query; content:"ace-rs-fixture.example"; nocase; rev:1; sid:9000002;)
+	alert tcp any any -> any 445 (msg:"ACE_RS TEST fixture indented"; sid:9000003; rev:2;)   
+#alert tcp any any -> any any (msg:"ACE_RS TEST fixture commented out"; sid:9000004; rev:1;)
+alert tcp any any -> any any (msg:"ACE_RS TEST fixture without a rev"; sid:9000005;)

@@ -6,9 +6,9 @@
 //! | `test_sparse_chunking.py` (15) | `sparse_cases`, `chunking_cases`; `the_terms_are_ace3_s` and `the_chunks_are_ace3_s` hold both to ace3's own output |
 //! | `test_documents.py` (26) | `documents_cases`: 23 cases. No counterpart for 3: `test_extractor_lookup_walks_mro` (an analysis type is a name here, with no classes to walk), `test_context_documents` (no module attaches `llm_context_documents`), `test_email_extractor_keeps_html_html2text_cannot_convert` (no `html2text`: the tags are dropped) |
 //! | `test_index.py` (25) | `index_cases`: 9 cases, `TestPointId`'s 2 of 3, `TestBuildPoints` (3), `TestWritePoints`' 2 of 3, `test_delete_alert_without_collection` and `test_missing_alert_is_skipped`. No counterpart for 16: a root's id is always a uuid (`test_non_uuid_root`); `TestCollection` (3) and `TestEnsureCollectionRace` (7) are Qdrant's collection, which a migration's table replaces; `test_incomplete_delete_raises` is Qdrant's update status, a transaction here; `test_update_alert_payload_uses_set_payload_with_filter` is the payload, which a join replaces, and the comparison's `update_payload` runs it for real; `test_unloadable_alert_is_skipped` and `test_corrupt_alert_still_raises` are an alert's storage directory, which a root's rows replace; `test_to_utc_iso` is the payload's date |
-//! | `test_model.py` (11) | `the_model_loads_only_its_pinned_files` and `the_model_embeds_as_ace3_s_does`. Its 11 cases are the download, its lock and its staging directory: ace4 downloads nothing at run time |
+//! | `test_model.py` (11) | `the_model_loads_only_its_pinned_files` and `the_model_embeds_as_ace3_s_does`. Its 11 cases are the download, its lock and its staging directory: ace-rs downloads nothing at run time |
 //! | `test_service.py` (34) | `the_indexer_indexes_what_a_completed_pass_left_due` and `ace-service`'s `the_indexer_holds_only_its_grant`: a task is taken and done once, a failure is counted and retried and left after three, one completion line. No counterpart for the rest: the Redis list and its failures, the alert lock and its deferrals, the worker processes and their count, the payload and delete tasks, a legacy task's shape, and the model's preparation |
-//! | `test_cli.py` (18) | none: ace4 has no `ace search` command. An alert is indexed when its pass completes, and `search.due` and `search.indexed` are the status |
+//! | `test_cli.py` (18) | none: ace-rs has no `ace search` command. An alert is indexed when its pass completes, and `search.due` and `search.indexed` are the status |
 //! | `tests/saq/engine/test_worker_search_submit.py` (3) | `the_indexer_indexes_what_a_completed_pass_left_due`: the request is a row in the completion's transaction. `test_stalled_redis_times_out_and_is_logged_at_error` has no Redis to stall |
 //! | `test_syntax.py`, `test_query.py`, `test_lexical.py`, `test_listing.py` | `ace-service`'s `search_tests`, whose docs map them |
 //! | `tests/app/analysis/views/session/test_search_filters.py` (4) | `ace-service`'s `the_lanes_scope_is_the_filters_they_can_apply` |
@@ -149,7 +149,7 @@ fn the_chunks_are_ace3_s() {
 // A labeled corpus of eight alerts is written to a test database, indexed with the real model, and
 // queried through the public search functions (`Service::search_alerts`, `Service::similar_alerts`).
 // `postgres` runs every case against `PgIndex`; `qdrant` runs the same cases, through the same code,
-// with ace3's Qdrant index behind the service, and is ignored unless `ACE4_TEST_QDRANT_URL` names a
+// with ace3's Qdrant index behind the service, and is ignored unless `ACE_RS_TEST_QDRANT_URL` names a
 // Qdrant to use: `tools/search/compare` starts one of ace3's version in a project of its own and
 // runs them. Each case is ace3's of the same name.
 //
@@ -158,7 +158,7 @@ fn the_chunks_are_ace3_s() {
 // with its body in the bucket, a command line's, a QR code's), its detections and its tags. ace3's
 // `alert_type` filter is the Queue filter here, since a root has no alert type: the EDR alert is in
 // the queue `edr`. The vendor alert's comment is handed to the indexer as a comment document, since
-// ace4's alerts have no comments yet.
+// ace-rs's alerts have no comments yet.
 // ---------------------------------------------------------------------------------------------------
 
 use std::collections::BTreeMap;
@@ -181,7 +181,7 @@ use crate::qdrant::QdrantIndex;
 
 const SHA256_HEX: &str = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
 /// The variable that names the comparison's Qdrant, such as `http://qdrant:6333`.
-const QDRANT_VAR: &str = "ACE4_TEST_QDRANT_URL";
+const QDRANT_VAR: &str = "ACE_RS_TEST_QDRANT_URL";
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Side {
@@ -456,7 +456,7 @@ async fn corpus(side: Side) -> Corpus {
     let db = test_db.db().clone();
     let cache = tempfile::tempdir().expect("a cache directory");
     let store = Store::new(
-        &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        &BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
     )
     .await;
@@ -467,7 +467,7 @@ async fn corpus(side: Side) -> Corpus {
         Side::Qdrant => {
             let url = std::env::var(QDRANT_VAR)
                 .unwrap_or_else(|_| panic!("{QDRANT_VAR} names the comparison's Qdrant"));
-            let collection = format!("ace4-test-{}", &Uuid::new_v4().simple().to_string()[..8]);
+            let collection = format!("ace-rs-test-{}", &Uuid::new_v4().simple().to_string()[..8]);
             Some(
                 QdrantIndex::create(&url, &collection, pg.clone(), db.clone())
                     .await
@@ -945,7 +945,7 @@ macro_rules! retrieval_cases {
         /// `tools/search/compare` runs them.
         mod qdrant {
             $(#[tokio::test(flavor = "multi_thread")]
-            #[ignore = "needs ACE4_TEST_QDRANT_URL: tools/search/compare starts a Qdrant and runs these"]
+            #[ignore = "needs ACE_RS_TEST_QDRANT_URL: tools/search/compare starts a Qdrant and runs these"]
             async fn $case() {
                 super::$case(super::Side::Qdrant).await;
             })*
@@ -1013,11 +1013,11 @@ async fn scale() {
     use crate::model::DIMENSIONS;
     use ace_service::search::Scoped;
 
-    let alerts: usize = std::env::var("ACE4_SEARCH_SCALE_ALERTS")
+    let alerts: usize = std::env::var("ACE_RS_SEARCH_SCALE_ALERTS")
         .ok()
         .and_then(|n| n.parse().ok())
         .unwrap_or(26_000);
-    let per_alert: usize = std::env::var("ACE4_SEARCH_SCALE_CHUNKS_PER_ALERT")
+    let per_alert: usize = std::env::var("ACE_RS_SEARCH_SCALE_CHUNKS_PER_ALERT")
         .ok()
         .and_then(|n| n.parse().ok())
         .unwrap_or(6);
@@ -1027,7 +1027,7 @@ async fn scale() {
     let db = test_db.db().clone();
     let pg = PgIndex::new(db.clone(), None, model());
     let url = std::env::var(QDRANT_VAR).unwrap_or_else(|_| panic!("{QDRANT_VAR} names a Qdrant"));
-    let collection = format!("ace4-scale-{}", &Uuid::new_v4().simple().to_string()[..8]);
+    let collection = format!("ace-rs-scale-{}", &Uuid::new_v4().simple().to_string()[..8]);
     let qdrant = QdrantIndex::create(&url, &collection, pg.clone(), db.clone())
         .await
         .expect("a collection");
@@ -1306,7 +1306,7 @@ async fn scale() {
         );
         assert!(found[name] > 0, "{name} found nothing");
     }
-    if std::env::var("ACE4_SEARCH_SCALE_HOLD").is_ok() {
+    if std::env::var("ACE_RS_SEARCH_SCALE_HOLD").is_ok() {
         // for reading the containers' memory and disk from outside before the data goes
         println!("scale\tholding 120 seconds for outside measurements");
         tokio::time::sleep(std::time::Duration::from_secs(120)).await;
@@ -1486,7 +1486,7 @@ fn chunking_cases() {
 }
 
 /// The model's files are the pinned ones or nothing loads: ace3's `test_model.py` is its download, with
-/// its lock and its staging directory, which ace4 has none of.
+/// its lock and its staging directory, which ace-rs has none of.
 #[test]
 fn the_model_loads_only_its_pinned_files() {
     let pinned = std::path::PathBuf::from(std::env::var(MODEL_VAR).expect("the dev image sets it"));
@@ -1536,7 +1536,7 @@ async fn tree() -> Tree {
     let db = test_db.db().clone();
     let cache = tempfile::tempdir().expect("a cache directory");
     let store = Store::new(
-        &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        &BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
     )
     .await;
@@ -1818,7 +1818,7 @@ async fn documents_cases() {
         json!({"macros": [{"vba_code": "  \n"}]}),
     )
     .await;
-    // test_rdap_extractor: the registration's fields, since ace4 keeps no WHOIS text
+    // test_rdap_extractor: the registration's fields, since ace-rs keeps no WHOIS text
     let domain = insert_observable(db, root, "fqdn", "evil.example", &[]).await;
     let rdap = insert_result(db, root, domain, "rdap_analysis",
         json!({"domain_name": "evil.example", "registrar": "Bad Registrar LLC", "name_servers": ["ns1.evil.example"], "emails": [], "country": null})).await;

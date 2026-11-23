@@ -113,7 +113,7 @@ pub mod budget {
     fn limit(what: &str) -> Error {
         Error::new(
             ErrorKind::InvalidOperation,
-            format!("ace4 limit: the render's {what} is past its bound"),
+            format!("ace-rs limit: the render's {what} is past its bound"),
         )
     }
 
@@ -662,7 +662,7 @@ mod tests {
             "{{ ('ab' * 400000)|replace('a', 'aaaa') }}",
         ] {
             let out = r.jinja(template, &Map::new(), false);
-            assert!(failed(&out, "ace4 limit"), "{template}: {out:?}");
+            assert!(failed(&out, "ace-rs limit"), "{template}: {out:?}");
         }
     }
 

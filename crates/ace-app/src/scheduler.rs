@@ -3,10 +3,10 @@
 //! schedules in `etc/cron.yaml`, here as tasks of `ace serve`.
 //!
 //! **What runs.** Of ace3's 25 core tasks (3 hourly, 20 daily, 2 weekly), nine have a counterpart in
-//! ace4 now, and run here on ace3's cadence (`Task::builtin`), with one of the cron jobs ace3 runs
+//! ace-rs now, and run here on ace3's cadence (`Task::builtin`), with one of the cron jobs ace3 runs
 //! outside them, `nrd-refresh` (PLAN.md 7.4, `crate::nrd`), and `root_cleanup`, which ace3's engine does
 //! at a pass's end rather than on a schedule (PLAN.md decision 56). `daily/partitions` keeps the email
-//! archive's weekly partitions and ace3's analysis result cache's daily ones; ace4 has no result
+//! archive's weekly partitions and ace3's analysis result cache's daily ones; ace-rs has no result
 //! cache, so only the archive's half runs, a run that drops and makes nothing for the cache. A table
 //! that needs attention fails the run, with why, as ace3's exits 1:
 //!
@@ -42,7 +42,7 @@
 //! | `monitor_scheduler` | fluent-bit's `cron-jobs` records, which this table's `scheduler.runs` replaces | `* * * * *` | 1 min |
 //!
 //! The rest, and a site's one, wait for the step that brings what they maintain, or mean nothing in
-//! ace4; PLAN.md 6.7 lists each with why. ace3's other cron jobs, outside `cron_tasks.py` in `etc/cron.yaml`, are listed
+//! ace-rs; PLAN.md 6.7 lists each with why. ace3's other cron jobs, outside `cron_tasks.py` in `etc/cron.yaml`, are listed
 //! there too.
 //!
 //! **One run across replicas.** ace3 runs every task on every node, and a task that changes shared

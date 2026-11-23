@@ -15,7 +15,7 @@
 //!
 //! The file is the module's `csv` setting here, its text as it is, in the site's overlay: a pool's
 //! container has no site directory to watch, and the overlay is the site's. ace3 reloads the file
-//! when it changes; ace4 reads the overlay when the pool starts. A row ace3 can't load is logged and
+//! when it changes; ace-rs reads the overlay when the pool starts. A row ace3 can't load is logged and
 //! skipped, as in ace3: one without five fields, an unknown match type, a regex that doesn't compile
 //! and a CIDR that isn't a network. ace3 compiles a regex with Python's `re`; here it's the `regex`
 //! crate, so a pattern using what only `re` has, such as a look-around or a backreference, is

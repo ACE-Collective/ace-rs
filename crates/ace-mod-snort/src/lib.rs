@@ -6,7 +6,7 @@
 //! holds no credentials, so here the core answers from the rules file, through the
 //! `snort-signature` read (PLAN.md 7.2, `crates/ace-core/src/reads.md`).
 //!
-//! ace3 also adds the rule to the root's summary details. ace4's roots have no summary details yet,
+//! ace3 also adds the rule to the root's summary details. ace-rs's roots have no summary details yet,
 //! so the rule is in the result only.
 
 use std::time::Duration;
@@ -24,7 +24,7 @@ pub const MANIFEST: Manifest = Manifest::lookup::<SnortSignatureAnalyzer>();
 /// What ace3 shows when the rule isn't found.
 pub const UNKNOWN_SIGNATURE: &str = "unknown signature (rules not updating?)";
 
-/// The module has no settings: the rules file is the core's (`ACE4_SNORT_RULES`), where ace3's
+/// The module has no settings: the rules file is the core's (`ACE_RS_SNORT_RULES`), where ace3's
 /// `signature_path` names it.
 #[derive(Debug, Clone, Default, PartialEq, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

@@ -3,10 +3,10 @@
 (PLAN.md 7.5 batch 6, docs/measurements/scripts.md).
 
 It writes the inputs: each fixture of tools/ace3/dumps/fixtures/scripts/mse, each sample under
-samples/ace4/scripts, the edge cases in CRAFTED, and COUNT more made from them by a seeded generator (cut short, bytes changed,
+samples/ace-rs/scripts, the edge cases in CRAFTED, and COUNT more made from them by a seeded generator (cut short, bytes changed,
 inserted or deleted, markers and base64 numbers moved, escapes and high bytes added, random bytes).
-The Perl runs on them in ace3's dev container (ace-dev-1), under /tmp/ace4-mse, and the port in
-ace4's (`cargo test -p ace-mod-scripts --test reference decoder_outputs -- --ignored`). For each
+The Perl runs on them in ace3's dev container (ace-dev-1), under /tmp/ace-rs-mse, and the port in
+ace-rs's (`cargo test -p ace-mod-scripts --test reference decoder_outputs -- --ignored`). For each
 input it compares the sha256 of what each printed and what each died with, and exits non-zero on
 any difference.
 
@@ -24,9 +24,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 FIXTURES = ROOT / "tools" / "ace3" / "dumps" / "fixtures" / "scripts" / "mse"
-SAMPLES = ROOT / "samples" / "ace4" / "scripts"
+SAMPLES = ROOT / "samples" / "ace-rs" / "scripts"
 ACE3 = "ace-dev-1"
-REMOTE = "/tmp/ace4-mse"
+REMOTE = "/tmp/ace-rs-mse"
 PIECES = [b"#@~^", b"^#~@", b"AAAAAA==", b"QwAAAA==", b"@", b"@&", b"@#", b"@!", b"@*", b"@$", b"\n", b"\r\n", b"=="]
 
 
@@ -114,7 +114,7 @@ def main():
         run([*container, "sh", "-c", f"rm -rf {REMOTE} && mkdir -p {REMOTE} && tar -C {REMOTE} -xf -"], archive)
     perl = run(["docker", "exec", "-i", ACE3, "/venv/bin/python3", "-I", "-", REMOTE], PERL_SIDE.encode())
     rust = run([
-        "docker", "compose", "exec", "-T", "-e", f"ACE4_MSE_DIR={REMOTE}", "dev", "cargo", "test", "--quiet",
+        "docker", "compose", "exec", "-T", "-e", f"ACE_RS_MSE_DIR={REMOTE}", "dev", "cargo", "test", "--quiet",
         "-p", "ace-mod-scripts", "--test", "reference", "decoder_outputs", "--", "--ignored", "--nocapture",
     ])
     perl_lines = {r["name"]: r for r in map(json.loads, perl.decode().splitlines())}

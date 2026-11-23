@@ -39,7 +39,7 @@ use crate::StoreError;
 pub const DEFAULT_REGION: &str = "us-east-1";
 
 /// The name static credentials carry in the SDK's logs.
-const PROVIDER_NAME: &str = "ace4";
+const PROVIDER_NAME: &str = "ace-rs";
 
 /// A static access key and its secret.
 #[derive(Debug, Clone, PartialEq, Eq)]

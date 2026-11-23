@@ -2,7 +2,7 @@
 //! the two modules of that file beside `rtfole`, which `ace-mod-oletools` ports.
 //!
 //! `extracted_rtf_analyzer` looks at a file `rtfole` wrote out of an RTF's objects. ace3 knows one
-//! by the `extracted_rtf` tag, which only rtfole gives, as it adds the file; ace4's core tells the
+//! by the `extracted_rtf` tag, which only rtfole gives, as it adds the file; ace-rs's core tells the
 //! module which modules' results added its file, for its declaration (`takes::Condition::AddedBy`),
 //! so it looks for rtfole's name there. Its file is first leased once nothing nearer the root is pending (PLAN.md
 //! decision 15), so rtfole's result, on the RTF above it, has landed by then. Each suspect

@@ -23,7 +23,7 @@
 //! - Saved filters are `Service::saved_filters`, and the forms here save one, delete one and pin or unpin
 //!   one as a quick filter, each through the service with its audit row. They post to
 //!   `crate::saved_filters`, whose manage page, linked as "Manage…", renames and reorders them (5.11).
-//! - A column header sorts by it, ace3's orders that ace4's alerts have fields for, and the pager is a
+//! - A column header sorts by it, ace3's orders that ace-rs's alerts have fields for, and the pager is a
 //!   keyset: First and Next. ace3's offset pager also jumps back and to the end, which a keyset can't do
 //!   without a second cursor; the back button goes back.
 //! - Export goes to the JSON API's CSV and NDJSON exports with the same filters, in the viewer's timezone.

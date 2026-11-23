@@ -5,7 +5,7 @@
                                       tools/ace3/dumps/fixtures/ssdeep
 
 The images are made in ace3's dev container (ace-dev-1), with its Pillow and Ghostscript, under
-/tmp/ace4-images, which is removed after:
+/tmp/ace-rs-images, which is removed after:
 
 - qr_*: the page of samples/ace3/pdf/sample_pdf_with_qr_code.pdf with the QR code, as Ghostscript
   renders it for the qrcode module, and the code cut out of it in several formats, inverted, with an
@@ -30,7 +30,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent.parent
 FIXTURES = ROOT / "tools" / "ace3" / "dumps" / "fixtures"
 CONTAINER = "ace-dev-1"
-REMOTE = "/tmp/ace4-images"
+REMOTE = "/tmp/ace-rs-images"
 QR_PDF = ROOT / "samples" / "ace3" / "pdf" / "sample_pdf_with_qr_code.pdf"
 
 SCRIPT = r'''

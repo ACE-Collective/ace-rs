@@ -1,4 +1,4 @@
-//! `test_registry.py`: 5 cases. ace3's registry is a module global the fixture clears; ace4's is a
+//! `test_registry.py`: 5 cases. ace3's registry is a module global the fixture clears; ace-rs's is a
 //! value each run is handed.
 
 use std::sync::Arc;

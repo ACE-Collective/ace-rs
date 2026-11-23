@@ -58,15 +58,15 @@ fn no_env(_: &str) -> Option<String> {
 }
 
 fn env(name: &str) -> Option<String> {
-    (name == "AI_SPLUNK_PASSWORD").then(|| "ace4-fake-password".to_owned())
+    (name == "AI_SPLUNK_PASSWORD").then(|| "ace-rs-fake-password".to_owned())
 }
 
-/// The read-only instance at `replay`, logging in as ace4.
+/// The read-only instance at `replay`, logging in as ace-rs.
 fn instance(replay: &HttpReplay) -> serde_json::Value {
     json!({
         "host": "splunk.example.com",
         "base_url": replay.local_url(SPLUNKD),
-        "username": "ace4",
+        "username": "ace-rs",
         "timezone": "GMT",
         "request_timeout_seconds": 10,
     })
@@ -82,7 +82,7 @@ fn on_instance(instance: serde_json::Value) -> AiBackendSetup {
         connections: ace_sdk::Connections::new().with(
             "splunk",
             ace_sdk::Connection::new("ai_readonly", "splunk", Some(instance))
-                .with_secret("password", ace_sdk::Secret::new("ace4-fake-password")),
+                .with_secret("password", ace_sdk::Secret::new("ace-rs-fake-password")),
         ),
     }
 }
@@ -318,7 +318,7 @@ async fn a_backend_without_its_credential_stops_the_server() {
     let error = build(
         &entry(
             "{password: splunk_ai_readonly_password}",
-            ", username: ace4",
+            ", username: ace-rs",
             "[]",
         ),
         &no_env,
@@ -336,14 +336,14 @@ async fn a_backend_without_its_credential_stops_the_server() {
     .expect_err("listed");
     assert!(error.contains("lists no secrets of its own"), "{error}");
     // no error says what a secret holds
-    assert!(!error.contains("ace4-fake-password"));
+    assert!(!error.contains("ace-rs-fake-password"));
     // with it, the backend is built, and nothing prints the credential
     let surface = build(&entry("{token: splunk_ai_readonly_token}", "", "[]"), &env)
         .expect("builds")
         .expect("on");
     let shown = format!("{surface:?}");
     assert!(
-        shown.contains("SplunkBackend") && !shown.contains("ace4-fake-password"),
+        shown.contains("SplunkBackend") && !shown.contains("ace-rs-fake-password"),
         "{shown}"
     );
 
@@ -421,7 +421,7 @@ async fn the_splunk_backend_reads_its_settings() {
     .expect_err("refused");
     assert!(error.contains("unknown field"), "{error}");
     let error = SplunkBackend::new(&on_instance(
-        json!({"host": "h", "username": "ace4", "timezone": "Nowhere/None"}),
+        json!({"host": "h", "username": "ace-rs", "timezone": "Nowhere/None"}),
     ))
     .expect_err("refused");
     assert!(error.contains("timezone"), "{error}");
@@ -613,7 +613,7 @@ async fn a_splunk_that_refuses_is_a_502() {
     match error {
         AiQueryError::Backend { status, reason } => {
             assert_eq!(status, 502);
-            assert!(!reason.contains("ace4-fake-password"), "{reason}");
+            assert!(!reason.contains("ace-rs-fake-password"), "{reason}");
         }
         other => panic!("{other:?}"),
     }

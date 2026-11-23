@@ -6,12 +6,12 @@
 //! PowerShell's `-EncodedCommand` (or a prefix of it, or `-ec`), are written to files tagged
 //! `base64` with `yara_meta` type `payload.base64`.
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
 //! - The details name each payload's file by its path in the alert, where ace3 names its path on
 //!   its node.
 //! - ace3 writes every payload to a file and its root takes at most 500 file observables
-//!   (`maximum_observable_count`); here the first 500 payloads are written, as ace4's core has no
+//!   (`maximum_observable_count`); here the first 500 payloads are written, as ace-rs's core has no
 //!   such limit, and the rest are in the details with the name their file would have had.
 //! - ace3's `create_output_file` numbers a name already taken in the alert's files, `_000` and on;
 //!   here only the names this result takes are known, so a second command line in the alert writes
@@ -37,7 +37,7 @@ pub const MANIFEST: Manifest = Manifest::parser::<CommandLineAnalyzer>();
 
 const PAYLOAD_NAME: &str = "command_line_base64_payload.bin";
 /// ace3's `maximum_observable_count` for `file`: a root holds at most 500 file observables, so ace3
-/// writes every payload but adds no more than this. ace4's core has no such limit, so this module
+/// writes every payload but adds no more than this. ace-rs's core has no such limit, so this module
 /// writes the first 500 payloads' files, and a crafted command line of thousands of short encoded
 /// words can't make a task upload thousands of files (docs/measurements/observable-values.md).
 const MAX_PAYLOAD_FILES: usize = 500;

@@ -1,5 +1,5 @@
 # The site overlay the Compose stack's ace, parsers and lookups services read (PLAN.md 2.23),
-# mounted at /etc/ace4/overlay.yaml from ACE4_SITE (this directory by default). With no
+# mounted at /etc/ace-rs/overlay.yaml from ACE_RS_SITE (this directory by default). With no
 # sections, every module runs as itself on its defaults. A site sets its modules' settings, its
 # named instances, where its secrets come from, the core's scheduled tasks and hooks, and its
 # alert dispositions and what each means for detection verdicts (ace_sdk::overlay lists the

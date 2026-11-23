@@ -177,8 +177,8 @@ fn js_input(
         _ => {
             // the sample make-dumps' `js_runs` named, without the run's suffix
             let name = dump.name.trim_start_matches("javascript_deobfuscation/");
-            let sample = ["ace4/js/dropper.js", "ace4/js/broken.js", "ace4/js/blob_redirect.js",
-                "ace4/js/runtime_error.js", "ace4/js/report.JS", "ace4/js/loader.mjs"]
+            let sample = ["ace-rs/js/dropper.js", "ace-rs/js/broken.js", "ace-rs/js/blob_redirect.js",
+                "ace-rs/js/runtime_error.js", "ace-rs/js/report.JS", "ace-rs/js/loader.mjs"]
                 .into_iter()
                 .find(|s| name.starts_with(s))
                 .unwrap_or_else(|| panic!("no sample for {name}"));
@@ -190,7 +190,7 @@ fn js_input(
 }
 
 /// The root the scripts.html dump kept, with html_js_extraction's result holding the snapshot ace3
-/// wrote beside the script, as ace4's keeps it in its details (7.5 batch 4).
+/// wrote beside the script, as ace-rs's keeps it in its details (7.5 batch 4).
 fn js_tree(dump: &Dump, path: &str) -> Option<TreeView> {
     dump.value.get("tree_view")?;
     let this = dump.value["tree_view"]["observables"]
@@ -406,7 +406,7 @@ fn phishkit_tree(dump: &Dump, observable: &ace_sdk::Observable) -> TreeView {
     }
 }
 
-/// ace4's normal form with ace3's job id in place of its own, which each system makes for itself.
+/// ace-rs's normal form with ace3's job id in place of its own, which each system makes for itself.
 fn with_fixed_job(form: Value, job: &str) -> Value {
     let text = serde_json::to_string(&form)
         .expect("JSON")
@@ -433,7 +433,7 @@ fn phishkit_analyzer_matches_the_reference_dumps_or_lists_each_difference() {
             let mut file = harness
                 .file(
                     input["observable"]["file_path"].as_str().expect("a path"),
-                    ace_testkit::samples_dir().join("ace4/web/phishkit_page.html"),
+                    ace_testkit::samples_dir().join("ace-rs/web/phishkit_page.html"),
                     &meta,
                 )
                 .expect("the page");

@@ -5,7 +5,7 @@
 
 [common]
 # The dev container sets this to the Compose stack's Postgres.
-database-url-var = "ACE4_DATABASE_URL"
+database-url-var = "ACE_RS_DATABASE_URL"
 
 [migrate]
 migrations-dir = "crates/ace-core/migrations"

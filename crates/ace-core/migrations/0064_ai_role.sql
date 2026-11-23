@@ -4,9 +4,9 @@
 -- audit row, and keep the rate limiter's counts. `ace serve-ai` checks what its role can do when it
 -- starts (`ace_app::ai::custody`), and stops if the role can do more than this file grants.
 --
--- `ace4_ai` can't log in. A deployment makes a role that can, as a member of it:
+-- `ace_rs_ai` can't log in. A deployment makes a role that can, as a member of it:
 --
---     CREATE ROLE ace4_ai_login LOGIN PASSWORD '...' IN ROLE ace4_ai;
+--     CREATE ROLE ace_rs_ai_login LOGIN PASSWORD '...' IN ROLE ace_rs_ai;
 --
 -- which Compose's `ai-role` service does. A role is the whole server's, not one database's, so the
 -- role may be there already; the grants are this database's. Where the migrating role may not create
@@ -18,48 +18,48 @@
 DO $$
 BEGIN
     BEGIN
-        CREATE ROLE ace4_ai NOLOGIN;
+        CREATE ROLE ace_rs_ai NOLOGIN;
     EXCEPTION
         -- another database on this server made it, perhaps just now
         WHEN duplicate_object OR unique_violation THEN NULL;
         WHEN insufficient_privilege THEN
-            RAISE NOTICE 'the role ace4_ai was not created: the migrating role may not create roles';
+            RAISE NOTICE 'the role ace_rs_ai was not created: the migrating role may not create roles';
     END;
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'ace4_ai') THEN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'ace_rs_ai') THEN
         RETURN;
     END IF;
 
-    GRANT USAGE ON SCHEMA ai, analysis, events, search, service, svs TO ace4_ai;
+    GRANT USAGE ON SCHEMA ai, analysis, events, search, service, svs TO ace_rs_ai;
 
     -- which migration the database is at, so the process can refuse a schema it wasn't built for
-    GRANT SELECT ON public._sqlx_migrations TO ace4_ai;
+    GRANT SELECT ON public._sqlx_migrations TO ace_rs_ai;
 
     -- the rate limiter's state, the only rows the API changes
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ai.inflight, ai.windows TO ace4_ai;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ai.inflight, ai.windows TO ace_rs_ai;
 
     -- one audit row for each answer: written, never read, changed or removed
-    GRANT INSERT ON service.audit TO ace4_ai;
+    GRANT INSERT ON service.audit TO ace_rs_ai;
 
     -- who is calling: an API key by the hash of its token, its owner, and what each holds. Of a
     -- user, the name, whether they are enabled and their queue: no password hash. No session.
-    GRANT SELECT ON service.api_keys, service.permissions, service.group_members TO ace4_ai;
-    GRANT SELECT (id, username, display_name, enabled, queue) ON service.users TO ace4_ai;
+    GRANT SELECT ON service.api_keys, service.permissions, service.group_members TO ace_rs_ai;
+    GRANT SELECT (id, username, display_name, enabled, queue) ON service.users TO ace_rs_ai;
 
     -- alerts and events, as the component `ai_api` reads them (migration 0062)
     GRANT SELECT ON
         analysis.roots, analysis.observables, analysis.detections, analysis.detection_verdicts,
         analysis.results, analysis.relationships, analysis.files
-        TO ace4_ai;
+        TO ace_rs_ai;
     GRANT SELECT ON
         events.events, events.event_alerts, events.event_tags, events.event_malware,
         events.malware, events.malware_threats, events.campaigns, events.remediations,
         events.prevention_tools, events.risk_levels, events.statuses, events.threat_types,
         events.types, events.vectors
-        TO ace4_ai;
+        TO ace_rs_ai;
     -- an alert says whether it is an SVS test run's and whether that run is reviewed
-    GRANT SELECT ON svs.attributions, svs.runs TO ace4_ai;
+    GRANT SELECT ON svs.attributions, svs.runs TO ace_rs_ai;
 
     -- the search index, read only: the indexer in `ace serve` writes it
-    GRANT SELECT ON search.chunks, search.indexed TO ace4_ai;
+    GRANT SELECT ON search.chunks, search.indexed TO ace_rs_ai;
 END
 $$;

@@ -10,12 +10,12 @@ DESIGN.md picks Rust because a model writes every change and the compiler checks
 
 ### YARA on yara-x (1.11 and 1.12)
 
-[yara-compare.md](../measurements/yara-compare.md) has the details. ace3's scanner (yara-python 4.5.4 under yara_scanner_v2 3.0.0) and ace4's port on yara-x 1.22.1 differed nowhere:
+[yara-compare.md](../measurements/yara-compare.md) has the details. ace3's scanner (yara-python 4.5.4 under yara_scanner_v2 3.0.0) and ace-rs's port on yara-x 1.22.1 differed nowhere:
 
 - **Compiling.** All 97 rule files in the signatures repo at commit 0ca119e compile the same way in both. One file fails in both, because it uses `vt.net`, a field only VirusTotal Livehunt has. The 87 files ace3's yara service loads give 288 rules in both, with identical meta.
 - **Matching on the sample set.** 52 units from 0.8's 53 samples gave 3 raw matches from 3 rules, all dropped by the meta filter in both scanners. That's 0 differences, but it exercises almost nothing.
 - **Matching on the rule files themselves.** Scanning each rule file as a unit, with and without tags, gave 316 matches from 91 rules, identical in every offset, identifier and length. The filter agreed on all 316.
-- **Mime types.** libmagic in ace4 agrees with ace3's `file` on 53 of 53 samples.
+- **Mime types.** libmagic in ace-rs agrees with ace3's `file` on 53 of 53 samples.
 - **Incompatibilities to record:** none. One rule uses `pe.number_of_signatures`, which yara-x marks deprecated.
 
 What this doesn't cover:
@@ -28,7 +28,7 @@ yara-x also compiled the bv namespace in 0.42 s against libyara's 0.03 s, in one
 
 [build-loop.md](../measurements/build-loop.md) has the method and raw data. These are medians of five runs in the dev container on this laptop (Rancher Desktop, arm64, 8 CPUs), with mold and sccache. Each run is `cargo test --workspace --no-run`.
 
-| Series | Spike, ace4's profile | Workspace at the end of phase 1 |
+| Series | Spike, ace-rs's profile | Workspace at the end of phase 1 |
 |---|---|---|
 | Clean build, empty cache | 52.5 s (50.0 to 56.6) | 44.0 s (39.4 to 46.5) |
 | Clean build, cache kept | 9.2 s (8.8 to 11.7) | 15.7 s (15.4 to 17.0) |
@@ -42,7 +42,7 @@ What else these numbers include:
 - ace3's idle stack was running on the same VM.
 - Every run exited 0 and compiled the expected number of crates.
 - The workspace doesn't use axum, sqlx, askama or the AWS SDK yet. The spike does, so those crates will add to the workspace's clean build when phase 2 brings them in. How much they add to an edit in the core is what the measurement at the end of phase 2 checks.
-- CI's Linux runner hasn't been measured, because ace4 has no remote yet.
+- CI's Linux runner hasn't been measured, because ace-rs has no remote yet.
 
 One cost showed up that DESIGN.md didn't name: disk. With full debug info, each test binary that links yara-x was 389 MB. Stale copies filled the Docker VM's 98 GB disk, which ace3 shares, once, and brought it to 1.8 GB free a second time. Building dependencies without debug info brought the largest test binary to 105 MB and a full test build's `target/` to 3.1 GB. The disk still needs watching while both stacks run on one laptop.
 
@@ -57,7 +57,7 @@ Keep Rust for the core and the modules. Neither result that could have changed t
 ## What would reopen it
 
 - **A slow core edit.** The build loop is measured again at the end of phase 2 (PLAN.md 2.33), with sqlx, axum and the AWS SDK in the workspace. A one-line edit in `ace-core` taking more than 10 seconds to a runnable test binary reopens this record.
-- **A broken rule.** The SVS corpus comparison, once ace4 goes past a proof of concept, finds a rule that yara-x matches differently and that can't be fixed in the port or the rule.
+- **A broken rule.** The SVS corpus comparison, once ace-rs goes past a proof of concept, finds a rule that yara-x matches differently and that can't be fixed in the port or the rule.
 
 ## Sign-off
 

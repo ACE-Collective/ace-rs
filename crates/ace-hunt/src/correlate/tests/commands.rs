@@ -779,7 +779,7 @@ fn a_script_type_that_failed_to_build_fails_its_step() {
     assert!(built.is_err());
 }
 
-/// ace4's example script command type (`scripts::example`), registered as a site registers one,
+/// ace-rs's example script command type (`scripts::example`), registered as a site registers one,
 /// runs for an executable whose path ends with its suffix, with the event on stdin.
 #[test]
 fn the_example_script_type_runs_for_its_path() {

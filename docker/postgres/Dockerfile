@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# ace4's Postgres (PLAN.md 7.11): the stack's pinned Postgres with pgvector, which the search index's
+# ace-rs's Postgres (PLAN.md 7.11): the stack's pinned Postgres with pgvector, which the search index's
 # embeddings need. It's the same base image the stack ran before, so an existing data volume opens
 # unchanged; the extension is three files beside the server's own. pgvector is built from its release
 # tarball, pinned by hash, with the base image's compiler flags and no -march=native, so the image

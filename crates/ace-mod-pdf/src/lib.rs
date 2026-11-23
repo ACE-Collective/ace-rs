@@ -664,16 +664,16 @@ mod tests {
 
         #[test]
         fn only_a_file_with_the_header_in_its_first_1024_bytes_is_analyzed() {
-            assert!(run("ace4/pdf/name_only_pdf_not_a_pdf.pdf").is_none());
-            assert!(run("ace4/pdf/header_at_1024.pdf").is_none());
-            assert!(run("ace4/pdf/header_at_1000.pdf").is_some());
+            assert!(run("ace-rs/pdf/name_only_pdf_not_a_pdf.pdf").is_none());
+            assert!(run("ace-rs/pdf/header_at_1024.pdf").is_none());
+            assert!(run("ace-rs/pdf/header_at_1000.pdf").is_some());
         }
 
         #[test]
         fn a_file_libqpdf_refuses_keeps_its_dump() {
             for sample in [
-                "ace4/pdf/broken_no_root.pdf",
-                "ace4/pdf/encrypted_needs_password_aes_256.pdf",
+                "ace-rs/pdf/broken_no_root.pdf",
+                "ace-rs/pdf/encrypted_needs_password_aes_256.pdf",
             ] {
                 let result = run(sample).expect("a result");
                 assert_eq!(result.files.len(), 1, "{sample}");
@@ -687,7 +687,7 @@ mod tests {
         /// not for this module.
         #[test]
         fn ghostscripts_rewrite_follows_the_dump() {
-            let result = rewritten("ace4/pdf/uris.pdf").expect("a result");
+            let result = rewritten("ace-rs/pdf/uris.pdf").expect("a result");
             let gs = &result.files[1];
             assert_eq!(gs.path.as_str(), "uris.pdf.gs.pdf");
             assert_eq!(gs.yara_meta[0].as_str(), "type=document.pdf.rendered");
@@ -699,7 +699,7 @@ mod tests {
 
         #[test]
         fn a_plain_pdf_with_uris_gets_their_file() {
-            let result = run("ace4/pdf/uris.pdf").expect("a result");
+            let result = run("ace-rs/pdf/uris.pdf").expect("a result");
             assert_eq!(
                 names(&result),
                 ["uris.pdf.pdfparser", "uris.pdf.annotation_uris.txt"]
@@ -722,7 +722,7 @@ mod tests {
 
         #[test]
         fn form_fields_and_scripts_are_filtered_as_ace3_does() {
-            let form = run("ace4/pdf/form_fields.pdf").expect("a result");
+            let form = run("ace-rs/pdf/form_fields.pdf").expect("a result");
             assert_eq!(
                 names(&form),
                 [
@@ -733,7 +733,7 @@ mod tests {
                     "form_fields.pdf.field_indirect_field_decoded.bin",
                 ]
             );
-            let script = run("ace4/pdf/javascript.pdf").expect("a result");
+            let script = run("ace-rs/pdf/javascript.pdf").expect("a result");
             assert_eq!(
                 names(&script),
                 [
@@ -755,10 +755,10 @@ mod tests {
         #[test]
         fn an_exception_keeps_what_each_block_had_before_it() {
             // the URI list goes whole, because the file is written after the loop
-            let lost = run("ace4/pdf/annot_items.pdf").expect("a result");
+            let lost = run("ace-rs/pdf/annot_items.pdf").expect("a result");
             assert_eq!(names(&lost), ["annot_items.pdf.pdfparser"]);
             // a field is written as it's read
-            let kept = run("ace4/pdf/field_items.pdf").expect("a result");
+            let kept = run("ace-rs/pdf/field_items.pdf").expect("a result");
             assert_eq!(
                 names(&kept),
                 [
@@ -779,7 +779,7 @@ mod tests {
                 ("encrypted_aes_256_r6.pdf", "aesv3", 256, 6),
                 ("encrypted_identity_streams.pdf", "none", 128, 4),
             ] {
-                let result = run(&format!("ace4/pdf/{sample}")).expect("a result");
+                let result = run(&format!("ace-rs/pdf/{sample}")).expect("a result");
                 if sample == "encrypted_aes_128.pdf" {
                     // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
                     ace_testkit::check_view_fixture(
@@ -833,14 +833,14 @@ mod tests {
                 let expected = if method == "none" { 6 } else { 7 };
                 assert_eq!(result.files.len(), expected, "{:?}", names(&result));
             }
-            let both = run("ace4/pdf/encrypted_owner_also_empty.pdf").expect("a result");
+            let both = run("ace-rs/pdf/encrypted_owner_also_empty.pdf").expect("a result");
             assert!(
                 both.details
                     .encryption
                     .expect("its encryption")
                     .owner_password_empty
             );
-            let none = run("ace4/pdf/encrypted_no_permissions.pdf").expect("a result");
+            let none = run("ace-rs/pdf/encrypted_no_permissions.pdf").expect("a result");
             let permissions = none.details.encryption.expect("its encryption").permissions;
             assert!(!permissions.extract && !permissions.print_lowres && !permissions.modify_other);
         }

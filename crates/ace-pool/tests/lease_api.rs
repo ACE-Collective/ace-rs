@@ -266,7 +266,7 @@ async fn reads_core(rules: std::path::PathBuf) -> Core {
     .await
 }
 
-const OTHER_TOKEN: &str = "ace4-test-other-pool-token";
+const OTHER_TOKEN: &str = "ace-rs-test-other-pool-token";
 
 /// A root with a snort_sig observable for each value, and a task of `module` on the first.
 async fn snort_root(core: &Core, values: &[&str], module: &str) -> uuid::Uuid {
@@ -1182,7 +1182,7 @@ fn logger_fixture(name: &str) -> std::path::PathBuf {
         .join(name)
 }
 
-/// The email module's result for the email at `path`, as ace4 parses it.
+/// The email module's result for the email at `path`, as ace-rs parses it.
 fn parsed_email(path: &std::path::Path) -> ace_results::ResultEnvelope<serde_json::Value> {
     let harness = ace_testkit::Harness::<ace_mod_email::EmailAnalyzer>::new()
         .expect("harness")
@@ -2015,11 +2015,11 @@ async fn email_thread_answers_what_ace3_s_get_conversation_did() {
             .as_array()
             .and_then(|reads| reads.iter().find_map(|r| r.get("conversation")))
             .expect("ace3 read it");
-        let mut ace4 = answer["conversation"].clone();
-        if let Some(participants) = ace4.get_mut("participants") {
+        let mut ace_rs = answer["conversation"].clone();
+        if let Some(participants) = ace_rs.get_mut("participants") {
             *participants = as_ace3_keeps_them(participants);
         }
-        assert_eq!(&ace4, ace3, "{name}");
+        assert_eq!(&ace_rs, ace3, "{name}");
     }
 }
 
@@ -3432,7 +3432,7 @@ fn scan_archive(files: &[(&str, &[u8])], stdout: &[u8], stderr: &[u8]) -> Vec<u8
 async fn a_scan_runs_between_a_tasks_two_runs() {
     let core = scans_core(Duration::from_secs(30)).await;
     let (root, _, js) = core
-        .root_with_file("file", "ace4/js/dropper.js", "dropper.js")
+        .root_with_file("file", "ace-rs/js/dropper.js", "dropper.js")
         .await;
     let end = run_js_task(&core, "parser").await;
     let ace_sdk::wire::TaskEnd::Delay {
@@ -3483,7 +3483,7 @@ async fn a_scan_runs_between_a_tasks_two_runs() {
         .download(&input.download, &fetched)
         .await
         .expect("downloads");
-    let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../samples/ace4/js/dropper.js");
+    let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../samples/ace-rs/js/dropper.js");
     assert_eq!(
         std::fs::read(&fetched).expect("reads"),
         std::fs::read(&sample).expect("reads")
@@ -3592,7 +3592,7 @@ async fn a_scan_ends_at_a_cancellation_and_at_a_lost_lease() {
 
     // cancelled while it runs
     let (root, _, _) = core
-        .root_with_file("file", "ace4/js/dropper.js", "dropper.js")
+        .root_with_file("file", "ace-rs/js/dropper.js", "dropper.js")
         .await;
     run_js_task(&core, "parser").await;
     let scan = scanner
@@ -3628,7 +3628,7 @@ async fn a_scan_ends_at_a_cancellation_and_at_a_lost_lease() {
 
     // cancelled before a pool took it
     let (queued, _, _) = core
-        .root_with_file("file", "ace4/js/dropper.js", "dropper.js")
+        .root_with_file("file", "ace-rs/js/dropper.js", "dropper.js")
         .await;
     run_js_task(&core, "parser").await;
     let mut tx = db.begin().await.expect("begins");
@@ -3648,7 +3648,7 @@ async fn a_scan_ends_at_a_cancellation_and_at_a_lost_lease() {
 
     // its pool stops renewing it, as when the pool crashes
     let (lost, _, _) = core
-        .root_with_file("file", "ace4/js/dropper.js", "dropper.js")
+        .root_with_file("file", "ace-rs/js/dropper.js", "dropper.js")
         .await;
     run_js_task(&core, "parser").await;
     let scan = scanner
@@ -3692,7 +3692,7 @@ async fn a_scan_ends_at_a_cancellation_and_at_a_lost_lease() {
 async fn a_scan_request_outside_the_modules_declaration_fails_its_task() {
     let core = scans_core(Duration::from_secs(30)).await;
     let (root, _, js) = core
-        .root_with_file("file", "ace4/js/dropper.js", "dropper.js")
+        .root_with_file("file", "ace-rs/js/dropper.js", "dropper.js")
         .await;
     let client =
         ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "parser").expect("a client");
@@ -4006,7 +4006,7 @@ mod fake_docker {
 /// A scanner pool on the fake daemon, for `scans_core`'s test pool.
 fn scanner_pool(core: &Core, socket: &Path, host: &str) -> ace_pool::scanners::ScannerPool {
     let mut config = ace_pool::scanners::ScannerPoolConfig::new(
-        "ace4-test",
+        "ace-rs-test",
         host,
         &[ace_sdk::scanners::JS_DEOBFUSCATOR],
         &|_| None,
@@ -4133,10 +4133,13 @@ async fn the_scanner_pool_kills_a_cancelled_scanner_and_reaps_what_a_crash_left(
     let socket = fake_docker::serve(dir.path(), daemon.clone());
     let stack = |host: &str, deadline: &str| {
         vec![
-            ("ace4.scanner.stack".to_owned(), "ace4-test".to_owned()),
-            ("ace4.scanner.host".to_owned(), host.to_owned()),
-            ("ace4.scanner.name".to_owned(), "js-deobfuscator".to_owned()),
-            ("ace4.scanner.deadline".to_owned(), deadline.to_owned()),
+            ("ace-rs.scanner.stack".to_owned(), "ace-rs-test".to_owned()),
+            ("ace-rs.scanner.host".to_owned(), host.to_owned()),
+            (
+                "ace-rs.scanner.name".to_owned(),
+                "js-deobfuscator".to_owned(),
+            ),
+            ("ace-rs.scanner.deadline".to_owned(), deadline.to_owned()),
         ]
     };
     let add = |id: &str, labels: Vec<(String, String)>| {
@@ -4153,8 +4156,8 @@ async fn the_scanner_pool_kills_a_cancelled_scanner_and_reaps_what_a_crash_left(
     add(
         "another-stack",
         vec![
-            ("ace4.scanner.stack".to_owned(), "ace4".to_owned()),
-            ("ace4.scanner.host".to_owned(), "host-a".to_owned()),
+            ("ace-rs.scanner.stack".to_owned(), "ace-rs".to_owned()),
+            ("ace-rs.scanner.host".to_owned(), "host-a".to_owned()),
         ],
     );
     add(
@@ -5022,7 +5025,7 @@ async fn the_queue_retries_cancels_expires_and_supersedes_actions() {
 
 // ---- a site module's remediation-check write (PLAN.md decision 32) ----
 
-/// Lookups that declare `remediation-check`, which no module of ace4's does: the first alone, the
+/// Lookups that declare `remediation-check`, which no module of ace-rs's does: the first alone, the
 /// second with `smtp-log` too, so a test can send a write that may not come with a delay.
 mod checks {
     use ace_results::ObservableKind;

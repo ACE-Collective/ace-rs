@@ -16,7 +16,7 @@
 //! have a view of the site's own, its analysis template (5.9), and a ticket has an observable action
 //! of the site's own that opens it, both named by the binary's list.
 //!
-//! Its hunts' `type: executable` command for `hunts/scripts/field_values.py` runs ace4's example
+//! Its hunts' `type: executable` command for `hunts/scripts/field_values.py` runs ace-rs's example
 //! script command type (`ace_hunt::correlate::scripts::example`, PLAN.md decision 16), registered
 //! with `App::hunt_script` as a site registers the types of its own hunt scripts.
 //!
@@ -42,7 +42,7 @@
 //! module that only makes sense on an alert does: it runs on an alert's files and not on a file
 //! submitted for analysis.
 //!
-//! Its list is ace4's own, `ace::app()`, with its modules added to two of its pools
+//! Its list is ace-rs's own, `ace::app()`, with its modules added to two of its pools
 //! (`App::add_to_parser_pool`, `App::add_to_lookup_pool`), so it has every open-source module, hunt
 //! type and script command type without repeating them.
 //!
@@ -116,7 +116,7 @@ pub const TICKET_HISTORY: ace_sdk::directives::Directive = ace_sdk::directives::
 /// Every directive the site adds.
 pub const DIRECTIVES: &[ace_sdk::directives::Directive] = &[TICKET_HISTORY];
 
-/// The site's binaries' list: ace4's, with the site's own added.
+/// The site's binaries' list: ace-rs's, with the site's own added.
 pub fn app() -> App {
     ace::app()
         .observable_types(OBSERVABLE_TYPES)

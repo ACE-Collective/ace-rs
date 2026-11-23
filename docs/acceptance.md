@@ -6,22 +6,22 @@ A module port is accepted when `tests/e2e/run` passes on a machine that has the 
 
 **No unexplained difference over the whole sample set.**
 
-Each sample in `samples/manifest.json` runs through ace4 with `ace compare`, and its tree is diffed with ace3's in `tools/ace3/trees/reference/`. Each difference gets the class of the first row of `tools/ace3/trees/differences.md` that matches it.
+Each sample in `samples/manifest.json` runs through ace-rs with `ace compare`, and its tree is diffed with ace3's in `tools/ace3/trees/reference/`. Each difference gets the class of the first row of `tools/ace3/trees/differences.md` that matches it.
 
 | Class | Row | For acceptance |
 |---|---|---|
 | unexplained | none | Blocks it. Zero are allowed. |
 | explained | under any other heading | Allowed. The systems differ on purpose, or the difference is known and harmless. |
-| unported | under *Effects of modules not ported* | Allowed. What a module ace4 doesn't have added outside its result. A row here only matches what ace3 has and ace4 lacks, and it's the next port's to remove. |
+| unported | under *Effects of modules not ported* | Allowed. What a module ace-rs doesn't have added outside its result. A row here only matches what ace3 has and ace-rs lacks, and it's the next port's to remove. |
 | harness | under *Harness limits* | Allowed. The two runs saw different worlds, so it says nothing about the port. A row's condition has to tell that from a real failure, as `ace3 holds nothing recorded` does. |
 
 `(tree)` differences count like any module's. An observable, path, tag or relationship only one side has is a real disagreement, even when no module's result differs.
 
-A module ace4 doesn't have is skipped: its results come out of both trees and the report counts them. A port is compared from when it's registered.
+A module ace-rs doesn't have is skipped: its results come out of both trees and the report counts them. A port is compared from when it's registered.
 
 ## Listing a difference
 
-A row says a difference is fine, so it needs a reason someone verified: read ace3's code and ace4's, look at the two values, and write down why they differ and why that's right. Don't list a difference because it's the last one left, or because the cause sounds likely. Fix what's a bug.
+A row says a difference is fine, so it needs a reason someone verified: read ace3's code and ace-rs's, look at the two values, and write down why they differ and why that's right. Don't list a difference because it's the last one left, or because the cause sounds likely. Fix what's a bug.
 
 - Keep a row as narrow as what was verified: the sample, the path and a condition if the values can tell a real failure apart.
 - A row that matches nothing fails the threshold, so the list can't go stale. Rows that only cover samples this run didn't compare are left out of that check.

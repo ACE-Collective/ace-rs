@@ -49,7 +49,7 @@
 //!   attributions and then moves the alert.
 //! - An alert's owner is a user (`analysis.roots.owner_id`). ACE's components own nothing, so a SIMULATED
 //!   alert has no owner to give up when it's reopened, where ace3's automation user owned it.
-//! - ace3 adds a comment to an alert it closes or reopens; ace4's alerts have no comments, so a closing's
+//! - ace3 adds a comment to an alert it closes or reopens; ace-rs's alerts have no comments, so a closing's
 //!   text is in the timers' audit row, and a reopening is in the association's (`reopened`).
 //! - A detection is its row's id, not a content hash.
 //! - The test queue isn't a setting (`ace_core::svs::SVS_QUEUE`).

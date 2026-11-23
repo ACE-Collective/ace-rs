@@ -75,7 +75,7 @@ use crate::reads::Read;
 /// The version of the key's format, hashed into every key, as ace3's `CACHE_KEY_FORMAT`. Changing
 /// how a key is made changes this, and every row kept under the old format is then never found
 /// again and goes with its day's partition.
-pub const KEY_FORMAT: &str = "ace4-analysis-cache-key-v1";
+pub const KEY_FORMAT: &str = "ace-rs-analysis-cache-key-v1";
 
 /// The most a kept result may be, compressed: ace3's `max_compressed_bytes`, 1 MiB.
 pub const MAX_COMPRESSED_BYTES: usize = 1024 * 1024;
@@ -84,7 +84,7 @@ pub const MAX_COMPRESSED_BYTES: usize = 1024 * 1024;
 #[derive(Debug, Clone, Copy)]
 pub struct Cache {
     /// Raised whenever the module's code gives another result for the same input, as ace3's module
-    /// `version`. ace4's own version isn't in the key, as ace3's isn't: a change to a module that
+    /// `version`. ace-rs's own version isn't in the key, as ace3's isn't: a change to a module that
     /// changes what it finds raises this.
     pub version: u32,
     /// How long a result is kept, unless the overlay says otherwise (`cache_ttl`). ace3's

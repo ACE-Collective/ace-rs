@@ -15,14 +15,14 @@
 //! - `signatures.yara_qa` (`yara_qa.html`): `GET /signatures/yara-qa`, the rules in QA mode and the rules
 //!   with matches kept (`Service::qa_rules`), with ace3's filters as a `GET` form, its search, status,
 //!   matches, sort, descending and page size, and its pages as Previous and Next links. ace3's status
-//!   `missing` (removed) isn't one: ace4's ruleset records only its QA rules, so a rule that left QA mode
+//!   `missing` (removed) isn't one: ace-rs's ruleset records only its QA rules, so a rule that left QA mode
 //!   and one that left the repository are both `not_qa` (5.6). The warning for rules that couldn't be
 //!   read is the ruleset's: none built, or built before its QA rules were recorded.
 //! - A rule's row, which ace3's script expands in place, is its own page, `GET
 //!   /signatures/yara-qa/rules/{uuid}` (`qa_rule`, `qa_matches`): its versions, each a link that shows its
 //!   files, and its kept files, 25 a page, newest first, with First and Next links, since the service's
 //!   cursor goes one way. The version loaded now is the current ruleset's commit, where ace3 also has a
-//!   rule's content hash, which ace4 doesn't record.
+//!   rule's content hash, which ace-rs doesn't record.
 //! - ace3's match modal is `GET /signatures/yara-qa/matches/{id}` (`qa_match`): the rule as it matched,
 //!   each string's count and first offset, and its meta as JSON, with a link to the whole record.
 //! - Downloads are links to the API's audited downloads, which take the session cookie
@@ -41,7 +41,7 @@
 //! is percent-encoded, so a link is always a path on this site.
 //!
 //! Left out: ace3's copy-the-uuid button and its select-all box, which need a script; its alert link's
-//! `?direct=`, which is `/alerts/{id}` here; and its note that a file is on another node, since ace4's
+//! `?direct=`, which is `/alerts/{id}` here; and its note that a file is on another node, since ace-rs's
 //! files are in one bucket. ace3's folder holds four more pages: `samples.html` and `sample_detail.html`,
 //! with `_samples_page.html`, are `svs_samples` (7.10 batch 2); `validations.html` and
 //! `validation_detail.html`, with `_validations_page.html`, are `svs_validations` (batch 3). The hub

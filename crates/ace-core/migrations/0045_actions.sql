@@ -96,7 +96,7 @@ CREATE FUNCTION queue.notify_action() RETURNS trigger
     LANGUAGE plpgsql AS $$
 BEGIN
     IF NEW.status <> 'COMPLETED' AND NEW.lease_owner IS NULL AND NEW.run_after <= now() THEN
-        PERFORM pg_notify('ace4_tasks', '@' || NEW.kind::text || '/' || NEW.handler);
+        PERFORM pg_notify('ace_rs_tasks', '@' || NEW.kind::text || '/' || NEW.handler);
     END IF;
     RETURN NULL;
 END

@@ -1,4 +1,4 @@
-//! `type: executable` (PLAN.md decision 16): ace4 runs no hunt script. Each script a site's hunts
+//! `type: executable` (PLAN.md decision 16): ace-rs runs no hunt script. Each script a site's hunts
 //! run is a *script command type*, Rust that computes what the script computes, which the site's
 //! binary registers with the script's path ([`CommandTypes::register_script`], as `ace_app::App::hunt_script`
 //! does for the binary). An executable command whose path is a registered script's runs that type
@@ -310,7 +310,7 @@ fn normalize_abs(path: &str) -> String {
 /// The step error for an executable that isn't a registered script.
 pub fn no_script_type(path: &str) -> String {
     format!(
-        "RuntimeError: executable {path} isn't a script command type here: ace4 runs no hunt script, and its script command types run in ace hunter (PLAN.md decision 16)"
+        "RuntimeError: executable {path} isn't a script command type here: ace-rs runs no hunt script, and its script command types run in ace hunter (PLAN.md decision 16)"
     )
 }
 

@@ -8,11 +8,11 @@
 //!
 //! A OneDrive short link, `1drv.ms`, says nothing until it's followed: ace3 asks for it with
 //! `requests` and every redirect after, from the worker, and turns the address it ends at into a
-//! download link. ace4's parsers have no network, so the parser module leaves these links alone and
+//! download link. ace-rs's parsers have no network, so the parser module leaves these links alone and
 //! `protected_url_one_drive`, on the lookup pool, follows them (docs/modules.md has the decision).
 //! It writes `ProtectedURLAnalysis`'s fields under its own name.
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
 //! - ace3 picks Proofpoint's URL with `set.pop()`, in hash order, when urlfinderlib finds more than
 //!   one; here it's the first in sorted order.

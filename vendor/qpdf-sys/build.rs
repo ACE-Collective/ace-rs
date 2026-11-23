@@ -172,7 +172,7 @@ pub mod vendored {
             .extra_warnings(false)
             .define("POINTERHOLDER_TRANSITION", "4")
             .define("QPDF_DISABLE_QTC", "1")
-            // ace4: no opening of /dev/urandom, which a contained task can't do (vendor/README.md)
+            // ace-rs: no opening of /dev/urandom, which a contained task can't do (vendor/README.md)
             .define("USE_INSECURE_RANDOM", "1")
             .define("SKIP_OS_SECURE_RANDOM", "1")
             .include(root.join("include"));

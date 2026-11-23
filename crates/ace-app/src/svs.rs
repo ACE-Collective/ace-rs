@@ -23,7 +23,7 @@
 //! worklist's rows per status (batch 8, `ace_core::svs::coverage`). Their lines are ace3's.
 //!
 //! What differs from ace3: ace3's prune, refresh and snapshot skip a node that isn't the primary one unless
-//! given `--force`; ace4 has no primary node (every replica shares the queue and the refresh's lock), so
+//! given `--force`; ace-rs has no primary node (every replica shares the queue and the refresh's lock), so
 //! there's no `--force`.
 
 use std::process::ExitCode;

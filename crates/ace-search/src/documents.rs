@@ -23,7 +23,7 @@
 //!
 //! # What differs from ace3
 //!
-//! - ace4's alerts have no comments and its modules attach no `llm_context_documents`, so nothing here
+//! - ace-rs's alerts have no comments and its modules attach no `llm_context_documents`, so nothing here
 //!   makes a `comment` or a `context` document. The index keeps both kinds for when they come.
 //! - A root has no alert type, tool, instructions or summary details of its own. The header reads the
 //!   first three from what its submitter recorded (`analysis.roots.origin`), when it's there.

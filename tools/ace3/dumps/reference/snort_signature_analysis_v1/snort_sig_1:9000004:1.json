@@ -6,13 +6,13 @@
     {
       "class": "SnortSignatureAnalysis_v1",
       "details": {
-        "signature": "#alert tcp any any -> any any (msg:\"ACE4 TEST fixture commented out\"; sid:9000004; rev:1;)",
+        "signature": "#alert tcp any any -> any any (msg:\"ACE_RS TEST fixture commented out\"; sid:9000004; rev:1;)",
         "signature_id": "9000004 rev 1"
       },
       "detections": [],
       "module_path": "saq.modules.snort:SnortSignatureAnalysis_v1",
       "observables": [],
-      "summary": "Signature Analysis - (9000004 rev 1) #alert tcp any any -> any any (msg:\"ACE4 TEST fixture commented out\"; sid:9000004; rev:1;)",
+      "summary": "Signature Analysis - (9000004 rev 1) #alert tcp any any -> any any (msg:\"ACE_RS TEST fixture commented out\"; sid:9000004; rev:1;)",
       "tags": []
     }
   ],

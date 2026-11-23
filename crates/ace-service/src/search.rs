@@ -62,7 +62,7 @@
 //!
 //! # What differs from ace3
 //!
-//! - No alert type, tool or node: ace4's roots have none, so there is no `alert_types` filter and no
+//! - No alert type, tool or node: ace-rs's roots have none, so there is no `alert_types` filter and no
 //!   node scoping. The other typed filters of ace3's request are entries of the one filter list.
 //! - A disposition, a move between queues or a tag needs no index task: the lanes read the alert's row.
 //! - A listing is paged by offset up to `MAX_LISTING_OFFSET`; past that the alert list's cursor pages.

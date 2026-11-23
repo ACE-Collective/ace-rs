@@ -1,0 +1,119 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:21 15:09:13+00:00",
+          "File:FileInodeChangeDate": "2026:11:21 15:09:13+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
+          "File:FileName": "ppt_junk_storage.ppt",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 2560,
+          "File:FileType": "PPT",
+          "File:FileTypeExtension": "PPT",
+          "File:MIMEType": "application/vnd.ms-powerpoint",
+          "FlashPix:CurrentUser": "a",
+          "SourceFile": "<root>/files/ppt_junk_storage.ppt"
+        },
+        "output_dir": "<root>/files/ppt_junk_storage.ppt.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "ppt_junk_storage.ppt.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 639,
+          "tags": [],
+          "type": "file",
+          "value": "b1a60972d7901dfd1a6413027395fb7478b89b9c6e3f0fb925b25772bae3a8d8",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: CurrentUser=a",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/x-ole-storage",
+        "type": "Composite Document File V2 Document, Cannot read section info"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/ppt_junk_storage.ppt",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "ppt_junk_storage.ppt",
+      "size": 2560,
+      "type": "file",
+      "value": "7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "ppt_junk_storage.ppt",
+    "relationships": [],
+    "size": 2560,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

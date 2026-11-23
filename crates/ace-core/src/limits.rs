@@ -4,7 +4,7 @@
 //!
 //! **What is counted**, as ace3 counts it: the root's results of the component's analysis type,
 //! whichever component wrote them (ace3's `root.get_analysis_by_type`, so a module's instances count
-//! together), a result from the analysis cache and one with an error among them, and, because ace4
+//! together), a result from the analysis cache and one with an error among them, and, because ace-rs
 //! runs a root's tasks at once where ace3 ran its modules one after another, the tasks of those
 //! components still to run (queued, delayed or running): each is a result ace3 would have counted by
 //! the time it looked at the next observable. A task the audit setting queued only because a
@@ -28,7 +28,7 @@
 //! **Where the limit comes from**: a module's own default, `Module::AUTOMATION_LIMIT`, or its overlay
 //! section's or instance's `automation_limit` (`ace_sdk::overlay`), beside `cache_ttl`, outside its
 //! settings, so it isn't in a cached result's key, as ace3's config hash leaves it out. ace3's own
-//! open-source modules set none at `fe6da632` (`saq.default.yaml`), so no module of ace4's has one.
+//! open-source modules set none at `fe6da632` (`saq.default.yaml`), so no module of ace-rs's has one.
 
 use uuid::Uuid;
 

@@ -3,18 +3,18 @@
 
 Usage: tools/ace3/yara/make-workdir [--signatures DIR] [--every-rule-file | --rule-sources] WORKDIR
 
-Both replay children read it: ace3's, tools/ace3/yara/child.py through run-child, and ace4's,
+Both replay children read it: ace3's, tools/ace3/yara/child.py through run-child, and ace-rs's,
 `ace yara replay`. WORKDIR is on the host. It gets:
 
 - job.json, in the shape ace3's saq/svs/yara/replay.py writes, plus "workdir": the absolute
-  path both containers see WORKDIR at, /tmp/ace4-yara-work/<WORKDIR's name>. run-child copies
-  it there in ace3's dev container; ace4's container bind-mounts the host directory there;
+  path both containers see WORKDIR at, /tmp/ace-rs-yara-work/<WORKDIR's name>. run-child copies
+  it there in ace3's dev container; ace-rs's container bind-mounts the host directory there;
 - one unit per distinct (sha256, path inside the alert, meta tags) in samples/manifest.json,
   as ace3's saq/svs/yara/corpus.py makes units, written to u/<id>/files/<path inside the
   alert>. A path that is absolute or climbs out with `..` is skipped, as corpus.py does.
 
 The rules are ace3's signatures checkout where both containers see it, /opt/ace/signatures:
-ace3's dev container has it there, and ace4's mounts it there read only. The namespaces are
+ace3's dev container has it there, and ace-rs's mounts it there read only. The namespaces are
 the ones ace3's yara service loads (signature_dir signatures/yara): each directory in yara/,
 with the .yar and .yara files directly in it, in name order.
 
@@ -26,7 +26,7 @@ each file twice, named as it is, once with every tag the rules' meta_tags direct
 once with none. A rule's strings are in its own source, so these units match far more rules
 than the samples do, which gives the scanners' matches and offsets something to compare.
 
---signatures is the checkout on the host (default: $ACE4_ACE3_CHECKOUT/signatures, or
+--signatures is the checkout on the host (default: $ACE_RS_ACE3_CHECKOUT/signatures, or
 ../ace3/signatures beside this checkout). The file timeout is 10 seconds, ace3's
 service_yara.default_timeout.
 """
@@ -40,7 +40,7 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
-CONTAINER_ROOT = "/tmp/ace4-yara-work"
+CONTAINER_ROOT = "/tmp/ace-rs-yara-work"
 CONTAINER_SIGNATURES = "/opt/ace/signatures"
 FILE_TIMEOUT = 10
 
@@ -95,7 +95,7 @@ def is_safe_path(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    default_checkout = Path(os.environ.get("ACE4_ACE3_CHECKOUT", REPO.parent / "ace3"))
+    default_checkout = Path(os.environ.get("ACE_RS_ACE3_CHECKOUT", REPO.parent / "ace3"))
     parser.add_argument("--signatures", type=Path, default=default_checkout / "signatures")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--every-rule-file", action="store_true")

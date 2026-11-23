@@ -154,7 +154,7 @@ mod tests {
         );
     }
 
-    /// `test_find_markers_in_a_saved_match`: ace3 reads a saved match back as text with its NULs; ace4
+    /// `test_find_markers_in_a_saved_match`: ace3 reads a saved match back as text with its NULs; ace-rs
     /// keeps a match's bytes (`ace_results::Bytes`), so both forms are the bytes.
     #[test]
     fn markers_in_a_saved_match() {

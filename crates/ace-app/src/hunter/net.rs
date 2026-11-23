@@ -1,5 +1,5 @@
 //! The network the hunter's script command types use (PLAN.md decision 16): DNS as dnspython's stub
-//! resolver asks (`ace_mod_dns::resolve`, on hickory's wire format), HTTP through ace4's client with
+//! resolver asks (`ace_mod_dns::resolve`, on hickory's wire format), HTTP through ace-rs's client with
 //! verified TLS (`ace_sdk::http`), and a TLS handshake that verifies the chain to the platform's
 //! roots but not the name, as Python's `ssl` context without hostname checks does, with rustls. Every call is bounded by the timeout
 //! it's given. The engine runs a correlation on a blocking thread, so each call runs on a runtime of

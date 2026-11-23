@@ -58,7 +58,7 @@ browser.
 
 `vis/vis-4.1.0.js` is vis.js 4.1.0 (almende/vis, now the archived visjs/vis), the library and version ace3
 vendored as `app/static/js/vis.js` for its alert graph until it removed both as unused (ace3 commit
-`9f63a496`, 2026-10-01). ace4 uses it for the relationship graph (PLAN.md 5.13). It's `dist/vis.js` of the
+`9f63a496`, 2026-10-01). ace-rs uses it for the relationship graph (PLAN.md 5.13). It's `dist/vis.js` of the
 npm package `vis@4.1.0`, the release's published artifact: the tarball
 `https://registry.npmjs.org/vis/-/vis-4.1.0.tgz` matches the integrity npm records for it,
 `sha512-lu2jcGY8HVTysRhxCWki87pbCbFKX96zbT/fW8uLo+meJnPJMrQSfaOa7MAHm5SA1z2HAa2foToU7qTlM6GMgQ==`. The file
@@ -69,11 +69,11 @@ ace3's copy is the same text with some lines ending in CRLF; this is upstream's,
 release assets. npm is used only to fetch the tarball once: there's no build step, and `ace-gui` embeds the
 file in the binary. `crates/ace-gui/tests/gui.rs` fails if the bytes it serves stop matching the hash above.
 The unminified build is the one ace3 vendored; the release's `vis.min.js` names a source map, `vis.map`,
-that ace4 doesn't serve.
+that ace-rs doesn't serve.
 
 It runs under 5.7's policy unchanged, which `tests/e2e/run` checks in its browser: it has no `eval` or
 `Function`, it styles what it creates through the CSSOM (`element.style`), which a policy doesn't restrict,
-and the network draws on a canvas. ace4 leaves out `vis.css`, which styles only the parts the graph doesn't
+and the network draws on a canvas. ace-rs leaves out `vis.css`, which styles only the parts the graph doesn't
 use: the navigation buttons, the manipulation toolbar, the configurator and the tooltip. A node's `title`, vis's
 tooltip, is set as HTML, so `crates/ace-gui/static/graph.js` never sets one.
 
@@ -104,13 +104,13 @@ To update: take the libxml2 release the new lxml bundles, check its SHA-256 agai
 
 `unautoit/` is ace3's `third_party/unautoit` at ace3 `f72f8946`, byte for byte as git stores it: UnAutoIt v1.1.1 (digitalsleuth/UnAutoIt at `6c55d05`) with libautoit v1.2.8 vendored in `unautoit/third_party/libautoit`, both by x0r19x91, with the changes ace3 made in October 2026 (an output directory with mode 0755, a map for word lookups, string literals without Go's escapes). `unautoit/third_party/README.md` and ace3's `third_party/README.md` record where each came from and what changed. Both upstream repositories are gone, which is why ace3 keeps the source.
 
-It's GPL-3 (`unautoit/LICENSE`). Nothing in ace4 links it: `docker/ace4/Dockerfile`'s and `docker/dev/Dockerfile`'s `unautoit` stage builds it as ace3's Dockerfile does, libautoit's tests and then a static binary with Go 1.27.3, ace3's, `CGO_ENABLED=0` and `-trimpath`, and copies the licences of it, of Go and of each Go module it compiles in beside the binary in `/usr/local/share/doc/unautoit`. The autoit module runs it as a program of its own in the sandbox runner. The binary is ace3's: on arm64 its sha256 is `571da970839793b7fdddb2d7ab22ddb8457f2745a5b8ff273a22af4492650c77`, as in ace3's image. `go build` fetches the Go modules `go.sum` pins.
+It's GPL-3 (`unautoit/LICENSE`). Nothing in ace-rs links it: `docker/ace-rs/Dockerfile`'s and `docker/dev/Dockerfile`'s `unautoit` stage builds it as ace3's Dockerfile does, libautoit's tests and then a static binary with Go 1.27.3, ace3's, `CGO_ENABLED=0` and `-trimpath`, and copies the licences of it, of Go and of each Go module it compiles in beside the binary in `/usr/local/share/doc/unautoit`. The autoit module runs it as a program of its own in the sandbox runner. The binary is ace3's: on arm64 its sha256 is `571da970839793b7fdddb2d7ab22ddb8457f2745a5b8ff273a22af4492650c77`, as in ace3's image. `go build` fetches the Go modules `go.sum` pins.
 
 To update: copy ace3's `third_party/unautoit` over `unautoit/` again (from git, `git show`, so line endings are as stored), change the commit above, and rebuild both images; `crates/ace-pool/tests/containment.rs`'s `unautoit_lists_and_extracts_under_the_runner` and `crates/ace-mod-sandbox/tests/reference.rs` check it still runs as ace3's.
 
 ## The search index's embedding model (not in this repository)
 
-`sentence-transformers/all-MiniLM-L6-v2` is the model ace3's alert search embeds with (`search.embedding_model`), and ace4's does too (PLAN.md 7.11, `crates/ace-search/src/model.rs`), so the two are compared on the same vectors. Its weights are 91 MB, so they aren't in git. The images fetch three files when they are built, from the model's own repository on Hugging Face at commit `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`, each with `ADD --checksum` (the `search-model` stage of `docker/ace4/Dockerfile` and `docker/dev/Dockerfile`):
+`sentence-transformers/all-MiniLM-L6-v2` is the model ace3's alert search embeds with (`search.embedding_model`), and ace-rs's does too (PLAN.md 7.11, `crates/ace-search/src/model.rs`), so the two are compared on the same vectors. Its weights are 91 MB, so they aren't in git. The images fetch three files when they are built, from the model's own repository on Hugging Face at commit `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`, each with `ADD --checksum` (the `search-model` stage of `docker/ace-rs/Dockerfile` and `docker/dev/Dockerfile`):
 
 | File | Bytes | SHA-256 |
 |---|---|---|
@@ -118,7 +118,7 @@ To update: copy ace3's `third_party/unautoit` over `unautoit/` again (from git, 
 | `tokenizer.json` | 466,247 | `be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037` |
 | `config.json` | 612 | `953f9c0d463486b10a6871cc2fd59f223b2c70184f49815e7efbcab5d8908b41` |
 
-They land in `/usr/local/share/ace4/search-model/all-MiniLM-L6-v2`, which `ACE4_SEARCH_MODEL` names, in the `ace4-ace` image, for `ace serve`, and in the dev image, for the tests. `ace_search::Model::load` checks the same three hashes before it reads a file, so a file that was swapped or cut short loads nothing. No process downloads the model: ace3's indexer fetches it when it first starts, and ace4's never does. The model runs in the `ace serve` process on the CPU, so nothing an alert holds is sent anywhere to be embedded.
+They land in `/usr/local/share/ace-rs/search-model/all-MiniLM-L6-v2`, which `ACE_RS_SEARCH_MODEL` names, in the `ace-rs-ace` image, for `ace serve`, and in the dev image, for the tests. `ace_search::Model::load` checks the same three hashes before it reads a file, so a file that was swapped or cut short loads nothing. No process downloads the model: ace3's indexer fetches it when it first starts, and ace-rs's never does. The model runs in the `ace serve` process on the CPU, so nothing an alert holds is sent anywhere to be embedded.
 
 Its licence is Apache-2.0, as the repository's model card says (`README.md` at the same commit). The repository's other files, its ONNX and OpenVINO exports, its PyTorch and TensorFlow weights and its sentence-transformers module settings, aren't fetched: the forward pass reads the safetensors file, and the pooling and the 256-token limit those settings describe are in `model.rs`.
 
@@ -126,6 +126,6 @@ To update: change the commit and the three hashes in both Dockerfiles and in `MO
 
 ## pgvector (not in this repository)
 
-pgvector 0.8.7 is the Postgres extension the search index keeps its embeddings in (PLAN.md 7.11). `docker/postgres/Dockerfile` builds it onto the stack's pinned Postgres image from its release tarball, `https://github.com/pgvector/pgvector/archive/refs/tags/v0.8.7.tar.gz`, SHA-256 `cac0b10c360f05b2d521200105ba3697e773d4cd3731f5a915a7e37ebe0bea85`, with no `-march=native`, and puts its licence beside it. Its licence is the PostgreSQL License. The image is `ace4-postgres:18.6-pgvector0.8.7`, 7 MB larger than its base.
+pgvector 0.8.7 is the Postgres extension the search index keeps its embeddings in (PLAN.md 7.11). `docker/postgres/Dockerfile` builds it onto the stack's pinned Postgres image from its release tarball, `https://github.com/pgvector/pgvector/archive/refs/tags/v0.8.7.tar.gz`, SHA-256 `cac0b10c360f05b2d521200105ba3697e773d4cd3731f5a915a7e37ebe0bea85`, with no `-march=native`, and puts its licence beside it. Its licence is the PostgreSQL License. The image is `ace-rs-postgres:18.6-pgvector0.8.7`, 7 MB larger than its base.
 
 To update: change the version and the hash in the Dockerfile and the tag in `compose.yaml`, and run `ace-search`'s tests and `tests/e2e/run`. An index made by an older pgvector is read by a newer one; its changelog says when one isn't.

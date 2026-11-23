@@ -219,7 +219,7 @@ pub struct Suppression {
     /// The window it fell into, opened by the earlier hit.
     pub window_start: DateTime<Utc>,
     pub window_end: DateTime<Utc>,
-    /// The earlier hit's root, None when ace4 didn't make it.
+    /// The earlier hit's root, None when ace-rs didn't make it.
     pub cause_root: Option<Uuid>,
     pub search_start: Option<DateTime<Utc>>,
     pub search_end: Option<DateTime<Utc>>,

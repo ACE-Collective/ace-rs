@@ -58,7 +58,7 @@ impl Level {
     }
 }
 
-/// A line ace3's correlation logs, which ace4's caller writes with its own logger.
+/// A line ace3's correlation logs, which ace-rs's caller writes with its own logger.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct LogLine {
     pub level: Level,

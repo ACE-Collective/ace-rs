@@ -1,5 +1,5 @@
 -- The AI investigation API (PLAN.md 7.15): ace3's `aceapi_ai`, the read-only routes an AI agent's key
--- reaches (`ace_service::ai`). ace3 keeps its rate limiter's state in Redis; ace4 has no Redis, so it is
+-- reaches (`ace_service::ai`). ace3 keeps its rate limiter's state in Redis; ace-rs has no Redis, so it is
 -- here, where every node reads the same counts.
 CREATE SCHEMA ai;
 

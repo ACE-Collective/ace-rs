@@ -2,7 +2,7 @@
 # Compose stack's dev container with its Postgres, bucket and telemetry collector, as CI runs them.
 #
 #   make build      compile every crate and its tests in the dev container
-#   make images     build the stack's images (the dev container's, Postgres's and ace4's own)
+#   make images     build the stack's images (the dev container's, Postgres's and ace-rs's own)
 #   make test       formatting, lints, the sqlx and layering checks, then every crate's tests:
 #                   cargo nextest, which runs tests of different test programs at once, then
 #                   cargo test --doc for the doctests, which nextest doesn't run

@@ -65,9 +65,9 @@ fn spans(answer: &Value) -> Vec<(String, String, String, Option<String>)> {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn one_tasks_spans_appear_together_in_the_collector() {
-    let endpoint = var("ACE4_TEST_OTLP_ENDPOINT");
-    let traces = var("ACE4_TEST_TRACES_URL");
-    let mut telemetry = ace_pool::telemetry::init("ace4-core-test", "info");
+    let endpoint = var("ACE_RS_TEST_OTLP_ENDPOINT");
+    let traces = var("ACE_RS_TEST_TRACES_URL");
+    let mut telemetry = ace_pool::telemetry::init("ace-rs-core-test", "info");
     telemetry.export_to(&endpoint).expect("exports spans");
     let started = Utc::now();
 
@@ -84,7 +84,7 @@ async fn one_tasks_spans_appear_together_in_the_collector() {
         .await
         .expect("the task");
     let mut pool = test_pool(&core, &["lookups", "--contained"]);
-    pool.env("ACE4_OTLP_ENDPOINT", &endpoint);
+    pool.env("ACE_RS_OTLP_ENDPOINT", &endpoint);
     let mut pool = PoolProcess::start(pool);
     wait_until_idle(&core, root, Duration::from_secs(60)).await;
     // a pool that stops on SIGTERM flushes its spans on the way out
@@ -96,7 +96,7 @@ async fn one_tasks_spans_appear_together_in_the_collector() {
 
     let http = HttpClient::builder().build().expect("a client");
     let search = format!(
-        "{traces}/api/v3/traces?query.service_name=ace4-test-pool&query.start_time_min={}&query.start_time_max={}",
+        "{traces}/api/v3/traces?query.service_name=ace-rs-test-pool&query.start_time_min={}&query.start_time_max={}",
         started.to_rfc3339_opts(chrono::SecondsFormat::Micros, true),
         (Utc::now() + chrono::TimeDelta::minutes(1))
             .to_rfc3339_opts(chrono::SecondsFormat::Micros, true),
@@ -135,7 +135,7 @@ async fn one_tasks_spans_appear_together_in_the_collector() {
         in_trace = spans(&answer);
         if in_trace
             .iter()
-            .any(|(service, _, _, _)| service == "ace4-core-test")
+            .any(|(service, _, _, _)| service == "ace-rs-core-test")
         {
             break;
         }
@@ -148,11 +148,11 @@ async fn one_tasks_spans_appear_together_in_the_collector() {
         .map(|(service, name, _, _)| (service.clone(), name.clone()))
         .collect();
     for wanted in [
-        ("ace4-test-pool", "pool.task"),
-        ("ace4-test-pool", "fetch_input"),
-        ("ace4-test-pool", "task"),
-        ("ace4-test-pool", "send_end"),
-        ("ace4-core-test", "lease_api"),
+        ("ace-rs-test-pool", "pool.task"),
+        ("ace-rs-test-pool", "fetch_input"),
+        ("ace-rs-test-pool", "task"),
+        ("ace-rs-test-pool", "send_end"),
+        ("ace-rs-core-test", "lease_api"),
     ] {
         assert!(
             names.contains(&(wanted.0.to_owned(), wanted.1.to_owned())),
@@ -160,7 +160,10 @@ async fn one_tasks_spans_appear_together_in_the_collector() {
         );
     }
     // the module's span carries the task id beside 1.22's identifiers, and so does the core's
-    for (service, name) in [("ace4-test-pool", "task"), ("ace4-core-test", "lease_api")] {
+    for (service, name) in [
+        ("ace-rs-test-pool", "task"),
+        ("ace-rs-core-test", "lease_api"),
+    ] {
         assert!(
             in_trace.iter().any(|(s, n, _, t)| s == service
                 && n == name

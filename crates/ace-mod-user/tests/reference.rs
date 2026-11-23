@@ -23,7 +23,7 @@ fn directory() -> PathBuf {
 fn settings(server: &str) -> Value {
     json!({
         "server": server,
-        "bind_user": "CN=ace4,OU=Service,DC=company,DC=example",
+        "bind_user": "CN=ace-rs,OU=Service,DC=company,DC=example",
         "base_dn": "DC=company,DC=example",
         "top_user": "ceo",
         "local_email_domains": ["company.example"],
@@ -70,7 +70,7 @@ async fn matches_the_reference_dumps_or_lists_each_difference() {
         block["allow_plaintext"] = json!(true);
         let harness = Harness::<UserAnalyzer>::with_settings(block)
             .expect("harness")
-            .secret(ace_mod_user::PASSWORD, "ace4-fake-password");
+            .secret(ace_mod_user::PASSWORD, "ace-rs-fake-password");
         let mut observable = harness.observable(kind, value);
         observable.directives = input["directives"]
             .as_array()
@@ -121,7 +121,7 @@ async fn tls_is_verified_and_starttls_comes_before_the_bind() {
 
         let untrusted = Harness::<UserAnalyzer>::with_settings(settings(&fake.url()))
             .expect("harness")
-            .secret(ace_mod_user::PASSWORD, "ace4-fake-password");
+            .secret(ace_mod_user::PASSWORD, "ace-rs-fake-password");
         let err = untrusted
             .run_lookup(untrusted.observable(ObservableKind::User, "jdoe"))
             .await
@@ -139,7 +139,7 @@ async fn tls_is_verified_and_starttls_comes_before_the_bind() {
         block["ca_certificates"] = json!(ca);
         let trusted = Harness::<UserAnalyzer>::with_settings(block)
             .expect("harness")
-            .secret(ace_mod_user::PASSWORD, "ace4-fake-password");
+            .secret(ace_mod_user::PASSWORD, "ace-rs-fake-password");
         let outcome = trusted
             .run_lookup(trusted.observable(ObservableKind::User, "jdoe"))
             .await
@@ -150,7 +150,10 @@ async fn tls_is_verified_and_starttls_comes_before_the_bind() {
         assert_eq!(result.analyzed.tags, ["executive"], "{transport:?}");
         assert_eq!(
             fake.binds(),
-            [("CN=ace4,OU=Service,DC=company,DC=example".to_owned(), true)],
+            [(
+                "CN=ace-rs,OU=Service,DC=company,DC=example".to_owned(),
+                true
+            )],
             "{transport:?}"
         );
     }
@@ -165,7 +168,7 @@ async fn plain_ldap_needs_allow_plaintext() {
         .expect("the fake starts");
     let harness = Harness::<UserAnalyzer>::with_settings(settings(&fake.url()))
         .expect("harness")
-        .secret(ace_mod_user::PASSWORD, "ace4-fake-password");
+        .secret(ace_mod_user::PASSWORD, "ace-rs-fake-password");
     let err = harness
         .run_lookup(harness.observable(ObservableKind::User, "jdoe"))
         .await
@@ -199,7 +202,7 @@ async fn a_refused_bind_fails_and_a_missing_server_is_unavailable() {
     block["server"] = json!(format!("ldap://127.0.0.1:{port}"));
     let harness = Harness::<UserAnalyzer>::with_settings(block)
         .expect("harness")
-        .secret(ace_mod_user::PASSWORD, "ace4-fake-password");
+        .secret(ace_mod_user::PASSWORD, "ace-rs-fake-password");
     let err = harness
         .run_lookup(harness.observable(ObservableKind::User, "jdoe"))
         .await

@@ -10,7 +10,7 @@
 //! to its own transaction's start, to the task's run time in the root's pass (`run_seconds`, `runs`,
 //! `run_pass`), which the pass's metrics events read (`crate::metrics`).
 //!
-//! A worker with nothing to claim waits on `LISTEN ace4_tasks` (`Wakeups`), which a trigger
+//! A worker with nothing to claim waits on `LISTEN ace_rs_tasks` (`Wakeups`), which a trigger
 //! notifies whenever a task becomes claimable, with a bounded wait as the fallback in case a
 //! notification is lost.
 //!
@@ -1104,7 +1104,7 @@ impl Worker {
 
 /// The channel the queue's trigger notifies when a task becomes claimable. The payload is the
 /// task's module.
-pub const TASKS_CHANNEL: &str = "ace4_tasks";
+pub const TASKS_CHANNEL: &str = "ace_rs_tasks";
 
 /// Why a wait ended.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1233,7 +1233,7 @@ pub async fn cancel_root(tx: &mut Tx<'_>, root: Uuid) -> Result<CancelledRoot, Q
 }
 
 /// The channel a task's cancellation notifies, with the task's id as the payload.
-pub const CANCEL_CHANNEL: &str = "ace4_cancel";
+pub const CANCEL_CHANNEL: &str = "ace_rs_cancel";
 
 /// One listener per process that fires the cancellation token of each task the process runs
 /// when its root is cancelled, without waiting for the next lease renewal.
@@ -1422,7 +1422,7 @@ pub async fn reap_expired_leases(
 }
 
 /// The channel a root's completion notifies, with `<root>/<pass>` as the payload.
-pub const COMPLETIONS_CHANNEL: &str = "ace4_root_complete";
+pub const COMPLETIONS_CHANNEL: &str = "ace_rs_root_complete";
 
 /// One analysis pass's end.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

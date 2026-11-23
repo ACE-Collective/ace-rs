@@ -20,7 +20,7 @@
 //! | `::test_conforming_environment_boots` | `a_conforming_process_starts` |
 //! | `test_advisory_sweep_flags_plaintext_looking_fields` | `the_advisory_sweep_flags_what_reads_as_a_credential` |
 //!
-//! `custody`'s docs say what each check asserts in ace4's terms. The rest are ace4's own: the
+//! `custody`'s docs say what each check asserts in ace-rs's terms. The rest are ace-rs's own: the
 //! bucket's credential, the database role past or short of its grants, and `ace serve`'s refusal of
 //! an `ai_api` section. `ace-service`'s `the_ai_role_holds_what_its_migration_grants_and_no_more`
 //! checks the role itself against Postgres.
@@ -35,7 +35,7 @@ use super::*;
 /// The role as migration 0064 grants it, held by a login that is its member.
 fn ai_role() -> RolePrivileges {
     RolePrivileges {
-        user: "ace4_ai_login".to_owned(),
+        user: "ace_rs_ai_login".to_owned(),
         powers: Vec::new(),
         member_of: BTreeSet::from([ROLE.to_owned()]),
         schemas: SCHEMAS
@@ -86,7 +86,7 @@ const AI_OVERLAY: &str = "connections:\n  ai_readonly:\n    type: splunk\n    se
      splunk.example.com, timezone: GMT}\n    secrets: {token: splunk_ai_readonly_token}\nai_api:\n  \
      enabled: true\n  backends:\n    splunk:\n      type: splunk\n      enabled: true\n      \
      connections: {splunk: ai_readonly}\nsecrets:\n  splunk_ai_readonly_token: \
-     env:ACE4_SPLUNK_AI_TOKEN\n";
+     env:ACE_RS_SPLUNK_AI_TOKEN\n";
 
 fn overlay(text: &str) -> Overlay {
     Overlay::from_yaml(text).expect("parses")
@@ -97,12 +97,12 @@ fn conforming() -> (Holdings, Overlay) {
     let holdings = Holdings {
         env: Environment::of(&[
             (
-                "ACE4_DATABASE_URL",
-                "postgres://ace4_ai_login:x@postgres/ace4",
+                "ACE_RS_DATABASE_URL",
+                "postgres://ace_rs_ai_login:x@postgres/ace_rs",
             ),
-            ("ACE4_OVERLAY", "/etc/ace4/ai.yaml"),
-            ("ACE4_AI_LISTEN", "0.0.0.0:8001"),
-            ("ACE4_SPLUNK_AI_TOKEN", "readonly-token"),
+            ("ACE_RS_OVERLAY", "/etc/ace-rs/ai.yaml"),
+            ("ACE_RS_AI_LISTEN", "0.0.0.0:8001"),
+            ("ACE_RS_SPLUNK_AI_TOKEN", "readonly-token"),
         ]),
         sections: sections(AI_OVERLAY),
         role: ai_role(),
@@ -123,7 +123,10 @@ fn the_encryption_key_in_the_environment_fails() {
         let env = Environment::of(&[(ENCRYPTION_KEY, value)]);
         check_no_encryption_capability(&env, &ai_role(), &mut failures);
         assert_eq!(failures.len(), 1, "{failures:?}");
-        assert!(failures[0].contains("ACE4_ENCRYPTION_KEY"), "{failures:?}");
+        assert!(
+            failures[0].contains("ACE_RS_ENCRYPTION_KEY"),
+            "{failures:?}"
+        );
         assert!(
             value.is_empty() || !failures[0].contains(value),
             "the key isn't in the message"
@@ -190,24 +193,24 @@ fn an_overlay_of_its_own_sections_passes() {
 fn the_lease_tokens_and_the_gui_s_sessions_fail() {
     // as `ace serve` is set up: the pools' tokens, the admin token, and a role that reads sessions
     let env = Environment::of(&[
-        ("ACE4_POOL_TOKEN_PARSERS", "ace4-dev-parsers-token"),
-        ("ACE4_POOL_TOKEN_LOOKUPS", "ace4-dev-lookups-token"),
-        ("ACE4_ADMIN_TOKEN", "ace4-dev-admin-token"),
+        ("ACE_RS_POOL_TOKEN_PARSERS", "ace-rs-dev-parsers-token"),
+        ("ACE_RS_POOL_TOKEN_LOOKUPS", "ace-rs-dev-lookups-token"),
+        ("ACE_RS_ADMIN_TOKEN", "ace-rs-dev-admin-token"),
     ]);
     let mut failures = Vec::new();
     check_infra_secrets(&env, &reading(&[SESSIONS]), &mut failures);
     assert_eq!(failures.len(), 2, "{failures:?}");
     assert!(
-        failures[0].contains("ACE4_ADMIN_TOKEN")
-            && failures[0].contains("ACE4_POOL_TOKEN_LOOKUPS")
-            && failures[0].contains("ACE4_POOL_TOKEN_PARSERS")
-            && !failures[0].contains("ace4-dev-"),
+        failures[0].contains("ACE_RS_ADMIN_TOKEN")
+            && failures[0].contains("ACE_RS_POOL_TOKEN_LOOKUPS")
+            && failures[0].contains("ACE_RS_POOL_TOKEN_PARSERS")
+            && !failures[0].contains("ace-rs-dev-"),
         "{failures:?}"
     );
     assert!(failures[1].contains("service.sessions"), "{failures:?}");
 
     // a pool's own variable, and a key to the main API, each alone
-    for name in ["ACE4_POOL_TOKEN", "ACE4_API_KEY"] {
+    for name in ["ACE_RS_POOL_TOKEN", "ACE_RS_API_KEY"] {
         let mut failures = Vec::new();
         check_infra_secrets(&Environment::of(&[(name, "x")]), &ai_role(), &mut failures);
         assert_eq!(failures.len(), 1, "{name}: {failures:?}");
@@ -289,13 +292,13 @@ fn another_process_s_secret_in_reach_is_flagged() {
     let file = dir.path().join("resolver_token");
     std::fs::write(&file, "a-live-token\n").expect("writes");
     let text = format!(
-        "{AI_OVERLAY}  splunk_default_password: env:ACE4_SPLUNK_PASSWORD\n  resolver_token: file:{}\n",
+        "{AI_OVERLAY}  splunk_default_password: env:ACE_RS_SPLUNK_PASSWORD\n  resolver_token: file:{}\n",
         file.display()
     );
     let overlay = overlay(&text);
     let env = Environment::of(&[
-        ("ACE4_SPLUNK_AI_TOKEN", "readonly-token"),
-        ("ACE4_SPLUNK_PASSWORD", "the-hunters-password"),
+        ("ACE_RS_SPLUNK_AI_TOKEN", "readonly-token"),
+        ("ACE_RS_SPLUNK_PASSWORD", "the-hunters-password"),
     ]);
     let mut failures = Vec::new();
     check_secret_allowlist(&overlay, &declared_secrets(&overlay), &env, &mut failures);
@@ -314,13 +317,13 @@ fn a_secret_out_of_reach_is_permitted() {
     // named in the overlay, and this process can't read it: a variable that isn't set, one set to
     // nothing, a file that isn't there. ace3 permits a reference its container can't decrypt.
     let text = format!(
-        "{AI_OVERLAY}  splunk_default_password: env:ACE4_SPLUNK_PASSWORD\n  empty: env:ACE4_EMPTY\n  \
+        "{AI_OVERLAY}  splunk_default_password: env:ACE_RS_SPLUNK_PASSWORD\n  empty: env:ACE_RS_EMPTY\n  \
          resolver_token: file:/run/secrets/not-mounted-here\n"
     );
     let overlay = overlay(&text);
     let env = Environment::of(&[
-        ("ACE4_SPLUNK_AI_TOKEN", "readonly-token"),
-        ("ACE4_EMPTY", ""),
+        ("ACE_RS_SPLUNK_AI_TOKEN", "readonly-token"),
+        ("ACE_RS_EMPTY", ""),
     ]);
     let mut failures = Vec::new();
     check_secret_allowlist(&overlay, &declared_secrets(&overlay), &env, &mut failures);
@@ -338,11 +341,11 @@ fn a_process_set_up_as_ace_serve_refuses_to_start() {
             ENCRYPTION_KEY,
             "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
         ),
-        ("ACE4_ADMIN_TOKEN", "ace4-dev-admin-token"),
-        ("ACE4_POOL_TOKEN_PARSERS", "ace4-dev-parsers-token"),
-        ("ACE4_BUCKET_ACCESS_KEY", "ace4-dev"),
-        ("ACE4_BUCKET_SECRET_KEY", "ace4-dev-secret"),
-        ("ACE4_SPLUNK_AI_TOKEN", "readonly-token"),
+        ("ACE_RS_ADMIN_TOKEN", "ace-rs-dev-admin-token"),
+        ("ACE_RS_POOL_TOKEN_PARSERS", "ace-rs-dev-parsers-token"),
+        ("ACE_RS_BUCKET_ACCESS_KEY", "ace-rs-dev"),
+        ("ACE_RS_BUCKET_SECRET_KEY", "ace-rs-dev-secret"),
+        ("ACE_RS_SPLUNK_AI_TOKEN", "readonly-token"),
     ]);
     let error = run(&holdings, &overlay, Ok(())).expect_err("refused");
     assert!(
@@ -351,18 +354,18 @@ fn a_process_set_up_as_ace_serve_refuses_to_start() {
     );
     // every failure at once, and no value of any of them
     for named in [
-        "ACE4_ENCRYPTION_KEY",
-        "ACE4_ADMIN_TOKEN",
-        "ACE4_POOL_TOKEN_PARSERS",
-        "ACE4_BUCKET_ACCESS_KEY",
-        "ACE4_BUCKET_SECRET_KEY",
+        "ACE_RS_ENCRYPTION_KEY",
+        "ACE_RS_ADMIN_TOKEN",
+        "ACE_RS_POOL_TOKEN_PARSERS",
+        "ACE_RS_BUCKET_ACCESS_KEY",
+        "ACE_RS_BUCKET_SECRET_KEY",
     ] {
         assert!(error.contains(named), "{named}: {error}");
     }
     for value in [
         "00112233",
-        "ace4-dev-admin-token",
-        "ace4-dev-secret",
+        "ace-rs-dev-admin-token",
+        "ace-rs-dev-secret",
         "readonly-token",
     ] {
         assert!(!error.contains(value), "{value}: {error}");
@@ -388,8 +391,8 @@ fn a_conforming_process_starts() {
     // and one with no overlay at all: nothing enabled, nothing declared, nothing held
     let bare = Holdings {
         env: Environment::of(&[(
-            "ACE4_DATABASE_URL",
-            "postgres://ace4_ai_login:x@postgres/ace4",
+            "ACE_RS_DATABASE_URL",
+            "postgres://ace_rs_ai_login:x@postgres/ace_rs",
         )]),
         sections: BTreeMap::new(),
         role: ai_role(),
@@ -411,7 +414,7 @@ fn the_advisory_sweep_flags_what_reads_as_a_credential() {
                 api_key: a-real-looking-value\n        nested: {client_secret: another, tokens: \
                 [{token: third}], password: 'env:FROM_ELSEWHERE', keyfile_token: 'file:/run/x', \
                 note: not a credential, empty_token: ''}\nsecrets:\n  site_password: \
-                env:ACE4_SITE_PASSWORD\n";
+                env:ACE_RS_SITE_PASSWORD\n";
     let warnings = advisory_sweep(&sections(text));
     assert_eq!(
         warnings,
@@ -438,24 +441,24 @@ fn the_advisory_sweep_flags_what_reads_as_a_credential() {
     );
 }
 
-// --- ace4's own ---
+// --- ace-rs's own ---
 
 #[test]
 fn the_bucket_s_credential_fails() {
     for name in BUCKET_CREDENTIALS {
         let mut failures = Vec::new();
         check_no_bucket_credential(
-            &Environment::of(&[(name, "ace4-dev-secret")]),
+            &Environment::of(&[(name, "ace-rs-dev-secret")]),
             &mut failures,
         );
         assert_eq!(failures.len(), 1, "{name}");
-        assert!(failures[0].contains(name) && !failures[0].contains("ace4-dev-secret"));
+        assert!(failures[0].contains(name) && !failures[0].contains("ace-rs-dev-secret"));
     }
     // where the bucket is isn't a credential
     let mut failures = Vec::new();
     let env = Environment::of(&[
-        ("ACE4_BUCKET_ENDPOINT", "http://bucket:8333"),
-        ("ACE4_BUCKET_NAME", "ace4"),
+        ("ACE_RS_BUCKET_ENDPOINT", "http://bucket:8333"),
+        ("ACE_RS_BUCKET_NAME", "ace-rs"),
     ]);
     check_no_bucket_credential(&env, &mut failures);
     assert_eq!(failures, Vec::<String>::new());
@@ -469,7 +472,7 @@ fn a_role_past_or_short_of_its_grants_fails() {
 
     // the schema's owner, as `ace serve` connects
     let mut owner = reading(&["service.sessions", "store.objects"]);
-    owner.user = "ace4".to_owned();
+    owner.user = "ace-rs".to_owned();
     owner.powers = vec!["superuser".to_owned(), "owner of the database".to_owned()];
     owner.member_of.clear();
     owner

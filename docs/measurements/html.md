@@ -7,7 +7,7 @@ PLAN.md 7.5: a contained parser task is one thread with no exec, so each module 
 - `html_js_extraction` parses the whole file, as ace3 does, into BeautifulSoup's tree, which `ace_lxml::soup` keeps flat, in document order, so no depth of nesting recurses. It writes at most 500 scripts and adds at most 500 URLs and 500 URI paths. Each document's DOM snapshot stops at 2,000 elements and 512 KiB, 16 KiB an attribute and 4 KiB a text, as ace3's does, and a result keeps at most 16 MiB of snapshots.
 - `har_extraction` parses at most `max_file_size` (50 MiB) of JSON, as ace3 does, and extracts at most `max_extracted_files` (50) bodies.
 
-The 500s are ace3's `maximum_observable_count` for files and URLs in a root, which ace4's core doesn't have: past them ace3 keeps decoding and writing files to its node that no observable holds.
+The 500s are ace3's `maximum_observable_count` for files and URLs in a root, which ace-rs's core doesn't have: past them ace3 keeps decoding and writing files to its node that no observable holds.
 
 Measured on 2026-11-09 on the dev container of `build-loop.md` (Rancher Desktop, 10 CPUs), with ace3's and budge's stacks up.
 
@@ -15,10 +15,10 @@ Measured on 2026-11-09 on the dev container of `build-loop.md` (Rancher Desktop,
 
 `tools/samples/make-html-hostile <dir>` writes the files. In the dev container:
 
-    ACE4_HTML_HOSTILE=<dir> ACE4_HTML_MODULE=<module> cargo test -p ace-pool --features test-pools \
+    ACE_RS_HTML_HOSTILE=<dir> ACE_RS_HTML_MODULE=<module> cargo test -p ace-pool --features test-pools \
         --test supervisor measure_html -- --ignored --nocapture
 
-submits each file whose name starts with the module's to the real supervisor, which runs the module, and `file_type` first for `html_js_extraction` and `mhtml`, which wait for it, as `ace4-task` under Landlock and seccomp with their limits. 3 runs each, each in a new root under a new name. The time runs from the root's submission to the end of the module's task on the file, so it includes the upload, the lease, the task process's start, file_type's task where there is one, and the uploads of the module's files. The tasks the files a run writes queue, such as file_type's for each script, finish before the next run starts, and aren't counted. It's a dev build, unoptimized but for the crates `Cargo.toml` raises.
+submits each file whose name starts with the module's to the real supervisor, which runs the module, and `file_type` first for `html_js_extraction` and `mhtml`, which wait for it, as `ace-rs-task` under Landlock and seccomp with their limits. 3 runs each, each in a new root under a new name. The time runs from the root's submission to the end of the module's task on the file, so it includes the upload, the lease, the task process's start, file_type's task where there is one, and the uploads of the module's files. The tasks the files a run writes queue, such as file_type's for each script, finish before the next run starts, and aren't counted. It's a dev build, unoptimized but for the crates `Cargo.toml` raises.
 
 The stack's bucket, held to 1 GiB, was killed once (exit 137) while the runs wrote hundreds of megabytes into it, so it was restarted before each module's runs. That's the test stack's limit, not the module's.
 

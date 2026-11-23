@@ -75,10 +75,10 @@ async fn matches_the_reference_dumps_or_lists_each_difference() {
             ace_testkit::check_view_fixture("rdap_fqdn_example_com", &outcome);
         }
         let mut ace3 = dump.normal_form("RdapAnalysis");
-        let mut ace4 = normal_form(&outcome);
+        let mut ace_rs = normal_form(&outcome);
         parse_raw_json(&mut ace3);
-        parse_raw_json(&mut ace4);
-        compared.push((dump.short_name().to_owned(), diff(&ace3, &ace4)));
+        parse_raw_json(&mut ace_rs);
+        compared.push((dump.short_name().to_owned(), diff(&ace3, &ace_rs)));
     }
     if let Err(report) = listed.check(&compared, &[]) {
         panic!("{report}");

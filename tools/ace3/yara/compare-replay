@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compares ace3's YARA scanner with ace4's on the signatures checkout and the local samples
+"""Compares ace3's YARA scanner with ace-rs's on the signatures checkout and the local samples
 (PLAN.md 1.11).
 
 Usage: tools/ace3/yara/compare-replay [--debug] WORKROOT
@@ -13,11 +13,11 @@ Usage: tools/ace3/yara/compare-replay [--debug] WORKROOT
      tag the rules name and once with none. The samples match few rules; a rule's own source
      holds its strings, so this set gives the match half far more to compare. It is reported
      apart from the samples.
-2. Each goes through both children. ace4's, `ace yara replay` (a release build unless
-   --debug), runs in a one-off dev container of ace4's stack that mounts the signatures read
-   only at /opt/ace/signatures and WORKROOT at /tmp/ace4-yara-work; its result.json is kept as
-   result.ace4.json. ace3's, child.py, runs through run-child into result.ace3.json.
-3. Every sample's mime type, from ace4's libmagic (`ace yara scan --json` with no rules) and
+2. Each goes through both children. ace-rs's, `ace yara replay` (a release build unless
+   --debug), runs in a one-off dev container of ace-rs's stack that mounts the signatures read
+   only at /opt/ace/signatures and WORKROOT at /tmp/ace-rs-yara-work; its result.json is kept as
+   result.ace-rs.json. ace3's, child.py, runs through run-child into result.ace3.json.
+3. Every sample's mime type, from ace-rs's libmagic (`ace yara scan --json` with no rules) and
    from `file -b --mime-type` in ace3's dev container.
 4. Prints the differences by kind and writes them to WORKROOT/differences.json.
 
@@ -26,8 +26,8 @@ rules it defines. The match half compares, unit by unit, every rule that matched
 meta filter (namespace, rule, and each string occurrence's offset, identifier and length),
 whether the filter kept it, and the scan errors.
 
-ACE4_ACE3_CHECKOUT is ace3's checkout on the host (default ../ace3 beside this checkout);
-Compose reads ACE4_STACK and the other ACE4_ variables as usual. Exits 1 if any difference
+ACE_RS_ACE3_CHECKOUT is ace3's checkout on the host (default ../ace3 beside this checkout);
+Compose reads ACE_RS_STACK and the other ACE_RS_ variables as usual. Exits 1 if any difference
 is found.
 """
 
@@ -44,16 +44,16 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-ACE3 = Path(os.environ.get("ACE4_ACE3_CHECKOUT", REPO.parent / "ace3")).resolve()
-CONTAINER = os.environ.get("ACE4_ACE3_CONTAINER", "ace-dev-1")
-CONTAINER_ROOT = "/tmp/ace4-yara-work"
+ACE3 = Path(os.environ.get("ACE_RS_ACE3_CHECKOUT", REPO.parent / "ace3")).resolve()
+CONTAINER = os.environ.get("ACE_RS_ACE3_CONTAINER", "ace-dev-1")
+CONTAINER_ROOT = "/tmp/ace-rs-yara-work"
 
 
 def run(argv, **kwargs):
     return subprocess.run(argv, check=True, capture_output=True, text=True, **kwargs)
 
 
-def ace4(workroot, command):
+def ace_rs(workroot, command):
     """Runs a shell command in a one-off dev container with the mounts the jobs assume."""
     return run(["docker", "compose", "run", "--rm", "-T", "--no-deps",
                 "-v", f"{ACE3 / 'signatures'}:/opt/ace/signatures:ro",
@@ -64,13 +64,13 @@ def ace4(workroot, command):
 def both_children(workroot, name, binary):
     workdir = workroot / name
     started = time.monotonic()
-    out = ace4(workroot, f"{binary} yara replay {CONTAINER_ROOT}/{name}")
-    ace4_seconds = time.monotonic() - started
-    (workdir / "result.json").rename(workdir / "result.ace4.json")
-    print(f"ace4 {name}: {out.splitlines()[0]} ({ace4_seconds:.1f}s with container start)")
+    out = ace_rs(workroot, f"{binary} yara replay {CONTAINER_ROOT}/{name}")
+    ace_rs_seconds = time.monotonic() - started
+    (workdir / "result.json").rename(workdir / "result.ace-rs.json")
+    print(f"ace-rs {name}: {out.splitlines()[0]} ({ace_rs_seconds:.1f}s with container start)")
     print(run([str(HERE / "run-child"), str(workdir)]).stdout.strip())
     load = lambda side: json.loads((workdir / f"result.{side}.json").read_text())
-    return load("ace3"), load("ace4")
+    return load("ace3"), load("ace-rs")
 
 
 def compile_half(r3, r4):
@@ -86,9 +86,9 @@ def compile_half(r3, r4):
         e3, e4 = f3["error"], f4["error"]
         if e3 and e4:
             # agreement, not a difference
-            both_left_out.append({"path": path, "ace3": e3, "ace4": e4})
+            both_left_out.append({"path": path, "ace3": e3, "ace-rs": e4})
         elif e3 or e4:
-            kind = "left out by ace3 only" if e3 else "left out by ace4 only"
+            kind = "left out by ace3 only" if e3 else "left out by ace-rs only"
             kinds[kind] += 1
             details.append({"kind": kind, "path": path, "error": e3 or e4})
         else:
@@ -96,25 +96,25 @@ def compile_half(r3, r4):
             rules4 = sorted((r["name"], r["private"], r["global"], tuple(r["tags"])) for r in f4["rules"])
             if rules3 != rules4:
                 kinds["different rules in a file"] += 1
-                details.append({"kind": "different rules in a file", "path": path, "ace3": rules3, "ace4": rules4})
+                details.append({"kind": "different rules in a file", "path": path, "ace3": rules3, "ace-rs": rules4})
             meta3 = {r["name"]: r["meta"] for r in f3["rules"]}
             meta4 = {r["name"]: r["meta"] for r in f4["rules"]}
             for rule in sorted(set(meta3) & set(meta4)):
                 if meta3[rule] != meta4[rule]:
                     kinds["different meta"] += 1
                     details.append({"kind": "different meta", "path": path, "rule": rule,
-                                    "ace3": meta3[rule], "ace4": meta4[rule]})
+                                    "ace3": meta3[rule], "ace-rs": meta4[rule]})
     if (r3["ruleset_error"] is None) != (r4["ruleset_error"] is None):
         kinds["ruleset loads in one scanner only"] += 1
         details.append({"kind": "ruleset loads in one scanner only", "ace3": r3["ruleset_error"],
-                        "ace4": r4["ruleset_error"]})
+                        "ace-rs": r4["ruleset_error"]})
     included = sum(1 for f in files4.values() if not f["error"])
     rules = sum(len(f["rules"]) for f in files4.values())
     warning_kinds = Counter(w.split("]", 1)[0].removeprefix("warning[") for w in r4["warnings"])
-    return kinds, details, {"files": len(set(files3) | set(files4)), "included_by_ace4": included,
-                            "rules_in_included_files_ace4": rules, "left_out_by_both": both_left_out,
-                            "ruleset_error_ace3": r3["ruleset_error"], "ruleset_error_ace4": r4["ruleset_error"],
-                            "warnings_ace3": len(r3["warnings"]), "warnings_ace4": dict(warning_kinds)}
+    return kinds, details, {"files": len(set(files3) | set(files4)), "included_by_ace_rs": included,
+                            "rules_in_included_files_ace_rs": rules, "left_out_by_both": both_left_out,
+                            "ruleset_error_ace3": r3["ruleset_error"], "ruleset_error_ace_rs": r4["ruleset_error"],
+                            "warnings_ace3": len(r3["warnings"]), "warnings_ace_rs": dict(warning_kinds)}
 
 
 def raw_matches(unit):
@@ -138,7 +138,7 @@ def match_half(job, r3, r4):
             where = {"unit": unit["id"], "sample": unit.get("sample"), "namespace": key[0], "rule": key[1]}
             rules_raw.add(key)
             if key not in m4 or key not in m3:
-                kind = "rule matched by ace3 only" if key in m3 else "rule matched by ace4 only"
+                kind = "rule matched by ace3 only" if key in m3 else "rule matched by ace-rs only"
                 kinds[kind] += 1
                 details.append({"kind": kind, **where, "strings": (m3.get(key) or m4.get(key))[0]})
                 continue
@@ -148,12 +148,12 @@ def match_half(job, r3, r4):
             if s3 != s4:
                 kinds["same rule, different string occurrences"] += 1
                 details.append({"kind": "same rule, different string occurrences", **where,
-                                "ace3_only": sorted(set(s3) - set(s4)), "ace4_only": sorted(set(s4) - set(s3)),
-                                "ace3_count": len(s3), "ace4_count": len(s4)})
+                                "ace3_only": sorted(set(s3) - set(s4)), "ace_rs_only": sorted(set(s4) - set(s3)),
+                                "ace3_count": len(s3), "ace_rs_count": len(s4)})
             if k3 != k4:
                 kinds["kept by the filter in one scanner only"] += 1
                 details.append({"kind": "kept by the filter in one scanner only", **where, "ace3_kept": k3,
-                                "ace4_kept": k4})
+                                "ace_rs_kept": k4})
             elif k3:
                 coverage["kept matches in both"] += 1
                 rules_kept.add(key)
@@ -162,7 +162,7 @@ def match_half(job, r3, r4):
         if e3 != e4:
             kinds["different scan errors"] += 1
             details.append({"kind": "different scan errors", "unit": unit["id"], "sample": unit.get("sample"),
-                            "ace3": u3.get("errors"), "ace4": u4.get("errors")})
+                            "ace3": u3.get("errors"), "ace-rs": u4.get("errors")})
         coverage["scan errors"] += len(e3) + len(e4)
     coverage["rules with a raw match"] = len(rules_raw)
     coverage["rules with a kept match"] = len(rules_kept)
@@ -173,9 +173,9 @@ def mime_types(workroot, binary):
     manifest = json.loads((REPO / "samples" / "manifest.json").read_text())
     paths = [s["path"] for s in manifest["samples"]]
 
-    # ace4: libmagic, through ace yara scan with an empty signature directory
+    # ace-rs: libmagic, through ace yara scan with an empty signature directory
     (workroot / "mime-paths.txt").write_text("".join(f"/workspace/samples/{p}\n" for p in paths))
-    out = ace4(workroot, f"mkdir -p /tmp/no-rules && {binary} yara scan --rules /tmp/no-rules --json "
+    out = ace_rs(workroot, f"mkdir -p /tmp/no-rules && {binary} yara scan --rules /tmp/no-rules --json "
                          f"--from-stdin < {CONTAINER_ROOT}/mime-paths.txt")
     decoder, ours, index = json.JSONDecoder(), {}, 0
     while index < len(out):
@@ -201,7 +201,7 @@ def mime_types(workroot, binary):
         subprocess.run(["docker", "exec", CONTAINER, "rm", "-rf", target], check=True)
     theirs = dict(zip(paths, out.splitlines()))
 
-    differences = [{"sample": p, "ace4_libmagic": ours.get(p), "ace3_file": theirs.get(p)}
+    differences = [{"sample": p, "ace_rs_libmagic": ours.get(p), "ace3_file": theirs.get(p)}
                    for p in paths if ours.get(p) != theirs.get(p)]
     return len(paths), differences, sorted(set(theirs.values()))
 
@@ -214,16 +214,16 @@ def main():
     workroot = args.workroot.resolve()
     workroot.mkdir(parents=True, exist_ok=True)
 
-    env = {**os.environ, "ACE4_ACE3_CHECKOUT": str(ACE3)}
+    env = {**os.environ, "ACE_RS_ACE3_CHECKOUT": str(ACE3)}
     for name, extra in (("every-rule-file", ["--every-rule-file"]), ("samples", []),
                         ("rule-sources", ["--rule-sources"])):
         print(run([str(HERE / "make-workdir"), *extra, str(workroot / name)], env=env).stdout.strip())
 
     profile = "debug" if args.debug else "release"
-    ace4(workroot, "cargo build -q -p ace" + ("" if args.debug else " --release"))
+    ace_rs(workroot, "cargo build -q -p ace" + ("" if args.debug else " --release"))
     binary = f"target/{profile}/ace"
 
-    report = {"ace4_build": profile}
+    report = {"ace_rs_build": profile}
     r3, r4 = both_children(workroot, "every-rule-file", binary)
     kinds, details, info = compile_half(r3, r4)
     report["compile"] = {"kinds": kinds, "info": info, "details": details}
@@ -237,8 +237,8 @@ def main():
         report[section] = {"kinds": kinds, "coverage": coverage, "details": details,
                            "units": len(job["units"]),
                            "rules_scanned": {side: sum(t["rules"] for t in r["namespaces"].values())
-                                             for side, r in (("ace3", r3), ("ace4", r4))},
-                           "timings": {side: r["namespaces"] for side, r in (("ace3", r3), ("ace4", r4))}}
+                                             for side, r in (("ace3", r3), ("ace-rs", r4))},
+                           "timings": {side: r["namespaces"] for side, r in (("ace3", r3), ("ace-rs", r4))}}
 
     count, differences, kinds_seen = mime_types(workroot, binary)
     report["mime"] = {"samples": count, "differences": differences, "mime_types": kinds_seen}

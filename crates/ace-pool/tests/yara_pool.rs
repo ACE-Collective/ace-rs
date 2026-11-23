@@ -4,7 +4,7 @@
 //!
 //! The signatures repository is one the test makes; a commit added during the stream changes the
 //! rules, and the core builds it (2.25). The pool is the test pool binary in its parsers mode,
-//! with task processes as the dev image's ace4-task user.
+//! with task processes as the dev image's ace-rs-task user.
 
 mod common;
 
@@ -27,7 +27,7 @@ fn git(dir: &Path, args: &[&str]) -> String {
         .arg(dir)
         .args([
             "-c",
-            "user.name=ace4 test",
+            "user.name=ace-rs test",
             "-c",
             "user.email=test@example.invalid",
             "-c",
@@ -129,7 +129,7 @@ async fn a_switch_during_a_stream_of_scans_drops_none() {
         .expect("builds")
         .expect("the first ruleset");
 
-    // the pool's ruleset directory, which task processes read as ace4-task
+    // the pool's ruleset directory, which task processes read as ace-rs-task
     let rulesets = tempfile::tempdir().unwrap();
     std::fs::set_permissions(rulesets.path(), std::fs::Permissions::from_mode(0o755)).unwrap();
     let dir = rulesets.path().to_str().unwrap();
@@ -139,7 +139,7 @@ async fn a_switch_during_a_stream_of_scans_drops_none() {
         &[
             "parsers",
             "--task-user",
-            "ace4-task",
+            "ace-rs-task",
             "--concurrency",
             "2",
             "--rulesets",

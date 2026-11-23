@@ -4,8 +4,8 @@ what it would submit (PLAN.md step 6.4).
 It runs inside ace3's dev container on ace3's Python, writing only under its work directory in /tmp:
 
     docker exec -i -e PYTHONDONTWRITEBYTECODE=1 -e SAQ_SKIP_LOCAL_SAQ_YAML=1 ace-dev-1 \\
-        /venv/bin/python3 - --work /tmp/ace4-dumps/query/work --cases /tmp/ace4-dumps/query/cases \\
-        --fake /tmp/ace4-dumps/query/fake_splunk.py < tools/ace3/hunts/run_query_hunts.py
+        /venv/bin/python3 - --work /tmp/ace-rs-dumps/query/work --cases /tmp/ace-rs-dumps/query/cases \\
+        --fake /tmp/ace-rs-dumps/query/fake_splunk.py < tools/ace3/hunts/run_query_hunts.py
 
 tools/ace3/hunts/make-query-hunts calls it. Each hunt in the cases' hunts/ is loaded as ace3's
 HuntManager loads a Splunk hunt (SplunkHunt with the manager), and runs.yaml lists its ticks: the
@@ -56,8 +56,8 @@ splunk_config_default:
   enabled: true
   host: 127.0.0.1
   port: 8089
-  username: ace4
-  password: ace4-fake-password
+  username: ace-rs
+  password: ace-rs-fake-password
   timezone: GMT
   performance_logging_dir: ""
   request_timeout: 10
@@ -66,8 +66,8 @@ splunk_config_eastern:
   enabled: true
   host: 127.0.0.1
   port: 8089
-  username: ace4
-  password: ace4-fake-password
+  username: ace-rs
+  password: ace-rs-fake-password
   timezone: America/New_York
   performance_logging_dir: ""
   request_timeout: 10

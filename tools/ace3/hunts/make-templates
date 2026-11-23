@@ -8,7 +8,7 @@ render_templates.py runs in ace3's dev container (ace-dev-1), beside load_hunts.
 of ace3's environment it shares. The sets:
 
 - `cases`: templates/cases.yaml, templates written for this comparison that cover each of Jinja2's
-  filters, tests and globals that ace4 provides, ace3's `fromjson`, undefined values in both modes,
+  filters, tests and globals that ace-rs provides, ace3's `fromjson`, undefined values in both modes,
   whitespace control, loops, macros, call and filter blocks, namespaces, Python's methods and
   operators, and ace3's dotted-key and list expansion.
 - `signatures`: every hunt in the signatures checkout ace3's container has at /opt/ace/signatures,
@@ -17,7 +17,7 @@ of ace3's environment it shares. The sets:
 
 Each lands in tools/ace3/hunts/reference/templates-<set>.json. `templates-cases.json` holds only
 the cases' own text and is committed; `templates-signatures.json` holds the hunts' and is
-git-ignored. ace4's side is crates/ace-hunt's render module: its tests diff the cases, and
+git-ignored. ace-rs's side is crates/ace-hunt's render module: its tests diff the cases, and
 tools/ace3/hunts/compare-templates the signatures, each accepting a difference only where
 differences.md has a row for it.
 
@@ -29,14 +29,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-CONTAINER = os.environ.get("ACE4_ACE3_CONTAINER", "ace-dev-1")
-REMOTE = "/tmp/ace4-dumps/templates"
+CONTAINER = os.environ.get("ACE_RS_ACE3_CONTAINER", "ace-dev-1")
+REMOTE = "/tmp/ace-rs-dumps/templates"
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "reference"
 
 # ace3's Splunk hunts, and each hunt type an integration installed beside ace3 adds, given as
-# ACE4_ACE3_HUNT_CLASSES="TYPE=MODULE:CLASS ..." (its hunts are read from hunts/TYPE)
-HUNT_CLASSES = os.environ.get("ACE4_ACE3_HUNT_CLASSES", "").split()
+# ACE_RS_ACE3_HUNT_CLASSES="TYPE=MODULE:CLASS ..." (its hunts are read from hunts/TYPE)
+HUNT_CLASSES = os.environ.get("ACE_RS_ACE3_HUNT_CLASSES", "").split()
 RULE_DIRS = ["splunk=hunts/splunk"] + [f"{s.partition('=')[0]}=hunts/{s.partition('=')[0]}" for s in HUNT_CLASSES]
 
 

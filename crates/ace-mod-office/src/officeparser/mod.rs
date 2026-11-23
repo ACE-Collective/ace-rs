@@ -14,7 +14,7 @@
 //! never reached the file. The port knows the loop when it comes back to a sector, and ends the
 //! same way.
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
 //! - The port takes milliseconds where officeparser3 can take minutes: it finds a loop with a set
 //!   where Python searches a list, and builds bytes in place where Python copies them one at a

@@ -6,13 +6,13 @@
     {
       "class": "SnortSignatureAnalysis_v1",
       "details": {
-        "signature": "alert tcp any any -> any 445 (msg:\"ACE4 TEST fixture indented\"; sid:9000003; rev:2;)",
+        "signature": "alert tcp any any -> any 445 (msg:\"ACE_RS TEST fixture indented\"; sid:9000003; rev:2;)",
         "signature_id": "9000003 rev 2"
       },
       "detections": [],
       "module_path": "saq.modules.snort:SnortSignatureAnalysis_v1",
       "observables": [],
-      "summary": "Signature Analysis - (9000003 rev 2) alert tcp any any -> any 445 (msg:\"ACE4 TEST fixture indented\"; sid:9000003; rev:2;)",
+      "summary": "Signature Analysis - (9000003 rev 2) alert tcp any any -> any 445 (msg:\"ACE_RS TEST fixture indented\"; sid:9000003; rev:2;)",
       "tags": []
     }
   ],

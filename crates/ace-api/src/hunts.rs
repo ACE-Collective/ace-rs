@@ -19,7 +19,7 @@
 //!   (PLAN.md 2.24); only `ace hunter` resolves them. A run over the events sent in `query_results`
 //!   works, as ace3's does, and a run asking for the source is 400, saying so.
 //! - `analyze_results` and `create_alerts`, which would submit the roots as the caller: 400 for now.
-//! - The answer's `logs`, every log line ace3's run wrote: ace4's tracing isn't captured per request.
+//! - The answer's `logs`, every log line ace3's run wrote: ace-rs's tracing isn't captured per request.
 //!
 //! Correlation (PLAN.md 6.6): a hunt with a `correlate` block is checked as ace3's validation checks
 //! one (`ace_hunt::correlate::check`), a template that reads `_secrets` or `_config` and a custom
@@ -217,7 +217,7 @@ pub(crate) struct SuppressionBody {
     /// The window it fell into, from the earlier hit.
     window_start: DateTime<Utc>,
     window_end: DateTime<Utc>,
-    /// The earlier hit's root; null when ace4 didn't make it.
+    /// The earlier hit's root; null when ace-rs didn't make it.
     cause_root: Option<uuid::Uuid>,
     /// The window the run searched.
     search_start: Option<DateTime<Utc>>,

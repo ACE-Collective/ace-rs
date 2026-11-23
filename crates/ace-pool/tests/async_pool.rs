@@ -208,7 +208,7 @@ async fn run_contained_root(
     root: uuid::Uuid,
 ) -> uuid::Uuid {
     let endpoint = std::env::var(ace_pool::pool::BUCKET_ENDPOINT_VAR)
-        .expect("the dev container's ACE4_BUCKET_ENDPOINT");
+        .expect("the dev container's ACE_RS_BUCKET_ENDPOINT");
     let mut pool = test_pool(
         core,
         &[
@@ -248,7 +248,7 @@ async fn connect_note(core: &Core, root: uuid::Uuid) -> String {
 }
 
 /// PLAN.md decision 28: a contained network pool may connect to the bucket's port, from
-/// `ACE4_BUCKET_ENDPOINT`, only when one of its modules declares it adds files it fetched; then such
+/// `ACE_RS_BUCKET_ENDPOINT`, only when one of its modules declares it adds files it fetched; then such
 /// a module's file reaches the bucket and the tree. In the same pool, a lookup that writes a file
 /// without declaring it gets no upload URL: the core fails its task, saying why.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

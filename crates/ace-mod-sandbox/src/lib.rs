@@ -39,7 +39,7 @@ pub use qrcode::QrCodeAnalyzer;
 pub use upx::UpxAnalyzer;
 
 /// The most files a module adds from one run: ace3's limit of file observables in a root
-/// (`maximum_observable_count`), which ace4's core doesn't have.
+/// (`maximum_observable_count`), which ace-rs's core doesn't have.
 pub const MAX_FILES: usize = 500;
 
 /// A file name's limit, which ace3 meets on its filesystem.

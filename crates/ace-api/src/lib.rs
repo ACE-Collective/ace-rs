@@ -29,23 +29,23 @@
 //! | `GET /alerts/export/csv`, `/export/ndjson` (5.10) | `GET /api/alerts/v1/alerts/export/csv`, `/export/ndjson`, up to 100,000 alerts, or 413 |
 //!
 //! Left out, each for a reason:
-//! - The list's `f` takes ace3's share-link encoding and slugs, and the filters ace4's alerts have fields
+//! - The list's `f` takes ace3's share-link encoding and slugs, and the filters ace-rs's alerts have fields
 //!   for (`ace_service::filters`). Its order is ace3's manage page's: by when each became an alert, the
 //!   title, the disposition, the queue or the owner, either way, where ace3's API pages in id order. ace3's `changed_since` on
 //!   the alert list, its `(updated_at, id)` order, needs a time a root last changed, which roots don't
 //!   record. `count` is the list's `total`. `date-range`, the window a relative token means now, waits for
 //!   an editor that shows it; `ace_service::filters::date_window` computes it.
-//! - The ETag and 304 on an alert: ace4 has no version counter, and 5.8 pushes changes to an open page.
-//! - `/download` of a whole alert's directory: ace4 has none, and each file downloads on its own.
+//! - The ETag and 304 on an alert: ace-rs has no version counter, and 5.8 pushes changes to an open page.
+//! - `/download` of a whole alert's directory: ace-rs has none, and each file downloads on its own.
 //! - `/text`, `/hex` and `/image` views of a file, and the alert's `saq.log`, belong to the alert view
-//!   (5.8, 5.9). ace4 keeps a task's error on its row, not in a log file.
+//!   (5.8, 5.9). ace-rs keeps a task's error on its row, not in a log file.
 //! - Comment editing and `bulk-add-observable`: roots have no comments yet, and an observable added by
 //!   hand needs a decision about what it does to a dispositioned alert's analysis.
 //! - `collect-file`, `render`, `crawl`, `check-for-clickers` and `clicker-searches` ask modules for more
 //!   analysis on one observable. File collection is 7.9 and phishkit 7.7, and the clicker check needs the
 //!   core to rerun a module on an observable that has its result, which nothing does yet.
 //! - Detection points are their own router in 5.6, below.
-//! - `PATCH /observables/interesting` sets a flag in ace3's index of every observable, which ace4 doesn't
+//! - `PATCH /observables/interesting` sets a flag in ace3's index of every observable, which ace-rs doesn't
 //!   have: a flag an analyst sets across alerts is one of 5.14's analyst-edited lists.
 //!
 //! ace3's `users` router (PLAN.md 5.6), and its Flask password change, under `/api/users/v1`:
@@ -113,7 +113,7 @@
 //! and description, which ace3 keeps in the same registry but doesn't serve. The list is the running
 //! binary's, a site's own types among them (PLAN.md 2.31), sorted by name with deprecated types
 //! included, as ace3's is. Left out: ace3's 60-second cache and its `Cache-Control: private, max-age=60`,
-//! which exist because ace3 reloads its YAML while it runs; ace4's list is fixed when the binary is
+//! which exist because ace3 reloads its YAML while it runs; ace-rs's list is fixed when the binary is
 //! built. The GUI's observable actions are 5.9's (ace3 #1032), not this router's.
 //!
 //! ace3's `crashes` router (PLAN.md 5.6), under `crash:read` as there. An ace3 crash report is a failed
@@ -131,7 +131,7 @@
 //! - The `node` filter, `local`, `remote`, `downloadable` and the 409 `wrong_node`: every node reads one
 //!   bucket and one queue, so any node serves any failed task.
 //! - `offset`: a cursor, as the alert list has, so a page doesn't shift while tasks fail.
-//! - `module` matches a module's key. ace3 also matches a Python module path, which ace4 doesn't have.
+//! - `module` matches a module's key. ace3 also matches a Python module path, which ace-rs doesn't have.
 //! - ace3's report holds the traceback, the hung thread's stacks and the analysis tree. A task's error is
 //!   its whole record, and the tree is the alert's, at `/api/alerts/v1`. `complete` and `omitted` are
 //!   about a report written while its worker died: a row is written in one transaction, and the zip's
@@ -332,7 +332,7 @@
 //!
 //! What differs, or is left out, and why:
 //! - ace3 names an observable by the id of its row in its index of every observable, which a comment
-//!   creates when it's missing. ace4 has no index, so a list names the type and value, and a comment's
+//!   creates when it's missing. ace-rs has no index, so a list names the type and value, and a comment's
 //!   own row holds them. There's no `observable_id`.
 //! - The author is `author`, with the user's id, username and display name now, and `created_by` is the
 //!   actor that wrote it, a key when the user's key did. ace3 gives `user_id` and `user_display_name`.
@@ -340,7 +340,7 @@
 //!   user to be the author. Another user's comment is a 403, as in ace3.
 //! - A comment is 1 to 16384 characters and not all whitespace, where ace3's API takes any text and its
 //!   GUI refuses an empty one.
-//! - ace3's upload of a file into an alert saves the form's comment as a comment on that file. ace4 has no
+//! - ace3's upload of a file into an alert saves the form's comment as a comment on that file. ace-rs has no
 //!   such upload yet; it can call `Service::add_observable_comment`. The alert view's comments come with
 //!   it in 5.8, through `Service::alert_observable_comments`.
 //!
@@ -357,8 +357,8 @@
 //! | `PATCH /{detection_id}/expiration`, `{expires_on}` | `PATCH /api/observables/v1/detections/{id}/expiration`, audited |
 //!
 //! What differs, or is left out, and why:
-//! - `batch_id` isn't taken: a list entry has no column for it and nothing in ace4 sends one. `fa_hits`
-//!   and `observable_id` come from ace3's index of every observable, which ace4 doesn't have; a
+//! - `batch_id` isn't taken: a list entry has no column for it and nothing in ace-rs sends one. `fa_hits`
+//!   and `observable_id` come from ace3's index of every observable, which ace-rs doesn't have; a
 //!   detection's comments are the observable's, by type and value.
 //! - A value is stored as given, a file's sha256 lowercased, where ace3 normalizes some types through
 //!   its observable classes. A status that isn't one is 400 where FastAPI answers 422, and a server whose
@@ -366,7 +366,7 @@
 //! - A new expiry has to be in the future (400), as on every list; ace3 takes a past one. Remove a
 //!   detection to turn it off.
 //! - ace3's audit is a log line; here each write has an audit row, as a list entry's.
-//! - `GET /api/observables/v1/detections/yara-export` is ace4's own (PLAN.md 7.16), under `detection:read`:
+//! - `GET /api/observables/v1/detections/yara-export` is ace-rs's own (PLAN.md 7.16), under `detection:read`:
 //!   what the current ruleset holds of the detections as YARA rules, each exported type with its counts,
 //!   and each detection the export left out with why. ace3's export (`saq/observables/export/yara.py`,
 //!   its `export-observables` cron) only logs a value its YARA refuses.
@@ -387,7 +387,7 @@
 //! What differs, or is left out, and why:
 //! - The path is under `alerts`, since a detection is an alert's. ace3's `detection` router, its list of
 //!   observables to detect, is another thing and comes with 7.6.
-//! - The `f` filters (5.10) are the detection points screen's that ace4 has fields for: `alert_date`,
+//! - The `f` filters (5.10) are the detection points screen's that ace-rs has fields for: `alert_date`,
 //!   `family`, `signature`, 7.14's `verdict`, `source` and `has_override`, and 7.13's `queue`, which takes
 //!   `$USER_QUEUE` for the caller's own (a key's owner's). `changed_since` is a detection made, whose root became an alert or was dispositioned,
 //!   or whose stored verdict was set or cleared, at or after the time; ace3 also counts any other change to
@@ -399,7 +399,7 @@
 //! - A verdict write answers 409 as ace3's does, and a verdict that isn't `tp` or `fp` 400 where FastAPI
 //!   answers 422.
 //! - ace3's `node_kind`, `node_type`, `node_value_sha256` and `node_module_path` become `observable`, the
-//!   one it's on with its type and value, and `module`, the module whose result raised it. ace4 stores a
+//!   one it's on with its type and value, and `module`, the module whose result raised it. ace-rs stores a
 //!   detection on an analysis on the observable that was analyzed (`ace_core::normal`'s docs), so ace3's
 //!   `analysis` and `observable` kinds aren't told apart, and its `root` kind has no row: every detection
 //!   here is on an observable.
@@ -502,11 +502,11 @@
 //!   once and the rest wait queued, up to their timeout, after which they're `abandoned`.
 //! - The timeout starts when a pool takes the run, which is its deadline; ace3's starts when its node
 //!   does.
-//! - ace3 refuses `--password` and other secret options. No ace4 command takes a secret on its command
+//! - ace3 refuses `--password` and other secret options. No ace-rs command takes a secret on its command
 //!   line, so nothing is refused for one; a leading option other than help or version is, as there.
 //! - A key with no owner is refused with 403, as ace3 refuses a config key: a run names its person.
 //!
-//! `GET /api/monitoring/v1/state` is ace4's own (PLAN.md 7.12), under `monitoring:read`: every scheduled
+//! `GET /api/monitoring/v1/state` is ace-rs's own (PLAN.md 7.12), under `monitoring:read`: every scheduled
 //! task's state, the runs of all of them or of one (`?task=`, `?runs=` up to 500), newest first, and the
 //! records the monitoring checks last emitted (`ace_core::monitoring` maps each of ace3's monitors). ace3
 //! has no route for either: its monitors' records and its cron runs' outcomes go to fluent-bit.
@@ -593,7 +593,7 @@ pub use error::ErrorBody;
 pub struct WebConfig {
     /// Whether the browser reaches this server over TLS, which turns on the session cookie's `Secure`
     /// attribute and `__Host-` name (`ace_service::SessionCookie`). The site says so with
-    /// `ACE4_WEB_TLS=true`, set wherever TLS is terminated in front of `ace serve`. TLS isn't in the
+    /// `ACE_RS_WEB_TLS=true`, set wherever TLS is terminated in front of `ace serve`. TLS isn't in the
     /// stack yet, so Compose leaves it unset, which is `Plain`. The GUI (`ace-gui`) is given the same.
     pub transport: Transport,
     /// The largest submission, files included. ace3 has no limit of its own.
@@ -619,20 +619,20 @@ impl Default for WebConfig {
 }
 
 impl WebConfig {
-    /// The defaults, with the largest submission from `ACE4_MAX_SUBMISSION_BYTES` when it's set, and the
-    /// transport from `ACE4_WEB_TLS`: `true` or `false`, and unset or empty is `false`. Any other value
+    /// The defaults, with the largest submission from `ACE_RS_MAX_SUBMISSION_BYTES` when it's set, and the
+    /// transport from `ACE_RS_WEB_TLS`: `true` or `false`, and unset or empty is `false`. Any other value
     /// is an error, since a cookie setting that was misspelled shouldn't quietly become the weaker one.
     pub fn from_env() -> Result<Self, String> {
         let mut config = WebConfig::default();
-        match std::env::var("ACE4_WEB_TLS").as_deref() {
+        match std::env::var("ACE_RS_WEB_TLS").as_deref() {
             Ok("true") => config.transport = Transport::Tls,
             Ok("false" | "") | Err(std::env::VarError::NotPresent) => {}
-            Ok(other) => return Err(format!("ACE4_WEB_TLS is {other:?}, not true or false")),
+            Ok(other) => return Err(format!("ACE_RS_WEB_TLS is {other:?}, not true or false")),
             Err(std::env::VarError::NotUnicode(_)) => {
-                return Err("ACE4_WEB_TLS isn't text".to_owned());
+                return Err("ACE_RS_WEB_TLS isn't text".to_owned());
             }
         }
-        if let Some(bytes) = std::env::var("ACE4_MAX_SUBMISSION_BYTES")
+        if let Some(bytes) = std::env::var("ACE_RS_MAX_SUBMISSION_BYTES")
             .ok()
             .and_then(|bytes| bytes.parse().ok())
         {

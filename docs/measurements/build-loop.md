@@ -6,7 +6,7 @@ PLAN.md step 0.5 times the build loop on a throwaway workspace that uses tokio, 
 
 Medians of five runs each, in seconds, in the dev container on macOS. Each column names the dev profile it used, and the profile matters: 0.5's spike built with Cargo's default dev profile (full debug info everywhere), and since commit 9e79bad the workspace builds dependencies without debug info and its own crates with line tables only. A link-bound number such as the edit loop isn't comparable across profiles, so the spike was measured again with the workspace's profile.
 
-| Series | Spike, default profile (0.5) | Spike, ace4's profile (1.31) | Workspace, ace4's profile (1.31) | Workspace, ace4's profile (2.33) | Workspace, ace4's profile (4.9) |
+| Series | Spike, default profile (0.5) | Spike, ace-rs's profile (1.31) | Workspace, ace-rs's profile (1.31) | Workspace, ace-rs's profile (2.33) | Workspace, ace-rs's profile (4.9) |
 |---|---|---|---|---|---|
 | clean-cold | 59.2 | 52.5 | 44.0 | 79.3 | 67.8 |
 | clean-warm | 11.3 | 9.2 | 15.7 | 34.6 | 28.5 |
@@ -23,7 +23,7 @@ The sections below give each row's runs, ranges, sccache counts and what else th
 
 ## What was measured
 
-`tools/build-loop/make-spike` writes the spike: a Cargo workspace outside ace4's members with two crates. `spike-deps` uses the six libraries, and `spike-leaf` depends on it and holds one test that calls into all six, so its test binary links them. The build compiles 406 crates. The spike was deleted after the runs, and `make-spike` recreates it.
+`tools/build-loop/make-spike` writes the spike: a Cargo workspace outside ace-rs's members with two crates. `spike-deps` uses the six libraries, and `spike-leaf` depends on it and holds one test that calls into all six, so its test binary links them. The build compiles 406 crates. The spike was deleted after the runs, and `make-spike` recreates it.
 
 `tools/build-loop/measure` times one command in every run, `cargo test --workspace --no-run --frozen`, which ends with runnable test binaries. It runs four series of five runs:
 
@@ -62,11 +62,11 @@ What else these numbers include:
 
 Measured on 2026-11-02 on the same machine and container as 0.5: Rancher Desktop's VZ virtual machine on Apple silicon (aarch64, Linux 6.18.37), 8 CPUs and 31.3 GB, mold 2.37.1 through clang, sccache 0.18.0, Rust 1.99.1. ace3's 27 containers were running, idle, as in 0.5.
 
-Profile, from ace4's `Cargo.toml` since commit 9e79bad: `[profile.dev] debug = "line-tables-only"` and `[profile.dev.package."*"] debug = false`. Each `runs.tsv` records the profile it measured on its `# profile:` line.
+Profile, from ace-rs's `Cargo.toml` since commit 9e79bad: `[profile.dev] debug = "line-tables-only"` and `[profile.dev.package."*"] debug = false`. Each `runs.tsv` records the profile it measured on its `# profile:` line.
 
-### The spike, with ace4's profile
+### The spike, with ace-rs's profile
 
-`tools/build-loop/make-spike --ace4-profile` writes the same spike with those two sections added. The versions resolved as in 0.5 except aws-sdk-s3, which is now 1.157.0, a patch release on 1.156.0. Raw data: [build-loop-1.31-spike-ace4-profile.tsv](build-loop-1.31-spike-ace4-profile.tsv).
+`tools/build-loop/make-spike --ace-rs-profile` writes the same spike with those two sections added. The versions resolved as in 0.5 except aws-sdk-s3, which is now 1.157.0, a patch release on 1.156.0. Raw data: [build-loop-1.31-spike-ace-rs-profile.tsv](build-loop-1.31-spike-ace-rs-profile.tsv).
 
 | Series | Runs | Median (s) | Range (s) | Failed runs | Crates compiled | sccache hits / misses, each run |
 |---|---|---|---|---|---|---|
@@ -156,7 +156,7 @@ What else the 2.33 numbers include:
 - **A first clean-cold series that wasn't used.** It ran from 18:37 UTC while ace3's dev container ran ace3's full test suite under `pytest -n 6`, which took 3.3 CPUs on median (93% to 453%). Its runs took 107.0 to 140.9 seconds, median 136.0. The series was run again once the suite finished, and the second one is the row above. Both are in the TSV, the first as `clean-cold-contended`.
 - **A first edit-core series that wasn't used.** Its run 1 compiled 14 crates, because `measure` resets the marker in `ace-results` to 0 after edit-shared and that change was still unbuilt. One untimed build cleared it, and edit-core ran again. The first series is in the TSV as `edit-core-first`: 12.6 seconds median, 10.7 to 13.5, and 10.7 to 12.9 over its four clean runs. The same reset adds no work to edit-shared's run 1, since the crates it rebuilds are a subset of edit-shared's.
 - **sccache.** clean-cold emptied the tool's own cache before each run (0 hits, 1012 misses each), so it includes writing every result to the cache. clean-warm ran on the cache clean-cold filled (1012 hits, 0 misses each). The edit and no-op runs used it for nothing: workspace crates aren't cached because they compile incrementally.
-- **Disk.** Before the second clean-cold series the Docker VM had 5.7 GB free, so ace4's own build output in `target/debug` was deleted, which brought it to 14.1 GB. That was between series, not within one, and the tool's target directory, `target/build-loop-real`, wasn't touched. Every later check showed 12.6 GB or more free. The tool's target directory was 11 GB after the runs.
+- **Disk.** Before the second clean-cold series the Docker VM had 5.7 GB free, so ace-rs's own build output in `target/debug` was deleted, which brought it to 14.1 GB. That was between series, not within one, and the tool's target directory, `target/build-loop-real`, wasn't touched. Every later check showed 12.6 GB or more free. The tool's target directory was 11 GB after the runs.
 - **No downloads.** `cargo fetch` ran before each invocation and isn't timed, and `--frozen` keeps every run offline.
 - **Warm file caches** after each series' first run. Run 1 is the slowest run of clean-cold.
 - **No failures.** Every run exited 0, and the crates-compiled column shows each series did the work it names. After the series, `cargo test -p ace-mod-yara -p ace-results` in the same target directory ran the rebuilt test binaries (36 tests passed), and `ace-core`'s rebuilt unit test binary ran with `--list`. `ace-core`'s and `ace-pool`'s tests need the stack's Postgres and bucket, which weren't running, so their binaries weren't run.
@@ -196,13 +196,13 @@ What else the 4.9 numbers include:
 
 ## CI's Linux runner
 
-Pending, as in 0.5. The `build-loop` workflow (`.github/workflows/build-loop.yml`) runs the same two scripts inside the dev image on GitHub's `ubuntu-24.04` runner, by hand from the Actions tab, and writes the same table to the run's summary. It hasn't run yet, because this checkout has no GitHub repository. As written it measures 0.5's spike, with Cargo's default profile; 1.31's rows on CI would need `make-spike --ace4-profile` and a run over the workspace as below.
+Pending, as in 0.5. The `build-loop` workflow (`.github/workflows/build-loop.yml`) runs the same two scripts inside the dev image on GitHub's `ubuntu-24.04` runner, by hand from the Actions tab, and writes the same table to the run's summary. It hasn't run yet, because this checkout has no GitHub repository. As written it measures 0.5's spike, with Cargo's default profile; 1.31's rows on CI would need `make-spike --ace-rs-profile` and a run over the workspace as below.
 
 ## How to rerun
 
 In the dev container. Each run gets its own target directory, and `measure` gives sccache its own cache directory, `$SCCACHE_DIR/build-loop`, so emptying it for the clean-cold series leaves the dev container's cache alone. Delete both when the numbers are recorded.
 
-0.5's spike, with Cargo's default profile; add `--ace4-profile` after `make-spike` for 1.31's like-for-like run:
+0.5's spike, with Cargo's default profile; add `--ace-rs-profile` after `make-spike` for 1.31's like-for-like run:
 
 ```sh
 tools/build-loop/make-spike spike-build-loop

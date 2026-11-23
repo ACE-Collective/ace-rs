@@ -399,7 +399,7 @@ impl Service {
             .await
     }
 
-    /// Makes the first user, holding `*:*`, for an operator with database access. ace4 ships no default
+    /// Makes the first user, holding `*:*`, for an operator with database access. ace-rs ships no default
     /// account. It acts as the component `bootstrap`, which migration 0022 gives `user:write`. If any user
     /// exists it's `ServiceError::UsersExist`, unless `force`, which is how an operator who has lost every
     /// admin's password makes a new admin.

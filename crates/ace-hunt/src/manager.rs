@@ -6,7 +6,7 @@
 //! with its error, as ace3 logs it and carries on. A hunt whose `type` isn't the manager's fails,
 //! and so does one whose name another hunt of the type already has. ace3 lists a directory in
 //! `os.scandir` order, which is the filesystem's, so which of two hunts with one name fails can
-//! change between hosts; ace4 lists by name.
+//! change between hosts; ace-rs lists by name.
 //!
 //! Running hunts, watching their files for changes and reloading are 6.4's and 6.7's: each
 //! [`Hunt`] says which files it was read from, and each failure which file failed.

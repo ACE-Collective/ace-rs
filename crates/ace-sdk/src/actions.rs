@@ -16,7 +16,7 @@
 //! pool runs the handler and says how it went (`ActionEnd`).
 //!
 //! A handler is named by its kind and its name, such as `remediation/test`, which a pool's list in
-//! `ACE4_POOLS` carries as `@remediation/test` (`pool_entry`). Its spec says what observable type it
+//! `ACE_RS_POOLS` carries as `@remediation/test` (`pool_entry`). Its spec says what observable type it
 //! acts on, the TCP ports it connects to and the secrets it reads, as a lookup module's manifest does,
 //! and whether it runs without an entry in the overlay's `actions:` (`ActionSpec::off_by_default`,
 //! PLAN.md decision 28).
@@ -246,7 +246,7 @@ impl ActionSpec {
         self
     }
 
-    /// Its entry in a pool's list in `ACE4_POOLS`.
+    /// Its entry in a pool's list in `ACE_RS_POOLS`.
     pub fn pool_entry(&self) -> String {
         pool_entry(self.kind, self.name)
     }
@@ -278,7 +278,7 @@ pub fn is_handler_name(name: &str) -> bool {
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_' || b == b'-')
 }
 
-/// What a pool's list in `ACE4_POOLS` names a handler it runs with: `@<kind>/<name>`.
+/// What a pool's list in `ACE_RS_POOLS` names a handler it runs with: `@<kind>/<name>`.
 pub fn pool_entry(kind: ActionKind, name: &str) -> String {
     format!("@{}/{name}", kind.as_str())
 }

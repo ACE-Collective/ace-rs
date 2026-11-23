@@ -58,7 +58,7 @@ pub const INDEX_FILE: &str = "obsd-index.yar";
 /// The rule whose meta says which detection each `$obsd_` id is.
 pub const INDEX_RULE: &str = "obsd_index";
 /// Raised whenever the generated strings change shape, so the next build writes every rule again:
-/// ace3's `YARA_EXPORT_FORMAT_VERSION`, with ace4's own part after the dot.
+/// ace3's `YARA_EXPORT_FORMAT_VERSION`, with ace-rs's own part after the dot.
 pub const FORMAT_VERSION: &str = "3.1";
 /// A value longer than this, in characters of its JSON form, keeps its text string: libyara stops
 /// matching a regex about 1 KiB into a match, and ace3 keeps its rules the same for both.

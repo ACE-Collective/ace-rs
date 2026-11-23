@@ -106,7 +106,7 @@ impl Module for YaraScanner {
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
     /// ace3 runs a file's modules in the order of their names, so `file_type` has given the file
     /// its `yara_meta` types before the scan, which type-scoped rules read. ace3 declares no
-    /// dependency; ace4 needs one for the same order.
+    /// dependency; ace-rs needs one for the same order.
     const DEPENDS_ON: &'static [&'static str] = &["file_type"];
     /// ace3's YARA module skips a file with `no_scan` itself (`yara.py:299`); here the core
     /// doesn't queue it, and the SDK skips a run if the directive came later.

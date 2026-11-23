@@ -3,7 +3,7 @@
 
 Each dump is one ace3 module's analysis of one input in the cli analysis mode, made by
 run_module.py inside ace3's dev container (ace-dev-1). Everything runs under the container's
-/tmp/ace4-dumps; nothing is written under /opt/ace, ace3's checkout.
+/tmp/ace-rs-dumps; nothing is written under /opt/ace, ace3's checkout.
 
     tools/ace3/dumps/make-dumps            all modules
     tools/ace3/dumps/make-dumps rdap       one module, by its key in RUNS below
@@ -35,7 +35,7 @@ import time
 from pathlib import Path
 
 CONTAINER = "ace-dev-1"
-REMOTE = "/tmp/ace4-dumps"
+REMOTE = "/tmp/ace-rs-dumps"
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 SAMPLES = REPO / "samples"
@@ -109,18 +109,18 @@ NOT_MADE = []
 # its own. The username and password are the fake's; it takes any.
 SPLUNK_PORT = 8089
 SPLUNK_CONFIG = """\
-splunk_config_ace4_fake:
-  name: ace4_fake
+splunk_config_ace_rs_fake:
+  name: ace_rs_fake
   enabled: true
   host: 127.0.0.1
   port: {port}
-  username: ace4
-  password: ace4-fake-password
+  username: ace-rs
+  password: ace-rs-fake-password
   timezone: GMT
   performance_logging_dir: ""
   request_timeout: 10
-api_query_defaults_ace4_fake:
-  name: ace4_fake
+api_query_defaults_ace_rs_fake:
+  name: ace_rs_fake
   wide_duration_before: "01:00:00:00"
   wide_duration_after: "01:00:00:00"
   narrow_duration_before: "00:01:00:00"
@@ -134,7 +134,7 @@ analysis_module_proxy_domain_lookup:
   python_module: saq.modules.splunk
   python_class: SplunkAPIAnalyzer
   enabled: true
-  api_name: ace4_fake
+  api_name: ace_rs_fake
   valid_observable_types: [fqdn]
   question: "Was this domain seen in proxy logs?"
   summary: "Proxy correlation"
@@ -465,8 +465,8 @@ LDAP_CONFIG = """\
 ldap:
   ldap_server: 127.0.0.1
   ldap_port: {port}
-  ldap_bind_user: CN=ace4,OU=Service,DC=company,DC=example
-  ldap_bind_password: ace4-fake-password
+  ldap_bind_user: CN=ace-rs,OU=Service,DC=company,DC=example
+  ldap_bind_password: ace-rs-fake-password
   ldap_base_dn: DC=company,DC=example
   top_user: ceo
 global:
@@ -550,7 +550,7 @@ analysis_module_clicker_detection_splunk:
   python_module: saq.modules.clicker_detection
   python_class: SplunkClickerDetectionAnalyzer
   enabled: true
-  api_name: ace4_fake
+  api_name: ace_rs_fake
   valid_observable_types: [url, fqdn]
   required_directives: [clicker_detection]
   question: "Did anyone click this URL or visit this domain?"
@@ -578,7 +578,7 @@ def fake_clicker_splunk(fake_dir, job_args, query_timeout):
     timeout_line = f"  query_timeout: {query_timeout}\n" if query_timeout is not None else ""
     section = CLICKER_SECTION.format(config_path=f"{REMOTE}/fixtures/clicker/clicker_detection.yaml",
                                      query_timeout=timeout_line)
-    put(f"{fake_dir}/saq.ace4_fake.yaml", (base + section).encode())
+    put(f"{fake_dir}/saq.ace_rs_fake.yaml", (base + section).encode())
     docker(
         "exec", "-d", CONTAINER, "sh", "-c",
         f'exec /venv/bin/python3 -I {REMOTE}/fake_splunk.py --rows {REMOTE}/fixtures/splunk/clicker_rows.json '
@@ -608,7 +608,7 @@ def clicker_runs():
             "module": "clicker_detection_splunk",
             "enable": [],
             "name": name,
-            "args": ["--observable", kind, value, "--config", f"{fake_dir}/saq.ace4_fake.yaml"]
+            "args": ["--observable", kind, value, "--config", f"{fake_dir}/saq.ace_rs_fake.yaml"]
             + [arg for d in directives for arg in ("--directive", d)],
             "label": f"{kind} {value}" + (f" with directives {directives}" if directives else " without the directive")
             + f", against fake_splunk.py with {' '.join(job_args)}",
@@ -621,7 +621,7 @@ def clicker_runs():
 
 
 # url_extraction's runs on fixtures/urls: (file, directives besides extract_urls, yara_meta tags).
-# Python's set order decides ace3's order of URLs, so the runs fix the hash seed; ace4 sorts.
+# Python's set order decides ace3's order of URLs, so the runs fix the hash seed; ace-rs sorts.
 URL_RUNS = [
     ("lines.txt", [], []),
     ("lines.txt", ["crawl_extracted_urls"], []),
@@ -1038,18 +1038,18 @@ def office_runs():
         add("onenote_extraction", [], "onenote", name)
     add("onenote_extraction", [], "onenote", "two_files.one", ".small",
         ["--config", f"{REMOTE}/fixtures/office/small_onenote.yaml"], " with max_bytes 1100")
-    samples("onenote_extraction", [], sample_is("ace4/office/invoice.one"))
+    samples("onenote_extraction", [], sample_is("ace-rs/office/invoice.one"))
     for name in fixtures("activemime"):
         add("active_mime", [], "activemime", name)
-    samples("active_mime", [], sample_is("ace4/office/oledata.mso"))
+    samples("active_mime", [], sample_is("ace-rs/office/oledata.mso"))
     for name in fixtures("mime"):
         add("hidden_mime", ["file_type"], "mime", name)
     add("hidden_mime", ["file_type"], "mime", "hidden.bin", ".original_email", ["--directive", "original_email"],
         " with ['original_email']")
-    samples("hidden_mime", ["file_type"], sample_is("ace4/office/hidden_mime.bin", "ace4/office/vba_mht.mht"))
+    samples("hidden_mime", ["file_type"], sample_is("ace-rs/office/hidden_mime.bin", "ace-rs/office/vba_mht.mht"))
     for name in fixtures("flat"):
         add("xml_binary_analyzer", [], "flat", name)
-    samples("xml_binary_analyzer", [], sample_is("ace4/office/word2003.xml", "ace4/office/vba_flatopc.xml"))
+    samples("xml_binary_analyzer", [], sample_is("ace-rs/office/word2003.xml", "ace-rs/office/vba_flatopc.xml"))
     for name in fixtures("plain"):
         add("xml_plain_text_analyzer", [], "plain", name, "", [*source, "--source-tag", "microsoft_office"],
             " extracted from a microsoft_office file", alert_path=f"invoice.docx.extracted/word/{name}")
@@ -1104,10 +1104,10 @@ def script_runs():
 
     for name in fixtures("mse"):
         add("microsoft_script_encoding_analysis", [], "mse", name)
-    samples("microsoft_script_encoding_analysis", [], lambda p: p.startswith("ace4/scripts/"))
+    samples("microsoft_script_encoding_analysis", [], lambda p: p.startswith("ace-rs/scripts/"))
     for name in fixtures("vbs"):
         add("vbscript_analyzer", [], "vbs", name)
-    samples("vbscript_analyzer", [], lambda p: p.startswith("ace4/scripts/"))
+    samples("vbscript_analyzer", [], lambda p: p.startswith("ace-rs/scripts/"))
     for name in fixtures("rtf"):
         add("nowhitespace_analyzer", [], "rtf", name)
     samples("nowhitespace_analyzer", [], lambda p: "/rtf/" in p)
@@ -1519,13 +1519,13 @@ RUNS = {
 PCAP_DECRYPTIONS = [
     ("ace3/pcap/http_tls.pcapng", None),
     ("ace3/pcap/http_tls.pcapng", "ace3/pcap/sslkeylog.txt"),
-    ("ace3/pcap/http_tls.pcapng", "ace4/pcap/keylog_mixed.txt"),
-    ("ace3/pcap/http_tls.pcapng", "ace4/pcap/not_a_keylog.txt"),
+    ("ace3/pcap/http_tls.pcapng", "ace-rs/pcap/keylog_mixed.txt"),
+    ("ace3/pcap/http_tls.pcapng", "ace-rs/pcap/not_a_keylog.txt"),
     ("ace3/pcap/http_tls_dsb.pcapng", None),
     ("ace3/pcap/http_tls_dsb.pcapng", "ace3/pcap/sslkeylog.txt"),
     ("ace3/pcap/network.pcap", "ace3/pcap/sslkeylog.txt"),
-    ("ace4/pcap/many_hosts.pcap", "ace4/pcap/keylog_mixed.txt"),
-    ("ace4/pcap/bad_certificate.pcap", "ace3/pcap/sslkeylog.txt"),
+    ("ace-rs/pcap/many_hosts.pcap", "ace-rs/pcap/keylog_mixed.txt"),
+    ("ace-rs/pcap/bad_certificate.pcap", "ace3/pcap/sslkeylog.txt"),
 ]
 
 
@@ -1534,12 +1534,12 @@ PCAP_DECRYPTIONS = [
 # turns away gets the fixture too, unread.
 SCANNERS = f"{REMOTE}/fixtures/scanners"
 JS_RUNS = [
-    ("ace4/js/dropper.js", "dropper", []),
-    ("ace4/js/broken.js", "broken", []),
-    ("ace4/js/blob_redirect.js", "blob_redirect", []),
-    ("ace4/js/runtime_error.js", "runtime_error", []),
-    ("ace4/js/report.JS", "dropper", []),
-    ("ace4/js/loader.mjs", "dropper", []),
+    ("ace-rs/js/dropper.js", "dropper", []),
+    ("ace-rs/js/broken.js", "broken", []),
+    ("ace-rs/js/blob_redirect.js", "blob_redirect", []),
+    ("ace-rs/js/runtime_error.js", "runtime_error", []),
+    ("ace-rs/js/report.JS", "dropper", []),
+    ("ace-rs/js/loader.mjs", "dropper", []),
 ]
 
 
@@ -1559,26 +1559,26 @@ def js_runs():
     runs.append({
         "module": "javascript_deobfuscation",
         "enable": [],
-        "name": "ace4/js/dropper.js.tagged",
-        "args": ["--file", f"{REMOTE}/samples/ace4/js/dropper.js", "--alert-path", "dropper.txt",
+        "name": "ace-rs/js/dropper.js.tagged",
+        "args": ["--file", f"{REMOTE}/samples/ace-rs/js/dropper.js", "--alert-path", "dropper.txt",
                  "--meta-tag", "type=script.javascript", "--scanner-output", f"{SCANNERS}/js/dropper"],
-        "label": "ace4/js/dropper.js as dropper.txt tagged type=script.javascript",
+        "label": "ace-rs/js/dropper.js as dropper.txt tagged type=script.javascript",
     })
     # the Celery call failed, as when it ran out of time
     runs.append({
         "module": "javascript_deobfuscation",
         "enable": [],
-        "name": "ace4/js/dropper.js.celery_timeout",
-        "args": ["--file", f"{REMOTE}/samples/ace4/js/dropper.js", "--alert-path", "dropper.js",
+        "name": "ace-rs/js/dropper.js.celery_timeout",
+        "args": ["--file", f"{REMOTE}/samples/ace-rs/js/dropper.js", "--alert-path", "dropper.js",
                  "--scanner-output", "raise:The operation timed out."],
-        "label": "ace4/js/dropper.js, the Celery call timing out",
+        "label": "ace-rs/js/dropper.js, the Celery call timing out",
     })
     # a script html_js_extraction pulled out of a page, with the DOM snapshot it wrote beside it
     runs.append({
         "module": "javascript_deobfuscation",
         "enable": ["html_js_extraction", "file_type"],
-        "name": "ace4/web/scripts.html.inline_0",
-        "args": ["--file", f"{REMOTE}/samples/ace4/web/scripts.html", "--alert-path", "scripts.html",
+        "name": "ace-rs/web/scripts.html.inline_0",
+        "args": ["--file", f"{REMOTE}/samples/ace-rs/web/scripts.html", "--alert-path", "scripts.html",
                  "--dump-file", "scripts_js_inline_0_f2dac8e8.js", "--sidecars", ".dom.json", "--tree-view",
                  "--scanner-output", f"{SCANNERS}/js/scripts_inline"],
         "label": "scripts.html's first inline script, with its DOM snapshot",
@@ -1586,7 +1586,7 @@ def js_runs():
     return runs
 
 
-PHISHKIT_PAGE = "ace4/web/phishkit_page.html"
+PHISHKIT_PAGE = "ace-rs/web/phishkit_page.html"
 
 
 def phishkit_runs():
@@ -1683,7 +1683,7 @@ def splunk_runs():
                 "module": "proxy_domain_lookup",
                 "enable": [],
                 "name": name,
-                "args": ["--observable", "fqdn", "www.example.com", "--config", f"{fake_dir}/saq.ace4_fake.yaml"],
+                "args": ["--observable", "fqdn", "www.example.com", "--config", f"{fake_dir}/saq.ace_rs_fake.yaml"],
                 "label": f"fqdn www.example.com, against fake_splunk.py with {' '.join(job_args)}",
                 # splunk-sdk talks to the fake with http.client, which reads no proxy settings,
                 # but the container has ALL_PROXY set, so make sure nothing sends 127.0.0.1 there
@@ -1706,7 +1706,7 @@ def fake_splunk(fake_dir, job_args, query_timeout):
     """Runs fake_splunk.py in the container for one run, with the config file that points ace3 at it."""
     docker("exec", CONTAINER, "mkdir", "-p", f"{fake_dir}/http")
     timeout_line = f"  query_timeout: {query_timeout}\n" if query_timeout is not None else ""
-    put(f"{fake_dir}/saq.ace4_fake.yaml", SPLUNK_CONFIG.format(port=SPLUNK_PORT, query_timeout=timeout_line).encode())
+    put(f"{fake_dir}/saq.ace_rs_fake.yaml", SPLUNK_CONFIG.format(port=SPLUNK_PORT, query_timeout=timeout_line).encode())
     docker(
         "exec", "-d", CONTAINER, "sh", "-c",
         f'exec /venv/bin/python3 -I {REMOTE}/fake_splunk.py --rows {REMOTE}/fixtures/splunk/proxy_rows.json '
@@ -1802,27 +1802,27 @@ def email_tree_runs():
                 args=["--brocess", f"{configs}/empty.json", "--config", f"{configs}/link.yaml"],
                 label=", no sender seen before, with url_pattern_lure", enable=frequency)
     by_path = {s["path"]: s for s in emails}
-    lure_button = by_path["ace4/email/lure_button.email.rfc822"]
+    lure_button = by_path["ace-rs/email/lure_button.email.rfc822"]
     add("lure_url_analyzer", lure_button, ".settings", ["--config", f"{configs}/lure.yaml"], " with a settings file")
     for name in ("lure_thread", "lure_thread_text", "lure_signature", "lure_not_a_signature", "lure_pdf_link"):
-        sample = by_path[f"ace4/email/{name}.email.rfc822"]
+        sample = by_path[f"ace-rs/email/{name}.email.rfc822"]
         add("lure_url_analyzer", sample, ".context", ["--config", f"{configs}/lure_context.yaml"],
             " with the context settings")
     for name in ("lure_signature", "lure_pdf_link"):
-        sample = by_path[f"ace4/email/{name}.email.rfc822"]
+        sample = by_path[f"ace-rs/email/{name}.email.rfc822"]
         add("lure_url_analyzer", sample, ".no_reference", ["--config", f"{configs}/lure_no_reference.yaml"],
             " with no sign-off phrases and no attachment phrases")
     # the PDF's links without pdf_link_text, as in an alert analyzed with it disabled
-    add("lure_url_analyzer", by_path["ace4/email/lure_pdf_link.email.rfc822"], ".no_link_text",
+    add("lure_url_analyzer", by_path["ace-rs/email/lure_pdf_link.email.rfc822"], ".no_link_text",
         label=" without pdf_link_text", enable=[m for m in EMAIL_TREE_ENABLE if m != "pdf_link_text"])
     add("mailbox_email_analyzer", lure_button, ".cli", ["--directive", "original_email"], " as a cli alert",
         enable=["file_type", "email_analyzer"])
-    add("email_conversation_attachment_analyzer", by_path["ace4/email/macro_attachment.email.rfc822"], ".known_sender",
+    add("email_conversation_attachment_analyzer", by_path["ace-rs/email/macro_attachment.email.rfc822"], ".known_sender",
         ["--brocess", f"{REMOTE}/fixtures/brocess/smtplog.json"], ", its sender seen before", enable=frequency)
     add("email_conversation_link_analyzer", lure_button, ".known_sender",
         ["--brocess", f"{configs}/lure_sender.json", "--config", f"{configs}/link.yaml"],
         ", its sender seen before, with url_pattern_lure", enable=frequency)
-    add("email_conversation_link_analyzer", by_path["ace4/email/lure_protected.email.rfc822"], ".nothing",
+    add("email_conversation_link_analyzer", by_path["ace-rs/email/lure_protected.email.rfc822"], ".nothing",
         ["--brocess", f"{configs}/empty.json", "--config", f"{configs}/link_nothing.yaml"],
         ", with a pattern that matches nothing", enable=frequency)
     return runs
@@ -1851,7 +1851,7 @@ def pdf_link_text_runs():
     runs = file_runs("pdf_link_text", [], "pdf")
     configs = f"{REMOTE}/fixtures/pdf_link_text"
     for run in list(runs):
-        if not run["name"].startswith("ace4/pdf/link_text"):
+        if not run["name"].startswith("ace-rs/pdf/link_text"):
             continue
         # the label stays the sample's path, which is how the port's test finds the file
         for suffix in (".bounds", ".wide"):

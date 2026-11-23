@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build the dev image
-        run: docker build -t ace4-dev:ci docker/dev
+        run: docker build -t ace-rs-dev:ci docker/dev
 
       - name: Measure the spike
         env:
@@ -29,7 +29,7 @@ jobs:
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
             -e CARGO_TARGET_DIR=/workspace/target/build-loop-spike -e RUNS \
-            ace4-dev:ci bash -c '
+            ace-rs-dev:ci bash -c '
               tools/build-loop/make-spike spike-build-loop &&
               tools/build-loop/measure spike-build-loop spike-build-loop/spike-leaf/src/lib.rs \
                 target/build-loop-results "$RUNS"'

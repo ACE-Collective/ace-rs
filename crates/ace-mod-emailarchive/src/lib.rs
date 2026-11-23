@@ -8,7 +8,7 @@
 //!   email into the alert by its Message-ID through the `archived-email` read.
 //!
 //! ace3's 4f1fa192 removed `encrypted_archive_analyzer` and `url_email_pivot_analyzer`, since the
-//! archive is no longer searchable and no alert holds a `.gz.e` file, and ace4 removed them with it.
+//! archive is no longer searchable and no alert holds a `.gz.e` file, and ace-rs removed them with it.
 
 pub mod archiver;
 pub mod message_id;

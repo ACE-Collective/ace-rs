@@ -14,12 +14,12 @@
 //! What differs from ace3:
 //! - The trace's second line is `// source: <path>`, the input's path in the scanner, which in both
 //!   is `/js-deobfuscator/input/<job id>/<name>`. ace3's job id is a random UUID, so the trace's bytes
-//!   differ on each of its runs; ace4's is made from the module and the script (`crate::job_id`).
+//!   differ on each of its runs; ace-rs's is made from the module and the script (`crate::job_id`).
 //! - ace3 skips writing a file when one is already at its path on disk; here, when the tree has a
 //!   file at that path.
 //! - ace3's manager reads the container's output as UTF-8 and fails on bytes that aren't; here they
 //!   read as U+FFFD.
-//! - ace3 adds its files as volatile observables, which ace4 doesn't have.
+//! - ace3 adds its files as volatile observables, which ace-rs doesn't have.
 
 use std::time::Duration;
 
@@ -142,7 +142,7 @@ impl Parser for JavaScriptDeobfuscationAnalyzer {
 ///
 /// ace3 runs its modules on a file in its configuration's order, in which `javascript_deobfuscation`
 /// comes before `file_type`, so the tag it reads is the one the file came with, from the module that
-/// wrote it, and never file_type's. ace4 runs them at once, so which lands first would be a race:
+/// wrote it, and never file_type's. ace-rs runs them at once, so which lands first would be a race:
 /// the module waits for file_type and leaves out a tag file_type's own test gives. A file both tag
 /// is treated as file_type's; such a file is a script whose name ends in `.js`, which runs anyway.
 fn tagged_before_file_type(ctx: &TaskContext<JsSettings>) -> Result<bool, ModuleError> {

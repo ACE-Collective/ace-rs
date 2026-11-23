@@ -637,7 +637,7 @@ mod tests {
 
     const SAMPLE: &str = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../samples/ace4/office/xlm_biff8.xls"
+        "/../../samples/ace-rs/office/xlm_biff8.xls"
     );
 
     fn open_sample() -> Book {

@@ -1804,7 +1804,7 @@
             "oneOf": [
               {
                 "$ref": "#/components/schemas/FileTypeBody",
-                "description": "A file's type: what the type step found in its bytes (PLAN.md decision 25). ace3 showed this\nas file_type's result, which ace4 doesn't store. Absent for an observable that isn't a file,\nfor a file whose type step hasn't ended or failed, and from the AI investigation API."
+                "description": "A file's type: what the type step found in its bytes (PLAN.md decision 25). ace3 showed this\nas file_type's result, which ace-rs doesn't store. Absent for an observable that isn't a file,\nfor a file whose type step hasn't ended or failed, and from the AI investigation API."
               },
               {
                 "type": "null"
@@ -2356,7 +2356,7 @@
       "api_key": {
         "type": "http",
         "scheme": "bearer",
-        "description": "An API key, `ace4k_...`, shown once when it was made."
+        "description": "An API key, `ace-rs-k_...`, shown once when it was made."
       }
     }
   },

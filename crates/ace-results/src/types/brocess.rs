@@ -98,7 +98,7 @@ impl AnalysisType for EmailThreadAnalysis {
 
 impl EmailThreadAnalysis {
     /// `_build_findings` (`saq/modules/email/thread.py`): the facts that decide an alert, as the
-    /// markdown ace3 adds to the analysis as a summary detail. ace4's results have no summary
+    /// markdown ace3 adds to the analysis as a summary detail. ace-rs's results have no summary
     /// details, so the analysis view draws them from the details.
     pub fn findings(&self) -> Option<String> {
         let analysis = self;

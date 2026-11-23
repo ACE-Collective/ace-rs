@@ -8,7 +8,7 @@ It runs `ace compare` over a few of the larger samples, several at once, and whi
   waiting for a pool, held for a file's path, waiting on a module's delay, or down to the tasks
   that run last. A pool's leased tasks are its busy slots, a little overcounted: a task is leased
   from its claim, before its pool has heard of it.
-- with --timing, starts the core and the pools with `ACE4_LOG=info,ace_lease=debug` and reads their
+- with --timing, starts the core and the pools with `ACE_RS_LOG=info,ace_lease=debug` and reads their
   timing events from the logs: for each claimed task, where the core's time went
   (`ace_core::api::LEASE_TIMING`), and for each lease request, its round trip as the pool saw it
   and how many tasks came back.
@@ -67,17 +67,17 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 # time, which between them keep the pools supplied: 43,074 tasks, chosen from one comparison's
 # `queue.tasks` (docs/measurements/lease.md).
 DEFAULT_SAMPLES = [
-    "ace4/rtf/objects.rtf",
-    "ace4/pcap/many_hosts.pcap",
-    "ace4/macos/many_members.dmg",
-    "ace4/pcap/many_files.pcap",
+    "ace-rs/rtf/objects.rtf",
+    "ace-rs/pcap/many_hosts.pcap",
+    "ace-rs/macos/many_members.dmg",
+    "ace-rs/pcap/many_files.pcap",
     "ace3/archive/test.jar",
     "ace3/archive/too_many_files.jar",
     "ace3/archive/malicious.jar",
     "ace3/office/js_ole_obj.docx",
-    "ace4/email/macro_attachment.email.rfc822",
+    "ace-rs/email/macro_attachment.email.rfc822",
     "ace3/office/receipt_687790.doc",
-    "ace4/rtf/edge_objects.rtf",
+    "ace-rs/rtf/edge_objects.rtf",
     "ace3/office/DOC_PO_10142020EX.doc",
     "ace3/pdf/718148a5712c1fec7b50acc89eee2aa0",
     "ace3/office/mortgage_payment-0873821-0565.docm",
@@ -308,7 +308,7 @@ def main(argv):
         "exec", "-T", "ace", run.ACE_COMMAND, "user", "create-key", f"lease-measure-{int(time.time())}",
         "--grant", "alert:create", capture=True,
     )
-    run.ENV["ACE4_API_KEY"] = next(
+    run.ENV["ACE_RS_API_KEY"] = next(
         line.split(": ", 1)[1] for line in out.splitlines()
         if line.startswith("token (shown once): ")
     )
@@ -331,7 +331,7 @@ def main(argv):
         report.mkdir(parents=True)
         command = [
             "run", "--rm", "--no-deps", "--user", f"{os.getuid()}:{os.getgid()}",
-            "-e", "ACE4_API_KEY",
+            "-e", "ACE_RS_API_KEY",
             "-v", f"{ROOT / 'samples'}:/compare/samples:ro",
             "-v", f"{run.TREES}:/compare/trees:ro",
             "-v", f"{report}:/compare/report",

@@ -8,7 +8,7 @@
 //! ace3 keeps every directive in `saq/constants.py`'s `DIRECTIVE_DESCRIPTIONS` and offers a subset in its
 //! GUI, `GUI_DIRECTIVES`. An integration adds its own with `register_directive(name, description,
 //! gui=True)` when it is imported. Here the list holds only the directives an analyst may add: the
-//! open-source ones are `BUILTIN`, those of ace3's `GUI_DIRECTIVES` an ace4 module reads, and a site adds its
+//! open-source ones are `BUILTIN`, those of ace3's `GUI_DIRECTIVES` an ace-rs module reads, and a site adds its
 //! own through `ace_app::App::directives`. `directive_list` checks the whole list when the binary
 //! starts, and an analyst's request for a directive it doesn't hold is refused.
 //!
@@ -109,7 +109,7 @@ impl Directive {
     }
 }
 
-/// The directives of ace3's `GUI_DIRECTIVES` that an ace4 module reads, in name order, with ace3's
+/// The directives of ace3's `GUI_DIRECTIVES` that an ace-rs module reads, in name order, with ace3's
 /// descriptions (`saq/constants.py` at `fe6da632`). ace3 offers eleven more that nothing here reads:
 /// `analyze_activity`, `extract_email`, `extract_pcap`, `no_cache`, `scan_urlscan`, `triage`,
 /// `force_download` and `phishkit` are read by no module in ace3 either, and `sandbox`, `no_sandbox`
@@ -244,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn the_builtin_list_is_ace3s_gui_directives_ace4_reads_in_name_order() {
+    fn the_builtin_list_is_ace3s_gui_directives_ace_rs_reads_in_name_order() {
         let list = DirectiveList::builtin();
         let names: Vec<&str> = list.names().collect();
         let mut sorted = names.clone();

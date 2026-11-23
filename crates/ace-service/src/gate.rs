@@ -11,7 +11,7 @@
 //!   legacy bare-string key, which skips the check, has no equivalent here.
 //! - A deny on a key's own row counts. ace3 mints only allows, and ignores a deny it finds there.
 //! - A component holds its own rows and goes through this same check. ace3 has no check here: its
-//!   timers call `set_dispositions` directly, and `seed.py` gives the automation user `*:*`. In ace4
+//!   timers call `set_dispositions` directly, and `seed.py` gives the automation user `*:*`. In ace-rs
 //!   a component with no rows is refused, so the step that adds an internal caller adds its grants
 //!   in a migration.
 //! - `user:self` is only ever a user's, whatever a key's or a component's rows say.

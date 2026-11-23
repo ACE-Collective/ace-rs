@@ -558,7 +558,7 @@ struct DispositionState {
 impl Recorded for DispositionState {}
 
 /// What's needed to read a disposition's audit row after its alert is deleted. ace3 records these
-/// and the alert's type, tool, queue, company and owner, which ace4's roots don't have yet.
+/// and the alert's type, tool, queue, company and owner, which ace-rs's roots don't have yet.
 #[derive(Serialize)]
 struct RootSnapshot {
     title: String,
@@ -630,7 +630,7 @@ pub struct Service {
     /// then its routes say it's off.
     ai: Option<std::sync::Arc<ai::AiSurface>>,
     /// The directives an analyst may add to an observable (PLAN.md decision 31), `directives`' docs:
-    /// those of ace3's `GUI_DIRECTIVES` an ace4 module reads, unless the binary adds a site's.
+    /// those of ace3's `GUI_DIRECTIVES` an ace-rs module reads, unless the binary adds a site's.
     directives: std::sync::Arc<ace_sdk::directives::DirectiveList>,
     /// The Observable Patterns refused for a bound, remembered for a while (`filters::patterns`).
     pattern_refusals: std::sync::Arc<filters::patterns::Refusals>,

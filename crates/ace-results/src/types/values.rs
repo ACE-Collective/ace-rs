@@ -152,7 +152,7 @@ impl AnalysisType for ProtectedUrlAnalysis {
 }
 
 /// The details of a `protected_url_one_drive_analysis` result: `ProtectedURLAnalysis`'s fields for
-/// a 1drv.ms link, which ace3's `protected_url_analyzer` follows over HTTP and ace4 follows on the
+/// a 1drv.ms link, which ace3's `protected_url_analyzer` follows over HTTP and ace-rs follows on the
 /// lookup pool.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

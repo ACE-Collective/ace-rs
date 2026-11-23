@@ -2,8 +2,8 @@
 //! script's parser reads its arguments ([`argparse`]), `json.loads` and `json.dumps` as a script
 //! reads and prints JSON, and Python's `str()`, `repr()` and `str.strip()` of a loaded value. A site
 //! writes its types with these and registers each with `ace_app::App::hunt_script` under its
-//! script's path; ace4 has no site's scripts (owner, 2026-11-21). [`example`] is ace4's own, a small
-//! type no hunt of ace4's runs, which `ace-site-example` registers and the tests of the mechanism
+//! script's path; ace-rs has no site's scripts (owner, 2026-11-21). [`example`] is ace-rs's own, a small
+//! type no hunt of ace-rs's runs, which `ace-site-example` registers and the tests of the mechanism
 //! use.
 //!
 //! A type writes what its script prints: JSON as Python's `json.dumps` writes it, with the

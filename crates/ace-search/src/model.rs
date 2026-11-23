@@ -6,17 +6,17 @@
 //!
 //! **Where it comes from.** Three files of the model's repository on Hugging Face at one commit
 //! ([`MODEL_REVISION`]): `model.safetensors`, `tokenizer.json` and `config.json`. The images download
-//! them when they are built (`docker/ace4/Dockerfile`'s and `docker/dev/Dockerfile`'s `search-model`
-//! stage) and `ACE4_SEARCH_MODEL` names their directory. [`Model::load`] reads nothing else, downloads
+//! them when they are built (`docker/ace-rs/Dockerfile`'s and `docker/dev/Dockerfile`'s `search-model`
+//! stage) and `ACE_RS_SEARCH_MODEL` names their directory. [`Model::load`] reads nothing else, downloads
 //! nothing, and refuses a file whose SHA-256 isn't the one pinned in [`MODEL_FILES`], so a model that
 //! was swapped or cut short never embeds anything. ace3 downloads the model when its indexer first
-//! starts; ace4's processes never fetch it.
+//! starts; ace-rs's processes never fetch it.
 //!
 //! **What runs it.** `bert` below is the model's forward pass written out: the embeddings, six layers of
 //! attention and feed-forward, each over `matrixmultiply`'s matrix product, read from the safetensors
 //! file by Hugging Face's `safetensors`. It isn't Hugging Face's `candle`, which was the first choice:
 //! candle 0.11's matrix kernels don't build for arm64 Linux unless every crate in the workspace is
-//! compiled for the FP16 extension, which would tie every ace4 binary to CPUs that have it. The model
+//! compiled for the FP16 extension, which would tie every ace-rs binary to CPUs that have it. The model
 //! is small and fixed, and the test below holds the pass to ace3's own vectors.
 //!
 //! **What matches ace3.** The weights are the same file sentence-transformers downloads. The tokenizer
@@ -62,7 +62,7 @@ pub const DIMENSIONS: usize = 384;
 /// `max_seq_length`.
 pub const MAX_SEQUENCE_TOKENS: usize = 256;
 /// The variable that names the model's directory.
-pub const MODEL_VAR: &str = "ACE4_SEARCH_MODEL";
+pub const MODEL_VAR: &str = "ACE_RS_SEARCH_MODEL";
 
 #[derive(Debug, thiserror::Error)]
 pub enum ModelError {
@@ -167,7 +167,7 @@ impl Model {
         }))
     }
 
-    /// The model `ACE4_SEARCH_MODEL` names, or None when it's unset or empty.
+    /// The model `ACE_RS_SEARCH_MODEL` names, or None when it's unset or empty.
     pub fn from_env() -> Result<Option<Arc<Model>>, ModelError> {
         match std::env::var(MODEL_VAR) {
             Ok(dir) if !dir.is_empty() => Model::load(Path::new(&dir)).map(Some),

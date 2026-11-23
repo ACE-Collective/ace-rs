@@ -69,7 +69,7 @@ fn unsupported(op: &str, a: &Value, b: &Value) -> Error {
 fn overflow() -> Error {
     Error::new(
         ErrorKind::InvalidOperation,
-        "OverflowError: integer result past 128 bits (ace4 limit; Python's ints have none)",
+        "OverflowError: integer result past 128 bits (ace-rs limit; Python's ints have none)",
     )
 }
 
@@ -255,7 +255,7 @@ pub fn rem(_: &State, args: Rest<Value>) -> Result<Value, Error> {
         }
         _ if matches!(kind(a), Kind::Str(_)) => Err(Error::new(
             ErrorKind::InvalidOperation,
-            "printf-style string formatting isn't ported (ace4); no hunt template uses it",
+            "printf-style string formatting isn't ported (ace-rs); no hunt template uses it",
         )),
         _ => Err(unsupported("%", a, b)),
     }

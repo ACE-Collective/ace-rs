@@ -216,12 +216,12 @@ async fn sqlx_count(test_db: &TestDb, query: &'static str) -> i64 {
 /// The session token a response's `Set-Cookie` sets, or None for one that clears it or sets none.
 fn session_set(headers: &HeaderMap) -> Option<String> {
     let cookie = headers.get(SET_COOKIE)?.to_str().expect("text");
-    let value = cookie.strip_prefix("ace4_session=")?.split(';').next()?;
+    let value = cookie.strip_prefix("ace_rs_session=")?.split(';').next()?;
     (!value.is_empty()).then(|| value.to_owned())
 }
 
 fn cookie(token: &str) -> String {
-    format!("ace4_session={token}")
+    format!("ace_rs_session={token}")
 }
 
 fn location(response: &reqwest::Response) -> &str {
@@ -445,7 +445,7 @@ async fn logging_in_rotates_the_session_and_logging_out_ends_it() {
     assert_eq!(location(&response), "/login");
     assert_eq!(
         response.headers()[SET_COOKIE],
-        "ace4_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax"
+        "ace_rs_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax"
     );
     assert!(matches!(
         stack.service.authenticate_session(&second).await,
@@ -644,7 +644,7 @@ async fn a_password_change_changes_it_and_ends_every_session() {
     assert_eq!(changed.status(), StatusCode::SEE_OTHER);
     assert_eq!(location(&changed), "/login?changed=password");
     let cleared = changed.headers()[SET_COOKIE].to_str().expect("text");
-    assert!(cleared.starts_with("ace4_session=;"), "{cleared}");
+    assert!(cleared.starts_with("ace_rs_session=;"), "{cleared}");
     for token in [&first, &second] {
         assert!(matches!(
             stack.service.authenticate_session(token).await,
@@ -711,7 +711,7 @@ async fn under_tls_the_cookie_is_secure() {
         .expect("answered");
     task.abort();
     let set = response.headers()[SET_COOKIE].to_str().expect("text");
-    assert!(set.starts_with("__Host-ace4_session=ace4s_"), "{set}");
+    assert!(set.starts_with("__Host-ace_rs_session=ace-rs-s_"), "{set}");
     assert!(
         set.ends_with("; Path=/; HttpOnly; SameSite=Lax; Secure"),
         "{set}"
@@ -3438,8 +3438,8 @@ fn each_module_s_view_draws_its_fixture() {
                 contains_all(
                     &html,
                     &[
-                        "<h3>ace4_fixture_zip_attachment</h3>",
-                        "<h3>ace4_fixture_zip_any</h3>",
+                        "<h3>ace_rs_fixture_zip_attachment</h3>",
+                        "<h3>ace_rs_fixture_zip_any</h3>",
                         "<code>test.zip</code>",
                         "string <b>$local_file_header</b> value <b class=\"yara-value\">PK<span class=\"yara-ws\">\u{2403}</span><span class=\"yara-ws\">\u{2404}</span></b>",
                         // the match marked in both columns of its dump, as ace3's
@@ -3475,7 +3475,7 @@ fn each_module_s_view_draws_its_fixture() {
                 &html,
                 &[
                     "<tr><th>signature_id</th><td>9000001 rev 3</td></tr>",
-                    "<pre class=\"wrap\">alert http $HOME_NET any -&#62; $EXTERNAL_NET any (msg:&#34;ACE4 TEST fixture beacon&#34;;",
+                    "<pre class=\"wrap\">alert http $HOME_NET any -&#62; $EXTERNAL_NET any (msg:&#34;ACE_RS TEST fixture beacon&#34;;",
                 ],
             ),
             "nrd_fqdn_ace4_fresh_com" => {
@@ -3849,7 +3849,7 @@ fn each_module_s_view_draws_its_fixture() {
                     &html,
                     &[
                         "<tr><th>deobfuscated</th><td>yes</td></tr>",
-                        "Detected Unknown Obfuscator (/tmp/ace4-task/&#60;b&#62;hello_dotnet.dll)",
+                        "Detected Unknown Obfuscator (/tmp/ace-rs-task/&#60;b&#62;hello_dotnet.dll)",
                     ],
                 );
                 assert!(!html.contains("<b>hello"), "{html}");
@@ -3862,7 +3862,7 @@ fn each_module_s_view_draws_its_fixture() {
                     &[
                         "<tr><th>image_file</th><td>script_app.img</td></tr>",
                         "<tr><th>file</th><td>2026-11-10 18:28:44 .....          105         4096  Installer/Payload.app/Contents/MacOS/Payload</td></tr>",
-                        "/tmp/ace4-task/&#60;b&#62;script_app.dmg --&#62; image.img",
+                        "/tmp/ace-rs-task/&#60;b&#62;script_app.dmg --&#62; image.img",
                     ],
                 );
                 assert!(!html.contains("<b>script_app"), "{html}");
@@ -6423,13 +6423,13 @@ fn the_preferences_view_draws_the_profile_theme_columns_and_keys() {
     let made = NewKeyPage {
         layout: layout(),
         name: HOSTILE.to_owned(),
-        token: "ace4k_the-token".to_owned(),
+        token: "ace-rs-k_the-token".to_owned(),
     };
     assert!(!format!("{made:?}").contains("the-token"), "Debug hides it");
     let made = made.render().expect("renders");
     assert!(
         made.contains(
-            r#"<input id="new-key" class="token" type="text" value="ace4k_the-token" readonly"#
+            r#"<input id="new-key" class="token" type="text" value="ace-rs-k_the-token" readonly"#
         ),
         "{made}"
     );
@@ -6717,7 +6717,7 @@ async fn own_api_keys_are_made_shown_once_changed_and_revoked() {
         assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{what}");
         let page = response.text().await.expect("a page");
         assert!(page.contains(says), "{what}: {page}");
-        assert!(!page.contains("ace4k_"), "{what}: {page}");
+        assert!(!page.contains("ace-rs-k_"), "{what}: {page}");
     }
     // the refused form comes back as it was sent
     let page = make(&[
@@ -6778,7 +6778,7 @@ async fn own_api_keys_are_made_shown_once_changed_and_revoked() {
         .and_then(|rest| rest.split('"').next())
         .expect("the token")
         .to_owned();
-    assert!(token.starts_with("ace4k_"), "{page}");
+    assert!(token.starts_with("ace-rs-k_"), "{page}");
     assert_eq!(stack.audit_count().await, audit + 1);
     assert_eq!(last_action(&stack).await, "create_own_api_key");
     let as_key = stack
@@ -8712,7 +8712,7 @@ async fn groups_grants_and_keys_through_the_admin_area() {
         assert_eq!(refused.status(), StatusCode::BAD_REQUEST, "{what}");
         let text = refused.text().await.expect("a page");
         assert!(text.contains(says), "{what}: {text}");
-        assert!(!text.contains("ace4k_"), "{what}");
+        assert!(!text.contains("ace-rs-k_"), "{what}");
     }
     assert_eq!(stack.audit_count().await, audit);
     let made = post(
@@ -8730,7 +8730,7 @@ async fn groups_grants_and_keys_through_the_admin_area() {
     assert_eq!(made.headers()["cache-control"], "no-store");
     assert!(made.headers().get(LOCATION).is_none());
     let token = shown_secret(&made.text().await.expect("a page"));
-    assert!(token.starts_with("ace4k_"));
+    assert!(token.starts_with("ace-rs-k_"));
     assert_eq!(stack.audit_count().await, audit + 1);
     assert_eq!(last_action(&stack).await, "create_api_key");
     let as_key = stack
@@ -14303,10 +14303,10 @@ async fn gui_sample(stack: &Stack) -> uuid::Uuid {
 /// confirm; a post from another site is refused; and each write has its audit row.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn the_samples_pages_need_signature_read_then_alert_write_and_svs_admin() {
-    let cache = std::env::temp_dir().join(format!("ace4-gui-cache-{}", uuid::Uuid::new_v4()));
+    let cache = std::env::temp_dir().join(format!("ace-rs-gui-cache-{}", uuid::Uuid::new_v4()));
     std::fs::create_dir_all(&cache).expect("a cache directory");
     let store = ace_store::Store::new(
-        &ace_store::BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        &ace_store::BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
         ace_store::NodeCache::new(&cache, 1 << 30).expect("a cache"),
     )
     .await;
@@ -18578,7 +18578,7 @@ fn the_toc_holds_sections_and_subsections_only() {
     );
 }
 
-/// What ace4's renderer adds to ace3's: a guide's raw HTML is shown as text, and nothing it writes
+/// What ace-rs's renderer adds to ace3's: a guide's raw HTML is shown as text, and nothing it writes
 /// is an inline style or a script, which the pages' policy would refuse.
 #[test]
 fn a_guide_s_raw_html_is_text_and_a_table_has_no_inline_style() {
@@ -18700,7 +18700,7 @@ fn gui_links(refs: &GuideReferences) -> impl Iterator<Item = &str> {
 /// every guide: each guide in the registry is a file of its set and each file is in the registry, each
 /// image is one of the set's, and each link is an http(s) or mailto URL, an image, a page of the GUI
 /// (asked of the server in `the_help_pages_are_for_anyone_signed_in`), or a guide of the set with a
-/// section that is there. And what ace4's pages need of a guide: no tag with an inline style, a
+/// section that is there. And what ace-rs's pages need of a guide: no tag with an inline style, a
 /// handler or a script, and none of ace3's screenshots or its `/ace` prefix.
 #[test]
 fn every_guide_s_links_sections_and_images_resolve() {
@@ -18750,7 +18750,7 @@ fn every_guide_s_links_sections_and_images_resolve() {
                 }
                 if href.starts_with('/') {
                     if href.starts_with("/ace/") || href == "/ace" {
-                        problems.push(format!("{at}: {href}: ace4's pages have no /ace prefix"));
+                        problems.push(format!("{at}: {href}: ace-rs's pages have no /ace prefix"));
                     }
                     continue;
                 }
@@ -21689,7 +21689,7 @@ async fn the_gui_serves_the_registered_icons_and_nothing_else() {
 
 /// An icon is a PNG of at most 64 KiB with an icon's name, served under a hash of its bytes; a link
 /// shows its icon only when the binary has one by that name, and isn't drawn at all when the core
-/// wouldn't have taken it. ace4 registers none.
+/// wouldn't have taken it. ace-rs registers none.
 #[test]
 fn an_icon_is_a_named_png_and_a_link_shows_it_only_when_registered() {
     use ace_gui::icons::{DrawnLink, MAX_ICON_BYTES};
@@ -21719,7 +21719,7 @@ fn an_icon_is_a_named_png_and_a_link_shows_it_only_when_registered() {
     assert_eq!(drawn[1].icon, None);
     assert!(
         ace_gui::PivotIcons::builtin().names().is_empty(),
-        "ace4 ships none"
+        "ace-rs ships none"
     );
 }
 
@@ -22039,10 +22039,10 @@ async fn bodies_alert(
 /// opener or referrer, their text escaped, and a link that isn't one to draw for an alert is left out.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn an_alert_page_shows_a_summary_its_email_bodies_and_the_site_s_actions() {
-    let cache = std::env::temp_dir().join(format!("ace4-gui-cache-{}", uuid::Uuid::new_v4()));
+    let cache = std::env::temp_dir().join(format!("ace-rs-gui-cache-{}", uuid::Uuid::new_v4()));
     std::fs::create_dir_all(&cache).expect("a cache directory");
     let store = ace_store::Store::new(
-        &ace_store::BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        &ace_store::BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
         ace_store::NodeCache::new(&cache, 1 << 30).expect("a cache"),
     )
     .await;

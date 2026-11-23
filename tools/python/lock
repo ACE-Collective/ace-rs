@@ -8,7 +8,7 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
-# keep in step with docker/ace4/Dockerfile's python-libraries target
+# keep in step with docker/ace-rs/Dockerfile's python-libraries target
 image="python:3.14.10-slim-trixie@sha256:af8a5aa14780025dbfbcfbc81bd8a91ebd87711dd5b0f48ed71090949dd7cb1d"
 
 docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$root/python:/python" -w /python "$image" sh -c '

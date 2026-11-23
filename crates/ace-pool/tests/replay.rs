@@ -24,7 +24,13 @@ async fn replaying_the_hung_task_reproduces_the_hang() {
     enqueue(&core, root, &sha256.to_hex(), "test_spin").await;
     let mut pool = PoolProcess::start(test_pool(
         &core,
-        &["parsers", "--task-user", "ace4-task", "--concurrency", "1"],
+        &[
+            "parsers",
+            "--task-user",
+            "ace-rs-task",
+            "--concurrency",
+            "1",
+        ],
     ));
     wait_until_idle(&core, root, Duration::from_secs(30)).await;
     pool.stop();
@@ -39,8 +45,8 @@ async fn replaying_the_hung_task_reproduces_the_hang() {
     // the replay has the admin token and the API's URL, nothing else
     let mut replay = test_pool(&core, &["replay", &id.to_string()]);
     replay
-        .env_remove("ACE4_POOL_TOKEN")
-        .env("ACE4_ADMIN_TOKEN", ADMIN_TOKEN);
+        .env_remove("ACE_RS_POOL_TOKEN")
+        .env("ACE_RS_ADMIN_TOKEN", ADMIN_TOKEN);
     let mut replay = PoolProcess::start(replay);
     let pid = replay.pid();
     tokio::time::sleep(Duration::from_secs(3)).await;
@@ -100,13 +106,20 @@ async fn replaying_a_task_reads_the_body_of_its_carrying_email() {
         Duration::from_secs(60),
     )
     .await;
-    let bytes =
-        std::fs::read(ace_testkit::samples_dir().join("ace4/email/encrypted_rc4_doc.email.rfc822"))
-            .expect("the sample");
+    let bytes = std::fs::read(
+        ace_testkit::samples_dir().join("ace-rs/email/encrypted_rc4_doc.email.rfc822"),
+    )
+    .expect("the sample");
     let (root, _) = root_with_bytes(&core, "email", &bytes, "email.rfc822").await;
     let mut pool = PoolProcess::start(test_pool(
         &core,
-        &["parsers", "--task-user", "ace4-task", "--concurrency", "1"],
+        &[
+            "parsers",
+            "--task-user",
+            "ace-rs-task",
+            "--concurrency",
+            "1",
+        ],
     ));
     wait_until_idle(&core, root, Duration::from_secs(60)).await;
     pool.stop();
@@ -122,8 +135,8 @@ async fn replaying_a_task_reads_the_body_of_its_carrying_email() {
     .expect("the task");
     let mut replay = test_pool(&core, &["replay", &id.to_string()]);
     let output = replay
-        .env_remove("ACE4_POOL_TOKEN")
-        .env("ACE4_ADMIN_TOKEN", ADMIN_TOKEN)
+        .env_remove("ACE_RS_POOL_TOKEN")
+        .env("ACE_RS_ADMIN_TOKEN", ADMIN_TOKEN)
         .output()
         .expect("runs");
     let stdout = String::from_utf8_lossy(&output.stdout);

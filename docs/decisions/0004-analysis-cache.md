@@ -1,12 +1,12 @@
 # 0004: A cache of module results across alerts
 
-Status: decided on 2026-11-18 and built the same day (PLAN.md decision 26; *As built*, below). The owner decided that day that ace4 needs a version of ace3's analysis result cache, and accepted this design's four choices: the cache is checked before a task is queued, so a hit makes no task; the comparison runs with the cache off, plus the two-run check; ace3's seven opt-ins and their times to live are ace4's defaults; and the time to live is a setting in the overlay, per module. It replaces PLAN.md 6.7's "ace4 has no analysis cache".
+Status: decided on 2026-11-18 and built the same day (PLAN.md decision 26; *As built*, below). The owner decided that day that ace-rs needs a version of ace3's analysis result cache, and accepted this design's four choices: the cache is checked before a task is queued, so a hit makes no task; the comparison runs with the cache off, plus the two-run check; ace3's seven opt-ins and their times to live are ace-rs's defaults; and the time to live is a setting in the overlay, per module. It replaces PLAN.md 6.7's "ace-rs has no analysis cache".
 
 ## Why
 
 The same thing turns up in many alerts: the same image in a hundred phishing emails, the same domain in a week of hunts. ace3 runs a module once on it and reuses the result in later alerts for a time the module's config sets (`cache_ttl`). The owner's figure: hundreds of hours of compute a day saved in production, from OCR and QR code alone. For a site's lookups it also spares vendor quotas.
 
-ace4 has nothing like it. Decision 15's "one analysis per file" holds inside one root only: the next alert with the same file runs every module on it again.
+ace-rs has nothing like it. Decision 15's "one analysis per file" holds inside one root only: the next alert with the same file runs every module on it again.
 
 ## What ace3 does (`ace3/docs/ANALYSIS_CACHING.md`, at `fe6da632`)
 
@@ -17,9 +17,9 @@ ace4 has nothing like it. Decision 15's "one analysis per file" holds inside one
 - **A hit** replays the delta into the new root as if the module had run, and is recorded as a hit. Expired rows are dropped by daily partitions.
 - **Not cached on purpose:** YARA, whose output depends on the file's name and `yara_meta`, which the content key doesn't see.
 
-## The design for ace4
+## The design for ace-rs
 
-**What makes it simpler here.** An ace4 module doesn't edit the tree. It returns one result envelope, and the core applies it: its details, summary, tags, detections and the observables and files it adds, each addition recorded against the result (`analysis.result_additions`). The envelope *is* the delta. Files are already stored once by content in the bucket. So ace4 caches the envelope and the sha256s of its files, and a hit applies that envelope through the same path as a task's end.
+**What makes it simpler here.** An ace-rs module doesn't edit the tree. It returns one result envelope, and the core applies it: its details, summary, tags, detections and the observables and files it adds, each addition recorded against the result (`analysis.result_additions`). The envelope *is* the delta. Files are already stored once by content in the bucket. So ace-rs caches the envelope and the sha256s of its files, and a hit applies that envelope through the same path as a task's end.
 
 **A module opts in** with `Module::CACHE`: whether it may be cached, and what its extended version is (a function of its settings and its tools' versions, as decision 23's declarations are built from its settings). The time to live is a setting in the overlay, per module, so a site sets it as ace3's config does, and the global switch is a setting too.
 
@@ -41,7 +41,7 @@ ace4 has nothing like it. Decision 15's "one analysis per file" holds inside one
 
 ## Expected effect
 
-On the laptop's comparison it saves nothing, by design. In production it saves what ace3's saves, for the same modules: the owner's figure for OCR and QR code is hundreds of hours a day. With ace4's other costs gone (decisions 21 to 23) a cached module costs one indexed lookup and one result write where it cost a contained process and its tool. The step measures a hit's cost and a run's on the 14 large samples, run twice with the cache on.
+On the laptop's comparison it saves nothing, by design. In production it saves what ace3's saves, for the same modules: the owner's figure for OCR and QR code is hundreds of hours a day. With ace-rs's other costs gone (decisions 21 to 23) a cached module costs one indexed lookup and one result write where it cost a contained process and its tool. The step measures a hit's cost and a run's on the 14 large samples, run twice with the cache on.
 
 ## In what order
 
@@ -54,7 +54,7 @@ Not now: ace3's designed-but-unbuilt *single flight* (two alerts with the same n
 
 1. Whether the cache is checked before a task is queued (no task on a hit), as proposed, or at the lease.
 2. Whether the comparison runs with the cache off plus the two-run check, as proposed.
-3. Whether ace3's seven opt-ins and their times to live are ace4's defaults.
+3. Whether ace3's seven opt-ins and their times to live are ace-rs's defaults.
 4. Whether the time to live lives in the overlay per module, as proposed.
 
 ## As built
@@ -77,7 +77,7 @@ Not now: ace3's designed-but-unbuilt *single flight* (two alerts with the same n
 
 **qrcode's declaration.** The module ran on every file and skipped those that aren't images or PDFs, so a lookup was made for each, as ace3's did until its 2026-06-25 consult gate. Its declaration now takes only an image Pillow opens or a PDF, by the file's type: the type step records Pillow's identification as `is_image` (migration 0073, `ace_mod_files::pillow`), the module's own test, moved there from `ace-mod-sandbox`.
 
-**Where ace4 departs from ace3's rules, and why.** ace3 finds a module's delta by diffing the tree around its run, and so refuses removals and checks relationships' scope at write time; an ace4 result is the delta, and the refusal of `others`, `redirected` and `root` is the scope rule. ace3 spills large details to its blob store and keeps file bytes there; ace4 keeps the envelope as `jsonb`, which Postgres compresses, and a file is already in the bucket by its sha256. ace3 replays a file at the path it had in the first alert; ace4 names it after the new root's path. ace3's key for `nrd_analyzer` is the database file's version; ace4's is the list's answer for the name, which changes only when the name's listing does. ace3 probes each node's tools at each key; ace4's pools probe once when they start, and a result is kept under the versions of the pool that made it. ace3's `single flight` stays unbuilt, but the lookup at the lease catches a result kept while a task waited.
+**Where ace-rs departs from ace3's rules, and why.** ace3 finds a module's delta by diffing the tree around its run, and so refuses removals and checks relationships' scope at write time; an ace-rs result is the delta, and the refusal of `others`, `redirected` and `root` is the scope rule. ace3 spills large details to its blob store and keeps file bytes there; ace-rs keeps the envelope as `jsonb`, which Postgres compresses, and a file is already in the bucket by its sha256. ace3 replays a file at the path it had in the first alert; ace-rs names it after the new root's path. ace3's key for `nrd_analyzer` is the database file's version; ace-rs's is the list's answer for the name, which changes only when the name's listing does. ace3 probes each node's tools at each key; ace-rs's pools probe once when they start, and a result is kept under the versions of the pool that made it. ace3's `single flight` stays unbuilt, but the lookup at the lease catches a result kept while a task waited.
 
 **The comparison and the two-run check.** `tests/e2e/site/overlay.yaml` turns the cache off, so the comparison checks the modules. `tests/e2e/run`'s two-run check, after the comparison, runs nine samples once with the cache off, as a control, then twice with it on (`CACHE_SAMPLES`): every result of a cacheable module the first cached run kept must come from the cache the second time with no task of it run in a pool, what it couldn't keep (a result with an error, a task that ended with none) runs again, and each sample's normal form must be the same wherever the control and the first cached run agree, with files named by their paths. Two runs of a sample differ without any cache: ExifTool reports the file's times on the disk, and Ghostscript's rewrite of a PDF has new bytes, so a new sha256, every run, which the comparison with ace3 lists in differences.md. `ocr` runs on no sample.
 

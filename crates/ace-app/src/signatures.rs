@@ -5,7 +5,7 @@
 //!
 //! - **YARA.** The rule directory (`yara/` by default) compiles as `ace-yara` compiles it for the
 //!   ruleset builds (1.1, 2.25): each file alone, then the files together, then the ruleset
-//!   serialized. ace3's loader, and ace4's builder after it, log a file that doesn't compile and
+//!   serialized. ace3's loader, and ace-rs's builder after it, log a file that doesn't compile and
 //!   leave it out; here that file is a failure, which is the point of the check. So is a file that
 //!   compiles alone but not with the others, such as a second rule of one name in a namespace, which
 //!   makes the whole load fail in both. yara-x's warnings, such as `deprecated_field` for

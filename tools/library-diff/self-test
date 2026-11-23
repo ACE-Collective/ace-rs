@@ -14,7 +14,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ADAPTERS = HERE / "self-test-adapters"
-OFFICE = "ace4/office/"
+OFFICE = "ace-rs/office/"
 PLAIN = [OFFICE + name for name in ("surrogate_name.doc", "encrypted_xor.doc")]
 CLASSES = [OFFICE + name for name in ("garbage.doc", "text_named.doc", "html_named.doc")]
 RANDOM = [OFFICE + "source.doc"]

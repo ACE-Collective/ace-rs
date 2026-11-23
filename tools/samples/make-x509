@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes samples/ace4/x509: a certificate with a wildcard CN, two DNS names and an IP address as
+"""Writes samples/ace-rs/x509: a certificate with a wildcard CN, two DNS names and an IP address as
 PEM and DER, and one with no common name after a line of text, signed by a made-up CA. Needs
 cryptography: run it in ace3's dev container with /venv/bin/python3 -I make-x509 <dir>. The
 keys are new each run, so the bytes are too."""

@@ -27,7 +27,7 @@ use ace_results::{ObservableKind, ObservableRef, Relationship, RelationshipKind}
 use ace_sdk::InputFile;
 
 /// ace3's root takes at most 500 file observables and 500 URLs (`maximum_observable_count`), which
-/// ace4's core doesn't, so a module stops there: at 499 files, since the root holds the file the
+/// ace-rs's core doesn't, so a module stops there: at 499 files, since the root holds the file the
 /// module reads, as in ace3's dumps, where a module writes at most 499.
 pub const MAX_FILES: usize = 499;
 pub const MAX_URLS: usize = 500;

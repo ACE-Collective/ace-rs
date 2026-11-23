@@ -662,7 +662,7 @@ async fn path_stack() -> PathStack {
     let test_db = TestDb::new().await;
     let cache = tempfile::tempdir().expect("a cache directory");
     let store = Store::new(
-        &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        &BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
     )
     .await;

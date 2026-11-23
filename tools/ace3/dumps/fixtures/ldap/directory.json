@@ -1,7 +1,7 @@
 {
-  "about": "A made-up Active Directory for ace4's user_analyzer fixtures: tools/ace3/dumps/fake_ldap.py serves it to ace3 and ace_testkit::ldap to ace4. Its schema gives each attribute the syntax AD gives it, and a few test attributes of their own, so ldap3's schema-driven formatting shows on each syntax it has.",
-  "bind_dn": "CN=ace4,OU=Service,DC=company,DC=example",
-  "bind_password": "ace4-fake-password",
+  "about": "A made-up Active Directory for ace-rs's user_analyzer fixtures: tools/ace3/dumps/fake_ldap.py serves it to ace3 and ace_testkit::ldap to ace-rs. Its schema gives each attribute the syntax AD gives it, and a few test attributes of their own, so ldap3's schema-driven formatting shows on each syntax it has.",
+  "bind_dn": "CN=ace-rs,OU=Service,DC=company,DC=example",
+  "bind_password": "ace-rs-fake-password",
   "schema_dn": "CN=Aggregate,CN=Schema,CN=Configuration,DC=company,DC=example",
   "root_dse": {
     "namingContexts": [
@@ -20,7 +20,7 @@
       "1.2.840.113556.1.4.319"
     ],
     "vendorName": [
-      "ace4 fake_ldap"
+      "ace-rs fake_ldap"
     ]
   },
   "schema": {
@@ -52,13 +52,13 @@
       "( 1.2.840.113556.1.4.159 NAME 'accountExpires' SYNTAX '1.2.840.113556.1.4.906' SINGLE-VALUE )",
       "( 1.2.840.113556.1.4.74 NAME 'maxPwdAge' SYNTAX '1.2.840.113556.1.4.906' SINGLE-VALUE )",
       "( 1.2.840.113556.1.4.8 NAME 'userAccountControl' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' SINGLE-VALUE )",
-      "( 1.2.840.113556.1.4.7000.102.1 NAME 'ace4TestCounts' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' )",
+      "( 1.2.840.113556.1.4.7000.102.1 NAME 'aceRsTestCounts' SYNTAX '1.3.6.1.4.1.1466.115.121.1.27' )",
       "( 2.16.840.1.113730.3.1.35 NAME 'thumbnailPhoto' SYNTAX '1.3.6.1.4.1.1466.115.121.1.40' SINGLE-VALUE )",
-      "( 1.2.840.113556.1.4.7000.102.2 NAME 'ace4TestFlag' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )",
-      "( 1.2.840.113556.1.4.7000.102.3 NAME 'ace4TestFlags' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' )",
+      "( 1.2.840.113556.1.4.7000.102.2 NAME 'aceRsTestFlag' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' SINGLE-VALUE )",
+      "( 1.2.840.113556.1.4.7000.102.3 NAME 'aceRsTestFlags' SYNTAX '1.3.6.1.4.1.1466.115.121.1.7' )",
       "( 2.5.4.20 NAME 'telephoneNumber' SYNTAX '1.3.6.1.4.1.1466.115.121.1.50' SINGLE-VALUE )",
       "( 2.5.4.9 NAME 'streetAddress' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' SINGLE-VALUE )",
-      "( 1.2.840.113556.1.4.7000.102.4 NAME 'ace4TestTimes' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' )",
+      "( 1.2.840.113556.1.4.7000.102.4 NAME 'aceRsTestTimes' SYNTAX '1.3.6.1.4.1.1466.115.121.1.24' )",
       "( 1.3.6.1.1.16.4 NAME 'entryUUID' SYNTAX '1.3.6.1.1.16.1' SINGLE-VALUE )"
     ]
   },
@@ -314,23 +314,23 @@
         "whenCreated": [
           "20260101120000-0500"
         ],
-        "ace4TestTimes": [
+        "aceRsTestTimes": [
           "2026010112Z",
           "202601011230,5+0130",
           "notatime",
           "20261301000000Z"
         ],
-        "ace4TestCounts": [
+        "aceRsTestCounts": [
           "1",
           " 7 ",
           "1_000",
           "-3",
           "abc"
         ],
-        "ace4TestFlag": [
+        "aceRsTestFlag": [
           "TRUE"
         ],
-        "ace4TestFlags": [
+        "aceRsTestFlags": [
           "false",
           "yes"
         ],

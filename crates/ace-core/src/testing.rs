@@ -13,7 +13,7 @@
 //! templates with other hashes and test databases a killed run left behind. Each test then
 //! runs `CREATE DATABASE ... TEMPLATE`, which copies the template's files and runs no SQL.
 //!
-//! The server is the one `ACE4_DATABASE_URL` names. The URL's user needs `CREATEDB`.
+//! The server is the one `ACE_RS_DATABASE_URL` names. The URL's user needs `CREATEDB`.
 
 pub mod rule_repo;
 
@@ -30,9 +30,9 @@ use crate::db::{Db, DbConfig, DbError, MIGRATOR};
 /// holds none yet.
 pub const SEED: &str = include_str!("testing/seed.sql");
 
-const TEMPLATE_PREFIX: &str = "ace4_template_";
-const BUILD_PREFIX: &str = "ace4_build_";
-const TEST_PREFIX: &str = "ace4_test_";
+const TEMPLATE_PREFIX: &str = "ace_rs_template_";
+const BUILD_PREFIX: &str = "ace_rs_build_";
+const TEST_PREFIX: &str = "ace_rs_test_";
 /// A test database older than this was left by a run that was killed before it could drop it.
 const STALE_AFTER: Duration = Duration::from_secs(3600);
 /// The advisory lock that serializes template builds across test processes.
@@ -184,10 +184,11 @@ async fn build_locked(
     admin: &mut PgConnection,
     template: &str,
 ) -> Result<(), DbError> {
-    let databases: Vec<String> =
-        sqlx::query_scalar("SELECT datname::text FROM pg_database WHERE datname LIKE 'ace4\\_%'")
-            .fetch_all(&mut *admin)
-            .await?;
+    let databases: Vec<String> = sqlx::query_scalar(
+        "SELECT datname::text FROM pg_database WHERE datname LIKE 'ace\\_rs\\_%'",
+    )
+    .fetch_all(&mut *admin)
+    .await?;
     let stale_before = unix_seconds().saturating_sub(STALE_AFTER.as_secs());
     for name in &databases {
         let stale = if name.starts_with(TEMPLATE_PREFIX) {

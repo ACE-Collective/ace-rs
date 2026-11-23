@@ -46,13 +46,13 @@ tools/memory/measure OUT_DIR --runs 3 --idle 30 --signatures /path/to/signatures
 python3 tools/memory/summarize.py OUT_DIR --series NAME --tsv FILE --tasks-tsv FILE
 ```
 
-`measure` brings up `tests/e2e/run`'s stack as project `ace4-e2e` from empty volumes, with that test's overlay, images and recorded responder, and takes it down after each run. Once the parser pool has loaded its ruleset it starts `tools/memory/sample.py`, then waits through three phases: `idle-before` for 30 seconds, `compare` while `ace compare` runs, and `idle-after` for 30 seconds. The `compare` phase uses `compare_with_ace3` from `tests/e2e/run` itself, without `--threshold`.
+`measure` brings up `tests/e2e/run`'s stack as project `ace-rs-e2e` from empty volumes, with that test's overlay, images and recorded responder, and takes it down after each run. Once the parser pool has loaded its ruleset it starts `tools/memory/sample.py`, then waits through three phases: `idle-before` for 30 seconds, `compare` while `ace compare` runs, and `idle-after` for 30 seconds. The `compare` phase uses `compare_with_ace3` from `tests/e2e/run` itself, without `--threshold`.
 
-The sampler runs in a helper container on `ace4-dev:latest`, privileged, with the VM's PID namespace, cgroup tree and network namespace, because reading another user's `smaps_rollup` needs it and taskstats only reaches sockets in the VM's network namespace. It reads only the cgroups of `ace4-e2e`'s containers. It writes nothing to them except a reset of its own `memory.peak` file descriptor, which doesn't change the container's count. Taskstats is VM-wide, and the sampler keeps only records with the task user's uid and the pool's process name.
+The sampler runs in a helper container on `ace-rs-dev:latest`, privileged, with the VM's PID namespace, cgroup tree and network namespace, because reading another user's `smaps_rollup` needs it and taskstats only reaches sockets in the VM's network namespace. It reads only the cgroups of `ace-rs-e2e`'s containers. It writes nothing to them except a reset of its own `memory.peak` file descriptor, which doesn't change the container's count. Taskstats is VM-wide, and the sampler keeps only records with the task user's uid and the pool's process name.
 
 Raw data, one row per figure per run: [memory-3.5.tsv](memory-3.5.tsv). One row per task process: [memory-3.5-tasks.tsv](memory-3.5-tasks.tsv).
 
-Measured on 2026-11-06 at commit df3474e, on Rancher Desktop's VM (Linux 6.18.60, aarch64, 10 CPUs, 24 GB), with release images from `docker/ace4/Dockerfile`.
+Measured on 2026-11-06 at commit df3474e, on Rancher Desktop's VM (Linux 6.18.60, aarch64, 10 CPUs, 24 GB), with release images from `docker/ace-rs/Dockerfile`.
 
 ### What "private" means
 
@@ -114,12 +114,12 @@ SeaweedFS is the largest process in the stack and it isn't a pool. It holds 368.
 
 ## Against ace3's figures
 
-ace3's figures come from production: engine workers after 18 hours, a busy email scanner at load 34.7, and idle API workers. ace3 wasn't measured here. ace3 has 90 `analysis_module_*` sections (PLAN.md 7.1) and ace4 has 5 modules.
+ace3's figures come from production: engine workers after 18 hours, a busy email scanner at load 34.7, and idle API workers. ace3 wasn't measured here. ace3 has 90 `analysis_module_*` sections (PLAN.md 7.1) and ace-rs has 5 modules.
 
-| ace3, private dirty per process | Nearest ace4 figure, private dirty | Why they differ in kind |
+| ace3, private dirty per process | Nearest ace-rs figure, private dirty | Why they differ in kind |
 |---|---|---|
-| About 230 MB, a fresh worker | Supervisor 3.0, or 17.2 with the signatures ruleset. Lookups 2.5 | The closest pair: both are idle processes that loaded their modules. But ace3's worker loads its whole module set, and ace4's links 5 |
-| 365 to 491 MB, correlation workers after 18 hours | Lookups 5.1 at peak, after 24 tasks in 31 seconds | ace4 ran seconds, on recordings. How it grows over hours isn't measured |
+| About 230 MB, a fresh worker | Supervisor 3.0, or 17.2 with the signatures ruleset. Lookups 2.5 | The closest pair: both are idle processes that loaded their modules. But ace3's worker loads its whole module set, and ace-rs's links 5 |
+| 365 to 491 MB, correlation workers after 18 hours | Lookups 5.1 at peak, after 24 tasks in 31 seconds | ace-rs ran seconds, on recordings. How it grows over hours isn't measured |
 | 597 to 1,028 MB, busy email scanner | A task process 17.7 with the signatures ruleset; the supervisor 27.0; the pool at once 97.9 | ace3's worker keeps what each email leaves behind, and a task process exits. But these samples are small test fixtures, not production email |
 | 2.57 GB, `http-api-v2`'s 12 workers | `ace` core 6.1 idle, 32.0 at peak | The core serves only the lease and submit endpoints here. The API and GUI are phase 5 |
 
@@ -130,13 +130,13 @@ What this supports:
 
 What it doesn't support:
 
-- That ace4 will use less than ace3 under production load. Phase 4 ended with no Python workers (PLAN.md 4.13): its libraries' ports run in the parser binary and aren't in these numbers. Phase 7 adds about 85 modules to these binaries. Production email is larger than these samples, these runs didn't test how scan memory grows with input size, and the production ruleset wasn't measured.
-- A total for the system. ace3 runs dozens of services, and ace4 has only a few of them so far.
-- Anything about ace4 under concurrency higher than 4, or lookups beyond 24 tasks.
+- That ace-rs will use less than ace3 under production load. Phase 4 ended with no Python workers (PLAN.md 4.13): its libraries' ports run in the parser binary and aren't in these numbers. Phase 7 adds about 85 modules to these binaries. Production email is larger than these samples, these runs didn't test how scan memory grows with input size, and the production ruleset wasn't measured.
+- A total for the system. ace3 runs dozens of services, and ace-rs has only a few of them so far.
+- Anything about ace-rs under concurrency higher than 4, or lookups beyond 24 tasks.
 
 ## What else these numbers include
 
-- **ace3's stack and others on the same VM.** ace3's 27 containers and `budge`'s 3 were running. Private memory of a process doesn't depend on them, except that a page counted as shared must be mapped twice, and ace3 doesn't map ace4's binaries. No container reached its limit; pressure on the VM as a whole wasn't recorded.
+- **ace3's stack and others on the same VM.** ace3's 27 containers and `budge`'s 3 were running. Private memory of a process doesn't depend on them, except that a page counted as shared must be mapped twice, and ace3 doesn't map ace-rs's binaries. No container reached its limit; pressure on the VM as a whole wasn't recorded.
 - **The sampler.** Its loop spins on one of the 10 CPUs with no sleep, and each read takes the process's memory-map lock briefly, which could slow the tasks a little. The comparison's length with no sampler wasn't timed in this step, so that cost isn't known. The helper isn't in the figures.
 - **`idle-before` isn't a cold start.** The sampler starts after the ruleset has loaded, so idle figures include it. The core's build of the ruleset falls before sampling too: its private figures don't show that peak, and its `container-life` `memory.peak` does.
 - **`ace compare` itself isn't measured.** It runs in a one-off container and it's the test's client, not part of the system. Nor is the responder, which restarts during the comparison.

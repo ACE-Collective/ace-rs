@@ -73,7 +73,7 @@ pub struct TaskDir {
 
 impl TaskDir {
     pub fn new() -> std::io::Result<TaskDir> {
-        let dir = tempfile::Builder::new().prefix("ace4-task-").tempdir()?;
+        let dir = tempfile::Builder::new().prefix("ace-rs-task-").tempdir()?;
         std::fs::create_dir(dir.path().join("outputs"))?;
         Ok(TaskDir { dir })
     }

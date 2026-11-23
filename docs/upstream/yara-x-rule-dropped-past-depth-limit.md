@@ -1,6 +1,6 @@
 # Draft bug report for yara-x: a rule past the depth limit is dropped and `add_source` returns `Ok`
 
-**Status: a draft. Not submitted anywhere, and nobody has been contacted.** The owner decides whether and where to send it. It is one of four reports that were first drafted as one: `yara-x-lexer-stack-overflow.md`, `yara-x-nesting-stack-overflow.md`, this one and `yara-x-nested-call-parse-cost.md`. `docs/measurements/yara-guard.md` has every measurement, and `crates/ace-yara/src/guard.rs` is how ace4 protects itself meanwhile.
+**Status: a draft. Not submitted anywhere, and nobody has been contacted.** The owner decides whether and where to send it. It is one of four reports that were first drafted as one: `yara-x-lexer-stack-overflow.md`, `yara-x-nesting-stack-overflow.md`, this one and `yara-x-nested-call-parse-cost.md`. `docs/measurements/yara-guard.md` has every measurement, and `crates/ace-yara/src/guard.rs` is how ace-rs protects itself meanwhile.
 
 ---
 

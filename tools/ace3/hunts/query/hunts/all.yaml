@@ -4,7 +4,7 @@ rule:
   uuid: 00000000-0000-0000-0000-00000000a004
   name: everything at once
   description: every row in one root, in analysis mode, with a dedup key
-  query: index=proxy ace4case=all
+  query: index=proxy ace_rs_case=all
   group_by: ALL
   analysis_mode: analysis
   queue: external

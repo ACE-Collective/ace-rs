@@ -1,6 +1,6 @@
 # The sandbox modules on crafted files
 
-PLAN.md 7.5 batch 10: `pdftotext`, `exif`, `qrcode`, `ocr` and `pdf_analyzer`'s Ghostscript rewrite on files made to cost them most, contained, as a pool runs them. Measured on 2026-11-10 in ace4's dev container with `ACE4_CRAFTED=<dir> cargo test -p ace-pool --test hung_tasks crafted -- --ignored --nocapture`, which runs `test-pool parsers --task-user ace4-task --concurrency 1` and gives it one task per module and file, the image with the `ocr` directive; one run, debug builds, the time from the task's queuing to its root's idle.
+PLAN.md 7.5 batch 10: `pdftotext`, `exif`, `qrcode`, `ocr` and `pdf_analyzer`'s Ghostscript rewrite on files made to cost them most, contained, as a pool runs them. Measured on 2026-11-10 in ace-rs's dev container with `ACE_RS_CRAFTED=<dir> cargo test -p ace-pool --test hung_tasks crafted -- --ignored --nocapture`, which runs `test-pool parsers --task-user ace-rs-task --concurrency 1` and gives it one task per module and file, the image with the `ocr` directive; one run, debug builds, the time from the task's queuing to its root's idle.
 
 The files, made with Pillow in ace3's container: `huge.png`, a white 20,000 by 20,000 greyscale PNG of 438 KB; `pages_2000.pdf`, 2,000 empty pages; `page_200in.pdf`, one page 200 inches square.
 

@@ -221,7 +221,7 @@ pub fn build_commit_owning(
     owned: &[Owned],
 ) -> Result<Built, BuildError> {
     let export = tempfile::Builder::new()
-        .prefix("ace4-ruleset-")
+        .prefix("ace-rs-ruleset-")
         .tempdir()
         .map_err(BuildError::Io)?;
     let mut args = ["ls-tree", "-r", "-z", "--full-tree", commit]

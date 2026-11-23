@@ -11,7 +11,7 @@
 //! ace3 looks for the tag anywhere below the document (`recurse_tree`), but it looks as soon as the
 //! document's own modules have run, before ace3's engine analyzes what they found. So it sees the tags
 //! of the document, of its analyses and of what they added, and not those of a decrypted copy's own
-//! analysis, which comes later: an encrypted document isn't flagged, its decrypted copy is. ace4's
+//! analysis, which comes later: an encrypted document isn't flagged, its decrypted copy is. ace-rs's
 //! tasks run in no such order, so the module looks that far and no further, which gives ace3's answer
 //! every time.
 

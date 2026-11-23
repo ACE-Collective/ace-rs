@@ -10,7 +10,7 @@
 //! that runs this module, so it sees the alert's own message. Here this module runs last, and when
 //! the read says the root's email is still to be recorded, it delays until it is.
 //!
-//! ace3 also adds its findings to the analysis as a markdown summary detail; ace4's results have no
+//! ace3 also adds its findings to the analysis as a markdown summary detail; ace-rs's results have no
 //! summary details, so the analysis view draws the same findings from the details. ace3 reads the
 //! pairs never to report from an analyst-edited file it watches; here they're a setting. ace3 goes
 //! into a cooldown when brocess can't be queried; a core that can't answer fails the task as
@@ -646,7 +646,7 @@ pub fn summary(analysis: &EmailThreadAnalysis) -> Option<String> {
     Some(result)
 }
 
-/// `_build_findings`: the markdown ace3 adds as a summary detail, which ace4's analysis view draws
+/// `_build_findings`: the markdown ace3 adds as a summary detail, which ace-rs's analysis view draws
 /// from the details (`EmailThreadAnalysis::findings`).
 pub fn findings(analysis: &EmailThreadAnalysis) -> Option<String> {
     analysis.findings()

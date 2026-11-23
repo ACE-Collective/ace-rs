@@ -31,7 +31,7 @@ async fn stack() -> Stack {
     let test_db = TestDb::new().await;
     let cache = tempfile::tempdir().expect("a cache directory");
     let store = Store::new(
-        &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        &BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
     )
     .await;
@@ -341,7 +341,7 @@ async fn the_health_endpoint_answers_without_a_token() {
 }
 
 /// PLAN.md decision 32 part (b): a root's pivot links, such as a hunt's, come with its origin and are
-/// stored on it; a submission whose origin holds a link ace4 can't show (not `https://`, an icon that
+/// stored on it; a submission whose origin holds a link ace-rs can't show (not `https://`, an icon that
 /// isn't a name, past the bound) is refused and writes nothing. A result's links land with it.
 #[tokio::test]
 async fn a_root_and_a_result_keep_their_pivot_links() {

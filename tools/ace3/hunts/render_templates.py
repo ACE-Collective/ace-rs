@@ -30,7 +30,7 @@ calls to make, and every template is rendered by every call against every event 
 takes the case's templates together). `signatures` loads every hunt with ace3's loader, as
 load_hunts.py does, and renders each of its templates with the call ace3's hunter makes for it
 (saq/collectors/hunter/query_hunter.py and saq/query/extraction.py) against a fixed set of events
-built from the fields the hunt reads (see `variants`). Each entry carries its inputs, so ace4
+built from the fields the hunt reads (see `variants`). Each entry carries its inputs, so ace-rs
 renders the same, and the output holds the hunts' own text: it's git-ignored.
 """
 
@@ -392,7 +392,7 @@ def variants(fields, consts):
 
 def hunt_templates(config):
     """Each template of a hunt with the call ace3's hunter renders it with, in the order of
-    ace4's HuntConfig::templates()."""
+    ace-rs's HuntConfig::templates()."""
     out = []
 
     def add(at, call, templates, sd=None):

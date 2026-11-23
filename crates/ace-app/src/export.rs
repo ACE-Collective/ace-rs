@@ -4,7 +4,7 @@
 //!
 //! **What an export is.** A site adds one with `App::detection_export`: an [`ExportSpec`] (its name, the
 //! secrets it reads and the connections it takes) and a builder that makes the [`DetectionExport`] from
-//! its [`ExportSetup`]. ace4 ships none (its YARA export is built into the ruleset, PLAN.md 7.16);
+//! its [`ExportSetup`]. ace-rs ships none (its YARA export is built into the ruleset, PLAN.md 7.16);
 //! `ace-site-example` has one that writes a file, as a test of this. As in ace3, an export runs in two
 //! stages, so the common pass, nothing changed, is cheap: [`DetectionExport::export_list`] filters the live
 //! detections to what it would publish, with no network, and [`DetectionExport::publish`] does the work,
@@ -15,7 +15,7 @@
 //! the credential of the system it writes to, which `ace serve` doesn't hold (PLAN.md 2.24), so
 //! `App::scheduled_task` can't host it. It resolves the secrets its spec names, and its connections'
 //! secrets, from the overlay's `secrets:`, and no others, and reads only its own `exports.<name>` section.
-//! It reads the database as the hunter does (`ACE4_DATABASE_URL`, the overlay at `ACE4_OVERLAY`), and
+//! It reads the database as the hunter does (`ACE_RS_DATABASE_URL`, the overlay at `ACE_RS_OVERLAY`), and
 //! acts as the component `export:<name>`, which holds what the class `export` is granted:
 //! `detection:read` and its own record's `export:record`, nothing else (migration 0086). It reaches no
 //! bucket.
@@ -23,7 +23,7 @@
 //! **Off unless turned on.** An export writes to a system outside ACE, which ace3 may write to as well
 //! (the owner, 2026-11-16), so `ace export <name>` refuses to start unless its section says
 //! `enabled: true`, and `--once --force` doesn't get around that: ace3's `export-observables --names`
-//! runs a disabled one, ace4 doesn't.
+//! runs a disabled one, ace-rs doesn't.
 //!
 //! **Its record.** ace3's state file is `export.targets`' row here (`ace_service`'s `exports`): the
 //! fingerprint, and a JSON document of the export's own, such as which of its files landed and when, which

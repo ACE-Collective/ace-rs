@@ -1,0 +1,76 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "exifdata": {}
+      },
+      "detections": [],
+      "error": "File format error",
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [],
+      "summary": "Exiftool Analysis: ⚠ File format error",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/octet-stream",
+        "type": "data"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: data (application/octet-stream) (ms office document)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/surrogate_name.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "surrogate_name.doc",
+      "size": 14854,
+      "type": "file",
+      "value": "ce1de06fb0126976a9e5504e5768812190ca3ece921467aaa2ef780b69d6cbf7"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "surrogate_name.doc",
+    "relationships": [],
+    "size": 14854,
+    "tags": [
+      "microsoft_office"
+    ],
+    "type": "file",
+    "value": "ce1de06fb0126976a9e5504e5768812190ca3ece921467aaa2ef780b69d6cbf7",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PDFLinkTextAnalysis",
+      "details": {
+        "links": [
+          {
+            "line": null,
+            "page": 1,
+            "text": null,
+            "url": "https://example.com/literal"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": null,
+            "url": "https://example.com/hex"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": null,
+            "url": "https://example.com/ü"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": null,
+            "url": "https://example.com/•bullet"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": null,
+            "url": "/https:"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": null,
+            "url": "12"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": null,
+            "url": "https://example.com/indirect"
+          }
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pdf:PDFLinkTextAnalysis",
+      "observables": [],
+      "summary": "PDF Link Text Analysis: 7 links, 0 with text",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/pdf/broken_startxref.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "broken_startxref.pdf",
+      "size": 1176,
+      "type": "file",
+      "value": "04078f3d66cfabdc6d48fd8ec0c2d63141df254a2a3acd63d9827da81aca1d6b"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "broken_startxref.pdf",
+    "relationships": [],
+    "size": 1176,
+    "tags": [],
+    "type": "file",
+    "value": "04078f3d66cfabdc6d48fd8ec0c2d63141df254a2a3acd63d9827da81aca1d6b",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

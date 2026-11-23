@@ -9,7 +9,7 @@
 //! include its `mitre_attack` meta.
 //!
 //! What differs from ace3's: ace3 reads the built-ins and the YARA rules from its signature inventory
-//! (`saq/signatures/`), which ace4 doesn't have, so both functions take what's known of each family from
+//! (`saq/signatures/`), which ace-rs doesn't have, so both functions take what's known of each family from
 //! their caller. A run's result (batch 5) gives [`describe_signatures`] the built-ins, which are ace3's
 //! table ([`BUILTINS`]), and the YARA rules of the ruleset the pools scan with
 //! (`yara.rulesets.signatures`, which the ruleset builder records); batch 8's coverage gives

@@ -21,7 +21,7 @@ fn main() {
     for (n, h) in &hashes {
         for (bn, bh) in &bases {
             let score = FuzzyHash::compare(h, bh).unwrap_or(0);
-            if score > 0 { println!("M /tmp/ace4-ssdeep/files/{n} matches ../hashes_base:/tmp/ace4-ssdeep/files/{bn} ({score})"); }
+            if score > 0 { println!("M /tmp/ace-rs-ssdeep/files/{n} matches ../hashes_base:/tmp/ace-rs-ssdeep/files/{bn} ({score})"); }
         }
     }
 }

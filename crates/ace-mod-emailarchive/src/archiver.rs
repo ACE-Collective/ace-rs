@@ -9,7 +9,7 @@
 //! runs only in the `email` mode.
 //!
 //! ace3 copies an email it can't archive, for a missing Message-ID, to `review/rfc822/` on its node.
-//! ace4 keeps no file outside an alert, so it logs that and stores nothing; the email is still the
+//! ace-rs keeps no file outside an alert, so it logs that and stores nothing; the email is still the
 //! root's file.
 
 use ace_results::types::email::EmailAnalysis;
@@ -33,7 +33,7 @@ pub const ARCHIVE: &str = "archive";
 #[serde(deny_unknown_fields, default)]
 pub struct EmailArchiverSettings {
     /// ace3 declares this and reads it nowhere: the archive's retention is its partitions', the
-    /// core's `ACE4_EMAIL_ARCHIVE_RETENTION_DAYS`.
+    /// core's `ACE_RS_EMAIL_ARCHIVE_RETENTION_DAYS`.
     pub expiration_days: u32,
 }
 

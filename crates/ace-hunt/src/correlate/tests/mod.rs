@@ -7,7 +7,7 @@
 //! `datetime`, and registration for importing.
 //!
 //! A case that runs a `type: executable` command ran a Python one-liner (`python3 -c ...`) to see
-//! what the engine hands a script and does with what it gives back. ace4 runs no script (PLAN.md
+//! what the engine hands a script and does with what it gives back. ace-rs runs no script (PLAN.md
 //! decision 16), so such a case runs [`Echo`], a script command type registered for a test path
 //! that does what the one-liner did: print its arguments, its stdin or a variable of its `env:`,
 //! exit with a code, or outlast its timeout. A case whose executable only had to fail (`/bin/false`)

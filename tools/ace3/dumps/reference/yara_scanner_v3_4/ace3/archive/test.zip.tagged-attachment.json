@@ -29,13 +29,13 @@
               "meta_tags": "type=email.attachment",
               "uuid": "ee5150dd-907d-4b1e-94d4-4b79aeb429bf"
             },
-            "namespace": "<work>/signatures/ace4_fixture",
-            "rule": "ace4_fixture_zip_attachment",
+            "namespace": "<work>/signatures/ace_rs_fixture",
+            "rule": "ace_rs_fixture_zip_attachment",
             "rule_content_hash": "28d5e31d816053da54f936172b6ab245ed6a44e27b46486712e469d3971d4216",
             "rule_source": {
               "file": "zip.yar",
               "start_line": 5,
-              "text": "rule ace4_fixture_zip_attachment\n{\n    meta:\n        description = \"A zip archive that arrived as an email attachment\"\n        meta_tags = \"type=email.attachment\"\n        uuid = \"ee5150dd-907d-4b1e-94d4-4b79aeb429bf\"\n    strings:\n        $local_file_header = { 50 4B 03 04 }\n    condition:\n        $local_file_header at 0\n}\n"
+              "text": "rule ace_rs_fixture_zip_attachment\n{\n    meta:\n        description = \"A zip archive that arrived as an email attachment\"\n        meta_tags = \"type=email.attachment\"\n        uuid = \"ee5150dd-907d-4b1e-94d4-4b79aeb429bf\"\n    strings:\n        $local_file_header = { 50 4B 03 04 }\n    condition:\n        $local_file_header at 0\n}\n"
             },
             "string_patterns": {
               "$local_file_header": "{ 50 4B 03 04 }"
@@ -72,13 +72,13 @@
               "modifiers": "no_alert",
               "uuid": "2cbf38f7-4b53-4717-868b-fa0f585cad5f"
             },
-            "namespace": "<work>/signatures/ace4_fixture",
-            "rule": "ace4_fixture_zip_any",
+            "namespace": "<work>/signatures/ace_rs_fixture",
+            "rule": "ace_rs_fixture_zip_any",
             "rule_content_hash": "b30ec27aa2c4f22a53f022a3a825f09c334673990ac8cde3fbaa8b700f77ad6b",
             "rule_source": {
               "file": "zip.yar",
               "start_line": 18,
-              "text": "rule ace4_fixture_zip_any\n{\n    meta:\n        description = \"Any zip archive\"\n        modifiers = \"no_alert\"\n        uuid = \"2cbf38f7-4b53-4717-868b-fa0f585cad5f\"\n    strings:\n        $local_file_header = { 50 4B 03 04 }\n    condition:\n        $local_file_header at 0\n}\n"
+              "text": "rule ace_rs_fixture_zip_any\n{\n    meta:\n        description = \"Any zip archive\"\n        modifiers = \"no_alert\"\n        uuid = \"2cbf38f7-4b53-4717-868b-fa0f585cad5f\"\n    strings:\n        $local_file_header = { 50 4B 03 04 }\n    condition:\n        $local_file_header at 0\n}\n"
             },
             "string_patterns": {
               "$local_file_header": "{ 50 4B 03 04 }"
@@ -105,7 +105,7 @@
           "relationships": [],
           "tags": [],
           "type": "yara_rule",
-          "value": "ace4_fixture_zip_attachment"
+          "value": "ace_rs_fixture_zip_attachment"
         },
         {
           "detections": [],
@@ -123,7 +123,7 @@
           "relationships": [],
           "tags": [],
           "type": "yara_string",
-          "value": "ace4_fixture_zip_attachment:$local_file_header"
+          "value": "ace_rs_fixture_zip_attachment:$local_file_header"
         },
         {
           "detections": [],
@@ -132,7 +132,7 @@
           "relationships": [],
           "tags": [],
           "type": "yara_rule",
-          "value": "ace4_fixture_zip_any"
+          "value": "ace_rs_fixture_zip_any"
         },
         {
           "detections": [],
@@ -150,10 +150,10 @@
           "relationships": [],
           "tags": [],
           "type": "yara_string",
-          "value": "ace4_fixture_zip_any:$local_file_header"
+          "value": "ace_rs_fixture_zip_any:$local_file_header"
         }
       ],
-      "summary": "Yara Scan Results: matched yara rules ace4_fixture_zip_attachment, ace4_fixture_zip_any",
+      "summary": "Yara Scan Results: matched yara rules ace_rs_fixture_zip_attachment, ace_rs_fixture_zip_any",
       "tags": []
     }
   ],
@@ -174,10 +174,10 @@
   "observable_after": {
     "detections": [
       {
-        "description": "test.zip matched yara rule ace4_fixture_zip_attachment",
+        "description": "test.zip matched yara rule ace_rs_fixture_zip_attachment",
         "details": {
-          "namespace": "ace4_fixture",
-          "rule": "ace4_fixture_zip_attachment",
+          "namespace": "ace_rs_fixture",
+          "rule": "ace_rs_fixture_zip_attachment",
           "rule_uuid": "ee5150dd-907d-4b1e-94d4-4b79aeb429bf",
           "sha256": "1f0e8019d2bc4dadef1395af870b509adf4e8a226dee0fb7716cc5d8c3a4d147"
         }

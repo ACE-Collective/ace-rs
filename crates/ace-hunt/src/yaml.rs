@@ -84,7 +84,7 @@ impl Budget {
     }
 }
 
-/// Why a file didn't load: the class of the error PyYAML raises, or `None` for one of ace4's
+/// Why a file didn't load: the class of the error PyYAML raises, or `None` for one of ace-rs's
 /// bounds, which PyYAML doesn't have.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct YamlError {

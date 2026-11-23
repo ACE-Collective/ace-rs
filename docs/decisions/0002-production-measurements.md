@@ -165,7 +165,7 @@ the index in Qdrant.
 
 1. **Size.** Fill each index to production's point count, and to that plus a year of the measured
    growth, with chunk counts per alert drawn from the measured spread.
-2. **Interference.** Run ace4's ordinary workload (results landing, the alert list, the queue) and
+2. **Interference.** Run ace-rs's ordinary workload (results landing, the alert list, the queue) and
    record its latency. Add indexing and searching at production's peak rates and record it again. The
    difference is what search costs the core database.
 3. **Past the peak.** Repeat at two and five times the peak rates, to find where each one stops

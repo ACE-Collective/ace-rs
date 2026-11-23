@@ -54,7 +54,7 @@
 //! **Exactness.** A rule says what the module's own check said, never a looser or tighter guess:
 //! the same subject, the same comparison, the same case rule. Each `Case` names the function a
 //! module used. A rule that is false where the module would have gone on loses a detection; the
-//! core's audit setting (`ACE4_TAKES_AUDIT`, `ace_core::takes`) is how that is looked for.
+//! core's audit setting (`ACE_RS_TAKES_AUDIT`, `ace_core::takes`) is how that is looked for.
 //!
 //! **Writing one.** Move the checks from the top of `analyze` into `Module::takes`, in the order
 //! `analyze` made them, each as a rule with the reason `analyze` gave, and delete them from
@@ -93,7 +93,7 @@
 //! }
 //! ```
 //!
-//! **Checking one.** Run the stack with `ACE4_TAKES_AUDIT=1` in the core's environment over
+//! **Checking one.** Run the stack with `ACE_RS_TAKES_AUDIT=1` in the core's environment over
 //! traffic the module sees, `tests/e2e/run` with its comparison among it. The core then queues every
 //! task as if nothing were declared and marks the ones a declaration declines; the pool still checks
 //! the declaration, so a marked task ends skipped. Any marked task that stored a result or failed is

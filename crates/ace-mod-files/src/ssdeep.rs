@@ -33,7 +33,7 @@ const HEADER: &str = "ssdeep,1.1--blocksize:hash:hash,filename";
 #[serde(deny_unknown_fields, default)]
 pub struct SsdeepSettings {
     /// The list of known hashes, as `ssdeep -s` writes it. ace3's default is `etc/ssdeep_hashes`
-    /// under its home, which ace4 has no counterpart of, so a site names it.
+    /// under its home, which ace-rs has no counterpart of, so a site names it.
     pub ssdeep_hashes: Option<PathBuf>,
     /// The largest file hashed, in bytes.
     pub maximum_size: u64,
@@ -369,12 +369,12 @@ mod tests {
 
     /// docs/measurements/ssdeep.md: every file `tools/ace3/ssdeep/gen.py` writes, hashed and
     /// matched against the base files' hashes, as ssdeep 2.14.1 answered in ace3's container. Run with
-    /// `ACE4_SSDEEP_DIR` naming a directory of `files/`, `all_hashes` (`ssdeep -s -b *`), `hashes_base`
+    /// `ACE_RS_SSDEEP_DIR` naming a directory of `files/`, `all_hashes` (`ssdeep -s -b *`), `hashes_base`
     /// and `matches` (`ssdeep -s -m hashes_base` of each file), as that page says.
     #[test]
     #[ignore = "needs ssdeep's answers, made in ace3's container"]
     fn hashes_and_scores_are_ssdeeps() {
-        let dir = PathBuf::from(std::env::var("ACE4_SSDEEP_DIR").expect("ACE4_SSDEEP_DIR"));
+        let dir = PathBuf::from(std::env::var("ACE_RS_SSDEEP_DIR").expect("ACE_RS_SSDEEP_DIR"));
         let all = fs::read_to_string(dir.join("all_hashes")).unwrap();
         let known = parse_known(&fs::read_to_string(dir.join("hashes_base")).unwrap()).unwrap();
         let mut hashes = 0;

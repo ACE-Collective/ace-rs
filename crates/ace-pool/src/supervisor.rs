@@ -373,7 +373,10 @@ async fn run_process(
         .args(&config.args)
         // the task gets nothing from the supervisor's environment, its token included
         .env_clear()
-        .env("ACE4_LOG", std::env::var("ACE4_LOG").unwrap_or_default())
+        .env(
+            "ACE_RS_LOG",
+            std::env::var("ACE_RS_LOG").unwrap_or_default(),
+        )
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

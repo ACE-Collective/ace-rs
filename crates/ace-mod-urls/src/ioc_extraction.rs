@@ -7,7 +7,7 @@
 //! tags and display type, each `extracted_from` the file. If re-fanging changed the text, the
 //! text is added too, as `<file>.refanged.txt` (`type=document.text.refanged`).
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
 //! - The configuration is the module's overlay settings, with ace3's `etc/ioc_extraction.yaml` as
 //!   the default, where ace3 reads that file and reloads it when it changes (PLAN.md 5.14 leaves
@@ -16,8 +16,8 @@
 //! - Patterns are Python `re` on fancy-regex (`crate::pyre`).
 //! - urlfinderlib's URLs come as a set, whose order changes with Python's hash seed; here they're
 //!   sorted, so `iocs.url` is in the same order each time.
-//! - A type ace4 doesn't know, such as the default configuration's `cve`, is in the details but
-//!   makes no observable: ace3 makes a `DefaultObservable` of any type, and ace4's types are fixed
+//! - A type ace-rs doesn't know, such as the default configuration's `cve`, is in the details but
+//!   makes no observable: ace3 makes a `DefaultObservable` of any type, and ace-rs's types are fixed
 //!   when the binary is built (ace3 #1030). The re-fanged file's display type isn't kept, as a
 //!   file record has none; the alert view names it by its path.
 //! - Observables aren't volatile, as `url_extraction`'s aren't.
@@ -467,7 +467,7 @@ impl Parser for IocExtraction {
         for ((kind, value), extras) in &to_add {
             iocs.entry(kind.clone()).or_default().push(value.clone());
             let Ok(observable_kind) = kind.parse::<ObservableKind>() else {
-                tracing::warn!("ioc type {kind:?} isn't an observable type ace4 knows");
+                tracing::warn!("ioc type {kind:?} isn't an observable type ace-rs knows");
                 continue;
             };
             let Some(value) = observable_value(kind, value) else {

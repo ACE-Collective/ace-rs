@@ -3,8 +3,8 @@
 //! listed and explained in differences.md, next to this file.
 //!
 //! urlfinderlib returns a set, so ace3's order of URLs is its set's order, which the dumps fix with
-//! `PYTHONHASHSEED=0`; ace4 sorts the set first. So where both hold the same URLs, ace3's lists
-//! take ace4's order before the diff, and the test checks that ace4's order is the module's: the
+//! `PYTHONHASHSEED=0`; ace-rs sorts the set first. So where both hold the same URLs, ace3's lists
+//! take ace-rs's order before the diff, and the test checks that ace-rs's order is the module's: the
 //! URLs of the domains with the fewest URLs first, images last.
 
 use std::collections::BTreeMap;

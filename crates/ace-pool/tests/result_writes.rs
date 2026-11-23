@@ -236,7 +236,7 @@ async fn a_task_end_the_api_cant_read_doesnt_end_the_task() {
             ace_sdk::wire::paths::task(task.id, "end")
         ))
         .bearer_auth(TOKEN)
-        .header("x-ace4-worker", "checker")
+        .header("x-ace-rs-worker", "checker")
         .json(&json!({"outcome": "no such end"}));
     let response = http.send(request).await.expect("an answer");
     assert_eq!(response.status().as_u16(), 400);

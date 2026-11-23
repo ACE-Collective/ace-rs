@@ -168,7 +168,7 @@ pub fn active_key(repository: &str, base_sha: &str, head_sha: &str) -> String {
 
 /// A digest of what the corpus and its labels are: the greatest change time and the number of rows of every
 /// input, read in one transaction. The counts catch what bumps no change time: a cleared verdict, a deleted
-/// alert, a deleted capture. ace3's `corpus_version`, with ace4's inputs: the stored captures, the verdicts'
+/// alert, a deleted capture. ace3's `corpus_version`, with ace-rs's inputs: the stored captures, the verdicts'
 /// history, the retirements, the deletions, the captures' alerts (their dispositions and detections) and
 /// the test runs they're attributed to, whose review decides whether their verdicts count.
 pub async fn corpus_version(db: &Db) -> Result<String, DbError> {

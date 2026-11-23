@@ -70,7 +70,7 @@ fn run() -> Result<ExitCode, String> {
         std::fs::read_to_string(&reference).map_err(|e| format!("{}: {e}", reference.display()))?;
     // read keeping each object's key order, which the events need
     let reference = json::read(&text)?;
-    // ace3 may have loaded a type ace4 doesn't, such as Rapid7's, which the owner left out: only the
+    // ace3 may have loaded a type ace-rs doesn't, such as Rapid7's, which the owner left out: only the
     // hunts under the rule directories given here are compared
     let given: Vec<String> = rule_dirs.iter().map(|(_, dir)| format!("{dir}/")).collect();
     let ref_hunts: Vec<&Value> = match reference.as_map().and_then(|m| m.get("hunts")) {

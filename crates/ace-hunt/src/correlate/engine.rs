@@ -11,7 +11,7 @@
 //!
 //! **Bounds.** ace3's run is bounded by the correlate `timeout` (15 minutes unless the hunt says),
 //! checked before each step, and each command by its own `timeout`, which a query source and a
-//! custom type honour. ace4 keeps both and adds [`Limits`]: every template is bounded by the
+//! custom type honour. ace-rs keeps both and adds [`Limits`]: every template is bounded by the
 //! renderer's fuel, output and items (6.3); a command's output, all commands' output in one run and
 //! the events a stream transform makes are bounded, and past a bound the step fails as any step
 //! error does; and the text the trace keeps of one rendered value, command or error is bounded,
@@ -51,7 +51,7 @@ pub enum EngineError {
     Stopped,
 }
 
-/// ace4's bounds on one run, beyond the correlate timeout and the renderer's.
+/// ace-rs's bounds on one run, beyond the correlate timeout and the renderer's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Limits {
     /// The bytes one command may output.
@@ -657,7 +657,7 @@ impl<'a> Engine<'a> {
                         self,
                         &mut tt,
                         format!(
-                            "ace4 limit: a stream transform made {} events, past its {limit}",
+                            "ace-rs limit: a stream transform made {} events, past its {limit}",
                             stream.len()
                         ),
                     );
@@ -697,7 +697,7 @@ impl<'a> Engine<'a> {
         let limits = self.rt.limits;
         if output.len() > limits.command_output_bytes {
             return Err(format!(
-                "ace4 limit: the command output {} bytes, past its {}",
+                "ace-rs limit: the command output {} bytes, past its {}",
                 output.len(),
                 limits.command_output_bytes
             ));
@@ -705,7 +705,7 @@ impl<'a> Engine<'a> {
         self.output_bytes += output.len();
         if self.output_bytes > limits.run_output_bytes {
             return Err(format!(
-                "ace4 limit: the run's commands have output {} bytes, past its {}",
+                "ace-rs limit: the run's commands have output {} bytes, past its {}",
                 self.output_bytes, limits.run_output_bytes
             ));
         }
@@ -779,7 +779,7 @@ fn bound_trace(trace: &mut CorrelationTrace, max: usize) {
                 end -= 1;
             }
             t.truncate(end);
-            t.push_str("... (ace4: cut to its bound)");
+            t.push_str("... (ace-rs: cut to its bound)");
         }
     }
     fn expression(e: &mut super::trace::ExpressionTrace, max: usize) {

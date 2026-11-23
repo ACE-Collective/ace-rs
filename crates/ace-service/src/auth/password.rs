@@ -21,7 +21,7 @@ const LANES: u32 = 1;
 /// and `ace`'s `mem_limit` in Compose is 1 GiB, so a flood of logins queues here instead of killing it.
 const HASHES_AT_ONCE: usize = 4;
 
-/// ace3 asks for 8 characters and a special one, in its GUI's form only. ace4 has no lockout, as ace3 has
+/// ace3 asks for 8 characters and a special one, in its GUI's form only. ace-rs has no lockout, as ace3 has
 /// none, so it asks for length, which is what slows a guesser, and for nothing else.
 pub const MIN_PASSWORD_CHARS: usize = 12;
 

@@ -100,7 +100,7 @@ pub const MAX_PIVOT_LINKS: usize = 100;
 /// (no quote, angle bracket, backslash or backtick) is taken, so a link can't run script or break out
 /// of the page. The icon is the name of an image the binary registers and ACE serves itself
 /// (`ace_app::App::pivot_link_icon`); ace3 also takes a `data:` URL or another site's image, which
-/// ace4 refuses, as its pages load images from ACE alone.
+/// ace-rs refuses, as its pages load images from ACE alone.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PivotLink {

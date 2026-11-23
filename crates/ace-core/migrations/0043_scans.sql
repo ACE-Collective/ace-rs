@@ -56,7 +56,7 @@ CREATE INDEX scans_active_by_root ON queue.scans (root_id) WHERE state IN ('queu
 CREATE FUNCTION queue.notify_scan() RETURNS trigger
     LANGUAGE plpgsql AS $$
 BEGIN
-    PERFORM pg_notify('ace4_tasks', '@scan/' || NEW.scanner);
+    PERFORM pg_notify('ace_rs_tasks', '@scan/' || NEW.scanner);
     RETURN NULL;
 END
 $$;

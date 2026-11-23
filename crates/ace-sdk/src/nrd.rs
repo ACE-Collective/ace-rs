@@ -344,7 +344,7 @@ mod tests {
                 "registrable_domain": registrable_domain(value),
             });
             if &got != case {
-                wrong.push(format!("ace3 {case}\nace4 {got}"));
+                wrong.push(format!("ace3 {case}\nace-rs {got}"));
             }
         }
         assert!(wrong.is_empty(), "{}", wrong.join("\n"));
@@ -359,7 +359,7 @@ mod tests {
             let line = case["line"].as_str().expect("a line");
             let kept = normalize_line(line);
             if kept.as_deref() != case["kept"].as_str() {
-                wrong.push(format!("{line:?}: ace3 {} ace4 {kept:?}", case["kept"]));
+                wrong.push(format!("{line:?}: ace3 {} ace-rs {kept:?}", case["kept"]));
             }
         }
         assert!(wrong.is_empty(), "{}", wrong.join("\n"));

@@ -23,7 +23,7 @@
 //!
 //! **What a verdict is keyed on.** ace3 keys it on a detection's content hash, a hash of the node it's on,
 //! its signature, description and details, because its `detection_points` rows are copies that each sync of
-//! the alert deletes and inserts again. ace4 keys it on the detection's row, `analysis.detections.id`. That
+//! the alert deletes and inserts again. ace-rs keys it on the detection's row, `analysis.detections.id`. That
 //! row is the detection itself, not a copy: a result is written once per (root, observable, module), and
 //! nothing deletes a detection but its root's delete, which takes the verdicts with it, as deleting an alert
 //! does in ace3. So the id is as stable as ace3's hash, it needs no frozen formula, and a detection on the

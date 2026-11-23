@@ -103,7 +103,7 @@ def main(out_path):
         sources.append(base)
         sources.extend(mutations(rnd, base, 120))
     cases = []
-    with tempfile.TemporaryDirectory(dir="/tmp/ace4-js") as work:
+    with tempfile.TemporaryDirectory(dir="/tmp/ace-rs-js") as work:
         for i, source in enumerate(sources):
             data = source.encode("utf-8", "surrogatepass")
             path = os.path.join(work, f"case{i}.js")

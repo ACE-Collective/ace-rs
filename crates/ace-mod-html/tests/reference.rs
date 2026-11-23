@@ -4,7 +4,7 @@
 //! this file.
 //!
 //! ace3 writes a DOM snapshot beside each script, `<script>.dom.json`, which isn't an observable;
-//! the dumps keep those files' text (`run_module.py --sidecars`). ace4 keeps the snapshots in the
+//! the dumps keep those files' text (`run_module.py --sidecars`). ace-rs keeps the snapshots in the
 //! result's `dom_snapshots`, so each is checked against ace3's file, and then left out of the
 //! normal form.
 
@@ -72,17 +72,17 @@ fn input<M: Parser>(harness: &Harness<M>, dump: &Dump, after_file_type: bool) ->
     observable
 }
 
-/// Checks ace4's snapshots against the sidecars ace3 wrote, and takes them out of the form.
+/// Checks ace-rs's snapshots against the sidecars ace3 wrote, and takes them out of the form.
 fn check_sidecars(dump: &Dump, form: &mut Value) -> Vec<Difference> {
     let snapshots: Vec<DomSnapshotFile> = form["details"]
         .as_object_mut()
         .and_then(|details| details.remove("dom_snapshots"))
         .map(|v| serde_json::from_value(v).expect("snapshots"))
         .unwrap_or_default();
-    let mut ace4 = BTreeMap::new();
+    let mut ace_rs = BTreeMap::new();
     for snapshot in snapshots {
         for file in &snapshot.files {
-            ace4.insert(
+            ace_rs.insert(
                 format!("{file}.dom.json"),
                 serde_json::to_value(&snapshot.snapshot).expect("serializes"),
             );
@@ -102,14 +102,14 @@ fn check_sidecars(dump: &Dump, form: &mut Value) -> Vec<Difference> {
     let mut differences = Vec::new();
     for path in ace3
         .keys()
-        .chain(ace4.keys())
+        .chain(ace_rs.keys())
         .collect::<std::collections::BTreeSet<_>>()
     {
-        if ace3.get(path) != ace4.get(path) {
+        if ace3.get(path) != ace_rs.get(path) {
             differences.push(Difference {
                 path: format!("/sidecars/{}", path.replace('/', "~1")),
                 ace3: ace3.get(path).cloned(),
-                ace4: ace4.get(path).cloned(),
+                ace_rs: ace_rs.get(path).cloned(),
             });
         }
     }

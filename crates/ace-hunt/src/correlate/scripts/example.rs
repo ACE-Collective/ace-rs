@@ -1,5 +1,5 @@
-//! `field_values`, ace4's own example of a script command type (PLAN.md decision 16). No hunt of
-//! ace4's runs it; it shows a site how one is written and registered (`ace_app::App::hunt_script`,
+//! `field_values`, ace-rs's own example of a script command type (PLAN.md decision 16). No hunt of
+//! ace-rs's runs it; it shows a site how one is written and registered (`ace_app::App::hunt_script`,
 //! as `ace-site-example` registers this one), and the tests of the mechanism use it.
 //!
 //! It stands for a script `hunts/scripts/field_values.py` that a hunt runs as `type: executable`

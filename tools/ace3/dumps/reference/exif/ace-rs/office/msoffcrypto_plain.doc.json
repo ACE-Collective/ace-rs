@@ -1,0 +1,157 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:21 15:08:10+00:00",
+          "File:FileInodeChangeDate": "2026:11:21 15:08:10+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
+          "File:FileName": "msoffcrypto_plain.doc",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 22528,
+          "File:FileType": "DOC",
+          "File:FileTypeExtension": "DOC",
+          "File:MIMEType": "application/msword",
+          "FlashPix:AppVersion": 16.0,
+          "FlashPix:Author": "",
+          "FlashPix:CharCountWithSpaces": 0,
+          "FlashPix:Characters": 0,
+          "FlashPix:CodePage": 10000,
+          "FlashPix:Comments": "",
+          "FlashPix:CompObjUserType": "Microsoft Word 97-2003 Document",
+          "FlashPix:CompObjUserTypeLen": 32,
+          "FlashPix:CreateDate": "2018:07:05 04:07:00",
+          "FlashPix:DocFlags": 4608,
+          "FlashPix:HeadingPairs": [
+            "Title",
+            1
+          ],
+          "FlashPix:HyperlinksChanged": 0,
+          "FlashPix:Identification": 42476,
+          "FlashPix:Keywords": "",
+          "FlashPix:LanguageCode": 1033,
+          "FlashPix:LastModifiedBy": "",
+          "FlashPix:LastPrinted": "0000:00:00 00:00:00",
+          "FlashPix:Lines": 0,
+          "FlashPix:LinksUpToDate": 0,
+          "FlashPix:ModifyDate": "2018:07:05 04:07:00",
+          "FlashPix:Pages": 1,
+          "FlashPix:Paragraphs": 0,
+          "FlashPix:RevisionNumber": 1,
+          "FlashPix:ScaleCrop": 0,
+          "FlashPix:Security": 0,
+          "FlashPix:SharedDoc": 0,
+          "FlashPix:Software": "Microsoft Office Word",
+          "FlashPix:Subject": "",
+          "FlashPix:System": 1,
+          "FlashPix:Template": "Normal.dotm",
+          "FlashPix:Title": "",
+          "FlashPix:TitleOfParts": "",
+          "FlashPix:TotalEditTime": 0,
+          "FlashPix:Word97": 0,
+          "FlashPix:Words": 0,
+          "SourceFile": "<root>/files/msoffcrypto_plain.doc"
+        },
+        "output_dir": "<root>/files/msoffcrypto_plain.doc.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "msoffcrypto_plain.doc.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "290f71ddd3f6d940dc3569fc410cf5f167df4cb91b9274f4408d3f1bdaa83736"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1713,
+          "tags": [],
+          "type": "file",
+          "value": "ab988631c7b2f0f511b029a0017023e95045635d526361330ea6b8d3923df33a",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: Identification=42476, LanguageCode=1033, DocFlags=4608, System=1, Word97=0, Title=, Subject=, Author=, Keywords=, Comments=, Template=Normal.dotm, LastModifiedBy=, Software=Microsoft Office Word, CreateDate=2018:07:05 04:07:00, ModifyDate=2018:07:05 04:07:00, Security=0, CodePage=10000, CharCountWithSpaces=0, AppVersion=16.0, ScaleCrop=0 + 15 more",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/msword",
+        "type": "Composite Document File V2 Document, Little Endian, Os: MacOS, Version 13.10, Code page: 10000, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Jul  5 04:07:00 2018, Last Saved Time/Date: Thu Jul  5 04:07:00 2018, Number of Pages: 1, Number of Words: 0, Number of Characters: 0, Security: 0"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: MacOS, Version 13.10, Code page: 10000, Template: Normal.dotm, Revision Number: 1, Name of Creating Application: Microsoft Office Word, Create Time/Date: Thu Jul  5 04:07:00 2018, Last Saved Time/Date: Thu Jul  5 04:07:00 2018, Number of Pages: 1, Number of Words: 0, Number of Characters: 0, Security: 0 (application/msword) (ms office document) (ole compound file) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/msoffcrypto_plain.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "msoffcrypto_plain.doc",
+      "size": 22528,
+      "type": "file",
+      "value": "290f71ddd3f6d940dc3569fc410cf5f167df4cb91b9274f4408d3f1bdaa83736"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "msoffcrypto_plain.doc",
+    "relationships": [],
+    "size": 22528,
+    "tags": [
+      "microsoft_office",
+      "ole",
+      "zip"
+    ],
+    "type": "file",
+    "value": "290f71ddd3f6d940dc3569fc410cf5f167df4cb91b9274f4408d3f1bdaa83736",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

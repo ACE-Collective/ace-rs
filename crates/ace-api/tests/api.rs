@@ -99,7 +99,7 @@ impl Lookup for ListReader {
     }
 }
 
-const BOUNDARY: &str = "ace4-api-test-boundary";
+const BOUNDARY: &str = "ace-rs-api-test-boundary";
 const PASSWORD: &str = "correct horse battery staple";
 /// Small, so the limits are cheap to cross.
 const MAX_JSON: usize = 64 << 10;
@@ -113,7 +113,7 @@ struct Stack {
     orchestrator: Orchestrator,
     url: String,
     /// The AI investigation API's own listener (PLAN.md 7.15), as `ace serve-ai` serves it: its
-    /// service is connected as the database role `ace4_ai`, so every AI route in these tests runs
+    /// service is connected as the database role `ace_rs_ai`, so every AI route in these tests runs
     /// with what migration 0064 grants and nothing more.
     ai_url: String,
     http: reqwest::Client,
@@ -334,7 +334,7 @@ async fn stack_built(
     let test_db = TestDb::new().await;
     let cache = tempfile::tempdir().expect("a cache directory");
     let store = Store::new(
-        &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        &BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
     )
     .await;
@@ -389,7 +389,7 @@ async fn stack_built(
             )
             .expect("valid settings"),
         );
-    // the AI investigation API's process (PLAN.md 7.15): its own pool, as the role `ace4_ai`, and a
+    // the AI investigation API's process (PLAN.md 7.15): its own pool, as the role `ace_rs_ai`, and a
     // service with what `ace serve-ai` gives it and no more. The main service has no AI surface.
     let mut ai_config = test_db.config().clone().role(ace_service::ai::role::ROLE);
     ai_config.component = "ace-ai-test".to_owned();
@@ -590,9 +590,9 @@ impl<'s> Client<'s> {
             .request(method.clone(), format!("{base}{path}"));
         // a session's token goes as its cookie, from this server's own origin
         match token {
-            Some(token) if token.starts_with("ace4s_") => {
+            Some(token) if token.starts_with("ace-rs-s_") => {
                 request = request
-                    .header("cookie", format!("ace4_session={token}"))
+                    .header("cookie", format!("ace_rs_session={token}"))
                     .header("origin", base);
             }
             Some(token) => request = request.bearer_auth(token),
@@ -1096,7 +1096,7 @@ async fn refuses_without_a_credential_or_a_permission(
         );
         let body: Value = response.json().await.expect("an error body");
         assert_eq!(body, json!({"error": "not authenticated"}));
-        for wrong in ["ace4k_00000000-0000-0000-0000-000000000000_x", "x"] {
+        for wrong in ["ace-rs-k_00000000-0000-0000-0000-000000000000_x", "x"] {
             let response = client
                 .call(method.clone(), &route, &path, Some(wrong), send_for(&route))
                 .await;
@@ -3091,7 +3091,7 @@ async fn owners(client: &mut Client<'_>) {
     let cross = stack
         .http
         .put(format!("{}{OWNER}", stack.url))
-        .header("cookie", format!("ace4_session={mine}"))
+        .header("cookie", format!("ace_rs_session={mine}"))
         .header("origin", "https://evil.example")
         .json(&json!({"alerts": [blank], "owner": me}))
         .send()
@@ -3985,7 +3985,7 @@ async fn serves_me(client: &mut Client<'_>) {
     let refused = stack
         .http
         .patch(format!("{}{ME}", stack.url))
-        .header("cookie", format!("ace4_session={token}"))
+        .header("cookie", format!("ace_rs_session={token}"))
         .header("origin", "https://evil.example")
         .json(&json!({"display_name": "Evil"}))
         .send()
@@ -4136,7 +4136,7 @@ async fn serves_me(client: &mut Client<'_>) {
     assert_eq!(response.status(), S::NO_CONTENT);
     let cleared = response.headers()["set-cookie"].to_str().expect("text");
     assert!(
-        cleared.starts_with("ace4_session=;") && cleared.contains("Max-Age=0"),
+        cleared.starts_with("ace_rs_session=;") && cleared.contains("Max-Age=0"),
         "{cleared}"
     );
     client
@@ -4149,7 +4149,7 @@ async fn serves_me(client: &mut Client<'_>) {
 /// goes last.
 async fn pings(client: &mut Client<'_>, token: &str) {
     let pong = json!({"result": "pong"});
-    let wrong = "ace4k_00000000-0000-0000-0000-000000000000_x";
+    let wrong = "ace-rs-k_00000000-0000-0000-0000-000000000000_x";
     for credential in [None, Some(wrong), Some(token)] {
         let body = client
             .json(
@@ -5469,7 +5469,7 @@ async fn preferences(client: &mut Client<'_>) {
     let refused = stack
         .http
         .put(format!("{}{theme}", stack.url))
-        .header("cookie", format!("ace4_session={token}"))
+        .header("cookie", format!("ace_rs_session={token}"))
         .header("origin", "https://evil.example")
         .json(&json!({"mode": "halloween"}))
         .send()
@@ -5557,31 +5557,31 @@ async fn every_documented_status_is_tested() {
     );
 }
 
-/// `openapi.json` is what utoipa derives. `ACE4_WRITE_OPENAPI=1 cargo test -p ace-api` writes it.
+/// `openapi.json` is what utoipa derives. `ACE_RS_WRITE_OPENAPI=1 cargo test -p ace-api` writes it.
 #[tokio::test]
 async fn the_committed_document_is_current() {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("openapi.json");
     let derived = ace_api::openapi_json();
-    if std::env::var_os("ACE4_WRITE_OPENAPI").is_some() {
+    if std::env::var_os("ACE_RS_WRITE_OPENAPI").is_some() {
         std::fs::write(&path, &derived).expect("writes the document");
     }
     let committed = std::fs::read_to_string(&path).unwrap_or_default();
     assert!(
         committed == derived,
-        "{} isn't what the code derives: run `ACE4_WRITE_OPENAPI=1 cargo test -p ace-api` and commit it",
+        "{} isn't what the code derives: run `ACE_RS_WRITE_OPENAPI=1 cargo test -p ace-api` and commit it",
         path.display()
     );
 
     // the AI investigation API's listener has a document of its own (PLAN.md 7.15)
     let ai_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("openapi-ai.json");
     let ai_derived = ace_api::ai_openapi_json();
-    if std::env::var_os("ACE4_WRITE_OPENAPI").is_some() {
+    if std::env::var_os("ACE_RS_WRITE_OPENAPI").is_some() {
         std::fs::write(&ai_path, &ai_derived).expect("writes the document");
     }
     let committed = std::fs::read_to_string(&ai_path).unwrap_or_default();
     assert!(
         committed == ai_derived,
-        "{} isn't what the code derives: run `ACE4_WRITE_OPENAPI=1 cargo test -p ace-api` and commit it",
+        "{} isn't what the code derives: run `ACE_RS_WRITE_OPENAPI=1 cargo test -p ace-api` and commit it",
         ai_path.display()
     );
 
@@ -5840,7 +5840,7 @@ async fn a_session_reads_and_another_site_can_t_write_with_it() {
         .login("analyst", Password::new(PASSWORD), None)
         .await
         .expect("logs in");
-    let cookie = format!("ace4_session={}", session.token.expose());
+    let cookie = format!("ace_rs_session={}", session.token.expose());
     let id = alert(&stack, "an alert", &[]).await;
 
     let read = stack
@@ -8087,7 +8087,7 @@ async fn yara_export(client: &mut Client<'_>, editor: Option<&str>, reader: Opti
             .arg(repo)
             .args([
                 "-c",
-                "user.name=ace4 test",
+                "user.name=ace-rs test",
                 "-c",
                 "user.email=test@example.invalid",
             ])
@@ -8499,7 +8499,7 @@ async fn an_edit_through_the_api_applies_to_the_next_task_without_a_restart() {
     let entries = ENTRIES.replace("{list}", TEST_LIST.name);
     let session = |request: reqwest::RequestBuilder| {
         request
-            .header("cookie", format!("ace4_session={editor}"))
+            .header("cookie", format!("ace_rs_session={editor}"))
             .header("origin", &stack.url)
     };
 
@@ -8559,7 +8559,7 @@ async fn an_edit_through_the_api_applies_to_the_next_task_without_a_restart() {
     let done = std::sync::Arc::new(std::sync::atomic::AtomicI64::new(-1));
     let writer = {
         let (http, entry, done) = (http.clone(), entry.clone(), done.clone());
-        let (cookie, origin) = (format!("ace4_session={editor}"), stack.url.clone());
+        let (cookie, origin) = (format!("ace_rs_session={editor}"), stack.url.clone());
         tokio::spawn(async move {
             for i in 0..40_i64 {
                 let response = http
@@ -17942,7 +17942,7 @@ async fn svs_association(client: &mut Client<'_>) {
 
 /// ace3's `search` router (PLAN.md 7.11): `tests/aceapi_v2/search/test_router.py`'s cases, each named
 /// where it's asserted. Its `test_requires_auth` is `refuses_without_a_credential_or_a_permission`'s, and
-/// `TestNodeScoping` has no counterpart: ace4 has one node. The index behind the stack finds a text in
+/// `TestNodeScoping` has no counterpart: ace-rs has one node. The index behind the stack finds a text in
 /// the alerts' titles (`TitleIndex`); the real one is `ace-search`'s to test.
 async fn search_router(client: &mut Client<'_>) {
     use Method as M;
@@ -18459,7 +18459,7 @@ async fn last_ai_audit(stack: &Stack) -> Value {
 /// | `test_search_requires_ai_search_scope` | `ai_searches` |
 /// | `test_search_returns_results_and_audits`, `test_similar_audits_alert_uuid`, `test_the_audit_records_test_alerts` | `ai_searches` |
 /// | `test_rate_limited_search_is_429_with_retry_after`, `test_unavailable_limiter_is_503` | `ai_limits` |
-/// | `test_unhandled_exception_is_500_and_reported` | none: a failure that isn't the caller's is the API's one answer, `internal error`, for every route (`error`), and ace4 writes no error report |
+/// | `test_unhandled_exception_is_500_and_reported` | none: a failure that isn't the caller's is the API's one answer, `internal error`, for every route (`error`), and ace-rs writes no error report |
 ///
 /// | `test_events.py` | here |
 /// |---|---|
@@ -18482,7 +18482,7 @@ async fn last_ai_audit(stack: &Stack) -> Value {
 /// | `test_pages_cover_every_alert_once` | `ai_exports`, by the cursor; there is no `changed_since` |
 /// | `test_malformed_cursor_is_400_and_audited`, `test_alert_page_is_audited` | `ai_exports` |
 /// | `test_rate_limited_export_is_429_in_its_own_bucket` | `ai_limits` |
-/// | `test_archived_alert_is_exported_with_its_observables` | none: ace4 archives no alert |
+/// | `test_archived_alert_is_exported_with_its_observables` | none: ace-rs archives no alert |
 /// | `test_observable_lookup_bounds_and_unknown_ids` | none: an exported alert carries its observables, and there are no ids to look up |
 ///
 /// | `test_scope_invariant.py` | here |

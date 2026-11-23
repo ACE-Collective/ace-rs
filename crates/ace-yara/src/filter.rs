@@ -34,7 +34,7 @@ use crate::meta::{Meta, MetaValue};
 /// What the filter compares a match's directives against.
 #[derive(Debug, Clone, Copy)]
 pub struct Target<'a> {
-    /// The file's path. In ace3 that is the absolute path on the node; in ace4 it is the
+    /// The file's path. In ace3 that is the absolute path on the node; in ace-rs it is the
     /// file's path inside the alert.
     pub path: &'a str,
     /// The file's mime type, as `file -b --mime-type` gives it.

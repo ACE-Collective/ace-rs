@@ -535,7 +535,7 @@ impl Candidate {
         }
     }
 
-    /// `Candidate.to_dict`, without ace3's `observable_uuid`: ace4's observables have no uuid, and
+    /// `Candidate.to_dict`, without ace3's `observable_uuid`: ace-rs's observables have no uuid, and
     /// the URL is the observable's value.
     fn to_details(&self, tree: &TreeView) -> LureCandidate {
         LureCandidate {
@@ -1545,7 +1545,7 @@ impl<'t, F: FnMut(&str) -> Option<Vec<u8>>> Collector<'t, F> {
                 // them where pdf_link_text's analysis falls among the PDF's, in the order its engine
                 // ran the modules, which isn't the same from one set of modules to the next: before
                 // pdf_analyzer's in the reference dumps, and after it in the trees, where the link is
-                // named for the rewrite. ace4's results land in any order, so it takes one.
+                // named for the rewrite. ace-rs's results land in any order, so it takes one.
                 let name = visit
                     .path
                     .as_deref()

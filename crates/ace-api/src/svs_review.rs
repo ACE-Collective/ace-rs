@@ -1,7 +1,7 @@
 //! A person's actions on SVS test runs, and a run's alerts (PLAN.md 7.10 batch 7b): the rest of ace3's
 //! `aceapi_v2/svs/runs` router, over `ace_service`'s `svs_review` and `svs_run_reads`.
 //!
-//! | ace3 (`aceapi_v2/svs/runs`) | ace4 |
+//! | ace3 (`aceapi_v2/svs/runs`) | ace-rs |
 //! |---|---|
 //! | `POST /bulk/take-ownership` | `POST /api/svs/v1/runs/bulk/take-ownership` |
 //! | `POST /bulk/cancel` | `POST /api/svs/v1/runs/bulk/cancel` |

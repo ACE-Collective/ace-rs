@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/pdf/broken_missing_page.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "broken_missing_page.pdf",
+      "size": 303,
+      "type": "file",
+      "value": "0b545e3a7a4e59c3bb2950a2b43ce916627e543c83862ffe323606123ed14e54"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "broken_missing_page.pdf",
+    "relationships": [],
+    "size": 303,
+    "tags": [],
+    "type": "file",
+    "value": "0b545e3a7a4e59c3bb2950a2b43ce916627e543c83862ffe323606123ed14e54",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

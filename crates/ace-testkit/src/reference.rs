@@ -135,9 +135,9 @@ impl Dump {
             .position(|o| o["type"] == kind && o["value"] == value)
     }
 
-    /// The root the dump kept (`run_module.py --tree-view`) as ace4's core would send it to a module
+    /// The root the dump kept (`run_module.py --tree-view`) as ace-rs's core would send it to a module
     /// that walks it, with `this` its task's observable: ace3's results without those of the classes
-    /// in `leave_out`, such as the module's own, and each result's type its ace4 name where a module
+    /// in `leave_out`, such as the module's own, and each result's type its ace-rs name where a module
     /// that walks the tree reads it (`ace3_analysis_type`).
     pub fn tree_view(&self, this: usize, leave_out: &[&str]) -> ace_sdk::tree::TreeView {
         self.tree_view_with_details(this, leave_out, &[])
@@ -162,7 +162,7 @@ impl Dump {
                     .as_str()
                     .and_then(|t| t.parse().ok())
                     .unwrap_or_else(|| {
-                        panic!("an observable type ace4 doesn't have: {}", o["type"])
+                        panic!("an observable type ace-rs doesn't have: {}", o["type"])
                     }),
                 value: o["value"].as_str().unwrap_or_default().to_owned(),
                 tags: strings(&o["tags"]),
@@ -367,7 +367,7 @@ fn without_crash_id(value: &Value) -> Value {
     Value::String(out)
 }
 
-/// The ace4 analysis type of an ace3 analysis class, for those the modules that walk the tree look
+/// The ace-rs analysis type of an ace3 analysis class, for those the modules that walk the tree look
 /// for; any other is `ace3:<class>`.
 pub fn ace3_analysis_type(class: &str) -> String {
     match class {
@@ -542,7 +542,7 @@ fn ace3_observable(o: &Value) -> (String, Value) {
     (key, normal)
 }
 
-fn ace4_detections(detections: &[Detection]) -> Value {
+fn ace_rs_detections(detections: &[Detection]) -> Value {
     Value::Object(
         detections
             .iter()
@@ -556,21 +556,21 @@ fn ace4_detections(detections: &[Detection]) -> Value {
     )
 }
 
-fn ace4_additions(additions: &ObservableAdditions) -> Value {
+fn ace_rs_additions(additions: &ObservableAdditions) -> Value {
     let mut normal = json!({
         "tags": set(additions.tags.iter().cloned()),
         "directives": set(additions.directives.iter().cloned()),
         "yara_meta": set(additions.yara_meta.iter().map(|t| t.to_string())),
-        "detections": ace4_detections(&additions.detections),
+        "detections": ace_rs_detections(&additions.detections),
     });
     // as ace3's side keeps them: only when there are some
     if !additions.relationships.is_empty() {
-        normal["relationships"] = ace4_relationships(&additions.relationships);
+        normal["relationships"] = ace_rs_relationships(&additions.relationships);
     }
     normal
 }
 
-fn ace4_relationships(relationships: &[ace_results::Relationship]) -> Value {
+fn ace_rs_relationships(relationships: &[ace_results::Relationship]) -> Value {
     set(relationships.iter().map(|r| {
         let kind = serde_json::to_value(r.kind)
             .ok()
@@ -580,26 +580,26 @@ fn ace4_relationships(relationships: &[ace_results::Relationship]) -> Value {
     }))
 }
 
-fn ace4_links(
+fn ace_rs_links(
     relationships: &[ace_results::Relationship],
     redirection: &Option<ace_results::ObservableRef>,
     normal: &mut Value,
 ) {
-    normal["relationships"] = ace4_relationships(relationships);
+    normal["relationships"] = ace_rs_relationships(relationships);
     if let Some(redirection) = redirection {
         normal["redirection"] = json!(format!("{}:{}", redirection.kind, redirection.value));
     }
 }
 
-fn ace4_observable(o: &NewObservable) -> (String, Value) {
+fn ace_rs_observable(o: &NewObservable) -> (String, Value) {
     let mut normal = json!({
         "tags": set(o.tags.iter().cloned()),
         "directives": set(o.directives.iter().cloned()),
         "yara_meta": set(Vec::new()),
-        "detections": ace4_detections(&o.detections),
+        "detections": ace_rs_detections(&o.detections),
         "excluded_analysis": set(o.exclude_modules.iter().cloned()),
     });
-    ace4_links(&o.relationships, &o.redirection, &mut normal);
+    ace_rs_links(&o.relationships, &o.redirection, &mut normal);
     if let Some(display_type) = &o.display_type {
         normal["display_type"] = json!(display_type);
     }
@@ -609,32 +609,32 @@ fn ace4_observable(o: &NewObservable) -> (String, Value) {
     (format!("{}:{}", o.kind, o.value), normal)
 }
 
-fn ace4_file(f: &NewFile) -> (String, Value) {
+fn ace_rs_file(f: &NewFile) -> (String, Value) {
     let mut normal = json!({
         "tags": set(f.tags.iter().cloned()),
         "directives": set(f.directives.iter().cloned()),
         "yara_meta": set(f.yara_meta.iter().map(|t| t.to_string())),
-        "detections": ace4_detections(&f.detections),
+        "detections": ace_rs_detections(&f.detections),
         "excluded_analysis": set(f.exclude_modules.iter().cloned()),
         "sha256": f.sha256.to_hex(),
         "size": f.size,
     });
-    ace4_links(&f.relationships, &f.redirection, &mut normal);
+    ace_rs_links(&f.relationships, &f.redirection, &mut normal);
     (format!("file:{}", f.path), normal)
 }
 
-/// ace4's outcome in the normal form. Null when it stored no result.
+/// ace-rs's outcome in the normal form. Null when it stored no result.
 pub fn normal_form<D: AnalysisType>(outcome: &Outcome<D>) -> Value {
     let Outcome::Done(result) = outcome else {
         return Value::Null;
     };
     let mut observables = Map::new();
     for observable in &result.observables {
-        let (key, normal) = ace4_observable(observable);
+        let (key, normal) = ace_rs_observable(observable);
         observables.insert(key, normal);
     }
     for file in &result.files {
-        let (key, normal) = ace4_file(file);
+        let (key, normal) = ace_rs_file(file);
         observables.insert(key, normal);
     }
     let mut normal = json!({
@@ -642,8 +642,8 @@ pub fn normal_form<D: AnalysisType>(outcome: &Outcome<D>) -> Value {
         "details": serde_json::to_value(&result.details)
             .unwrap_or_else(|e| json!({"unserializable": e.to_string()})),
         "tags": set(result.tags.iter().cloned()),
-        "detections": ace4_detections(&result.detections),
-        "analyzed": ace4_additions(&result.analyzed),
+        "detections": ace_rs_detections(&result.detections),
+        "analyzed": ace_rs_additions(&result.analyzed),
         "observables": observables,
     });
     if let Some(error) = &result.error {

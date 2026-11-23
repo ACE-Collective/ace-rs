@@ -1,7 +1,7 @@
 //! Failed tasks (PLAN.md 2.19), for 5.6's `crashes` router: ace3's analysis module crash reports.
 //!
 //! ace3 writes a crash report directory on the node where a module raised, hung or was killed, and indexes
-//! it in `analysis_module_crashes`. ace4's equivalent is a `queue.tasks` row in state `failed`: its error,
+//! it in `analysis_module_crashes`. ace-rs's equivalent is a `queue.tasks` row in state `failed`: its error,
 //! its attempts and the sha256 of each input it read, whose bytes are in the bucket's `alert_files` pool.
 //! Any node can serve any of them, so there's nothing like ace3's `wrong_node` or its replication.
 //!

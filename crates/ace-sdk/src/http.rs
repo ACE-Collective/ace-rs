@@ -41,7 +41,7 @@ impl Default for HttpClientBuilder {
             read_timeout: None,
             extra_roots: Vec::new(),
             proxy: None,
-            user_agent: concat!("ace4/", env!("CARGO_PKG_VERSION")).to_owned(),
+            user_agent: concat!("ace-rs/", env!("CARGO_PKG_VERSION")).to_owned(),
             follow_redirects: true,
         }
     }

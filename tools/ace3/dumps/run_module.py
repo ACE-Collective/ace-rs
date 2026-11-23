@@ -5,8 +5,8 @@ It runs inside ace3's dev container on ace3's Python, with everything it writes 
 directory in /tmp, never under /opt/ace (ace3's checkout):
 
     docker exec -i -e PYTHONDONTWRITEBYTECODE=1 ace-dev-1 /venv/bin/python3 - \\
-        --work /tmp/ace4-dumps/runs/<name> --module email_analyzer --enable file_type \\
-        --file /tmp/ace4-dumps/samples/ace3/email/smtp.email.rfc822 --alert-path email.rfc822 \\
+        --work /tmp/ace-rs-dumps/runs/<name> --module email_analyzer --enable file_type \\
+        --file /tmp/ace-rs-dumps/samples/ace3/email/smtp.email.rfc822 --alert-path email.rfc822 \\
         < tools/ace3/dumps/run_module.py
 
 tools/ace3/dumps/make-dumps calls it for each module and sample. It does what `ace correlate`
@@ -152,7 +152,7 @@ def parse_args():
     parser.add_argument("--tree", action="store_true", help="also write the root in the normal form to tree.json")
     parser.add_argument(
         "--tree-view", action="store_true",
-        help="also keep the whole root in the dump, as ace4's core hands a module that walks it its tree",
+        help="also keep the whole root in the dump, as ace-rs's core hands a module that walks it its tree",
     )
     parser.add_argument("--alert-type", default="cli_analysis", help="the root's alert type, such as mailbox")
     parser.add_argument(
@@ -407,7 +407,7 @@ def export_detections(path):
     """ace3's export of the observables enabled for detection to YARA rules, which its cron runs every
     minute (bin/export-observables, saq/observables/export/yara.py), run once with ace3's own code and
     settings into the signature directory the local scanner loads. The detections' rows are `path`'s,
-    each with its place in the file from 1 as its id, as tests/e2e/run gives ace4's entries the same ids
+    each with its place in the file from 1 as its id, as tests/e2e/run gives ace-rs's entries the same ids
     (PLAN.md 7.16). The YARA module reads a matched `$obsd_<id>` string's row through get_db
     (saq/modules/file_analysis/yara.py), which answers from the same file."""
     import types
@@ -635,7 +635,7 @@ def fake_brocess_store(path):
     conversation.get_db_connection = store.connection()
     email_logging.get_db_connection = store.connection()
 
-    # what the logger's reads answered, as ace4's email-thread-domains read answers them
+    # what the logger's reads answered, as ace-rs's email-thread-domains read answers them
     established, count = conversation.get_established_domains, conversation.get_thread_message_count
 
     def get_established_domains(context):
@@ -655,7 +655,7 @@ def fake_brocess_store(path):
     conversation.get_established_domains = get_established_domains
     conversation.get_thread_message_count = get_thread_message_count
 
-    # what the thread module's read answered, as ace4's email-thread read answers it
+    # what the thread module's read answered, as ace-rs's email-thread read answers it
     import saq.modules.email.thread as email_thread
 
     get_conversation = email_thread.get_conversation
@@ -799,7 +799,7 @@ def fake_email_archive(path, work):
 
 
 def conversation_form(conversation):
-    """A Conversation as ace4's email-thread read answers one."""
+    """A Conversation as ace-rs's email-thread read answers one."""
 
     def when(value):
         return value.strftime("%Y-%m-%d %H:%M:%S") if value else None
@@ -958,7 +958,7 @@ TREE_RUN_FIELDS = {
     ],
     "YaraScanResults_v3_4": ["details/scan_results/*/commit", "details/scan_results/*/ruleset"],
     "NRDAnalysis": ["details/matched_at"],
-    # the uuid ace3 gives an observable is new each run, and ace4's observables have none
+    # the uuid ace3 gives an observable is new each run, and ace-rs's observables have none
     "LureURLAnalysis": ["details/primary/observable_uuid", "details/candidates/*/observable_uuid"],
 }
 # ace3's excluded_analysis holds `module:<class ...>` strings
@@ -1029,7 +1029,7 @@ def tree_excluded(excluded):
 
 
 def modifier_modules(details):
-    """An ObservableModifierAnalysis's details with the modules its rules' actions name as ace4 names
+    """An ObservableModifierAnalysis's details with the modules its rules' actions name as ace-rs names
     them: ace3's rules name an analyzer class to exclude and an Analysis class to reset."""
     for match in details.get("matched_rules") or []:
         applied = match.get("actions_applied") or {}
@@ -1291,7 +1291,7 @@ def tree_form(root):
                 "details": analysis_details(analysis),
             }
             # ace3's Analysis.error (2b9fcd2c), on a result whose module failed and on no other, as
-            # ace4's form holds a result's error (ace_core::normal). A tool or a library names the
+            # ace-rs's form holds a result's error (ace_core::normal). A tool or a library names the
             # file by the path ace3 gave it, on its node; the port writes the path in the alert, so
             # the node's directory is taken off the front of it here and nothing else is changed
             if getattr(analysis, "error", None):
@@ -1309,7 +1309,7 @@ def tree_form(root):
                 remove_at(result, path.split("/"))
             if class_name == "YaraScanResults_v3_4":
                 exported_rule_dates(result)
-            # ace3 writes this with json.dumps' spaces and ace4 with serde_json, so it's compared
+            # ace3 writes this with json.dumps' spaces and ace-rs with serde_json, so it's compared
             # as the same compact text, which any change to its content still shows
             raw = result["details"].get("rdap_raw_json") if class_name == "RdapAnalysis" else None
             if isinstance(raw, str):
@@ -1360,10 +1360,10 @@ TREE_VIEW_BODY_MAX = 5 * 1024 * 1024
 
 
 def tree_view(root):
-    """The whole root in the shape of ace4's `ace_sdk::tree::TreeView`, which the core hands a module
+    """The whole root in the shape of ace-rs's `ace_sdk::tree::TreeView`, which the core hands a module
     that walks it: its observables, one per (type, value), a file's with each path and that path's
     yara_meta types, and every analysis with what it added, by index. ace3 has a file observable per
-    path, so a file's analyses are those of each of its observables; ace4 analyzes a file once, so of
+    path, so a file's analyses are those of each of its observables; ace-rs analyzes a file once, so of
     two analyses by one class of one file only the first is kept. Each result keeps its class, its
     module as the trees name it, its summary and its details, for a test to compare with, and the
     bodies the lure module reads, HTML and plain text, are kept as base64, by sha256."""
@@ -1477,7 +1477,7 @@ def prepare_work_dir(work):
 
 def analysis_details(analysis):
     """An analysis's details as the dumps and the trees keep them. EmailAnalysis names each part it
-    extracted by its file observable's uuid (ace3's 5474fd6b), which is new each run and which ace4's
+    extracted by its file observable's uuid (ace3's 5474fd6b), which is new each run and which ace-rs's
     observables don't have, so each part names the file by its path in the alert instead."""
     details = json_safe(analysis.details)
     if type(analysis).__name__ == "EmailAnalysis" and isinstance(details, dict) and isinstance(details.get("parts"), list):
@@ -1766,9 +1766,9 @@ def main():
     root.alert_type = args.alert_type
     root.analysis_mode = args.analysis_mode
     get_config().get_analysis_mode_config(root.analysis_mode).cleanup = False
-    root.description = "ace4 reference dump"
+    root.description = "ace-rs reference dump"
     root.set_event_time(datetime.datetime.now(), EventTimeSource.NOW)
-    root.details = {"comment": "ace4 reference dump"}
+    root.details = {"comment": "ace-rs reference dump"}
 
     source = None
     if args.extracted_from:

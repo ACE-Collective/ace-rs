@@ -1,6 +1,6 @@
-//! The normal form of a root's tree (PLAN.md 3.1): a JSON form both ace4 and ace3 can write, so
+//! The normal form of a root's tree (PLAN.md 3.1): a JSON form both ace-rs and ace3 can write, so
 //! the same sample can be compared across the two systems. `ace root normal-form` writes it for
-//! ace4, and `tools/ace3/` will write it for ace3 (3.2).
+//! ace-rs, and `tools/ace3/` will write it for ace3 (3.2).
 //!
 //! ```text
 //! {
@@ -42,7 +42,7 @@
 //! the core stores them. Of a detection the form keeps its description and details. The
 //! signature fields name a ruleset commit, which is a fact about the run.
 //!
-//! ace3's `file_type` result, which ace4 doesn't store, is in the form where the file shows it,
+//! ace3's `file_type` result, which ace-rs doesn't store, is in the form where the file shows it,
 //! built from the file's type and its analysis path (`crate::type_step`), so the comparison checks
 //! the same values in it as when it was a result.
 //!

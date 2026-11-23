@@ -59,7 +59,7 @@ pub mod paths {
     }
 }
 
-/// What a pool lists among its modules in `ACE4_POOLS` to run GUI commands (PLAN.md 5.12). No module
+/// What a pool lists among its modules in `ACE_RS_POOLS` to run GUI commands (PLAN.md 5.12). No module
 /// can have the name, and it's the payload that wakes the pools waiting for a command.
 pub const COMMANDS: &str = "@commands";
 

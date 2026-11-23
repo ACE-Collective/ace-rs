@@ -1,6 +1,6 @@
 -- Root completion (PLAN.md 2.11). A root is complete when it has no queued, delayed or running
 -- tasks. An analysis pass starts when work is queued on a root whose last pass completed, and
--- ends with exactly one completion row, which notifies channel ace4_root_complete with
+-- ends with exactly one completion row, which notifies channel ace_rs_root_complete with
 -- '<root>/<pass>'. Alert routing waits for that, rather than guessing from a stale flag (#848).
 
 ALTER TABLE analysis.roots
@@ -20,7 +20,7 @@ CREATE TABLE queue.root_completions (
 CREATE FUNCTION queue.notify_completion() RETURNS trigger
     LANGUAGE plpgsql AS $$
 BEGIN
-    PERFORM pg_notify('ace4_root_complete', NEW.root_id::text || '/' || NEW.pass::text);
+    PERFORM pg_notify('ace_rs_root_complete', NEW.root_id::text || '/' || NEW.pass::text);
     RETURN NULL;
 END
 $$;

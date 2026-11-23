@@ -48,7 +48,7 @@ ALTER TABLE store.objects ADD COLUMN verified_at timestamptz;
 -- `scheduler:bucket_gc` and `scheduler:bucket_orphans` delete what the bucket's index no longer
 -- keeps, `scheduler:bucket_verify` re-hashes objects and records when, and
 -- `scheduler:yara_qa_prune` removes expired QA matches, which ace3 does under no permission and
--- ace4 under the purge's own.
+-- ace-rs under the purge's own.
 INSERT INTO service.permissions (component, major, minor, effect, created_by)
 VALUES
     ('scheduler:bucket_gc', 'bucket', 'gc', 'allow', '{"kind": "internal", "id": "migration"}'),

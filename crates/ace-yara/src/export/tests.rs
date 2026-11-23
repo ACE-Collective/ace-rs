@@ -902,7 +902,7 @@ fn a_url_s_rule_doesn_t_match_inside_a_longer_host_and_names_its_detection() {
         ("$obsd_x", None),
         ("$obsd_-3", None),
         ("$obsd_0", None),
-        // ace3's legacy strings name rows ace4 doesn't have
+        // ace3's legacy strings name rows ace-rs doesn't have
         ("$obs_12", None),
         ("$a", None),
     ] {

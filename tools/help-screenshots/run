@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Draws the screenshots of the SVS guides (crates/ace-gui/help/svs/images/*.png).
 
-The guides under /help describe ace4's SVS screens, and their screenshots are of ace4's own pages
+The guides under /help describe ace-rs's SVS screens, and their screenshots are of ace-rs's own pages
 showing made-up data. This script makes them again, so run it when a page changes:
 
     tools/help-screenshots/run
@@ -12,7 +12,7 @@ few minutes once `ace` is built, and builds nothing for release. It:
 1. starts the dev stack's `dev`, `postgres` and `bucket`, and the e2e profile's `browser`, the pinned
    headless Chromium tests/e2e/run drives;
 2. builds `ace` in the dev container (a debug build, `cargo build -p ace --bin ace`) and makes a
-   throwaway database, `ace4_help_shots`, in the stack's Postgres;
+   throwaway database, `ace_rs_help_shots`, in the stack's Postgres;
 3. runs `ace serve` in the dev container against that database, with site/overlay.yaml, which turns
    off the scheduled tasks that would compute the fixture's rows again and names a made-up log search;
 4. makes the analysts `alice` and `bob` and the launcher's API key with `ace user`, and seeds the
@@ -62,7 +62,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 HERE = Path(__file__).resolve().parent
 IMAGES = ROOT / "crates" / "ace-gui" / "help" / "svs" / "images"
 COMPOSE = ["docker", "compose", "-f", str(ROOT / "compose.yaml"), "--profile", "e2e"]
-DATABASE = "ace4_help_shots"
+DATABASE = "ace_rs_help_shots"
 # The GUI as this script reaches it in `dev`. The browser reaches it at the dev container's address on
 # the stack's network (`gui_in_stack`), not by its name: Chromium sends `http://dev` to HTTPS, since
 # `dev` is a top-level domain whose every name is on its HSTS preload list.
@@ -74,12 +74,12 @@ WIDTH = 1280
 MAX_HEIGHT = 1500
 # What `ace` in the dev container reads: the throwaway database and this directory's overlay.
 SERVE_ENV = {
-    "ACE4_DATABASE_URL": None,  # filled in from the stack's own
-    "ACE4_WEB_LISTEN": "0.0.0.0:8000",
-    "ACE4_API_LISTEN": "127.0.0.1:8080",
-    "ACE4_ADMIN_TOKEN": "help-screenshots, not a secret",
-    "ACE4_OVERLAY": "/workspace/tools/help-screenshots/site/overlay.yaml",
-    "ACE4_LOG": "info",
+    "ACE_RS_DATABASE_URL": None,  # filled in from the stack's own
+    "ACE_RS_WEB_LISTEN": "0.0.0.0:8000",
+    "ACE_RS_API_LISTEN": "127.0.0.1:8080",
+    "ACE_RS_ADMIN_TOKEN": "help-screenshots, not a secret",
+    "ACE_RS_OVERLAY": "/workspace/tools/help-screenshots/site/overlay.yaml",
+    "ACE_RS_LOG": "info",
 }
 
 # The tests and runs of the fixture, by what the shots call them.
@@ -190,9 +190,9 @@ def expect(status, wanted, what, body=""):
 
 def database_url():
     """The dev container's own database URL, with the throwaway database's name."""
-    url = dev("sh", "-c", 'printf %s "$ACE4_DATABASE_URL"').strip()
+    url = dev("sh", "-c", 'printf %s "$ACE_RS_DATABASE_URL"').strip()
     if "/" not in url:
-        fail("the dev container has no ACE4_DATABASE_URL")
+        fail("the dev container has no ACE_RS_DATABASE_URL")
     return url.rsplit("/", 1)[0] + "/" + DATABASE
 
 
@@ -202,7 +202,7 @@ def stop_serve():
 
 def start():
     compose("up", "-d", "--wait", "dev", "postgres", "bucket", "browser")
-    SERVE_ENV["ACE4_DATABASE_URL"] = database_url()
+    SERVE_ENV["ACE_RS_DATABASE_URL"] = database_url()
     log("building ace in the dev container")
     dev("cargo", "build", "--locked", "-p", "ace", "--bin", "ace", capture=False)
     stop_serve()

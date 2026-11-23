@@ -10,12 +10,12 @@
 //! before it runs. A file no rule matched gets no YARA result, and the module runs once YARA won't
 //! store one (PLAN.md decision 30).
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
 //! - urlfinderlib returns a set, and ace3 orders its URLs from that set's order, which changes with
 //!   each process's hash seed; where two domains have as many URLs, which comes first changes from
 //!   run to run. Here the set is sorted first, so the order is the same each time.
-//! - ace3 adds the URLs as volatile observables. ace4 has no volatile flag; in ace3 only the GUI's
+//! - ace3 adds the URLs as volatile observables. ace-rs has no volatile flag; in ace3 only the GUI's
 //!   pruning and the analysis cache read it.
 
 use std::collections::BTreeSet;

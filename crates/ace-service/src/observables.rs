@@ -3,17 +3,17 @@
 //! `observable:read`, as ace3's does.
 //!
 //! What differs from ace3:
-//! - ace3 keeps one index of every observable it has seen, and normalizes a value by its type there. ace4
+//! - ace3 keeps one index of every observable it has seen, and normalizes a value by its type there. ace-rs
 //!   looks in every alert's own observables, so a value matches as it's stored: a file's sha256 is
 //!   lowercased, as `ace_results` writes it, and other values are matched exactly.
-//! - ace3 counts only its default queue and leaves out `faqueue` alerts. ace4's roots have no queue or
+//! - ace3 counts only its default queue and leaves out `faqueue` alerts. ace-rs's roots have no queue or
 //!   alert type yet, so every alert counts.
 //! - ace3 lists the events each alert belongs to. Events come with 5.6's events router.
 //! - Seen is when the root became an alert, where ace3's is when its alert row was inserted.
 //!
 //! `observable_types` is ace3's `GET /api/v2/observable-types/`, under the same permission: the types this
 //! binary was built with (`ObservableKind::all`), a site's own among them (PLAN.md 2.31). ace3 reads its
-//! YAML registry, which can change while it runs; ace4's list is fixed when the binary is built, so
+//! YAML registry, which can change while it runs; ace-rs's list is fixed when the binary is built, so
 //! there's nothing to reload or cache, and no database row adds a type, as in ace3.
 
 use std::collections::BTreeMap;

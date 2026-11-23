@@ -8,10 +8,10 @@ Measured on 2026-11-09 on the dev container of `build-loop.md` (Rancher Desktop,
 
 `tools/samples/make-identity-hostile <dir>` writes the files. In the dev container:
 
-    ACE4_FILES_HOSTILE=<dir> ACE4_FILES_MODULE=<module> cargo test -p ace-pool --features test-pools \
+    ACE_RS_FILES_HOSTILE=<dir> ACE_RS_FILES_MODULE=<module> cargo test -p ace-pool --features test-pools \
         --test supervisor measure_file_identity -- --ignored --nocapture
 
-submits each file whose name starts with the module's to the real supervisor, which runs `file_type` and the module as `ace4-task` under Landlock and seccomp with their limits. 3 runs each, each in a new root under a new name. The time runs from the root's submission to the module's task's end, so it includes the upload, the lease, the task process's start and, for a module that depends on file_type, file_type's task. It's a dev build, with oxc at `opt-level = 3` and the rest of the task unoptimized.
+submits each file whose name starts with the module's to the real supervisor, which runs `file_type` and the module as `ace-rs-task` under Landlock and seccomp with their limits. 3 runs each, each in a new root under a new name. The time runs from the root's submission to the module's task's end, so it includes the upload, the lease, the task process's start and, for a module that depends on file_type, file_type's task. It's a dev build, with oxc at `opt-level = 3` and the rest of the task unoptimized.
 
 ## Results
 
@@ -33,7 +33,7 @@ submits each file whose name starts with the module's to the real supervisor, wh
 Every task ended `done`, well inside its deadline. What each file does:
 
 - The parentheses pass V8's nesting limit, so the bracket count refuses them before oxc parses (`MAX_NESTING`), as node refuses them.
-- The arrows and the 8 MB file could need more than the 1 GiB stack the parse may have (`MAX_STACK`), so the JavaScript check fails without parsing. node refuses the arrows (its stack) and accepts the 8 MB file: that file isn't marked `type=script.javascript` in ace4. The 2 MB file parses, on a 0.68 GiB stack it reserves and barely touches.
+- The arrows and the 8 MB file could need more than the 1 GiB stack the parse may have (`MAX_STACK`), so the JavaScript check fails without parsing. node refuses the arrows (its stack) and accepts the 8 MB file: that file isn't marked `type=script.javascript` in ace-rs. The 2 MB file parses, on a 0.68 GiB stack it reserves and barely touches.
 - The zip check reads the central directory once (`ace-mod-oletools`' `zipfile` port); the email check stops at the end of the file, having found only two of the three headers.
 - The text is read whole by the checks, then libmagic reads its start.
 - No block holds a certificate, so `is_x509` is false and `x509_analyzer` skips the file.

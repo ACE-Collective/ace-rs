@@ -21,7 +21,7 @@ use std::collections::BTreeSet;
 use ace_core::db::{Db, DbError};
 
 /// The role migration 0064 grants. It can't log in; a deployment's login role is a member of it.
-pub const ROLE: &str = "ace4_ai";
+pub const ROLE: &str = "ace_rs_ai";
 
 /// The schemas the role may use.
 pub const SCHEMAS: &[&str] = &["ai", "analysis", "events", "search", "service", "svs"];

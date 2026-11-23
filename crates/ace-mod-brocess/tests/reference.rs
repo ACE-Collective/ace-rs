@@ -398,11 +398,11 @@ async fn the_email_logger_matches_the_reference_dumps_or_lists_each_difference()
             "brocess": added_rows(&dump.value["brocess_before"], &dump.value["brocess_after"]),
             "fluent_bit": fluent_form(expected),
         });
-        let ace4 = json!({
+        let ace_rs = json!({
             "brocess": written_rows(&writes),
             "fluent_bit": fluent_form(&sent),
         });
-        compared.push((name, diff(&ace3, &ace4)));
+        compared.push((name, diff(&ace3, &ace_rs)));
     }
     if let Err(report) = listed.check(&compared, &skipped) {
         panic!("{report}");
@@ -741,14 +741,14 @@ async fn the_thread_module_matches_the_reference_dumps_or_lists_each_difference(
         if name == "message_id_<inv-3@examp1e.com>" {
             ace_testkit::check_view_fixture("brocess_email_thread", &outcome);
         }
-        // the findings ace3 adds as a summary detail, which ace4's view draws from the details
+        // the findings ace3 adds as a summary detail, which ace-rs's view draws from the details
         let ace3_findings = dump
             .analysis("EmailThreadAnalysis")
             .and_then(|a| a["summary_details"].as_array())
             .and_then(|details| details.first())
             .map(|d| d["content"].clone())
             .unwrap_or(Value::Null);
-        let ace4_findings = match &outcome {
+        let ace_rs_findings = match &outcome {
             Outcome::Done(result) => {
                 ace_mod_brocess::thread::findings(&result.details).map_or(Value::Null, Value::from)
             }
@@ -758,8 +758,8 @@ async fn the_thread_module_matches_the_reference_dumps_or_lists_each_difference(
             "analysis": dump.normal_form("EmailThreadAnalysis"),
             "findings": ace3_findings,
         });
-        let ace4 = json!({"analysis": normal_form(&outcome), "findings": ace4_findings});
-        compared.push((name, diff(&ace3, &ace4)));
+        let ace_rs = json!({"analysis": normal_form(&outcome), "findings": ace_rs_findings});
+        compared.push((name, diff(&ace3, &ace_rs)));
     }
     if let Err(report) = listed.check(&compared, &[]) {
         panic!("{report}");
@@ -816,7 +816,7 @@ fn emailtree_rows(dump: &Dump) -> Value {
 }
 
 /// The dump's root as the core would send it to a module on the observable at `this`, with each
-/// conversation's frequency result and tags from ace4's frequency module over the run's rows, in
+/// conversation's frequency result and tags from ace-rs's frequency module over the run's rows, in
 /// place of ace3's.
 async fn emailtree_view(dump: &Dump, this: usize, leave_out: &str) -> ace_sdk::tree::TreeView {
     use ace_results::AnalysisType;
@@ -902,7 +902,7 @@ async fn the_attachment_and_link_modules_match_the_reference_dumps_or_lists_each
     let dumps = Dump::all("email_conversation_attachment_analyzer").expect("the dumps read");
     assert!(dumps.len() >= 15, "only {} attachment dumps", dumps.len());
     for dump in dumps {
-        let mut ace4 = serde_json::Map::new();
+        let mut ace_rs = serde_json::Map::new();
         let files: Vec<(usize, Value)> = dump
             .tree_results("FileTypeAnalysis")
             .into_iter()
@@ -920,7 +920,7 @@ async fn the_attachment_and_link_modules_match_the_reference_dumps_or_lists_each
             let outcome = harness
                 .run_parser(observable)
                 .unwrap_or_else(|e| panic!("{} {path}: {e}", dump.name));
-            if dump.short_name() == "ace4/email/macro_attachment.email.rfc822"
+            if dump.short_name() == "ace-rs/email/macro_attachment.email.rfc822"
                 && matches!(outcome, Outcome::Done(_))
             {
                 ace_testkit::check_view_fixture("attachment_macro_attachment", &outcome);
@@ -928,7 +928,7 @@ async fn the_attachment_and_link_modules_match_the_reference_dumps_or_lists_each
             match outcome {
                 Outcome::Done(result) => {
                     fired += 1;
-                    ace4.insert(
+                    ace_rs.insert(
                         format!("file:{}", o.value),
                         json!({
                             "analysis": true,
@@ -957,7 +957,7 @@ async fn the_attachment_and_link_modules_match_the_reference_dumps_or_lists_each
                     attachment::DESCRIPTION,
                     Some("sandbox"),
                 ),
-                &Value::Object(ace4),
+                &Value::Object(ace_rs),
             ),
         ));
     }
@@ -975,7 +975,7 @@ async fn the_attachment_and_link_modules_match_the_reference_dumps_or_lists_each
             let tree = dump.tree_view(0, &[]);
             tree.of_kind(ObservableKind::Url).collect()
         };
-        let mut ace4 = serde_json::Map::new();
+        let mut ace_rs = serde_json::Map::new();
         for i in urls {
             let tree = emailtree_view(&dump, i, "EmailConversationLinkAnalysis").await;
             let value = tree.observable(i).value.clone();
@@ -985,14 +985,14 @@ async fn the_attachment_and_link_modules_match_the_reference_dumps_or_lists_each
             let outcome = harness
                 .run_parser(harness.observable(ObservableKind::Url, &value))
                 .unwrap_or_else(|e| panic!("{} {value}: {e}", dump.name));
-            if dump.short_name() == "ace4/email/lure_button.email.rfc822"
+            if dump.short_name() == "ace-rs/email/lure_button.email.rfc822"
                 && value == "https://login.lure-example.net/verify?id=7"
             {
                 ace_testkit::check_view_fixture("link_lure_button", &outcome);
             }
             match outcome {
                 Outcome::Done(result) => {
-                    ace4.insert(
+                    ace_rs.insert(
                         format!("url:{value}"),
                         json!({
                             "analysis": true,
@@ -1020,7 +1020,7 @@ async fn the_attachment_and_link_modules_match_the_reference_dumps_or_lists_each
                     link::DESCRIPTION,
                     None,
                 ),
-                &Value::Object(ace4),
+                &Value::Object(ace_rs),
             ),
         ));
     }

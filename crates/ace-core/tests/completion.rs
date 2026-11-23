@@ -291,7 +291,7 @@ mod emitted {
         });
     }
 
-    /// Turns the events off or on again, as `ACE4_LOG` does for a process.
+    /// Turns the events off or on again, as `ACE_RS_LOG` does for a process.
     pub fn take(taken: bool) {
         TAKEN.store(taken, Ordering::SeqCst);
     }

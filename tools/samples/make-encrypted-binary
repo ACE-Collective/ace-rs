@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Makes samples/ace4's encrypted binary Office files and the broken encrypted ones, for tools/samples/gather.
+"""Makes samples/ace-rs's encrypted binary Office files and the broken encrypted ones, for tools/samples/gather.
 It runs in the python-libraries image, which has msoffcrypto, olefile and cryptography, and imports
 tools/samples/make-oletools and make-encrypted-office from beside it:
 

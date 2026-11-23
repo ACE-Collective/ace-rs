@@ -1,6 +1,6 @@
-# ace4's Compose stack. It runs on the same Docker host as ace3's stack, so it follows
-# PLAN.md's "Running beside ace3": its own project name, ACE4_ variables, no fixed host
-# port other than ACE4_PORT_HTTPS, ace4-* image names, no container_name, no explicitly
+# ace-rs's Compose stack. It runs on the same Docker host as ace3's stack, so it follows
+# PLAN.md's "Running beside ace3": its own project name, ACE_RS_ variables, no fixed host
+# port other than ACE_RS_PORT_HTTPS, ace-rs-* image names, no container_name, no explicitly
 # named volume or network, and no fluentd log driver. bin/check-coexistence checks this file.
 #
 # Day to day:
@@ -10,29 +10,29 @@
 #   docker compose down                stop it; the named volumes keep target/ and the caches
 #   docker compose port postgres 5432  the host port Postgres was given, likewise bucket 8333
 #
-# Postgres and the bucket publish on ephemeral host ports bound to ACE4_BIND_ADDRESS, so they
+# Postgres and the bucket publish on ephemeral host ports bound to ACE_RS_BIND_ADDRESS, so they
 # never take a port ace3 or another stack holds. Containers in the stack reach them by service
-# name. Their credentials are dev defaults that ACE4_ variables override; none come from ace3.
+# name. Their credentials are dev defaults that ACE_RS_ variables override; none come from ace3.
 
-name: ${ACE4_STACK:-ace4}
+name: ${ACE_RS_STACK:-ace-rs}
 
 services:
   # Every other service waits for this one. COMPOSE_PROJECT_NAME overrides the name: above,
   # and the stack's containers, network and volumes would then follow it instead of
-  # ACE4_STACK, so the guard refuses to let the stack start under any other project name.
+  # ACE_RS_STACK, so the guard refuses to let the stack start under any other project name.
   # Compose sets COMPOSE_PROJECT_NAME for interpolation to the project name in use.
   stack-guard:
     image: alpine:3.24.2
     environment:
-      ACE4_STACK: ${ACE4_STACK:-ace4}
+      ACE_RS_STACK: ${ACE_RS_STACK:-ace-rs}
       PROJECT_IN_USE: ${COMPOSE_PROJECT_NAME}
     command:
       - sh
       - -c
       - |
-        if [ "$$PROJECT_IN_USE" != "$$ACE4_STACK" ]; then
-          echo "FATAL: the Compose project is '$$PROJECT_IN_USE', but ACE4_STACK is '$$ACE4_STACK'." >&2
-          echo "       unset COMPOSE_PROJECT_NAME and set ACE4_STACK to pick the project name." >&2
+        if [ "$$PROJECT_IN_USE" != "$$ACE_RS_STACK" ]; then
+          echo "FATAL: the Compose project is '$$PROJECT_IN_USE', but ACE_RS_STACK is '$$ACE_RS_STACK'." >&2
+          echo "       unset COMPOSE_PROJECT_NAME and set ACE_RS_STACK to pick the project name." >&2
           exit 1
         fi
     restart: "no"
@@ -43,7 +43,7 @@ services:
       # unautoit's source, which the image builds as the sandbox image does
       additional_contexts:
         vendor: ./vendor
-    image: ace4-dev:latest
+    image: ace-rs-dev:latest
     depends_on:
       stack-guard:
         condition: service_completed_successfully
@@ -52,15 +52,15 @@ services:
       # Tests, `cargo sqlx migrate run` and `cargo sqlx prepare --workspace` reach the stack's
       # Postgres through this (sqlx.toml names it). Builds don't read it: with no DATABASE_URL
       # set, sqlx checks queries against the offline data in .sqlx/.
-      ACE4_DATABASE_URL: postgres://${ACE4_POSTGRES_USER:-ace4}:${ACE4_POSTGRES_PASSWORD:-ace4-dev-password}@postgres:5432/${ACE4_POSTGRES_DB:-ace4}
+      ACE_RS_DATABASE_URL: postgres://${ACE_RS_POSTGRES_USER:-ace_rs}:${ACE_RS_POSTGRES_PASSWORD:-ace-rs-dev-password}@postgres:5432/${ACE_RS_POSTGRES_DB:-ace_rs}
       # The stack's bucket, for ace-store's and ace-core's tests. Its static keys and region
       # mean nothing reads the AWS credential or region chain (ace_store::aws), so nothing asks
       # an instance metadata service that isn't there.
-      ACE4_BUCKET_ENDPOINT: http://bucket:8333
-      ACE4_BUCKET_NAME: ${ACE4_BUCKET_NAME:-ace4}
-      ACE4_BUCKET_REGION: ${ACE4_BUCKET_REGION:-us-east-1}
-      ACE4_BUCKET_ACCESS_KEY: ${ACE4_BUCKET_ACCESS_KEY:-ace4-dev}
-      ACE4_BUCKET_SECRET_KEY: ${ACE4_BUCKET_SECRET_KEY:-ace4-dev-secret}
+      ACE_RS_BUCKET_ENDPOINT: http://bucket:8333
+      ACE_RS_BUCKET_NAME: ${ACE_RS_BUCKET_NAME:-ace-rs}
+      ACE_RS_BUCKET_REGION: ${ACE_RS_BUCKET_REGION:-us-east-1}
+      ACE_RS_BUCKET_ACCESS_KEY: ${ACE_RS_BUCKET_ACCESS_KEY:-ace-rs-dev}
+      ACE_RS_BUCKET_SECRET_KEY: ${ACE_RS_BUCKET_SECRET_KEY:-ace-rs-dev-secret}
       # A Docker client with proxies in its config.json gives every container ALL_PROXY and a
       # NO_PROXY list that doesn't name this stack's services, and the S3 client honors them.
       # The stack's own services are reached directly; anything else still goes through the
@@ -68,11 +68,11 @@ services:
       NO_PROXY: localhost,127.0.0.1,postgres,bucket,collector
       no_proxy: localhost,127.0.0.1,postgres,bucket,collector
       # The telemetry profile's collector, for ace-pool's telemetry test: where it sends spans
-      # and where it reads them back. Processes export spans only when ACE4_OTLP_ENDPOINT is
+      # and where it reads them back. Processes export spans only when ACE_RS_OTLP_ENDPOINT is
       # set, which it isn't here, so nothing else in the container tries to reach a collector
       # that isn't running.
-      ACE4_TEST_OTLP_ENDPOINT: http://collector:4318
-      ACE4_TEST_TRACES_URL: http://collector:16686
+      ACE_RS_TEST_OTLP_ENDPOINT: http://collector:4318
+      ACE_RS_TEST_TRACES_URL: http://collector:16686
     # The image's main process, poll-host-changes, passes saves on the macOS host to
     # inotify in the container so bacon sees them. Rancher Desktop's virtiofs mount
     # doesn't, so without it bacon only rebuilds for changes made inside the container.
@@ -84,7 +84,7 @@ services:
       - cargo-registry:/usr/local/cargo/registry
       - cargo-git:/usr/local/cargo/git
       - sccache:/sccache
-    mem_limit: ${ACE4_DEV_MEM_LIMIT:-12g}
+    mem_limit: ${ACE_RS_DEV_MEM_LIMIT:-12g}
     healthcheck:
       # Healthy when the checkout is mounted, the toolchain runs and the poller finished a
       # pass in the last 10 seconds.
@@ -104,21 +104,21 @@ services:
   postgres:
     build:
       context: docker/postgres
-    image: ace4-postgres:18.6-pgvector0.8.7
+    image: ace-rs-postgres:18.6-pgvector0.8.7
     depends_on:
       stack-guard:
         condition: service_completed_successfully
     environment:
-      POSTGRES_USER: ${ACE4_POSTGRES_USER:-ace4}
-      POSTGRES_PASSWORD: ${ACE4_POSTGRES_PASSWORD:-ace4-dev-password}
-      POSTGRES_DB: ${ACE4_POSTGRES_DB:-ace4}
+      POSTGRES_USER: ${ACE_RS_POSTGRES_USER:-ace_rs}
+      POSTGRES_PASSWORD: ${ACE_RS_POSTGRES_PASSWORD:-ace-rs-dev-password}
+      POSTGRES_DB: ${ACE_RS_POSTGRES_DB:-ace_rs}
     ports:
-      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::5432"
+      - "${ACE_RS_BIND_ADDRESS:-127.0.0.1}::5432"
     volumes:
       # Postgres 18's image keeps its data under /var/lib/postgresql/18/, so the volume goes on
       # the parent directory and a major upgrade can sit beside the old data.
       - postgres-data:/var/lib/postgresql
-    mem_limit: ${ACE4_POSTGRES_MEM_LIMIT:-1g}
+    mem_limit: ${ACE_RS_POSTGRES_MEM_LIMIT:-1g}
     healthcheck:
       # Over TCP, because during first-start initialization the image's temporary server
       # listens only on the Unix socket, and pg_isready on the socket would pass too early.
@@ -140,14 +140,14 @@ services:
       stack-guard:
         condition: service_completed_successfully
     environment:
-      AWS_ACCESS_KEY_ID: ${ACE4_BUCKET_ACCESS_KEY:-ace4-dev}
-      AWS_SECRET_ACCESS_KEY: ${ACE4_BUCKET_SECRET_KEY:-ace4-dev-secret}
-      S3_BUCKET: ${ACE4_BUCKET_NAME:-ace4}
+      AWS_ACCESS_KEY_ID: ${ACE_RS_BUCKET_ACCESS_KEY:-ace-rs-dev}
+      AWS_SECRET_ACCESS_KEY: ${ACE_RS_BUCKET_SECRET_KEY:-ace-rs-dev-secret}
+      S3_BUCKET: ${ACE_RS_BUCKET_NAME:-ace-rs}
     ports:
-      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::8333"
+      - "${ACE_RS_BIND_ADDRESS:-127.0.0.1}::8333"
     volumes:
       - bucket-data:/data
-    mem_limit: ${ACE4_BUCKET_MEM_LIMIT:-1g}
+    mem_limit: ${ACE_RS_BUCKET_MEM_LIMIT:-1g}
     healthcheck:
       # Healthy when the S3 gateway answers and the filer holds the bucket's directory.
       test:
@@ -163,7 +163,7 @@ services:
   # The trace collector (PLAN.md 2.22): Jaeger, which takes OpenTelemetry's OTLP and keeps
   # spans in memory, with a query API and a UI on 16686. Off by default; start it with
   # `docker compose --profile telemetry up -d --wait collector`, and processes that have
-  # ACE4_OTLP_ENDPOINT set export their spans to it.
+  # ACE_RS_OTLP_ENDPOINT set export their spans to it.
   collector:
     image: jaegertracing/jaeger:2.22.0
     profiles: [telemetry]
@@ -176,9 +176,9 @@ services:
       no_proxy: localhost,127.0.0.1,postgres,bucket,collector
     ports:
       # the UI and query API, and OTLP over HTTP
-      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::16686"
-      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::4318"
-    mem_limit: ${ACE4_COLLECTOR_MEM_LIMIT:-512m}
+      - "${ACE_RS_BIND_ADDRESS:-127.0.0.1}::16686"
+      - "${ACE_RS_BIND_ADDRESS:-127.0.0.1}::4318"
+    mem_limit: ${ACE_RS_COLLECTOR_MEM_LIMIT:-512m}
     healthcheck:
       test:
         - CMD-SHELL
@@ -189,19 +189,19 @@ services:
       retries: 5
 
   # The core (PLAN.md 2.29): `ace serve`, with the lease API, the JSON API (5.5), the reaper,
-  # the QA recorder and, when ACE4_SIGNATURES names a signatures checkout on the host, the
+  # the QA recorder and, when ACE_RS_SIGNATURES names a signatures checkout on the host, the
   # ruleset builder. The JSON API, for people and their scripts, is on the stack's one fixed host
-  # port, ACE4_PORT_HTTPS, over plain HTTP for now. The lease API, for the pools, stays on the
+  # port, ACE_RS_PORT_HTTPS, over plain HTTP for now. The lease API, for the pools, stays on the
   # stack's network on 8080, so its tokens' dev defaults aren't reachable from the host. A script
   # submits with an API key: `docker compose exec ace ace user create-key NAME --grant alert:create`
-  # prints one; there's no default key. It reads the site overlay from ACE4_SITE's overlay.yaml.
+  # prints one; there's no default key. It reads the site overlay from ACE_RS_SITE's overlay.yaml.
   # The AI investigation API isn't here: the `ai` service serves it.
   ace:
     build:
       context: .
-      dockerfile: docker/ace4/Dockerfile
+      dockerfile: docker/ace-rs/Dockerfile
       target: ace
-    image: ace4-ace:latest
+    image: ace-rs-ace:latest
     depends_on:
       stack-guard:
         condition: service_completed_successfully
@@ -210,43 +210,43 @@ services:
       bucket:
         condition: service_healthy
     environment:
-      ACE4_DATABASE_URL: postgres://${ACE4_POSTGRES_USER:-ace4}:${ACE4_POSTGRES_PASSWORD:-ace4-dev-password}@postgres:5432/${ACE4_POSTGRES_DB:-ace4}
+      ACE_RS_DATABASE_URL: postgres://${ACE_RS_POSTGRES_USER:-ace_rs}:${ACE_RS_POSTGRES_PASSWORD:-ace-rs-dev-password}@postgres:5432/${ACE_RS_POSTGRES_DB:-ace_rs}
       # The stack's bucket with static keys. On AWS, leave both keys out and the core signs with
       # the AWS credential chain, such as the EC2 instance role, and finds its region the same
-      # way unless ACE4_BUCKET_REGION is set (ace_store::aws).
-      ACE4_BUCKET_ENDPOINT: http://bucket:8333
-      ACE4_BUCKET_NAME: ${ACE4_BUCKET_NAME:-ace4}
-      ACE4_BUCKET_REGION: ${ACE4_BUCKET_REGION:-us-east-1}
-      ACE4_BUCKET_ACCESS_KEY: ${ACE4_BUCKET_ACCESS_KEY:-ace4-dev}
-      ACE4_BUCKET_SECRET_KEY: ${ACE4_BUCKET_SECRET_KEY:-ace4-dev-secret}
-      ACE4_API_LISTEN: 0.0.0.0:8080
-      ACE4_WEB_LISTEN: 0.0.0.0:8000
-      ACE4_OVERLAY: /etc/ace4/overlay.yaml
-      # set only when ACE4_SIGNATURES names a checkout; without one nothing builds rulesets
-      ACE4_SIGNATURES_REPO: ${ACE4_SIGNATURES:+/signatures}
-      ACE4_RULESET_POLL_SECONDS: ${ACE4_RULESET_POLL_SECONDS:-60}
-      ACE4_LEASE_SECONDS: ${ACE4_LEASE_SECONDS:-60}
+      # way unless ACE_RS_BUCKET_REGION is set (ace_store::aws).
+      ACE_RS_BUCKET_ENDPOINT: http://bucket:8333
+      ACE_RS_BUCKET_NAME: ${ACE_RS_BUCKET_NAME:-ace-rs}
+      ACE_RS_BUCKET_REGION: ${ACE_RS_BUCKET_REGION:-us-east-1}
+      ACE_RS_BUCKET_ACCESS_KEY: ${ACE_RS_BUCKET_ACCESS_KEY:-ace-rs-dev}
+      ACE_RS_BUCKET_SECRET_KEY: ${ACE_RS_BUCKET_SECRET_KEY:-ace-rs-dev-secret}
+      ACE_RS_API_LISTEN: 0.0.0.0:8080
+      ACE_RS_WEB_LISTEN: 0.0.0.0:8000
+      ACE_RS_OVERLAY: /etc/ace-rs/overlay.yaml
+      # set only when ACE_RS_SIGNATURES names a checkout; without one nothing builds rulesets
+      ACE_RS_SIGNATURES_REPO: ${ACE_RS_SIGNATURES:+/signatures}
+      ACE_RS_RULESET_POLL_SECONDS: ${ACE_RS_RULESET_POLL_SECONDS:-60}
+      ACE_RS_LEASE_SECONDS: ${ACE_RS_LEASE_SECONDS:-60}
       # 1 queues every task and marks the ones a module's declaration of what it takes would
       # decline (PLAN.md decision 23, ace_core::takes)
-      ACE4_TAKES_AUDIT: ${ACE4_TAKES_AUDIT:-}
-      ACE4_POOL_TOKEN_PARSERS: ${ACE4_POOL_TOKEN_PARSERS:-ace4-dev-parsers-token}
-      ACE4_POOL_TOKEN_LOOKUPS: ${ACE4_POOL_TOKEN_LOOKUPS:-ace4-dev-lookups-token}
-      ACE4_POOL_TOKEN_SANDBOX: ${ACE4_POOL_TOKEN_SANDBOX:-ace4-dev-sandbox-token}
-      ACE4_POOL_TOKEN_SCANNERS: ${ACE4_POOL_TOKEN_SCANNERS:-ace4-dev-scanners-token}
-      ACE4_ADMIN_TOKEN: ${ACE4_ADMIN_TOKEN:-ace4-dev-admin-token}
+      ACE_RS_TAKES_AUDIT: ${ACE_RS_TAKES_AUDIT:-}
+      ACE_RS_POOL_TOKEN_PARSERS: ${ACE_RS_POOL_TOKEN_PARSERS:-ace-rs-dev-parsers-token}
+      ACE_RS_POOL_TOKEN_LOOKUPS: ${ACE_RS_POOL_TOKEN_LOOKUPS:-ace-rs-dev-lookups-token}
+      ACE_RS_POOL_TOKEN_SANDBOX: ${ACE_RS_POOL_TOKEN_SANDBOX:-ace-rs-dev-sandbox-token}
+      ACE_RS_POOL_TOKEN_SCANNERS: ${ACE_RS_POOL_TOKEN_SCANNERS:-ace-rs-dev-scanners-token}
+      ACE_RS_ADMIN_TOKEN: ${ACE_RS_ADMIN_TOKEN:-ace-rs-dev-admin-token}
       # the email archive's key (64 hex digits), which only this service holds; with none, nothing is
       # archived or opened
-      ACE4_ENCRYPTION_KEY: ${ACE4_ENCRYPTION_KEY:-}
-      ACE4_LOG: ${ACE4_LOG:-info}
+      ACE_RS_ENCRYPTION_KEY: ${ACE_RS_ENCRYPTION_KEY:-}
+      ACE_RS_LOG: ${ACE_RS_LOG:-info}
       NO_PROXY: localhost,127.0.0.1,postgres,bucket,collector
       no_proxy: localhost,127.0.0.1,postgres,bucket,collector
     volumes:
-      - ${ACE4_SITE:-./docker/site}:/etc/ace4:ro
+      - ${ACE_RS_SITE:-./docker/site}:/etc/ace-rs:ro
       # read-only; the builder reads the checkout's git objects and changes nothing
-      - ${ACE4_SIGNATURES:-./docker/site}:/signatures:ro
+      - ${ACE_RS_SIGNATURES:-./docker/site}:/signatures:ro
     ports:
-      - "${ACE4_BIND_ADDRESS:-127.0.0.1}:${ACE4_PORT_HTTPS:-7443}:8000"
-    mem_limit: ${ACE4_ACE_MEM_LIMIT:-1g}
+      - "${ACE_RS_BIND_ADDRESS:-127.0.0.1}:${ACE_RS_PORT_HTTPS:-7443}:8000"
+    mem_limit: ${ACE_RS_ACE_MEM_LIMIT:-1g}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/healthz"]
@@ -256,31 +256,31 @@ services:
       retries: 5
 
   # The AI investigation API's database login (PLAN.md 7.15), made once the core has migrated: a role
-  # that can log in and is a member of ace4_ai, which migration 0064 grants what the API reads and
+  # that can log in and is a member of ace_rs_ai, which migration 0064 grants what the API reads and
   # nothing else. It runs each time the stack starts and sets the password again, so changing
-  # ACE4_AI_POSTGRES_PASSWORD takes effect. A deployment whose Postgres isn't the stack's makes the
-  # role itself: CREATE ROLE ... LOGIN PASSWORD ... IN ROLE ace4_ai.
+  # ACE_RS_AI_POSTGRES_PASSWORD takes effect. A deployment whose Postgres isn't the stack's makes the
+  # role itself: CREATE ROLE ... LOGIN PASSWORD ... IN ROLE ace_rs_ai.
   ai-role:
-    image: ace4-postgres:18.6-pgvector0.8.7
+    image: ace-rs-postgres:18.6-pgvector0.8.7
     depends_on:
       ace:
         condition: service_healthy
     environment:
       PGHOST: postgres
-      PGUSER: ${ACE4_POSTGRES_USER:-ace4}
-      PGPASSWORD: ${ACE4_POSTGRES_PASSWORD:-ace4-dev-password}
-      PGDATABASE: ${ACE4_POSTGRES_DB:-ace4}
-      AI_USER: ${ACE4_AI_POSTGRES_USER:-ace4_ai_login}
-      AI_PASSWORD: ${ACE4_AI_POSTGRES_PASSWORD:-ace4-dev-ai-password}
+      PGUSER: ${ACE_RS_POSTGRES_USER:-ace_rs}
+      PGPASSWORD: ${ACE_RS_POSTGRES_PASSWORD:-ace-rs-dev-password}
+      PGDATABASE: ${ACE_RS_POSTGRES_DB:-ace_rs}
+      AI_USER: ${ACE_RS_AI_POSTGRES_USER:-ace_rs_ai_login}
+      AI_PASSWORD: ${ACE_RS_AI_POSTGRES_PASSWORD:-ace-rs-dev-ai-password}
     entrypoint: ["sh", "-c"]
     command:
       - |
         psql -v ON_ERROR_STOP=1 -v login="$$AI_USER" -v password="$$AI_PASSWORD" <<'SQL'
-        SELECT format('CREATE ROLE %I LOGIN IN ROLE ace4_ai', :'login')
+        SELECT format('CREATE ROLE %I LOGIN IN ROLE ace_rs_ai', :'login')
         WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = :'login') \gexec
         ALTER ROLE :"login" LOGIN PASSWORD :'password';
         SQL
-    mem_limit: ${ACE4_AI_ROLE_MEM_LIMIT:-128m}
+    mem_limit: ${ACE_RS_AI_ROLE_MEM_LIMIT:-128m}
     restart: "no"
 
   # The AI investigation API (PLAN.md 7.15): `ace serve-ai`, the core's image in another mode, as
@@ -290,13 +290,13 @@ services:
   # them.
   #
   # It holds only what it needs, and refuses to start if it is handed more: the database as the
-  # ai-role service's login, an overlay of its own (ACE4_AI_OVERLAY on the host, ai.yaml of the dev
+  # ai-role service's login, an overlay of its own (ACE_RS_AI_OVERLAY on the host, ai.yaml of the dev
   # site by default) with ai_api, secrets and the dispositions and no other section, and the secrets
-  # its enabled backends list. No ACE4_ENCRYPTION_KEY, no pool or admin token, no bucket credential:
+  # its enabled backends list. No ACE_RS_ENCRYPTION_KEY, no pool or admin token, no bucket credential:
   # naming one here stops it. With ai_api.enabled false, as the dev site has it, it serves and every
   # route says the API is off.
   ai:
-    image: ace4-ace:latest
+    image: ace-rs-ace:latest
     command: ["ace", "serve-ai"]
     depends_on:
       ace:
@@ -304,21 +304,21 @@ services:
       ai-role:
         condition: service_completed_successfully
     environment:
-      ACE4_DATABASE_URL: postgres://${ACE4_AI_POSTGRES_USER:-ace4_ai_login}:${ACE4_AI_POSTGRES_PASSWORD:-ace4-dev-ai-password}@postgres:5432/${ACE4_POSTGRES_DB:-ace4}
-      ACE4_AI_LISTEN: 0.0.0.0:8001
-      ACE4_OVERLAY: /etc/ace4/ai.yaml
+      ACE_RS_DATABASE_URL: postgres://${ACE_RS_AI_POSTGRES_USER:-ace_rs_ai_login}:${ACE_RS_AI_POSTGRES_PASSWORD:-ace-rs-dev-ai-password}@postgres:5432/${ACE_RS_POSTGRES_DB:-ace_rs}
+      ACE_RS_AI_LISTEN: 0.0.0.0:8001
+      ACE_RS_OVERLAY: /etc/ace-rs/ai.yaml
       # a Splunk backend's token, when the overlay's secrets: names this variable for it; unset, it
       # is empty here and counts as not held
-      ACE4_SPLUNK_AI_TOKEN: ${ACE4_SPLUNK_AI_TOKEN:-}
-      ACE4_LOG: ${ACE4_LOG:-info}
+      ACE_RS_SPLUNK_AI_TOKEN: ${ACE_RS_SPLUNK_AI_TOKEN:-}
+      ACE_RS_LOG: ${ACE_RS_LOG:-info}
       NO_PROXY: localhost,127.0.0.1,postgres,collector
       no_proxy: localhost,127.0.0.1,postgres,collector
     volumes:
       # its overlay alone, not the site's directory
-      - ${ACE4_AI_OVERLAY:-./docker/site/ai.yaml}:/etc/ace4/ai.yaml:ro
+      - ${ACE_RS_AI_OVERLAY:-./docker/site/ai.yaml}:/etc/ace-rs/ai.yaml:ro
     ports:
-      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::8001"
-    mem_limit: ${ACE4_AI_MEM_LIMIT:-1g}
+      - "${ACE_RS_BIND_ADDRESS:-127.0.0.1}::8001"
+    mem_limit: ${ACE_RS_AI_MEM_LIMIT:-1g}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8001/api/health/v1/ping"]
@@ -328,33 +328,33 @@ services:
       retries: 5
 
   # The parser pool: the email, YARA and other file modules, one contained process per task, as
-  # the ace4-task user. It leases nothing until the core's first YARA ruleset has loaded.
+  # the ace-rs-task user. It leases nothing until the core's first YARA ruleset has loaded.
   parsers:
     build:
       context: .
-      dockerfile: docker/ace4/Dockerfile
+      dockerfile: docker/ace-rs/Dockerfile
       target: parsers
-    image: ace4-parsers:latest
+    image: ace-rs-parsers:latest
     depends_on:
       ace:
         condition: service_healthy
     init: true
     environment:
-      ACE4_API_URL: http://ace:8080
-      ACE4_POOL_TOKEN: ${ACE4_POOL_TOKEN_PARSERS:-ace4-dev-parsers-token}
-      ACE4_OVERLAY: /etc/ace4/overlay.yaml
-      ACE4_CONCURRENCY: ${ACE4_PARSERS_CONCURRENCY:-4}
-      ACE4_RULESET_POLL_SECONDS: ${ACE4_POOL_RULESET_POLL_SECONDS:-30}
-      ACE4_LOG: ${ACE4_LOG:-info}
+      ACE_RS_API_URL: http://ace:8080
+      ACE_RS_POOL_TOKEN: ${ACE_RS_POOL_TOKEN_PARSERS:-ace-rs-dev-parsers-token}
+      ACE_RS_OVERLAY: /etc/ace-rs/overlay.yaml
+      ACE_RS_CONCURRENCY: ${ACE_RS_PARSERS_CONCURRENCY:-4}
+      ACE_RS_RULESET_POLL_SECONDS: ${ACE_RS_POOL_RULESET_POLL_SECONDS:-30}
+      ACE_RS_LOG: ${ACE_RS_LOG:-info}
       NO_PROXY: localhost,127.0.0.1,ace,bucket,collector
       no_proxy: localhost,127.0.0.1,ace,bucket,collector
     volumes:
-      - ${ACE4_SITE:-./docker/site}:/etc/ace4:ro
-    mem_limit: ${ACE4_PARSERS_MEM_LIMIT:-4g}
+      - ${ACE_RS_SITE:-./docker/site}:/etc/ace-rs:ro
+    mem_limit: ${ACE_RS_PARSERS_MEM_LIMIT:-4g}
     restart: unless-stopped
     healthcheck:
       # the pool writes this file every 5 seconds while its runtime runs
-      test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace4-health -newermt '-20 seconds')\""]
+      test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace-rs-health -newermt '-20 seconds')\""]
       interval: 5s
       timeout: 5s
       start_period: 10s
@@ -362,31 +362,31 @@ services:
 
   # The sandbox pool (PLAN.md 7.3): the parser pool of the modules that run tools, such as
   # Ghostscript, tesseract and ExifTool, whose image carries them. Its supervisor runs each tool a
-  # task asks for as a contained process of its own, as ace4-task.
+  # task asks for as a contained process of its own, as ace-rs-task.
   sandbox:
     build:
       context: .
-      dockerfile: docker/ace4/Dockerfile
+      dockerfile: docker/ace-rs/Dockerfile
       target: sandbox
-    image: ace4-sandbox:latest
+    image: ace-rs-sandbox:latest
     depends_on:
       ace:
         condition: service_healthy
     init: true
     environment:
-      ACE4_API_URL: http://ace:8080
-      ACE4_POOL_TOKEN: ${ACE4_POOL_TOKEN_SANDBOX:-ace4-dev-sandbox-token}
-      ACE4_OVERLAY: /etc/ace4/overlay.yaml
-      ACE4_CONCURRENCY: ${ACE4_SANDBOX_CONCURRENCY:-4}
-      ACE4_LOG: ${ACE4_LOG:-info}
+      ACE_RS_API_URL: http://ace:8080
+      ACE_RS_POOL_TOKEN: ${ACE_RS_POOL_TOKEN_SANDBOX:-ace-rs-dev-sandbox-token}
+      ACE_RS_OVERLAY: /etc/ace-rs/overlay.yaml
+      ACE_RS_CONCURRENCY: ${ACE_RS_SANDBOX_CONCURRENCY:-4}
+      ACE_RS_LOG: ${ACE_RS_LOG:-info}
       NO_PROXY: localhost,127.0.0.1,ace,bucket,collector
       no_proxy: localhost,127.0.0.1,ace,bucket,collector
     volumes:
-      - ${ACE4_SITE:-./docker/site}:/etc/ace4:ro
-    mem_limit: ${ACE4_SANDBOX_MEM_LIMIT:-4g}
+      - ${ACE_RS_SITE:-./docker/site}:/etc/ace-rs:ro
+    mem_limit: ${ACE_RS_SANDBOX_MEM_LIMIT:-4g}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace4-health -newermt '-20 seconds')\""]
+      test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace-rs-health -newermt '-20 seconds')\""]
       interval: 5s
       timeout: 5s
       start_period: 10s
@@ -394,76 +394,76 @@ services:
 
   # The network pool: the RDAP, DNS and Splunk modules as async tasks in one contained process. A
   # secret its modules declare comes from where the overlay's secrets: section says, such as
-  # ACE4_SPLUNK_PASSWORD.
+  # ACE_RS_SPLUNK_PASSWORD.
   lookups:
     build:
       context: .
-      dockerfile: docker/ace4/Dockerfile
+      dockerfile: docker/ace-rs/Dockerfile
       target: lookups
-    image: ace4-lookups:latest
+    image: ace-rs-lookups:latest
     depends_on:
       ace:
         condition: service_healthy
     init: true
     environment:
-      ACE4_API_URL: http://ace:8080
-      ACE4_POOL_TOKEN: ${ACE4_POOL_TOKEN_LOOKUPS:-ace4-dev-lookups-token}
-      ACE4_OVERLAY: /etc/ace4/overlay.yaml
-      ACE4_CONCURRENCY: ${ACE4_LOOKUPS_CONCURRENCY:-16}
-      ACE4_SPLUNK_PASSWORD: ${ACE4_SPLUNK_PASSWORD:-}
+      ACE_RS_API_URL: http://ace:8080
+      ACE_RS_POOL_TOKEN: ${ACE_RS_POOL_TOKEN_LOOKUPS:-ace-rs-dev-lookups-token}
+      ACE_RS_OVERLAY: /etc/ace-rs/overlay.yaml
+      ACE_RS_CONCURRENCY: ${ACE_RS_LOOKUPS_CONCURRENCY:-16}
+      ACE_RS_SPLUNK_PASSWORD: ${ACE_RS_SPLUNK_PASSWORD:-}
       # the core's bucket endpoint, whose port the pool's containment allows only when one of its
-      # modules adds files it fetched (PLAN.md decision 28); ace4's own modules add none
-      ACE4_BUCKET_ENDPOINT: http://bucket:8333
-      ACE4_LOG: ${ACE4_LOG:-info}
+      # modules adds files it fetched (PLAN.md decision 28); ace-rs's own modules add none
+      ACE_RS_BUCKET_ENDPOINT: http://bucket:8333
+      ACE_RS_LOG: ${ACE_RS_LOG:-info}
       NO_PROXY: localhost,127.0.0.1,ace,bucket,collector,responder
       no_proxy: localhost,127.0.0.1,ace,bucket,collector,responder
     volumes:
-      - ${ACE4_SITE:-./docker/site}:/etc/ace4:ro
-    mem_limit: ${ACE4_LOOKUPS_MEM_LIMIT:-1g}
+      - ${ACE_RS_SITE:-./docker/site}:/etc/ace-rs:ro
+    mem_limit: ${ACE_RS_LOOKUPS_MEM_LIMIT:-1g}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace4-health -newermt '-20 seconds')\""]
+      test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace-rs-health -newermt '-20 seconds')\""]
       interval: 5s
       timeout: 5s
       start_period: 10s
       retries: 3
 
   # The scanner pool (PLAN.md 7.7): it runs ace3's phishkit and js-deobfuscator scanner images, which
-  # docker/scanners/build builds as ace4-phishkit and ace4-js-deobfuscator, for the scans the parser
+  # docker/scanners/build builds as ace-rs-phishkit and ace-rs-js-deobfuscator, for the scans the parser
   # pool's javascript_deobfuscation and phishkit_analyzer modules ask for. It holds the Docker socket,
   # which is root on the host, so it parses nothing a scanner writes: it copies inputs in and the output
   # directory and logs out, as bytes, and the module's next run reads them, contained. Each scanner's
-  # container is a sibling on the host's daemon, labelled ace4.scanner.stack=$ACE4_STACK, named
+  # container is a sibling on the host's daemon, labelled ace-rs.scanner.stack=$ACE_RS_STACK, named
   # <stack>-scan-<id>-<n>, and removed at its end; ace3's reapers select phishkit.* labels and never
   # see them. js-deobfuscator's has no network; phishkit's is on Docker's default bridge, or the
-  # network ACE4_PHISHKIT_NETWORK names, and reaches what that network reaches, the internet included.
+  # network ACE_RS_PHISHKIT_NETWORK names, and reaches what that network reaches, the internet included.
   scanners:
     build:
       context: .
-      dockerfile: docker/ace4/Dockerfile
+      dockerfile: docker/ace-rs/Dockerfile
       target: scanners
-    image: ace4-scanners:latest
+    image: ace-rs-scanners:latest
     depends_on:
       ace:
         condition: service_healthy
     init: true
     environment:
-      ACE4_API_URL: http://ace:8080
-      ACE4_POOL_TOKEN: ${ACE4_POOL_TOKEN_SCANNERS:-ace4-dev-scanners-token}
-      ACE4_STACK: ${ACE4_STACK:-ace4}
-      ACE4_CONCURRENCY: ${ACE4_SCANNERS_CONCURRENCY:-4}
-      ACE4_PHISHKIT_IMAGE: ${ACE4_PHISHKIT_IMAGE:-ace4-phishkit:latest}
-      ACE4_JS_DEOBFUSCATOR_IMAGE: ${ACE4_JS_DEOBFUSCATOR_IMAGE:-ace4-js-deobfuscator:latest}
-      ACE4_PHISHKIT_NETWORK: ${ACE4_PHISHKIT_NETWORK:-}
-      ACE4_LOG: ${ACE4_LOG:-info}
+      ACE_RS_API_URL: http://ace:8080
+      ACE_RS_POOL_TOKEN: ${ACE_RS_POOL_TOKEN_SCANNERS:-ace-rs-dev-scanners-token}
+      ACE_RS_STACK: ${ACE_RS_STACK:-ace-rs}
+      ACE_RS_CONCURRENCY: ${ACE_RS_SCANNERS_CONCURRENCY:-4}
+      ACE_RS_PHISHKIT_IMAGE: ${ACE_RS_PHISHKIT_IMAGE:-ace-rs-phishkit:latest}
+      ACE_RS_JS_DEOBFUSCATOR_IMAGE: ${ACE_RS_JS_DEOBFUSCATOR_IMAGE:-ace-rs-js-deobfuscator:latest}
+      ACE_RS_PHISHKIT_NETWORK: ${ACE_RS_PHISHKIT_NETWORK:-}
+      ACE_RS_LOG: ${ACE_RS_LOG:-info}
       NO_PROXY: localhost,127.0.0.1,ace,bucket,collector
       no_proxy: localhost,127.0.0.1,ace,bucket,collector
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    mem_limit: ${ACE4_SCANNERS_MEM_LIMIT:-2g}
+    mem_limit: ${ACE_RS_SCANNERS_MEM_LIMIT:-2g}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace4-health -newermt '-20 seconds')\""]
+      test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace-rs-health -newermt '-20 seconds')\""]
       interval: 5s
       timeout: 5s
       start_period: 10s
@@ -476,9 +476,9 @@ services:
   responder:
     build:
       context: .
-      dockerfile: docker/ace4/Dockerfile
+      dockerfile: docker/ace-rs/Dockerfile
       target: responder
-    image: ace4-responder:latest
+    image: ace-rs-responder:latest
     profiles: [e2e]
     depends_on:
       stack-guard:
@@ -501,7 +501,7 @@ services:
     networks:
       - default
       - scanned
-    mem_limit: ${ACE4_RESPONDER_MEM_LIMIT:-128m}
+    mem_limit: ${ACE_RS_RESPONDER_MEM_LIMIT:-128m}
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/443"]
       interval: 5s
@@ -511,7 +511,7 @@ services:
 
   # The end-to-end test's headless browser (PLAN.md 5.8): Chromium's headless shell, pinned by digest,
   # behind the e2e profile. tests/e2e/run drives it over the DevTools protocol on 9222, which publishes
-  # on an ephemeral host port bound to ACE4_BIND_ADDRESS, and it opens the GUI at http://ace:8000 on the
+  # on an ephemeral host port bound to ACE_RS_BIND_ADDRESS, and it opens the GUI at http://ace:8000 on the
   # stack's network. It holds no data and reaches nothing outside the stack.
   browser:
     image: chromedp/headless-shell:156.0.8078.36@sha256:53cc0f33c0598ff244f6e45458f6dfaf0ae4206d388ae7364903afd1d9d14f0a
@@ -520,8 +520,8 @@ services:
       stack-guard:
         condition: service_completed_successfully
     ports:
-      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::9222"
-    mem_limit: ${ACE4_BROWSER_MEM_LIMIT:-1g}
+      - "${ACE_RS_BIND_ADDRESS:-127.0.0.1}::9222"
+    mem_limit: ${ACE_RS_BROWSER_MEM_LIMIT:-1g}
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9222"]
       interval: 5s
@@ -531,7 +531,7 @@ services:
 
 networks:
   # The end-to-end test's network for phishkit's scanner containers (PLAN.md 7.7, tests/e2e/run sets
-  # ACE4_PHISHKIT_NETWORK to it): internal, so it reaches the responder and nothing outside the stack.
+  # ACE_RS_PHISHKIT_NETWORK to it): internal, so it reaches the responder and nothing outside the stack.
   # Compose makes it only when the e2e profile's responder starts.
   scanned:
     internal: true

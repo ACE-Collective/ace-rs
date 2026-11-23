@@ -20,8 +20,8 @@ use ace_core::testing::TestDb;
 use serde_json::{Value, json};
 use uuid::Uuid;
 
-const POOL_TOKEN: &str = "ace4-site-test-lookups-token";
-const BOUNDARY: &str = "ace4-site-test-boundary";
+const POOL_TOKEN: &str = "ace-rs-site-test-lookups-token";
+const BOUNDARY: &str = "ace-rs-site-test-boundary";
 
 /// A process of the site's, killed when dropped, whose stderr goes to a file.
 struct Process {
@@ -71,7 +71,7 @@ impl Drop for Process {
 
 /// The dev container's database URL with the test's database in place of its own.
 fn database_url(name: &str) -> String {
-    let url = std::env::var("ACE4_DATABASE_URL").expect("ACE4_DATABASE_URL");
+    let url = std::env::var("ACE_RS_DATABASE_URL").expect("ACE_RS_DATABASE_URL");
     let (server, _) = url.rsplit_once('/').expect("a database in the URL");
     format!("{server}/{name}")
 }
@@ -116,7 +116,7 @@ fn the_site_binary_lists_its_file_roles() {
 }
 
 /// PLAN.md decision 31: the site's binary lists its directive beside ace3's, so the service `ace serve`
-/// builds from it offers and takes it, while ace4's own binary doesn't; a directive with a built-in's name
+/// builds from it offers and takes it, while ace-rs's own binary doesn't; a directive with a built-in's name
 /// or a bad name is refused.
 #[test]
 fn the_site_binary_lists_its_directives() {
@@ -128,10 +128,10 @@ fn the_site_binary_lists_its_directives() {
         site.get("example_ticket_history"),
         Some(&ace_site_example::TICKET_HISTORY)
     );
-    let ace4 = ace::app().directive_list().expect("a valid list");
-    assert!(!ace4.contains("example_ticket_history"));
-    assert_eq!(site.len(), ace4.len() + 1);
-    assert!(ace4.names().all(|name| site.contains(name)));
+    let ace_rs = ace::app().directive_list().expect("a valid list");
+    assert!(!ace_rs.contains("example_ticket_history"));
+    assert_eq!(site.len(), ace_rs.len() + 1);
+    assert!(ace_rs.names().all(|name| site.contains(name)));
     let names: Vec<&str> = site.names().collect();
     let mut sorted = names.clone();
     sorted.sort_unstable();
@@ -342,7 +342,7 @@ fn the_site_binary_exports_its_types_schemas() {
 }
 
 /// PLAN.md 5.4's first admin, through a site's own binary, so the command comes with `ace-app` and a site
-/// lists nothing for it. `ACE4_LOG=trace`, so that what isn't in the log isn't there at any level.
+/// lists nothing for it. `ACE_RS_LOG=trace`, so that what isn't in the log isn't there at any level.
 #[tokio::test]
 async fn an_operator_makes_the_first_admin_with_the_sites_binary() {
     use std::io::Write;
@@ -353,8 +353,8 @@ async fn an_operator_makes_the_first_admin_with_the_sites_binary() {
         let mut child = Command::new(env!("CARGO_BIN_EXE_example-ace"))
             .args(["user", "create-first"])
             .args(args)
-            .env("ACE4_DATABASE_URL", &url)
-            .env("ACE4_LOG", "trace")
+            .env("ACE_RS_DATABASE_URL", &url)
+            .env("ACE_RS_LOG", "trace")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -440,15 +440,15 @@ async fn an_operator_makes_the_first_admin_with_the_sites_binary() {
     assert!(!stderr.contains("created"), "{stderr}");
 }
 
-/// The site builds on ace4's list (`ace::app()`) and adds to two of its pools, so it holds what ace4's
+/// The site builds on ace-rs's list (`ace::app()`) and adds to two of its pools, so it holds what ace-rs's
 /// does: its cacheable modules, hunt types and their searches, script command types and action
 /// handlers, and the site's collector, its one script command type and its hunt type with its search
 /// besides.
 #[test]
-fn the_site_s_list_is_ace4_s_with_its_own_added() {
-    let (ace4, site) = (ace::app(), ace_site_example::app());
-    assert_eq!(site.cacheable_modules(), ace4.cacheable_modules());
-    let mut scripts = ace4.hunt_script_names();
+fn the_site_s_list_is_ace_rs_s_with_its_own_added() {
+    let (ace_rs, site) = (ace::app(), ace_site_example::app());
+    assert_eq!(site.cacheable_modules(), ace_rs.cacheable_modules());
+    let mut scripts = ace_rs.hunt_script_names();
     scripts.push(("hunts/scripts/field_values.py", "field_values"));
     assert_eq!(site.hunt_script_names(), scripts);
     let kinds = |app: &ace_app::App| -> Vec<String> {
@@ -457,7 +457,7 @@ fn the_site_s_list_is_ace4_s_with_its_own_added() {
             .map(|k| k.name().to_owned())
             .collect()
     };
-    let mut theirs = kinds(&ace4);
+    let mut theirs = kinds(&ace_rs);
     theirs.push("example_tickets".to_owned());
     assert_eq!(kinds(&site), theirs);
     assert_eq!(
@@ -465,7 +465,7 @@ fn the_site_s_list_is_ace4_s_with_its_own_added() {
         ["example_tickets", "splunk"]
     );
     assert_eq!(
-        ace4.hunt_searches().into_keys().collect::<Vec<_>>(),
+        ace_rs.hunt_searches().into_keys().collect::<Vec<_>>(),
         ["splunk"]
     );
     let handlers = |app: &ace_app::App| -> Vec<String> {
@@ -475,13 +475,16 @@ fn the_site_s_list_is_ace4_s_with_its_own_added() {
             .map(|spec| spec.pool_entry())
             .collect()
     };
-    assert_eq!(handlers(&site), handlers(&ace4));
+    assert_eq!(handlers(&site), handlers(&ace_rs));
     assert_eq!(site.collector_names(), ["example"]);
-    assert!(ace4.collector_names().is_empty(), "ace4 ships no collector");
+    assert!(
+        ace_rs.collector_names().is_empty(),
+        "ace-rs ships no collector"
+    );
     assert_eq!(site.alert_action_names(), ["ticket_open"]);
     assert!(
-        ace4.alert_action_names().is_empty(),
-        "ace4 ships no alert action"
+        ace_rs.alert_action_names().is_empty(),
+        "ace-rs ships no alert action"
     );
     assert_eq!(site.modules_without_a_view(), []);
 }
@@ -631,12 +634,12 @@ async fn a_site_s_collector_submits_each_item_once_and_stops() {
     let mut collect = Command::new(env!("CARGO_BIN_EXE_example-ace"));
     collect
         .args(["collect", "example"])
-        .env("ACE4_DATABASE_URL", database_url(test_db.name()))
-        .env("ACE4_OVERLAY", &overlay)
+        .env("ACE_RS_DATABASE_URL", database_url(test_db.name()))
+        .env("ACE_RS_OVERLAY", &overlay)
         .env("EXAMPLE_COLLECTOR_TOKEN", "a-source-credential")
         .env("OTHER_TOKEN", "another-process-credential")
-        .env("ACE4_LOG", "info")
-        .env_remove("ACE4_OTLP_ENDPOINT");
+        .env("ACE_RS_LOG", "info")
+        .env_remove("ACE_RS_OTLP_ENDPOINT");
     let mut process = Process::start(collect, &dir.path().join("collect.log"));
     let roots = || {
         let db = db.clone();
@@ -789,12 +792,12 @@ async fn a_site_s_detection_export_publishes_what_changed() {
         let output = Command::new(env!("CARGO_BIN_EXE_example-ace"))
             .arg("export")
             .args(args)
-            .env("ACE4_DATABASE_URL", database_url(test_db.name()))
-            .env("ACE4_OVERLAY", &overlay)
+            .env("ACE_RS_DATABASE_URL", database_url(test_db.name()))
+            .env("ACE_RS_OVERLAY", &overlay)
             .env("EXAMPLE_EXPORT_TOKEN", "a-target-credential")
             .env("OTHER_TOKEN", "another-process-credential")
-            .env("ACE4_LOG", "info")
-            .env_remove("ACE4_OTLP_ENDPOINT")
+            .env("ACE_RS_LOG", "info")
+            .env_remove("ACE_RS_OTLP_ENDPOINT")
             .output()
             .expect("ace runs");
         // without the terminal's colours
@@ -964,7 +967,7 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
             "--grant",
             "observable:read",
         ])
-        .env("ACE4_DATABASE_URL", database_url(test_db.name()))
+        .env("ACE_RS_DATABASE_URL", database_url(test_db.name()))
         .output()
         .expect("runs");
     let stdout = String::from_utf8_lossy(&made.stdout);
@@ -982,17 +985,17 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
     let mut serve = Command::new(env!("CARGO_BIN_EXE_example-ace"));
     serve
         .arg("serve")
-        .env("ACE4_DATABASE_URL", database_url(test_db.name()))
-        .env("ACE4_API_LISTEN", format!("127.0.0.1:{port}"))
-        .env("ACE4_CACHE_DIR", dir.path().join("cache"))
-        .env("ACE4_POOL_TOKEN_LOOKUPS", POOL_TOKEN)
-        .env("ACE4_WEB_LISTEN", format!("127.0.0.1:{web_port}"))
-        .env("ACE4_LOG", "info")
+        .env("ACE_RS_DATABASE_URL", database_url(test_db.name()))
+        .env("ACE_RS_API_LISTEN", format!("127.0.0.1:{port}"))
+        .env("ACE_RS_CACHE_DIR", dir.path().join("cache"))
+        .env("ACE_RS_POOL_TOKEN_LOOKUPS", POOL_TOKEN)
+        .env("ACE_RS_WEB_LISTEN", format!("127.0.0.1:{web_port}"))
+        .env("ACE_RS_LOG", "info")
         // the site's own pool list, and nothing else of the dev container's
-        .env_remove("ACE4_POOLS")
-        .env_remove("ACE4_OVERLAY")
-        .env_remove("ACE4_SIGNATURES_REPO")
-        .env_remove("ACE4_OTLP_ENDPOINT");
+        .env_remove("ACE_RS_POOLS")
+        .env_remove("ACE_RS_OVERLAY")
+        .env_remove("ACE_RS_SIGNATURES_REPO")
+        .env_remove("ACE_RS_OTLP_ENDPOINT");
     let mut core = Process::start(serve, &dir.path().join("ace.log"));
     let http = reqwest::Client::new();
     wait_for("the site's ace serves", Duration::from_secs(60), || {
@@ -1034,10 +1037,10 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
     lookups
         .env_clear()
         .env("PATH", std::env::var("PATH").unwrap_or_default())
-        .env("ACE4_API_URL", &api)
-        .env("ACE4_POOL_TOKEN", POOL_TOKEN)
-        .env("ACE4_HEALTH_FILE", dir.path().join("health"))
-        .env("ACE4_LOG", "info");
+        .env("ACE_RS_API_URL", &api)
+        .env("ACE_RS_POOL_TOKEN", POOL_TOKEN)
+        .env("ACE_RS_HEALTH_FILE", dir.path().join("health"))
+        .env("ACE_RS_LOG", "info");
     let mut pool = Process::start(lookups, &dir.path().join("lookups.log"));
 
     // RDAP and DNS would look example.com up on the internet, so the submission leaves them out,
@@ -1445,8 +1448,8 @@ fn parser_pool_start(overlay: &str) -> (Option<i32>, String) {
     std::fs::write(&overlay_at, overlay).expect("writes the overlay");
     let output = Command::new(env!("CARGO_BIN_EXE_example-parsers"))
         .env_clear()
-        .env("ACE4_OVERLAY", &overlay_at)
-        .env("ACE4_RULESET_DIR", dir.path().join("rulesets"))
+        .env("ACE_RS_OVERLAY", &overlay_at)
+        .env("ACE_RS_RULESET_DIR", dir.path().join("rulesets"))
         .output()
         .expect("the pool runs");
     (
@@ -1523,7 +1526,7 @@ fn a_site_s_parser_pool_refuses_a_bad_setting_when_it_starts() {
         assert!(!stderr.contains("setup failed"), "{overlay}\n{stderr}");
         // it got as far as the lease API it wasn't given
         assert_eq!(code, Some(2), "{overlay}\n{stderr}");
-        assert!(stderr.contains("ACE4_API_URL"), "{overlay}\n{stderr}");
+        assert!(stderr.contains("ACE_RS_API_URL"), "{overlay}\n{stderr}");
     }
 }
 
@@ -1755,8 +1758,8 @@ modules:
     connections:
       tickets: tickets
 secrets:
-  ticket_token: env:ACE4_TEST_TICKET_TOKEN
-  other_token: env:ACE4_TEST_OTHER_TOKEN
+  ticket_token: env:ACE_RS_TEST_TICKET_TOKEN
+  other_token: env:ACE_RS_TEST_OTHER_TOKEN
 ";
 
 /// A connection's own ports join its pool's (PLAN.md decision 35): the ticket system's proxy, on any
@@ -1820,8 +1823,8 @@ fn a_site_s_shared_connection_is_named_once_and_bound_by_its_lookup() {
     );
     assert_eq!(lookup.own_settings(), None);
     let env = |name: &str| match name {
-        "ACE4_TEST_TICKET_TOKEN" => Some("ticket-value".to_owned()),
-        "ACE4_TEST_OTHER_TOKEN" => Some("other-value".to_owned()),
+        "ACE_RS_TEST_TICKET_TOKEN" => Some("ticket-value".to_owned()),
+        "ACE_RS_TEST_OTHER_TOKEN" => Some("other-value".to_owned()),
         _ => None,
     };
     // the process resolves the connection's secret and not the one nothing names (PLAN.md 2.24)
@@ -1982,9 +1985,9 @@ fn a_site_s_network_pool_holds_only_its_connections_secrets() {
         std::fs::write(&overlay_at, overlay).expect("writes the overlay");
         let output = Command::new(env!("CARGO_BIN_EXE_example-lookups"))
             .env_clear()
-            .env("ACE4_OVERLAY", &overlay_at)
-            .env("ACE4_TEST_TICKET_TOKEN", "ticket-value")
-            .env("ACE4_TEST_OTHER_TOKEN", "other-value")
+            .env("ACE_RS_OVERLAY", &overlay_at)
+            .env("ACE_RS_TEST_TICKET_TOKEN", "ticket-value")
+            .env("ACE_RS_TEST_OTHER_TOKEN", "other-value")
             .output()
             .expect("the pool runs");
         (
@@ -1995,7 +1998,7 @@ fn a_site_s_network_pool_holds_only_its_connections_secrets() {
     let (code, stderr) = start(TICKET_CONNECTION);
     assert_eq!(code, Some(2), "{stderr}");
     // it got past its modules to the lease API it wasn't given
-    assert!(stderr.contains("ACE4_API_URL"), "{stderr}");
+    assert!(stderr.contains("ACE_RS_API_URL"), "{stderr}");
     assert!(stderr.contains("ticket_token"), "{stderr}");
     assert!(!stderr.contains("other_token"), "{stderr}");
     assert!(!stderr.contains("ticket-value"), "{stderr}");
@@ -2125,7 +2128,7 @@ query_sources:
     connections:
       tickets: tickets
 secrets:
-  ticket_token: env:ACE4_TEST_TICKET_TOKEN
+  ticket_token: env:ACE_RS_TEST_TICKET_TOKEN
 "
     ))
     .expect("an overlay")
@@ -2339,7 +2342,7 @@ async fn a_validation_run_times_each_row_by_the_hunt_s_timestamp_field() {
     let dir = tempfile::tempdir().expect("a directory");
     let made = Command::new(env!("CARGO_BIN_EXE_example-ace"))
         .args(["user", "create-key", "hunt-test", "--grant", "hunt:write"])
-        .env("ACE4_DATABASE_URL", database_url(test_db.name()))
+        .env("ACE_RS_DATABASE_URL", database_url(test_db.name()))
         .output()
         .expect("runs");
     let stdout = String::from_utf8_lossy(&made.stdout);
@@ -2359,16 +2362,16 @@ async fn a_validation_run_times_each_row_by_the_hunt_s_timestamp_field() {
     let mut serve = Command::new(env!("CARGO_BIN_EXE_example-ace"));
     serve
         .arg("serve")
-        .env("ACE4_DATABASE_URL", database_url(test_db.name()))
-        .env("ACE4_API_LISTEN", format!("127.0.0.1:{port}"))
-        .env("ACE4_CACHE_DIR", dir.path().join("cache"))
-        .env("ACE4_POOL_TOKEN_LOOKUPS", POOL_TOKEN)
-        .env("ACE4_WEB_LISTEN", format!("127.0.0.1:{web_port}"))
-        .env("ACE4_LOG", "info")
-        .env_remove("ACE4_POOLS")
-        .env_remove("ACE4_OVERLAY")
-        .env_remove("ACE4_SIGNATURES_REPO")
-        .env_remove("ACE4_OTLP_ENDPOINT");
+        .env("ACE_RS_DATABASE_URL", database_url(test_db.name()))
+        .env("ACE_RS_API_LISTEN", format!("127.0.0.1:{port}"))
+        .env("ACE_RS_CACHE_DIR", dir.path().join("cache"))
+        .env("ACE_RS_POOL_TOKEN_LOOKUPS", POOL_TOKEN)
+        .env("ACE_RS_WEB_LISTEN", format!("127.0.0.1:{web_port}"))
+        .env("ACE_RS_LOG", "info")
+        .env_remove("ACE_RS_POOLS")
+        .env_remove("ACE_RS_OVERLAY")
+        .env_remove("ACE_RS_SIGNATURES_REPO")
+        .env_remove("ACE_RS_OTLP_ENDPOINT");
     let mut core = Process::start(serve, &dir.path().join("ace.log"));
     let http = reqwest::Client::new();
     wait_for("the site's ace serves", Duration::from_secs(60), || {

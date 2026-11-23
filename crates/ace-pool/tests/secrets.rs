@@ -80,12 +80,12 @@ fn start(
 async fn a_pool_resolves_only_the_secrets_its_modules_declare() {
     let dir = tempfile::tempdir().expect("a directory");
     let token_file = dir.path().join("splunk_default_token");
-    std::fs::write(&token_file, "ace4-fake-splunk-token\n").expect("writes");
+    std::fs::write(&token_file, "ace-rs-fake-splunk-token\n").expect("writes");
     let overlay = Overlay::from_yaml(&format!(
         "connections:
   default:
     type: splunk
-    settings: {{host: splunk.example.com, username: ace4}}
+    settings: {{host: splunk.example.com, username: ace-rs}}
     secrets: {{password: splunk_default_password, token: splunk_default_token}}
 modules:
   splunk_api:
@@ -95,16 +95,16 @@ modules:
         settings:
           query: index=proxy hostname=\"<O_VALUE>\"
 secrets:
-  resolver_token: env:ACE4_TEST_RESOLVER_TOKEN
-  splunk_default_password: env:ACE4_TEST_SPLUNK_PASSWORD
+  resolver_token: env:ACE_RS_TEST_RESOLVER_TOKEN
+  splunk_default_password: env:ACE_RS_TEST_SPLUNK_PASSWORD
   splunk_default_token: file:{}
 ",
         token_file.display()
     ))
     .expect("the overlay loads");
     let env = BTreeMap::from([
-        ("ACE4_TEST_RESOLVER_TOKEN", "ace4-fake-resolver-token"),
-        ("ACE4_TEST_SPLUNK_PASSWORD", "ace4-fake-splunk-password"),
+        ("ACE_RS_TEST_RESOLVER_TOKEN", "ace-rs-fake-resolver-token"),
+        ("ACE_RS_TEST_SPLUNK_PASSWORD", "ace-rs-fake-splunk-password"),
     ]);
 
     let resolvers = start(
@@ -113,7 +113,7 @@ secrets:
         &overlay,
         &env,
     );
-    assert_eq!(resolvers.asked, ["ACE4_TEST_RESOLVER_TOKEN"]);
+    assert_eq!(resolvers.asked, ["ACE_RS_TEST_RESOLVER_TOKEN"]);
     assert!(
         resolvers
             .log
@@ -131,7 +131,7 @@ secrets:
         &env,
     );
     // the token comes from its file, which the resolver pool never opened
-    assert_eq!(splunk.asked, ["ACE4_TEST_SPLUNK_PASSWORD"]);
+    assert_eq!(splunk.asked, ["ACE_RS_TEST_SPLUNK_PASSWORD"]);
     assert!(
         splunk.log.contains(
             r#"resolved the pool's secrets pool="splunk" secrets=["splunk_default_password", "splunk_default_token"]"#

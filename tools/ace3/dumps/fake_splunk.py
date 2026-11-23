@@ -2,7 +2,7 @@
 
 There is no Splunk on this laptop. This server answers the calls ace3's Splunk client makes through
 splunk-sdk (saq/splunk.py) the way splunkd's management API does, from rows in a fixture file, and
-records every exchange so ace4's port can replay them:
+records every exchange so ace-rs's port can replay them:
 
     POST   /services/auth/login                   a session key, as XML, and its cookie
     GET    /services/server/info                  an Atom feed whose version (9.3.2) selects the v2

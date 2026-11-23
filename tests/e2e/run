@@ -2,7 +2,7 @@
 """PLAN.md 2.30: the end-to-end test, against the Compose stack's own images.
 
 It brings up postgres, bucket, ace, the parser, sandbox and network pools and the e2e profile's
-responder under a project of its own (ace4-e2e), with:
+responder under a project of its own (ace-rs-e2e), with:
 
 - a signatures repository it makes under target/e2e/ from tools/ace3/trees/signatures, holding
   one rule that matches a marker string only in a file tagged type=email.attachment (its meta_tags
@@ -14,7 +14,7 @@ responder under a project of its own (ace4-e2e), with:
 It makes an API key holding alert:create with `ace user create-key` in the ace container, since the
 stack has no default key (PLAN.md 5.5), and submits through the JSON API with it, as `ace compare`
 does below. It checks the GUI's login page and its Datastar on the same port (PLAN.md 5.7). Then it
-submits samples/ace4/email/e2e.email.rfc822, an email with a DKIM signing domain
+submits samples/ace-rs/email/e2e.email.rfc822, an email with a DKIM signing domain
 (example.com) in its headers and a zip attachment holding the marker, twice. Each time, the email, archive and YARA modules run in
 email mode; the YARA match on the attachment makes the root an alert in correlation mode, which
 runs RDAP and the Splunk instance, the delayed module, on the domain. The email goes in with the
@@ -70,14 +70,14 @@ detection on the observable_detection list through the JSON API and submits the 
 nothing restarted. The sender has to be found enabled for detection, the root has to alert, and the
 entry's audit row has to name the analyst. It deletes the entry the same way before anything else runs,
 so the comparison below sees the empty lists ace3's trees were made with. Before the comparison it
-gives ace4 what make-trees gave ace3's tagging and detection modules (PLAN.md 7.6): the observables
+gives ace-rs what make-trees gave ace3's tagging and detection modules (PLAN.md 7.6): the observables
 enabled for detection in tools/ace3/trees/detections.json, added through the detection API with a key
 holding detection:write, and the tags of tools/ace3/trees/observable_tags.json, with SQL; the site
 tagger's rows are in the overlay.
 
-Then the scanners (PLAN.md 7.7): it builds ace4-js-deobfuscator and ace4-phishkit from ace3's checkout
+Then the scanners (PLAN.md 7.7): it builds ace-rs-js-deobfuscator and ace-rs-phishkit from ace3's checkout
 with docker/scanners/build when this host hasn't them, and the stack's scanner pool runs them, phishkit's
-on the e2e profile's internal network, `scanned`. It submits samples/ace4/web/phishkit_page.html as an
+on the e2e profile's internal network, `scanned`. It submits samples/ace-rs/web/phishkit_page.html as an
 email's attachment named phishkit_page.htm, the one extension tests/e2e/site/overlay.yaml lets phishkit render, in correlation mode, and phishkit_analyzer has to render it and javascript_deobfuscation
 run the script html_js_extraction writes out of it, each through a scan the queue held while its task
 waited. Then it submits the page again and dispositions the root while its phishkit scan runs, and the
@@ -126,7 +126,7 @@ Usage: tests/e2e/run [--keep] [--compare] [--jobs N]
               the parser pool has slots here: 8 on a machine whose Docker has 10 CPUs or more,
               4 on a small one
 
-With ACE4_TAKES_AUDIT=1 in the environment, the stack's core audits the modules' declarations of what
+With ACE_RS_TAKES_AUDIT=1 in the environment, the stack's core audits the modules' declarations of what
 they take rather than applying them (PLAN.md decision 23): it queues every task and marks the ones a
 declaration declines. After the comparison the test then fails if a marked task stored a result or
 failed, and writes the marked tasks by module to <work>/takes-audit.txt.
@@ -135,27 +135,27 @@ Exits 0 when every check passes. Needs docker compose and python3 on the host.
 
 A site repository runs the same scenario against its own images (PLAN.md 2.32) by setting:
 
-- ACE4_E2E_COMPOSE: its Compose file, whose services have this file's names (postgres, bucket,
+- ACE_RS_E2E_COMPOSE: its Compose file, whose services have this file's names (postgres, bucket,
   ace, ai, parsers, sandbox, lookups, scanners and the e2e profile's responder, and its browser
   for the browser test), with the `scanned` network, and whose ace and ai services get their
-  database logins in ACE4_DATABASE_URL;
-- ACE4_E2E_PREFIX: the prefix of that file's variables, such as SITE_ACE4_, in place of ACE4_;
-- ACE4_E2E_PROJECT: the Compose project the test runs under, in place of ace4-e2e;
-- ACE4_E2E_SITE: the site overlay directory, in place of tests/e2e/site;
-- ACE4_E2E_WORK: where the signatures repository goes, in place of target/e2e;
-- ACE4_E2E_PORT: the host port, as for ace4;
-- ACE4_E2E_ACE_COMMAND: the ace service's binary, in place of ace;
-- ACE4_E2E_COMPARE: 1 to run the comparison with ace3 and its threshold as well;
-- ACE4_E2E_CACHE: 1 to run the analysis cache's two-run check as well, which needs
-  ACE4_E2E_COMPARE, since it runs in the world the comparison sets up.
+  database logins in ACE_RS_DATABASE_URL;
+- ACE_RS_E2E_PREFIX: the prefix of that file's variables, such as SITE_ACE_RS_, in place of ACE_RS_;
+- ACE_RS_E2E_PROJECT: the Compose project the test runs under, in place of ace-rs-e2e;
+- ACE_RS_E2E_SITE: the site overlay directory, in place of tests/e2e/site;
+- ACE_RS_E2E_WORK: where the signatures repository goes, in place of target/e2e;
+- ACE_RS_E2E_PORT: the host port, as for ace-rs;
+- ACE_RS_E2E_ACE_COMMAND: the ace service's binary, in place of ace;
+- ACE_RS_E2E_COMPARE: 1 to run the comparison with ace3 and its threshold as well;
+- ACE_RS_E2E_CACHE: 1 to run the analysis cache's two-run check as well, which needs
+  ACE_RS_E2E_COMPARE, since it runs in the world the comparison sets up.
 
-A site's own modules may differ from ace3's by design, so setting ACE4_E2E_SITE skips the
-comparison, unless ACE4_E2E_COMPARE is 1: a site whose binaries hold every module of ace4's, and
+A site's own modules may differ from ace3's by design, so setting ACE_RS_E2E_SITE skips the
+comparison, unless ACE_RS_E2E_COMPARE is 1: a site whose binaries hold every module of ace-rs's, and
 whose own modules run on nothing in the sample set, has to make the same trees. Its overlay then
-needs what tests/e2e/site/overlay.yaml gives ace4. The cache's two-run check is skipped too, unless
-ACE4_E2E_CACHE is 1: a site whose binaries hold ace4's cacheable modules has to keep and reuse their
-results as ace4's do. Its overlay then turns the cache off and has a site_tagger section, as ace4's
-does, and the check fails for any of ace4's cacheable modules that took nothing from the cache. The library diff's self-test and the module
+needs what tests/e2e/site/overlay.yaml gives ace-rs. The cache's two-run check is skipped too, unless
+ACE_RS_E2E_CACHE is 1: a site whose binaries hold ace-rs's cacheable modules has to keep and reuse their
+results as ace-rs's do. Its overlay then turns the cache off and has a site_tagger section, as ace-rs's
+does, and the check fails for any of ace-rs's cacheable modules that took nothing from the cache. The library diff's self-test and the module
 inventory check this repository, not a stack, so a site's run never includes them.
 """
 
@@ -177,17 +177,17 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-COMPOSE_FILE = Path(os.environ.get("ACE4_E2E_COMPOSE", ROOT / "compose.yaml")).resolve()
-PREFIX = os.environ.get("ACE4_E2E_PREFIX", "ACE4_")
-WORK = Path(os.environ.get("ACE4_E2E_WORK", ROOT / "target" / "e2e")).resolve()
-SITE = Path(os.environ.get("ACE4_E2E_SITE", ROOT / "tests" / "e2e" / "site")).resolve()
-PROJECT = os.environ.get("ACE4_E2E_PROJECT", "ace4-e2e")
-PORT = os.environ.get("ACE4_E2E_PORT", "7444")
-ACE_COMMAND = os.environ.get("ACE4_E2E_ACE_COMMAND", "ace")
+COMPOSE_FILE = Path(os.environ.get("ACE_RS_E2E_COMPOSE", ROOT / "compose.yaml")).resolve()
+PREFIX = os.environ.get("ACE_RS_E2E_PREFIX", "ACE_RS_")
+WORK = Path(os.environ.get("ACE_RS_E2E_WORK", ROOT / "target" / "e2e")).resolve()
+SITE = Path(os.environ.get("ACE_RS_E2E_SITE", ROOT / "tests" / "e2e" / "site")).resolve()
+PROJECT = os.environ.get("ACE_RS_E2E_PROJECT", "ace-rs-e2e")
+PORT = os.environ.get("ACE_RS_E2E_PORT", "7444")
+ACE_COMMAND = os.environ.get("ACE_RS_E2E_ACE_COMMAND", "ace")
 # A site's run: against another repository's Compose file and overlay.
-SITE_RUN = "ACE4_E2E_SITE" in os.environ
-COMPARE = not SITE_RUN or os.environ.get("ACE4_E2E_COMPARE") == "1"
-CACHE = not SITE_RUN or os.environ.get("ACE4_E2E_CACHE") == "1"
+SITE_RUN = "ACE_RS_E2E_SITE" in os.environ
+COMPARE = not SITE_RUN or os.environ.get("ACE_RS_E2E_COMPARE") == "1"
+CACHE = not SITE_RUN or os.environ.get("ACE_RS_E2E_CACHE") == "1"
 LEASE_SECONDS = 15
 
 
@@ -203,8 +203,8 @@ def pool_slots():
 
 
 POOL_SLOTS = pool_slots()
-RULE = "ace4_e2e_attachment"
-SAMPLE = "ace4/email/e2e.email.rfc822"
+RULE = "ace_rs_e2e_attachment"
+SAMPLE = "ace-rs/email/e2e.email.rfc822"
 EMAIL_SAMPLE = ROOT / "samples" / SAMPLE
 TREES = ROOT / "tools" / "ace3" / "trees"
 MODULES = [
@@ -230,7 +230,7 @@ ENV = {
             "RULESET_POLL_SECONDS": "2",
             "POOL_RULESET_POLL_SECONDS": "2",
             # the recorded Splunk takes any password
-            "SPLUNK_PASSWORD": "ace4-fake-password",
+            "SPLUNK_PASSWORD": "ace-rs-fake-password",
             # the pools that run a process per task, sized to this machine unless the environment
             # says, with the stack's 1 GiB of memory limit a slot
             **{
@@ -252,8 +252,8 @@ ENV.pop("COMPOSE_PROJECT_NAME", None)
 COMPOSE = ["docker", "compose", "-f", str(COMPOSE_FILE), "--profile", "e2e"]
 SERVICES = ["postgres", "bucket", "ace", "ai", "parsers", "sandbox", "lookups", "scanners", "responder"]
 # PLAN.md 7.7: the page the scanner checks render, and its inline script the deobfuscator runs
-SCANNER_PAGE = ROOT / "samples" / "ace4" / "web" / "phishkit_page.html"
-SCANNER_IMAGES = ["ace4-js-deobfuscator:latest", "ace4-phishkit:latest"]
+SCANNER_PAGE = ROOT / "samples" / "ace-rs" / "web" / "phishkit_page.html"
+SCANNER_IMAGES = ["ace-rs-js-deobfuscator:latest", "ace-rs-phishkit:latest"]
 # The analyst the browser test logs in as, and the GUI as the browser reaches it on the stack's network.
 ANALYST = "e2e-analyst"
 ANALYST_PASSWORD = "e2e analyst password, not a secret"
@@ -288,10 +288,10 @@ def compose(*args, check=True, capture=False, exit_code=False):
 
 
 def database_login(service):
-    """The database URL the Compose file gives a service, and the login in it: ace4's own names, or
+    """The database URL the Compose file gives a service, and the login in it: ace-rs's own names, or
     a site's."""
     config = json.loads(compose("config", "--format", "json", capture=True))
-    url = config["services"][service]["environment"]["ACE4_DATABASE_URL"]
+    url = config["services"][service]["environment"]["ACE_RS_DATABASE_URL"]
     return url, urllib.parse.urlsplit(url).username
 
 
@@ -308,7 +308,7 @@ def sql(query):
 
 def git(*args):
     subprocess.run(
-        ["git", "-C", str(WORK / "signatures"), "-c", "user.name=ace4 e2e",
+        ["git", "-C", str(WORK / "signatures"), "-c", "user.name=ace-rs e2e",
          "-c", "user.email=e2e@example.invalid", "-c", "commit.gpgsign=false",
          "-c", "init.defaultBranch=main", *args],
         check=True, capture_output=True,
@@ -332,7 +332,7 @@ def make_signatures():
 
 def make_key():
     """An API key that can submit, made in the ace container, which holds the database. The key goes
-    to `ace compare` through ACE4_API_KEY in this process's environment, not its command line."""
+    to `ace compare` through ACE_RS_API_KEY in this process's environment, not its command line."""
     out = compose(
         "exec", "-T", "ace", ACE_COMMAND, "user", "create-key", "e2e-submitter",
         "--grant", "alert:create", capture=True,
@@ -344,15 +344,15 @@ def make_key():
     )
     if not token:
         raise SystemExit(f"e2e: `ace user create-key` printed no token:\n{out}")
-    ENV["ACE4_API_KEY"] = token
+    ENV["ACE_RS_API_KEY"] = token
     return token
 
 
 def submit(email, mode="email", observables=()):
     """Submits a root, with the email as its file if there is one, and returns its uuid."""
-    boundary = f"ace4-e2e-{uuid.uuid4().hex}"
+    boundary = f"ace-rs-e2e-{uuid.uuid4().hex}"
     analysis = json.dumps({
-        "description": "ace4 end-to-end test",
+        "description": "ace-rs end-to-end test",
         "analysis_mode": mode,
         "observables": list(observables),
     })
@@ -371,7 +371,7 @@ def submit(email, mode="email", observables=()):
         data=body,
         method="POST",
         headers={
-            "Authorization": f"Bearer {ENV['ACE4_API_KEY']}",
+            "Authorization": f"Bearer {ENV['ACE_RS_API_KEY']}",
             "Content-Type": f"multipart/form-data; boundary={boundary}",
         },
     )
@@ -383,9 +383,9 @@ def submit(email, mode="email", observables=()):
 
 def submit_file(data, name, mode, yara_meta=()):
     """Submits a root with one file at `name`, with these yara_meta tags, and returns its uuid."""
-    boundary = f"ace4-e2e-{uuid.uuid4().hex}"
+    boundary = f"ace-rs-e2e-{uuid.uuid4().hex}"
     analysis = json.dumps({
-        "description": "ace4 end-to-end test",
+        "description": "ace-rs end-to-end test",
         "analysis_mode": mode,
         "file_yara_meta": {name: list(yara_meta)},
     })
@@ -396,7 +396,7 @@ def submit_file(data, name, mode, yara_meta=()):
     ).encode() + data + f"\r\n--{boundary}--\r\n".encode()
     request = urllib.request.Request(
         f"http://127.0.0.1:{PORT}/api/analysis/v1/submit", data=body, method="POST",
-        headers={"Authorization": f"Bearer {ENV['ACE4_API_KEY']}",
+        headers={"Authorization": f"Bearer {ENV['ACE_RS_API_KEY']}",
                  "Content-Type": f"multipart/form-data; boundary={boundary}"},
     )
     with urllib.request.urlopen(request, timeout=30) as response:
@@ -413,7 +413,7 @@ def build_scanner_images():
     if not missing:
         return
     log(f"building the scanner images {missing} from ace3's sources")
-    names = [image.removeprefix("ace4-").removesuffix(":latest") for image in missing]
+    names = [image.removeprefix("ace-rs-").removesuffix(":latest") for image in missing]
     if subprocess.run([str(ROOT / "docker" / "scanners" / "build"), *names]).returncode != 0:
         raise SystemExit("e2e: docker/scanners/build failed; the scanner pool needs its images")
 
@@ -445,7 +445,7 @@ def running_scan(root, within=120):
                        AND state = 'running'""")
         if not rows:
             return None
-        containers = scanner_containers(f"ace4.scanner.stack={PROJECT}", f"ace4.scanner.scan={rows[0][0]}")
+        containers = scanner_containers(f"ace-rs.scanner.stack={PROJECT}", f"ace-rs.scanner.scan={rows[0][0]}")
         return (rows[0][0], containers[0]) if containers else None
     return wait_for(f"root {root}'s phishkit scan to start its container", found, within=within)
 
@@ -495,7 +495,7 @@ def check_scanners(failures):
     scans = sql(f"SELECT scanner, state::text FROM queue.scans WHERE root_id = '{root}' ORDER BY id")
     expect(sorted(scans) == [["js-deobfuscator", "completed"], ["phishkit", "completed"]],
            f"the root's two scans ran through the queue and completed: {scans}")
-    left = scanner_containers(f"ace4.scanner.stack={PROJECT}")
+    left = scanner_containers(f"ace-rs.scanner.stack={PROJECT}")
     expect(not left, f"no scanner container is left: {left}")
 
     # cancelled while its scanner runs: the pool kills it at its next renewal and removes it
@@ -519,7 +519,7 @@ def check_scanners(failures):
         f"SELECT state::text FROM queue.scans WHERE id = {scan} AND state <> 'running'") or [[None]])[0][0],
         within=60)
     gone = wait_for(f"container {container} to go", lambda: not scanner_containers(
-        f"ace4.scanner.scan={scan}", f"ace4.scanner.stack={PROJECT}") or None, within=30)
+        f"ace-rs.scanner.scan={scan}", f"ace-rs.scanner.stack={PROJECT}") or None, within=30)
     expect(state == "cancelled" and gone, f"a cancelled root's scanner was killed and removed: {state}")
 
     # the pool dies with SIGKILL while its scanner runs: the scanner outlives it, and the pool removes
@@ -527,10 +527,10 @@ def check_scanners(failures):
     root = submit_file(page, "phishkit_page.htm", "correlation", ["type=email.attachment"])
     scan, container = running_scan(root)
     compose("kill", "-s", "SIGKILL", "scanners")
-    survived = bool(scanner_containers(f"ace4.scanner.scan={scan}", f"ace4.scanner.stack={PROJECT}"))
+    survived = bool(scanner_containers(f"ace-rs.scanner.scan={scan}", f"ace-rs.scanner.stack={PROJECT}"))
     compose("start", "scanners")
     gone = wait_for(f"the restarted pool to remove container {container}", lambda: not scanner_containers(
-        f"ace4.scanner.scan={scan}", f"ace4.scanner.stack={PROJECT}") or None, within=60)
+        f"ace-rs.scanner.scan={scan}", f"ace-rs.scanner.stack={PROJECT}") or None, within=60)
     expect(survived and gone, "a scanner the killed pool left was removed when the pool started again")
     wait_for(f"root {root} to finish", lambda: completed_after(root) is not None, within=240)
     abandoned = sql(f"SELECT state::text, error FROM queue.scans WHERE id = {scan}")
@@ -998,7 +998,7 @@ def make_analyst():
 
 
 def has_browser():
-    """Whether the Compose file has the browser service. ace4's does; a site's may not yet, and then the
+    """Whether the Compose file has the browser service. ace-rs's does; a site's may not yet, and then the
     browser test is skipped, saying so."""
     services = compose("config", "--services", capture=True).split()
     return "browser" in services
@@ -1068,7 +1068,7 @@ def check_live_alert(email, failures):
             page.call("Page.navigate", url=f"{GUI_IN_STACK}/alerts/{root}?tree=full")
             page.wait("the alert page with its whole tree", "document.readyState === 'complete' && "
                       "document.getElementById('alert-tree') !== null", within=30)
-            page.evaluate("window.ace4E2eMarker = 'the page as it was loaded'")
+            page.evaluate("window.aceRsE2eMarker = 'the page as it was loaded'")
             navigations = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
             before = page.evaluate(
                 "[...document.querySelectorAll('#alert-tree .result')].map(r => r.dataset.module)"
@@ -1089,7 +1089,7 @@ def check_live_alert(email, failures):
             log(str(error))
             appeared = False
         expect(appeared, "the RDAP result appeared on the open page")
-        same = page.evaluate("window.ace4E2eMarker") == "the page as it was loaded"
+        same = page.evaluate("window.aceRsE2eMarker") == "the page as it was loaded"
         later = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
         expect(same and later == navigations, "the page wasn't reloaded or navigated")
         refused = [
@@ -1225,7 +1225,7 @@ def check_owner_notice(page, root, expect):
     notice = "document.getElementById('owner-notice')"
     expect(page.evaluate(f"{notice}.hidden && {notice}.textContent === ''"),
            "the open alert page has no ownership notice while nobody else has taken the alert")
-    page.evaluate("window.ace4E2eMarker = 'the page as it was loaded'")
+    page.evaluate("window.aceRsE2eMarker = 'the page as it was loaded'")
     navigations = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
 
     # a second analyst, in a session of their own, takes the alert with the alert page's own form
@@ -1266,7 +1266,7 @@ def check_owner_notice(page, root, expect):
            f"the open page says the alert's ownership changed, and to whom: {text!r}")
     expect(page.evaluate(f"{notice}.getAttribute('role')") == "alert",
            "the notice is an alert to assistive technology")
-    same = page.evaluate("window.ace4E2eMarker") == "the page as it was loaded"
+    same = page.evaluate("window.aceRsE2eMarker") == "the page as it was loaded"
     later = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
     expect(same and later == navigations, "the page wasn't reloaded or navigated for the notice")
     refused = [
@@ -1329,7 +1329,7 @@ def check_alert_list(page, root, expect):
     show("?f=description:no-such-alert-in-e2e")
     expect(page.evaluate(rows) == 0, "a filter that matches nothing lists nothing")
     show("?f=disposition:OPEN")
-    page.evaluate("window.ace4E2eMarker = 'the list as it was loaded'")
+    page.evaluate("window.aceRsE2eMarker = 'the list as it was loaded'")
     navigations = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
     disposition_elsewhere(root, "FALSE_POSITIVE")
     log("dispositioned the alert through the API; waiting for the open list's refresh to drop it")
@@ -1341,7 +1341,7 @@ def check_alert_list(page, root, expect):
         log(str(error))
         dropped = False
     expect(dropped, "the open list's refresh dropped the alert dispositioned elsewhere")
-    same = page.evaluate("window.ace4E2eMarker") == "the list as it was loaded"
+    same = page.evaluate("window.aceRsE2eMarker") == "the list as it was loaded"
     later = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
     expect(same and later == navigations, "the list wasn't reloaded or navigated")
     refused = [
@@ -1518,7 +1518,7 @@ def check_range_selection(page, expect):
         page.call("Page.navigate", url=f"{GUI_IN_STACK}/?f=description:e2e-range-")
         page.wait("the alert list of the range's alerts", "document.readyState === 'complete' && "
                   "document.getElementById('alert-list') !== null", within=30)
-        page.evaluate("window.ace4E2eMarker = 'the list as it was loaded'")
+        page.evaluate("window.aceRsE2eMarker = 'the list as it was loaded'")
         navigations = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
         loaded = page.evaluate(
             "[...document.querySelectorAll('script[src]')].map(s => s.getAttribute('src'))"
@@ -1595,7 +1595,7 @@ def check_range_selection(page, expect):
         click(box(8))
         is_ticked([0, 1, 4, 5, 6, 7], "a click unticks one row of it")
 
-        same = page.evaluate("window.ace4E2eMarker") == "the list as it was loaded"
+        same = page.evaluate("window.aceRsE2eMarker") == "the list as it was loaded"
         later = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
         expect(same and later == navigations, "the list wasn't reloaded or navigated through all of it")
         refused = [
@@ -1745,16 +1745,16 @@ def check_ai(first, failures):
 
     # the process: what it holds, and that it checked
     held = compose("exec", "-T", "ai", "env", capture=True).splitlines()
-    names = sorted(line.split("=", 1)[0] for line in held if line.startswith("ACE4_"))
+    names = sorted(line.split("=", 1)[0] for line in held if line.startswith("ACE_RS_"))
     # an AWS credential in the environment is one the bucket's credential chain would take
     aws = sorted(line.split("=", 1)[0] for line in held
                  if line.startswith(("AWS_ACCESS_KEY_ID=", "AWS_SECRET_ACCESS_KEY=", "AWS_SESSION_TOKEN=",
                                      "AWS_WEB_IDENTITY_TOKEN_FILE=", "AWS_CONTAINER_")))
     forbidden = aws + [name for name in names
-                       if name in ("ACE4_ENCRYPTION_KEY", "ACE4_ADMIN_TOKEN", "ACE4_POOL_TOKEN", "ACE4_API_KEY",
-                                   "ACE4_BUCKET_ACCESS_KEY", "ACE4_BUCKET_SECRET_KEY")
-                       or name.startswith("ACE4_POOL_TOKEN_")]
-    expect(not forbidden and "ACE4_DATABASE_URL" in names and "ACE4_OVERLAY" in names,
+                       if name in ("ACE_RS_ENCRYPTION_KEY", "ACE_RS_ADMIN_TOKEN", "ACE_RS_POOL_TOKEN", "ACE_RS_API_KEY",
+                                   "ACE_RS_BUCKET_ACCESS_KEY", "ACE_RS_BUCKET_SECRET_KEY")
+                       or name.startswith("ACE_RS_POOL_TOKEN_")]
+    expect(not forbidden and "ACE_RS_DATABASE_URL" in names and "ACE_RS_OVERLAY" in names,
            f"the ai service's environment holds the database and its overlay, and no key, token or "
            f"bucket credential: {names + aws}")
     logs = compose("logs", "ai", capture=True)
@@ -1763,15 +1763,15 @@ def check_ai(first, failures):
     core_url, _ = database_login("ace")
     _, ai_login = database_login("ai")
     login = sql("SELECT rolsuper OR rolcreaterole OR rolcreatedb OR rolbypassrls, "
-                "pg_has_role(rolname, 'ace4_ai', 'MEMBER') FROM pg_roles WHERE rolname = '"
+                "pg_has_role(rolname, 'ace_rs_ai', 'MEMBER') FROM pg_roles WHERE rolname = '"
                 + ai_login.replace("'", "''") + "'")
     expect(login == [["f", "t"]],
-           f"its database login, {ai_login}, is a plain member of ace4_ai: {login}")
+           f"its database login, {ai_login}, is a plain member of ace_rs_ai: {login}")
     # handed the email archive's key, or the core's database login, it doesn't start
     for what, args, named in [
-        ("the email archive's key", ["-e", "ACE4_ENCRYPTION_KEY=" + "00" * 32], "ACE4_ENCRYPTION_KEY"),
-        ("a pool's token", ["-e", "ACE4_POOL_TOKEN_PARSERS=ace4-dev-parsers-token"], "ACE4_POOL_TOKEN_PARSERS"),
-        ("the core's database login", ["-e", f"ACE4_DATABASE_URL={core_url}"], "superuser"),
+        ("the email archive's key", ["-e", "ACE_RS_ENCRYPTION_KEY=" + "00" * 32], "ACE_RS_ENCRYPTION_KEY"),
+        ("a pool's token", ["-e", "ACE_RS_POOL_TOKEN_PARSERS=ace-rs-dev-parsers-token"], "ACE_RS_POOL_TOKEN_PARSERS"),
+        ("the core's database login", ["-e", f"ACE_RS_DATABASE_URL={core_url}"], "superuser"),
     ]:
         refused = subprocess.run(
             [*COMPOSE, "run", "--rm", "--no-deps", "-T", *args, "ai"],
@@ -1779,7 +1779,7 @@ def check_ai(first, failures):
         )
         output = refused.stdout + refused.stderr
         expect(refused.returncode != 0 and "AI API custody checks failed, refusing to start" in output
-               and named in output and "00" * 32 not in output and "ace4-dev-parsers-token" not in output,
+               and named in output and "00" * 32 not in output and "ace-rs-dev-parsers-token" not in output,
                f"handed {what}, `ace serve-ai` refuses to start and names it, not its value: "
                f"exit {refused.returncode}")
 
@@ -1875,19 +1875,19 @@ def check_ports_compared(failures):
     for module in LIBRARY_PORTS:
         counts = compared.get(module, {})
         log(f"{module}: {counts}")
-        if not counts.get("ace3_results") or not counts.get("ace4_results"):
+        if not counts.get("ace3_results") or not counts.get("ace_rs_results"):
             failures.append(f"{module} was compared with nothing: {counts}")
 
 
-def give_ace4_the_trees_world():
-    """What make-trees gave ace3's tagging and detection modules (PLAN.md 7.6), given to ace4: the
+def give_ace_rs_the_trees_world():
+    """What make-trees gave ace3's tagging and detection modules (PLAN.md 7.6), given to ace-rs: the
     observables enabled for detection, through the detection API with a key of their own, the tags
     analysts mapped to observables, with SQL, since ace3 has no API for them either, and the site
     tags, which the overlay holds. Returns why it couldn't, or None."""
     sql("DELETE FROM lists.entries WHERE list = 'observable_detection'; "
         "TRUNCATE analysis.observable_tags")
     # ace3's export names each rule's strings by its detection's id, which make-trees made its place in
-    # the file from 1 (PLAN.md 7.16), so ace4's entries take the same ids
+    # the file from 1 (PLAN.md 7.16), so ace-rs's entries take the same ids
     left = sql("SELECT count(*) FROM lists.entries")[0][0]
     if left != "0":
         return f"lists.entries holds {left} entries, so the detections can't take the ids ace3's trees have"
@@ -1952,12 +1952,12 @@ def give_ace4_the_trees_world():
 # ace3 doesn't keep its results by default. ocr runs on no sample: nothing in them gets its directive.
 CACHE_SAMPLES = [
     "ace3/pdf/sample_pdf_with_qr_code.pdf",
-    "ace4/pdf/broken_no_root.pdf",
+    "ace-rs/pdf/broken_no_root.pdf",
     "ace3/office/mortgage_payment-0873821-0565.docm",
-    "ace4/email/encrypted_in_zip.email.rfc822",
+    "ace-rs/email/encrypted_in_zip.email.rfc822",
     "ace3/executables/cmd-upx.exe",
-    "ace4/web/data_urls.html",
-    "ace4/pdf/uri_array.pdf",
+    "ace-rs/web/data_urls.html",
+    "ace-rs/pdf/uri_array.pdf",
     "ace3/email/encrypted_msoffice.email.rfc822",
     "ace3/pcap/http_tls.pcapng",
 ]
@@ -2194,7 +2194,7 @@ def jobs_of(argv):
 
 
 # The audit of the modules' declarations of what they take (PLAN.md decision 23, ace_core::takes):
-# with ACE4_TAKES_AUDIT=1 in the environment (a site's prefix in place of ACE4_) the stack's core
+# with ACE_RS_TAKES_AUDIT=1 in the environment (a site's prefix in place of ACE_RS_) the stack's core
 # queues every task and marks the ones a declaration would have declined. This is
 # ace_core::takes::audit_report's query.
 TAKES_AUDIT = os.environ.get(PREFIX + "TAKES_AUDIT", "") in ("1", "true")
@@ -2211,7 +2211,7 @@ ORDER BY t.id
 
 
 def check_takes_audit(failures):
-    """Under ACE4_TAKES_AUDIT, that no task a declaration declined stored a result or failed. The
+    """Under ACE_RS_TAKES_AUDIT, that no task a declaration declined stored a result or failed. The
     marked tasks by module, and any such task, go to <work>/takes-audit.txt."""
     if not TAKES_AUDIT:
         return
@@ -2247,16 +2247,16 @@ def compare_with_ace3(threshold=False, jobs=None):
         + ", ".join("('" + d.replace("'", "''") + "')" for d in domains)
         + " ON CONFLICT DO NOTHING")
     # and with tools/ace3/trees' detections, tags and site tags (PLAN.md 7.6)
-    problem = give_ace4_the_trees_world()
+    problem = give_ace_rs_the_trees_world()
     if problem:
         log(f"FAIL  the tagging and detection modules' world: {problem}")
         return 1
-    log("ok    ace4 has the detections, tags and site tags ace3's trees were made with")
+    log("ok    ace-rs has the detections, tags and site tags ace3's trees were made with")
     # the recorded Splunk job counts requests from when the responder started
     compose("restart", "responder")
     compose("up", "-d", "--wait", "responder")
     command = [
-        "run", "--rm", "--no-deps", "--user", f"{os.getuid()}:{os.getgid()}", "-e", "ACE4_API_KEY",
+        "run", "--rm", "--no-deps", "--user", f"{os.getuid()}:{os.getgid()}", "-e", "ACE_RS_API_KEY",
         "-v", f"{ROOT / 'samples'}:/compare/samples:ro",
         "-v", f"{TREES}:/compare/trees:ro",
         "-v", f"{report}:/compare/report",
@@ -2332,7 +2332,7 @@ def finish(failures):
 
 def main(argv):
     if CACHE and not COMPARE:
-        raise SystemExit("e2e: ACE4_E2E_CACHE needs ACE4_E2E_COMPARE: the cache's check runs in the "
+        raise SystemExit("e2e: ACE_RS_E2E_CACHE needs ACE_RS_E2E_COMPARE: the cache's check runs in the "
                          "world the comparison sets up")
     keep = "--keep" in argv
     compare_only = "--compare" in argv
@@ -2341,7 +2341,7 @@ def main(argv):
     commit = make_signatures()
     log(f"signatures at {WORK / 'signatures'}, commit {commit}")
     browser = has_browser()
-    if not browser and "ACE4_E2E_COMPOSE" not in os.environ:
+    if not browser and "ACE_RS_E2E_COMPOSE" not in os.environ:
         raise SystemExit("e2e: compose.yaml has no browser service")
     build_scanner_images()
     compose("up", "-d", "--build", "--wait", *SERVICES, *(["browser"] if browser else []))

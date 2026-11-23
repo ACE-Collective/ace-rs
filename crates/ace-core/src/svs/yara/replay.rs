@@ -17,7 +17,7 @@
 //! The working directory holds every sample in plaintext and is removed when the replay ends, whatever
 //! happened. Nothing here writes to the database.
 //!
-//! What differs from ace3: the child is ace4's (the YARA pool's loader, so a file that isn't UTF-8 or has an
+//! What differs from ace3: the child is ace-rs's (the YARA pool's loader, so a file that isn't UTF-8 or has an
 //! include that can't be read is left out alone, where ace3 fails the load or compiles the include as
 //! empty), and a contained scan has no per-file timeout (`ace_yara::replay::run_with`), so a slow file is
 //! held to the whole scan's limit and fails the validation rather than being one unit's scan error. The

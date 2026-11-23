@@ -14,11 +14,11 @@
 //! pass open, so a root with a delayed module has one event where ace3 has several.
 //!
 //! **Where.** ace3 sends it to fluent-bit under the tag `metrics`, which writes it to a file its
-//! logs are shipped from. ace4 has no fluent-bit: the event is a log record under the target
+//! logs are shipped from. ace-rs has no fluent-bit: the event is a log record under the target
 //! [`TARGET`], `ace_metrics`, at INFO, as a monitor record is one under `ace_monitor`
 //! (`crate::monitoring`), so it goes where the process's logs go. Like any log record made inside a
 //! span, it is also an event of that span in an exported trace. Its message is `METRICS (root): ` and the
-//! event as JSON on one line, and each module event's is `METRICS (module): ` and its JSON. `ACE4_LOG=info,ace_metrics=off` turns it off, and then it isn't read
+//! event as JSON on one line, and each module event's is `METRICS (module): ` and its JSON. `ACE_RS_LOG=info,ace_metrics=off` turns it off, and then it isn't read
 //! either: ace3's switch is `metrics_logging.enabled`. The binary's own default level, WARN, has it
 //! off; the Compose stack sets `info`.
 //!
@@ -28,7 +28,7 @@
 //! | ace3's field | here | from |
 //! |---|---|---|
 //! | `event_type`, `"root"` | `event_type`, `"root"` | a constant |
-//! | `outcome`, `completed`, `cancelled`, `timed_out` or `failed` (since `91c3e6e4` and `24f94fda`) | `outcome`, `completed` or `cancelled` | `cancelled` when the root was cancelled by the pass's end (`analysis.roots.cancelled_at`), as ace3's is for a shutdown, a lost lock or a disposition stop. ace4 has neither of the other two: a task fails, never a pass, and no pass has a time limit as ace3's work item does |
+//! | `outcome`, `completed`, `cancelled`, `timed_out` or `failed` (since `91c3e6e4` and `24f94fda`) | `outcome`, `completed` or `cancelled` | `cancelled` when the root was cancelled by the pass's end (`analysis.roots.cancelled_at`), as ace3's is for a shutdown, a lost lock or a disposition stop. ace-rs has neither of the other two: a task fails, never a pass, and no pass has a time limit as ace3's work item does |
 //! | `timestamp`, the engine's local time as `%Y-%m-%d %H:%M:%S.%f` | `timestamp`, RFC 3339 in UTC | the pass's `queue.root_completions.completed_at` |
 //! | `root_uuid` | `root_uuid` | the root's id |
 //! | `total_time_seconds`, how long the engine's executor ran on the work item | not emitted under that name: `pass_open_seconds`, how long the pass was open | `completed_at` less `analysis.roots.pass_started_at` (migration 0066). It includes what ace3's leaves out, the time tasks waited for a worker and the waits of delayed tasks, and tasks run side by side, so it is no measure of the work done and is named so that nobody compares it with ace3's. Absent for a pass that began before migration 0066 |
@@ -44,7 +44,7 @@
 //! `failed_task_count`, the root's tasks at the pass's end and those that failed, without the core's
 //! own hooks task. Since decision 23 the core queues no task a module's declaration declines, so
 //! `task_count` counts the tasks that were queued to run: each ran, or was cancelled with its root
-//! before it could. Under the audit setting (`ACE4_TAKES_AUDIT=1`, `crate::takes`) the declined tasks
+//! before it could. Under the audit setting (`ACE_RS_TAKES_AUDIT=1`, `crate::takes`) the declined tasks
 //! are queued, leased and ended skipped as before, so they are counted again, and their runs are in
 //! the run times. Those counts are the root's, not the pass's: a later pass's event counts the
 //! earlier passes' observables and tasks too, as ace3's `observable_count` counts the whole tree. The
@@ -100,7 +100,7 @@
 //! | `cache_hit_count`, `cache_miss_count`, `cache_write_count_insert` | the same, for a module the cache did anything for in the pass, as ace3 leaves them out otherwise | `cache.activity` (migration 0072, `crate::cache::count`): a lookup where a task would have been queued counts its hit or its miss; a lookup at a lease, for a task whose files waited for its path, counts only its hit, since its miss was counted when the task was queued; a task's end that kept its result counts a write |
 //! | `cache_write_bytes_compressed_sum` | the same | the kept results' JSON, deflated, which is what the 1 MiB limit is of; ace3's is zstd's |
 //! | `cache_lookup_ms_sum`, `cache_lookup_ms_max` | the same, over hits and misses as ace3's since 2026-06-10 | each lookup timed from making its key to its hit or miss; a lookup at a lease isn't timed |
-//! | `cache_lookup_key_ms_sum`, `cache_lookup_db_ms_sum`, `cache_lookup_decode_ms_sum`, `cache_lookup_blob_ms_sum`, `cache_write_ms_*`, `cache_write_bytes_uncompressed_sum` | not emitted | ace4's key needs no probe at lookup (the pool's versions are kept), a kept result has no blob to fetch, and the write is a statement in the task's end's transaction |
+//! | `cache_lookup_key_ms_sum`, `cache_lookup_db_ms_sum`, `cache_lookup_decode_ms_sum`, `cache_lookup_blob_ms_sum`, `cache_write_ms_*`, `cache_write_bytes_uncompressed_sum` | not emitted | ace-rs's key needs no probe at lookup (the pool's versions are kept), a kept result has no blob to fetch, and the write is a statement in the task's end's transaction |
 //!
 //! And `pass`, as on the root's event.
 //!
@@ -108,7 +108,7 @@
 //! cancelled, so the events are emitted, with `outcome` `cancelled` since its `24f94fda`; here a
 //! cancelled root's pass ends, at once or when its last running task has stopped, and its event's
 //! `outcome` is `cancelled` too. Since `91c3e6e4` ace3 also emits the events when the executor
-//! raises, which is the whole analysis timing out (`timed_out`) or failing (`failed`). ace4 has no
+//! raises, which is the whole analysis timing out (`timed_out`) or failing (`failed`). ace-rs has no
 //! such failure: a task fails, never a pass, so a root whose tasks failed has its event, `completed`,
 //! as ace3's does when a module raised and the engine caught it. A failed run counts in its module's run time and executions, as in ace3.
 //!

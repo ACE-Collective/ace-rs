@@ -10,12 +10,12 @@
 //! logic's property transforms in document order; an observable is from the step whose property
 //! its mapping's field starts with.
 //!
-//! ace4 differs from ace3 in two places. ace3 looks an alert action's queue and analysis mode up by
+//! ace-rs differs from ace3 in two places. ace3 looks an alert action's queue and analysis mode up by
 //! the event's index after correlation, though the engine keeps them by its index before, so once
-//! an event before it is filtered, an ungrouped hunt's override lands on the wrong submission; ace4
+//! an event before it is filtered, an ungrouped hunt's override lands on the wrong submission; ace-rs
 //! looks it up by the index the engine kept. And ace3 keys the provenance of an observable by its
 //! uuid, which the root gives it; a submission's observables have none until the core makes the
-//! root, so ace4 lists them with their type and value.
+//! root, so ace-rs lists them with their type and value.
 
 use std::collections::{BTreeMap, BTreeSet};
 

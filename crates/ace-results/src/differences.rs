@@ -8,19 +8,19 @@ use std::path::Path;
 
 use serde_json::Value;
 
-/// One place where ace3's and ace4's normal forms differ. A side is None where it has nothing.
+/// One place where ace3's and ace-rs's normal forms differ. A side is None where it has nothing.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Difference {
     /// A JSON pointer into the normal form.
     pub path: String,
     pub ace3: Option<Value>,
-    pub ace4: Option<Value>,
+    pub ace_rs: Option<Value>,
 }
 
 /// Every difference between two normal forms, by JSON pointer.
-pub fn diff(ace3: &Value, ace4: &Value) -> Vec<Difference> {
+pub fn diff(ace3: &Value, ace_rs: &Value) -> Vec<Difference> {
     let mut out = Vec::new();
-    diff_at(String::new(), Some(ace3), Some(ace4), &mut out);
+    diff_at(String::new(), Some(ace3), Some(ace_rs), &mut out);
     out
 }
 
@@ -46,7 +46,7 @@ fn diff_at(path: String, a: Option<&Value>, b: Option<&Value>, out: &mut Vec<Dif
         (a, b) => out.push(Difference {
             path,
             ace3: a.cloned(),
-            ace4: b.cloned(),
+            ace_rs: b.cloned(),
         }),
     }
 }
@@ -128,10 +128,10 @@ impl ListedDifferences {
         compared: &[(String, Vec<Difference>)],
         skipped: &[String],
     ) -> Result<(), String> {
-        self.check_between(compared, skipped, "ace3", "ace4")
+        self.check_between(compared, skipped, "ace3", "ace-rs")
     }
 
-    /// `check`, for two sides that aren't ace3 and ace4, naming them in its report.
+    /// `check`, for two sides that aren't ace3 and ace-rs, naming them in its report.
     pub fn check_between(
         &self,
         compared: &[(String, Vec<Difference>)],
@@ -155,7 +155,7 @@ impl ListedDifferences {
                         "{dump}: {}\n    {left}: {}\n    {right}: {}",
                         difference.path,
                         show(&difference.ace3),
-                        show(&difference.ace4)
+                        show(&difference.ace_rs)
                     ));
                 }
             }

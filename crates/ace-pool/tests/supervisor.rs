@@ -1,7 +1,7 @@
 //! PLAN.md 2.17's Done check: a panicking parser leaves a failed-task row and the supervisor
 //! keeps leasing, a task process has no capabilities, and the archive module (on test.r07, a
 //! RAR 5 file) and the YARA module each run contained. The supervisor is the test pool binary
-//! in its parsers mode, running task processes as the dev image's ace4-task user. Also: a cancel
+//! in its parsers mode, running task processes as the dev image's ace-rs-task user. Also: a cancel
 //! and a shutdown each kill a running task process. `hung_tasks.rs` covers the deadline.
 
 mod common;
@@ -19,9 +19,15 @@ use common::{
     wait_until_idle,
 };
 
-/// The supervisor, running task processes as ace4-task.
+/// The supervisor, running task processes as ace-rs-task.
 fn supervisor(core: &Core, extra: &[&str]) -> PoolProcess {
-    let mut args = vec!["parsers", "--task-user", "ace4-task", "--concurrency", "1"];
+    let mut args = vec![
+        "parsers",
+        "--task-user",
+        "ace-rs-task",
+        "--concurrency",
+        "1",
+    ];
     args.extend_from_slice(extra);
     PoolProcess::start(test_pool(core, &args))
 }
@@ -162,7 +168,7 @@ async fn the_pdf_module_reads_an_aes_pdf_in_a_contained_task_process() {
     )
     .await;
     let (root, _, _) = core
-        .root_with_file("file", "ace4/pdf/encrypted_aes_256_r6.pdf", "doc.pdf")
+        .root_with_file("file", "ace-rs/pdf/encrypted_aes_256_r6.pdf", "doc.pdf")
         .await;
     let mut pool = supervisor(&core, &[]);
     let (state, error, _) = pdf_task(&core, root, Duration::from_secs(60)).await;
@@ -235,11 +241,11 @@ async fn a_pdf_that_exhausts_a_task_leaves_a_row_and_the_supervisor_keeps_leasin
 }
 
 /// A measurement rather than a test (docs/measurements/pdf-hostile.md): each file in the directory
-/// `ACE4_PDF_HOSTILE` names, as a task with the module's real limits, and what became of it.
+/// `ACE_RS_PDF_HOSTILE` names, as a task with the module's real limits, and what became of it.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement, with files tools/samples/make-pdf-hostile makes"]
 async fn measure_hostile_pdfs() {
-    let dir = std::env::var("ACE4_PDF_HOSTILE").expect("ACE4_PDF_HOSTILE");
+    let dir = std::env::var("ACE_RS_PDF_HOSTILE").expect("ACE_RS_PDF_HOSTILE");
     let core = Core::start(
         vec![ace_mod_pdf::MANIFEST],
         &["pdf_analyzer"],
@@ -330,8 +336,8 @@ async fn olevba_and_rtfobj_finish_in_contained_task_processes() {
             "olevba_v1_2",
             "b.docm",
         ),
-        ("ace4/office/vba_powerpoint.ppt", "olevba_v1_2", "c.ppt"),
-        ("ace4/rtf/objects.rtf", "rtfole", "d.rtf"),
+        ("ace-rs/office/vba_powerpoint.ppt", "olevba_v1_2", "c.ppt"),
+        ("ace-rs/rtf/objects.rtf", "rtfole", "d.rtf"),
     ] {
         let bytes = std::fs::read(ace_testkit::samples_dir().join(sample)).expect("the sample");
         let (root, _) = root_with_bytes(&core, "file", &bytes, name).await;
@@ -378,8 +384,8 @@ async fn xlm_and_pcode_finish_in_contained_task_processes() {
     .await;
     let mut pool = supervisor(&core, &[]);
     for (sample, module, files) in [
-        ("ace4/office/xlm_info_3805.xls", "xlmdeobfuscator", 2),
-        ("ace4/office/xlm_xlsb.xlsb", "xlmdeobfuscator", 2),
+        ("ace-rs/office/xlm_info_3805.xls", "xlmdeobfuscator", 2),
+        ("ace-rs/office/xlm_xlsb.xlsb", "xlmdeobfuscator", 2),
         ("ace3/office/receipt_687790.doc", "pcodedmp", 1),
     ] {
         let path = format!("{}/../../samples/{sample}", env!("CARGO_MANIFEST_DIR"));
@@ -400,11 +406,11 @@ async fn xlm_and_pcode_finish_in_contained_task_processes() {
 }
 
 /// A measurement rather than a test (docs/measurements/xlm-hostile.md): each file in the directory
-/// `ACE4_XLM_HOSTILE` names, as a task with the module's real limits.
+/// `ACE_RS_XLM_HOSTILE` names, as a task with the module's real limits.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement, with files tools/samples/make-xlm-hostile makes"]
 async fn measure_hostile_xlm() {
-    let dir = std::env::var("ACE4_XLM_HOSTILE").expect("ACE4_XLM_HOSTILE");
+    let dir = std::env::var("ACE_RS_XLM_HOSTILE").expect("ACE_RS_XLM_HOSTILE");
     let core = Core::start(
         vec![ace_mod_xlm::XLM_MANIFEST],
         &["xlmdeobfuscator"],
@@ -452,11 +458,11 @@ async fn measure_hostile_xlm() {
 }
 
 /// A measurement rather than a test (docs/measurements/oletools-hostile.md): each file in the
-/// directory `ACE4_OLETOOLS_HOSTILE` names, as a task with the modules' real limits.
+/// directory `ACE_RS_OLETOOLS_HOSTILE` names, as a task with the modules' real limits.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement, with files tools/samples/make-oletools-hostile makes"]
 async fn measure_hostile_oletools() {
-    let dir = std::env::var("ACE4_OLETOOLS_HOSTILE").expect("ACE4_OLETOOLS_HOSTILE");
+    let dir = std::env::var("ACE_RS_OLETOOLS_HOSTILE").expect("ACE_RS_OLETOOLS_HOSTILE");
     let core = Core::start(
         vec![
             ace_mod_oletools::OLEVBA_MANIFEST,
@@ -541,18 +547,18 @@ async fn an_attachment_opens_with_its_emails_body_in_a_contained_task_process() 
     let mut pool = supervisor(&core, &[]);
     for (sample, password) in [
         (
-            "ace4/email/encrypted_rc4_doc.email.rfc822",
+            "ace-rs/email/encrypted_rc4_doc.email.rfc822",
             Some("R4Binary1"),
         ),
         (
-            "ace4/email/encrypted_cryptoapi_ppt.email.rfc822",
+            "ace-rs/email/encrypted_cryptoapi_ppt.email.rfc822",
             Some("CryptoAp1"),
         ),
         (
-            "ace4/email/encrypted_nested_html.email.rfc822",
+            "ace-rs/email/encrypted_nested_html.email.rfc822",
             Some("InnerPw1"),
         ),
-        ("ace4/email/encrypted_wrong_password.email.rfc822", None),
+        ("ace-rs/email/encrypted_wrong_password.email.rfc822", None),
     ] {
         let bytes = std::fs::read(ace_testkit::samples_dir().join(sample)).expect("the sample");
         let (root, _) = root_with_bytes(&core, "email", &bytes, "email.rfc822").await;
@@ -577,7 +583,7 @@ async fn measure_msoffice() {
     let core = email_and_office_core().await;
     let mut pool = supervisor(&core, &[]);
     let office =
-        std::fs::read(ace_testkit::samples_dir().join("ace4/office/encrypted_no_email.docx"))
+        std::fs::read(ace_testkit::samples_dir().join("ace-rs/office/encrypted_no_email.docx"))
             .expect("the sample");
     // no whitespace, so every window is a password, up to the list's limit of 5,000
     let mut seed = 0x2545_F491_u32;
@@ -664,32 +670,32 @@ async fn encrypted_archives_and_pdfs_open_with_their_emails_body_in_a_contained_
     let mut pool = supervisor(&core, &[]);
     for (sample, analysis_type, password, files) in [
         (
-            "ace4/email/encrypted_zip_aes.email.rfc822",
+            "ace-rs/email/encrypted_zip_aes.email.rfc822",
             "zip_encryption_analysis",
             Some("Aes256Pw"),
             2,
         ),
         (
-            "ace4/email/encrypted_rar4.email.rfc822",
+            "ace-rs/email/encrypted_rar4.email.rfc822",
             "rar_encryption_analysis",
             Some("Rar4Pass"),
             2,
         ),
         (
-            "ace4/email/encrypted_rar5_headers.email.rfc822",
+            "ace-rs/email/encrypted_rar5_headers.email.rfc822",
             "rar_encryption_analysis",
             Some("Rar5Head"),
             2,
         ),
         (
-            "ace4/email/encrypted_pdf_rc4.email.rfc822",
+            "ace-rs/email/encrypted_pdf_rc4.email.rfc822",
             "pdf_encryption_analysis",
             Some("Rc4User1"),
             1,
         ),
         // the owner's password opens it, and isn't the user's, which is what John checks
         (
-            "ace4/email/encrypted_pdf_aes_owner.email.rfc822",
+            "ace-rs/email/encrypted_pdf_aes_owner.email.rfc822",
             "pdf_encryption_analysis",
             None,
             0,
@@ -722,15 +728,15 @@ async fn encrypted_archives_and_pdfs_open_with_their_emails_body_in_a_contained_
 }
 
 /// What docs/measurements/encrypted.md records: each file `tools/samples/make-encrypted-hostile`
-/// wrote to `ACE4_ENCRYPTED_HOSTILE`, attached to an email whose body gives 5,000 candidates and none
-/// of them its password, `ACE4_ENCRYPTED_RUNS` times (3 by default), in a real task process with the
+/// wrote to `ACE_RS_ENCRYPTED_HOSTILE`, attached to an email whose body gives 5,000 candidates and none
+/// of them its password, `ACE_RS_ENCRYPTED_RUNS` times (3 by default), in a real task process with the
 /// module's real limits. A file's name starts with its module's.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement, with files tools/samples/make-encrypted-hostile makes"]
 async fn measure_encrypted() {
     use base64::Engine;
-    let dir = std::env::var("ACE4_ENCRYPTED_HOSTILE").expect("ACE4_ENCRYPTED_HOSTILE");
-    let runs: usize = std::env::var("ACE4_ENCRYPTED_RUNS")
+    let dir = std::env::var("ACE_RS_ENCRYPTED_HOSTILE").expect("ACE_RS_ENCRYPTED_HOSTILE");
+    let runs: usize = std::env::var("ACE_RS_ENCRYPTED_RUNS")
         .ok()
         .and_then(|r| r.parse().ok())
         .unwrap_or(3);
@@ -1169,18 +1175,18 @@ async fn url_extraction_runs_contained() {
 }
 
 /// What `docs/measurements/url-extraction.md` records: each file of the directory
-/// `ACE4_URL_HOSTILE` names (`tools/samples/make-url-hostile`), `ACE4_URL_RUNS` times (3 by
-/// default), as a contained task of `ACE4_URL_MODULE` (url_extraction, or ioc_extraction) with the
+/// `ACE_RS_URL_HOSTILE` names (`tools/samples/make-url-hostile`), `ACE_RS_URL_RUNS` times (3 by
+/// default), as a contained task of `ACE_RS_URL_MODULE` (url_extraction, or ioc_extraction) with the
 /// module's limits.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement, with files tools/samples/make-url-hostile makes"]
 async fn measure_url_extraction() {
-    let dir = std::env::var("ACE4_URL_HOSTILE").expect("ACE4_URL_HOSTILE");
-    let runs: usize = std::env::var("ACE4_URL_RUNS")
+    let dir = std::env::var("ACE_RS_URL_HOSTILE").expect("ACE_RS_URL_HOSTILE");
+    let runs: usize = std::env::var("ACE_RS_URL_RUNS")
         .ok()
         .and_then(|r| r.parse().ok())
         .unwrap_or(3);
-    let module = std::env::var("ACE4_URL_MODULE").unwrap_or_else(|_| "url_extraction".to_owned());
+    let module = std::env::var("ACE_RS_URL_MODULE").unwrap_or_else(|_| "url_extraction".to_owned());
     let (manifest, directive) = match module.as_str() {
         "ioc_extraction" => (ace_mod_urls::ioc_extraction::MANIFEST, "extract_iocs"),
         _ => (ace_mod_urls::url_extraction::MANIFEST, "extract_urls"),
@@ -1225,20 +1231,20 @@ async fn measure_url_extraction() {
 }
 
 /// What `docs/measurements/file-identity.md` records: each file of the directory
-/// `ACE4_FILES_HOSTILE` names (`tools/samples/make-identity-hostile`) whose name starts with
-/// `ACE4_FILES_MODULE` (file_type, x509_analyzer or lnk_parser), `ACE4_FILES_RUNS` times (3 by
+/// `ACE_RS_FILES_HOSTILE` names (`tools/samples/make-identity-hostile`) whose name starts with
+/// `ACE_RS_FILES_MODULE` (file_type, x509_analyzer or lnk_parser), `ACE_RS_FILES_RUNS` times (3 by
 /// default), as a contained task of that module with its limits, file_type first for the module
 /// that depends on it. A run's root holds the file under a name with the run's number, so no run
 /// reuses another's result.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement, with files tools/samples/make-identity-hostile makes"]
 async fn measure_file_identity() {
-    let dir = std::env::var("ACE4_FILES_HOSTILE").expect("ACE4_FILES_HOSTILE");
-    let runs: usize = std::env::var("ACE4_FILES_RUNS")
+    let dir = std::env::var("ACE_RS_FILES_HOSTILE").expect("ACE_RS_FILES_HOSTILE");
+    let runs: usize = std::env::var("ACE_RS_FILES_RUNS")
         .ok()
         .and_then(|r| r.parse().ok())
         .unwrap_or(3);
-    let module = std::env::var("ACE4_FILES_MODULE").unwrap_or_else(|_| "file_type".to_owned());
+    let module = std::env::var("ACE_RS_FILES_MODULE").unwrap_or_else(|_| "file_type".to_owned());
     let mut manifests = vec![ace_mod_files::file_type::MANIFEST];
     match module.as_str() {
         "x509_analyzer" => manifests.push(ace_mod_files::x509::MANIFEST),
@@ -1299,10 +1305,10 @@ async fn html_modules_finish_in_contained_task_processes() {
     let core = Core::start(manifests.clone(), &names, Duration::from_secs(300)).await;
     let mut pool = supervisor(&core, &[]);
     for (sample, module) in [
-        ("ace4/web/data_urls.html", "html_data_url_extraction"),
-        ("ace4/web/page.mht", "mhtml"),
-        ("ace4/web/scripts.html", "html_js_extraction"),
-        ("ace4/web/session.har", "har_extraction"),
+        ("ace-rs/web/data_urls.html", "html_data_url_extraction"),
+        ("ace-rs/web/page.mht", "mhtml"),
+        ("ace-rs/web/scripts.html", "html_js_extraction"),
+        ("ace-rs/web/session.har", "har_extraction"),
     ] {
         let path = format!("{}/../../samples/{sample}", env!("CARGO_MANIFEST_DIR"));
         let bytes = std::fs::read(path).expect("a sample");
@@ -1315,8 +1321,8 @@ async fn html_modules_finish_in_contained_task_processes() {
 }
 
 /// PLAN.md 7.5 batch 4: what crafted files cost the HTML modules (docs/measurements/html.md). Each
-/// file `tools/samples/make-html-hostile` wrote to `ACE4_HTML_HOSTILE` whose name starts with the
-/// module `ACE4_HTML_MODULE` names runs `ACE4_HTML_RUNS` times (3 by default) as a contained task
+/// file `tools/samples/make-html-hostile` wrote to `ACE_RS_HTML_HOSTILE` whose name starts with the
+/// module `ACE_RS_HTML_MODULE` names runs `ACE_RS_HTML_RUNS` times (3 by default) as a contained task
 /// of that module with its limits, file_type first for `html_js_extraction` and `mhtml`, which wait
 /// for it.
 /// A run's root holds the file under a name with the run's number, so no run reuses another's
@@ -1325,9 +1331,9 @@ async fn html_modules_finish_in_contained_task_processes() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement, with files tools/samples/make-html-hostile makes"]
 async fn measure_html() {
-    let dir = std::env::var("ACE4_HTML_HOSTILE").expect("ACE4_HTML_HOSTILE");
-    let module = std::env::var("ACE4_HTML_MODULE").expect("ACE4_HTML_MODULE");
-    let runs: usize = std::env::var("ACE4_HTML_RUNS")
+    let dir = std::env::var("ACE_RS_HTML_HOSTILE").expect("ACE_RS_HTML_HOSTILE");
+    let module = std::env::var("ACE_RS_HTML_MODULE").expect("ACE_RS_HTML_MODULE");
+    let runs: usize = std::env::var("ACE_RS_HTML_RUNS")
         .ok()
         .and_then(|r| r.parse().ok())
         .unwrap_or(3);
@@ -1449,16 +1455,16 @@ async fn measure_files(
 
 /// PLAN.md 7.5 batch 5: what crafted files cost the Office container modules
 /// (docs/measurements/office-containers.md), as `measure_html` measures the HTML ones: each file
-/// `tools/samples/make-office-hostile` wrote to `ACE4_OFFICE_HOSTILE` whose name starts with the
-/// module `ACE4_OFFICE_MODULE` names, `ACE4_OFFICE_RUNS` times (3 by default), file_type first for
+/// `tools/samples/make-office-hostile` wrote to `ACE_RS_OFFICE_HOSTILE` whose name starts with the
+/// module `ACE_RS_OFFICE_MODULE` names, `ACE_RS_OFFICE_RUNS` times (3 by default), file_type first for
 /// the modules that wait for it. A `.rels` file is named `document.xml.rels` in the alert, the
 /// only name `office_xml_rel` reads.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement, with files tools/samples/make-office-hostile makes"]
 async fn measure_office() {
-    let dir = std::env::var("ACE4_OFFICE_HOSTILE").expect("ACE4_OFFICE_HOSTILE");
-    let module = std::env::var("ACE4_OFFICE_MODULE").expect("ACE4_OFFICE_MODULE");
-    let runs: usize = std::env::var("ACE4_OFFICE_RUNS")
+    let dir = std::env::var("ACE_RS_OFFICE_HOSTILE").expect("ACE_RS_OFFICE_HOSTILE");
+    let module = std::env::var("ACE_RS_OFFICE_MODULE").expect("ACE_RS_OFFICE_MODULE");
+    let runs: usize = std::env::var("ACE_RS_OFFICE_RUNS")
         .ok()
         .and_then(|r| r.parse().ok())
         .unwrap_or(3);
@@ -1488,14 +1494,14 @@ async fn measure_office() {
 
 /// PLAN.md 7.5 batch 6: what crafted files cost the RTF and script modules
 /// (docs/measurements/scripts.md), as `measure_office` measures the Office ones: each file
-/// `tools/samples/make-scripts-hostile` wrote to `ACE4_SCRIPTS_HOSTILE` whose name starts with the
-/// module `ACE4_SCRIPTS_MODULE` names, `ACE4_SCRIPTS_RUNS` times (3 by default).
+/// `tools/samples/make-scripts-hostile` wrote to `ACE_RS_SCRIPTS_HOSTILE` whose name starts with the
+/// module `ACE_RS_SCRIPTS_MODULE` names, `ACE_RS_SCRIPTS_RUNS` times (3 by default).
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement, with files tools/samples/make-scripts-hostile makes"]
 async fn measure_scripts() {
-    let dir = std::env::var("ACE4_SCRIPTS_HOSTILE").expect("ACE4_SCRIPTS_HOSTILE");
-    let module = std::env::var("ACE4_SCRIPTS_MODULE").expect("ACE4_SCRIPTS_MODULE");
-    let runs: usize = std::env::var("ACE4_SCRIPTS_RUNS")
+    let dir = std::env::var("ACE_RS_SCRIPTS_HOSTILE").expect("ACE_RS_SCRIPTS_HOSTILE");
+    let module = std::env::var("ACE_RS_SCRIPTS_MODULE").expect("ACE_RS_SCRIPTS_MODULE");
+    let runs: usize = std::env::var("ACE_RS_SCRIPTS_RUNS")
         .ok()
         .and_then(|r| r.parse().ok())
         .unwrap_or(3);
@@ -1512,13 +1518,13 @@ async fn measure_scripts() {
 }
 
 /// PLAN.md 7.5 batch 3: what crafted observable values cost the modules that read them
-/// (docs/measurements/observable-values.md). Each value of the module `ACE4_VALUES_MODULE` names
+/// (docs/measurements/observable-values.md). Each value of the module `ACE_RS_VALUES_MODULE` names
 /// runs in a new root as a contained task of that module with its limits, 3 runs
-/// (`ACE4_VALUES_RUNS`), and the time is from the task's queueing to its end, its result landed.
+/// (`ACE_RS_VALUES_RUNS`), and the time is from the task's queueing to its end, its result landed.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement"]
 async fn measure_observable_values() {
-    let runs: usize = std::env::var("ACE4_VALUES_RUNS")
+    let runs: usize = std::env::var("ACE_RS_VALUES_RUNS")
         .ok()
         .and_then(|r| r.parse().ok())
         .unwrap_or(3);
@@ -1626,7 +1632,7 @@ async fn measure_observable_values() {
         .collect();
     let settings = serde_json::json!({"network_identifier": {"networks": networks}}).to_string();
     // one module a run, alone in the catalog, so what it adds queues nothing else
-    let module = std::env::var("ACE4_VALUES_MODULE").expect("ACE4_VALUES_MODULE");
+    let module = std::env::var("ACE_RS_VALUES_MODULE").expect("ACE_RS_VALUES_MODULE");
     let manifest = [
         ace_mod_values::command_line::MANIFEST,
         ace_mod_values::file_path::FILE_PATH_MANIFEST,
@@ -1719,12 +1725,12 @@ async fn the_lure_module_reads_its_tree_and_its_bodies_in_a_contained_task_proce
     let mut pool = supervisor(&core, &[]);
     for (sample, primary, unwrapped) in [
         (
-            "ace4/email/lure_button.email.rfc822",
+            "ace-rs/email/lure_button.email.rfc822",
             "https://login.lure-example.net/verify?id=7",
             false,
         ),
         (
-            "ace4/email/lure_protected.email.rfc822",
+            "ace-rs/email/lure_protected.email.rfc822",
             "https://payroll-update.lure-example.net/login",
             true,
         ),
@@ -1762,12 +1768,12 @@ async fn the_lure_module_reads_its_tree_and_its_bodies_in_a_contained_task_proce
 }
 
 /// What docs/measurements/email-tree.md records: emails whose HTML bodies are made to cost the lure
-/// module, each through the real supervisor `ACE4_LURE_RUNS` times (3 by default), timed from the
+/// module, each through the real supervisor `ACE_RS_LURE_RUNS` times (3 by default), timed from the
 /// root's start to its end, with the lure task's state and how many candidates it kept.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement"]
 async fn measure_lure() {
-    let runs: usize = std::env::var("ACE4_LURE_RUNS")
+    let runs: usize = std::env::var("ACE_RS_LURE_RUNS")
         .ok()
         .and_then(|r| r.parse().ok())
         .unwrap_or(3);

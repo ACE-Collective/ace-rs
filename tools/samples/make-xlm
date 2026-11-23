@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Makes samples/ace4's Excel 4.0 macro sheets, for tools/samples/gather and PLAN.md 4.7. Nothing here
+"""Makes samples/ace-rs's Excel 4.0 macro sheets, for tools/samples/gather and PLAN.md 4.7. Nothing here
 writes one, so each is written by hand from its format: .xlsm is zipped XML, .xls is BIFF8 records in a
 compound file (MS-XLS, MS-CFB), and .xlsb is BIFF12 records in a zip (MS-XLSB). Only the standard library
 is used and the bytes are the same on every run.

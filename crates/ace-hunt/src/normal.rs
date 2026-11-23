@@ -84,7 +84,7 @@ pub fn error_json(error: &HuntError) -> Json {
                 "msg": e.msg,
             })).collect::<Vec<_>>(),
         }),
-        HuntError::Limit(message) => json!({ "class": "ace4 limit", "message": message }),
+        HuntError::Limit(message) => json!({ "class": "ace-rs limit", "message": message }),
     }
 }
 
@@ -101,7 +101,7 @@ fn relative(value: Json, root: &str) -> Json {
     }
 }
 
-/// One place where ace4's normal form of a hunt isn't ace3's.
+/// One place where ace-rs's normal form of a hunt isn't ace3's.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Difference {
     /// The hunt's path under the root.
@@ -109,10 +109,10 @@ pub struct Difference {
     /// A JSON pointer into the hunt's entry; empty when one side has no such hunt.
     pub pointer: String,
     pub ace3: Option<Json>,
-    pub ace4: Option<Json>,
+    pub ace_rs: Option<Json>,
 }
 
-/// Every difference between ace3's normal form (`reference`) and ace4's (`ours`).
+/// Every difference between ace3's normal form (`reference`) and ace-rs's (`ours`).
 pub fn diff(reference: &Json, ours: &Json) -> Vec<Difference> {
     let by_path = |v: &Json| -> Vec<(String, Json)> {
         v["hunts"]
@@ -135,7 +135,7 @@ pub fn diff(reference: &Json, ours: &Json) -> Vec<Difference> {
                 hunt: path.clone(),
                 pointer: String::new(),
                 ace3: Some(hunt.clone()),
-                ace4: None,
+                ace_rs: None,
             }),
         }
     }
@@ -145,7 +145,7 @@ pub fn diff(reference: &Json, ours: &Json) -> Vec<Difference> {
                 hunt: path.clone(),
                 pointer: String::new(),
                 ace3: None,
-                ace4: Some(hunt.clone()),
+                ace_rs: Some(hunt.clone()),
             });
         }
     }
@@ -167,7 +167,7 @@ fn walk(hunt: &str, pointer: &str, a: &Json, b: &Json, out: &mut Vec<Difference>
                         hunt: hunt.to_owned(),
                         pointer: p,
                         ace3: Some(v.clone()),
-                        ace4: None,
+                        ace_rs: None,
                     }),
                 }
             }
@@ -177,7 +177,7 @@ fn walk(hunt: &str, pointer: &str, a: &Json, b: &Json, out: &mut Vec<Difference>
                         hunt: hunt.to_owned(),
                         pointer: format!("{pointer}/{}", escape(k)),
                         ace3: None,
-                        ace4: Some(w.clone()),
+                        ace_rs: Some(w.clone()),
                     });
                 }
             }
@@ -191,7 +191,7 @@ fn walk(hunt: &str, pointer: &str, a: &Json, b: &Json, out: &mut Vec<Difference>
                         hunt: hunt.to_owned(),
                         pointer: p,
                         ace3: v.cloned(),
-                        ace4: w.cloned(),
+                        ace_rs: w.cloned(),
                     }),
                 }
             }
@@ -201,7 +201,7 @@ fn walk(hunt: &str, pointer: &str, a: &Json, b: &Json, out: &mut Vec<Difference>
             hunt: hunt.to_owned(),
             pointer: pointer.to_owned(),
             ace3: Some(a.clone()),
-            ace4: Some(b.clone()),
+            ace_rs: Some(b.clone()),
         }),
     }
 }
@@ -333,7 +333,7 @@ impl std::fmt::Display for Difference {
         };
         write!(
             f,
-            "{} {}\n  ace3: {}\n  ace4: {}",
+            "{} {}\n  ace3: {}\n  ace-rs: {}",
             self.hunt,
             if self.pointer.is_empty() {
                 "(the whole hunt)"
@@ -341,7 +341,7 @@ impl std::fmt::Display for Difference {
                 &self.pointer
             },
             show(&self.ace3),
-            show(&self.ace4)
+            show(&self.ace_rs)
         )
     }
 }

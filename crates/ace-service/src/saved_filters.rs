@@ -17,7 +17,7 @@
 //!
 //! What differs: each write has an audit row, which ace3 doesn't write. A user has at most
 //! `MAX_SAVED_FILTERS` on a screen, where ace3 has no bound. ace3's `working` and `temp` rows, and its
-//! `PUT /scratch/{kind}`, hold the filter a page shows because ace3's session cookie can't: ace4's list
+//! `PUT /scratch/{kind}`, hold the filter a page shows because ace3's session cookie can't: ace-rs's list
 //! keeps it in the page's URL, so there's nothing to hold.
 //!
 //! **Seeding.** ace3 gives an analyst new to the alert list two quick filters, `Last 24h` and `Last 7d`

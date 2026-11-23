@@ -1,6 +1,6 @@
 # Draft bug report for yara-x: stack overflow in the parser and the compiler on deep nesting
 
-**Status: a draft. Not submitted anywhere, and nobody has been contacted.** The owner decides whether and where to send it. It is one of four reports that were first drafted as one: `yara-x-lexer-stack-overflow.md`, this one, `yara-x-rule-dropped-past-depth-limit.md` and `yara-x-nested-call-parse-cost.md`. `docs/measurements/yara-guard.md` has every measurement, and `crates/ace-yara/src/guard.rs` is how ace4 protects itself meanwhile.
+**Status: a draft. Not submitted anywhere, and nobody has been contacted.** The owner decides whether and where to send it. It is one of four reports that were first drafted as one: `yara-x-lexer-stack-overflow.md`, this one, `yara-x-rule-dropped-past-depth-limit.md` and `yara-x-nested-call-parse-cost.md`. `docs/measurements/yara-guard.md` has every measurement, and `crates/ace-yara/src/guard.rs` is how ace-rs protects itself meanwhile.
 
 ---
 
@@ -75,7 +75,7 @@ On a 2 MiB thread, the largest N that returned and the smallest that aborted, wi
 
 A nested hex pattern that returns doesn't always compile: from 256 levels it is `error[E014]: invalid regular expression`, and in the optimized build from 1,536 levels `add_source` returns `Ok` with no rule (`yara-x-rule-dropped-past-depth-limit.md`).
 
-By stack size, debug build (from `docs/measurements/yara-guard.md`, where each rule compiles as ace4's loader compiles it, with four globals defined, which costs a little more stack: an index aborts at 96 there):
+By stack size, debug build (from `docs/measurements/yara-guard.md`, where each rule compiles as ace-rs's loader compiles it, with four globals defined, which costs a little more stack: an index aborts at 96 there):
 
 | N of | 1 MiB | 2 MiB | 8 MiB |
 |---|---|---|---|

@@ -21,7 +21,7 @@ CREATE INDEX results_failed ON analysis.results (root_id) WHERE error IS NOT NUL
 -- The modules that kept a reason in their details now write the column, and their details have no
 -- such key (ace3 removed the same keys in 2b9fcd2c and 41d44392). A stored result of one of those
 -- types moves the same way, so it still reads as its type: the key's text becomes the result's
--- error when it says anything, and the key goes. `stopped` was ace4's own key for a tool the
+-- error when it says anything, and the key goes. `stopped` was ace-rs's own key for a tool the
 -- runner stopped, which ace3 had no place for until it had Analysis.error.
 UPDATE analysis.results r
 SET error = CASE WHEN r.details ->> k.key ~ '\S' THEN r.details ->> k.key END,

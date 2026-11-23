@@ -14,7 +14,7 @@ use serde_json::{Value, json};
 pub const SPLUNKD: &str = "https://127.0.0.1:8089";
 
 /// The password the dumps' config gave ace3; the fake takes any.
-pub const PASSWORD: &str = "ace4-fake-password";
+pub const PASSWORD: &str = "ace-rs-fake-password";
 
 /// proxy_domain_lookup, the example ace3 ships in etc/saq.splunk_modules.yaml, as make-dumps
 /// ran it: on fqdn rather than the `domain` type ace3 doesn't have.
@@ -41,7 +41,7 @@ pub fn instance(base_url: &str) -> Value {
     json!({
         "host": "127.0.0.1",
         "base_url": base_url,
-        "username": "ace4",
+        "username": "ace-rs",
         "request_timeout_seconds": 10,
     })
 }
@@ -61,7 +61,7 @@ pub fn connected<M: Module>(
     )
 }
 
-/// `harness` logging in as `ace4` with the dumps' password.
+/// `harness` logging in as `ace-rs` with the dumps' password.
 pub fn logged_in<M: Module>(harness: Harness<M>, settings: &Value) -> Harness<M> {
     connected(harness, settings, PASSWORD_ROLE, PASSWORD)
 }

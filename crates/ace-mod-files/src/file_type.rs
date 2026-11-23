@@ -9,12 +9,12 @@
 //! file's path (`FileTypeAnalysis::from_facts`, `TypeFacts::view`), since two of its checks read
 //! the name too.
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
 //! - libmagic runs in the task, on the database ace3's `file` reads (`libmagic.rs`); ace3 starts
 //!   `file` twice. `is_javascript_file` parses with oxc where ace3 starts node (`javascript.rs`).
 //! - ace3 also stamps the mime type on the file observable and works out an image's preview size
-//!   for its alert page. ace4 keeps the mime type among the file's type, and its page doesn't scale
+//!   for its alert page. ace-rs keeps the mime type among the file's type, and its page doesn't scale
 //!   previews.
 
 use std::fs;

@@ -93,7 +93,7 @@ impl Modify for KeyScheme {
                 HttpBuilder::new()
                     .scheme(HttpAuthScheme::Bearer)
                     .description(Some(
-                        "An API key, `ace4k_...`, shown once when it was made.",
+                        "An API key, `ace-rs-k_...`, shown once when it was made.",
                     ))
                     .build(),
             ),
@@ -113,7 +113,7 @@ impl Modify for Schemes {
                 HttpBuilder::new()
                     .scheme(HttpAuthScheme::Bearer)
                     .description(Some(
-                        "An API key, `ace4k_...`, shown once when it was made.",
+                        "An API key, `ace-rs-k_...`, shown once when it was made.",
                     ))
                     .build(),
             ),
@@ -121,8 +121,8 @@ impl Modify for Schemes {
         components.add_security_scheme(
             "session",
             SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::with_description(
-                "ace4_session",
-                "A GUI session's cookie, `__Host-ace4_session` under TLS. A request that could \
+                "ace_rs_session",
+                "A GUI session's cookie, `__Host-ace_rs_session` under TLS. A request that could \
                  change something must also come from ACE's own pages.",
             ))),
         );

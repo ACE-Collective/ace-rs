@@ -1,5 +1,5 @@
 //! `test_sandbox.py`: 25 cases, of ace3's Landlock sandbox runner for `type: executable`
-//! (`sandbox.py`, `saq/sandbox/`). Under PLAN.md decision 16 ace4 runs no hunt script: each script
+//! (`sandbox.py`, `saq/sandbox/`). Under PLAN.md decision 16 ace-rs runs no hunt script: each script
 //! is a built-in script command type, and there is no runner, process, environment or file system
 //! of a script's own to contain. Five cases still hold and run here: an executable that isn't a
 //! script type never runs (`test_no_landlock_means_no_execution`), and the staging of a script's
@@ -53,7 +53,7 @@ fn step_error(f: &Fixture, command: serde_json::Value) -> Option<String> {
 fn test_no_landlock_means_no_execution() {
     // an executable that isn't a script type fails its step, its event alerts with the reason on
     // its trace, and nothing runs
-    let marker = std::env::temp_dir().join(format!("ace4-never-ran-{}", std::process::id()));
+    let marker = std::env::temp_dir().join(format!("ace-rs-never-ran-{}", std::process::id()));
     let config = logic(
         json!([{"transform": {"method": "property", "property_name": "p",
         "command": {"type": "executable", "path": "/usr/bin/touch", "args": [marker.to_string_lossy()]}}}]),

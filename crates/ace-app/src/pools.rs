@@ -2,14 +2,14 @@
 //! task, and a network pool runs its lookups as async tasks in one contained process
 //! (DESIGN.md's *Modules and pools*).
 //!
-//! What they share: the site overlay at `ACE4_OVERLAY`, read through `Registry::start`'s rules
+//! What they share: the site overlay at `ACE_RS_OVERLAY`, read through `Registry::start`'s rules
 //! (only the pool's own modules' sections, and only the secrets its modules declare); a stop on
 //! SIGTERM or SIGINT; and a heartbeat file the container's healthcheck reads.
 //!
-//! A parser pool's supervisor reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_OVERLAY`,
-//! `ACE4_TASK_USER` (`ace4-task`, whom task processes run as), `ACE4_CONCURRENCY` (4) and
-//! `ACE4_HEALTH_FILE`, and with YARA rulesets `ACE4_RULESET_DIR` (`/var/lib/ace4/rulesets`) and
-//! `ACE4_RULESET_POLL_SECONDS` (30). When it starts it reads the overlay and builds every module
+//! A parser pool's supervisor reads `ACE_RS_API_URL`, `ACE_RS_POOL_TOKEN`, `ACE_RS_OVERLAY`,
+//! `ACE_RS_TASK_USER` (`ace-rs-task`, whom task processes run as), `ACE_RS_CONCURRENCY` (4) and
+//! `ACE_RS_HEALTH_FILE`, and with YARA rulesets `ACE_RS_RULESET_DIR` (`/var/lib/ace-rs/rulesets`) and
+//! `ACE_RS_RULESET_POLL_SECONDS` (30). When it starts it reads the overlay and builds every module
 //! of the pool, so a setting that doesn't load, an instance that isn't allowed or a module whose
 //! `init` fails stops the pool then, with the module's name (PLAN.md 2.23), and not a task later.
 //! It runs each task as
@@ -28,13 +28,13 @@
 //! A pool whose image carries tools (`ParserPool::tools`, PLAN.md 7.3) runs
 //! each of its tasks' tools as `<binary> tool`, which contains itself and execs the tool
 //! (`ace_pool::tools`). A pool that runs GUI commands (`ParserPool::commands`, PLAN.md 5.12) also
-//! leases those, `ACE4_COMMAND_CONCURRENCY` (3) at once, and runs each as `<binary> command`, contained
+//! leases those, `ACE_RS_COMMAND_CONCURRENCY` (3) at once, and runs each as `<binary> command`, contained
 //! with no paths and no ports (`ace_pool::commands`), on `ace`'s own command line (`cli::run_contained`).
 //!
-//! A network pool reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_OVERLAY`, the variables and
+//! A network pool reads `ACE_RS_API_URL`, `ACE_RS_POOL_TOKEN`, `ACE_RS_OVERLAY`, the variables and
 //! files the overlay's `secrets:` names for its modules' and its action handlers' secrets,
-//! `ACE4_CONCURRENCY` (16), `ACE4_ACTION_CONCURRENCY` (4, the actions it runs at once, PLAN.md 7.9) and
-//! `ACE4_HEALTH_FILE`, and `ACE4_BUCKET_ENDPOINT` (the core's, for its port; without one, AWS S3's
+//! `ACE_RS_CONCURRENCY` (16), `ACE_RS_ACTION_CONCURRENCY` (4, the actions it runs at once, PLAN.md 7.9) and
+//! `ACE_RS_HEALTH_FILE`, and `ACE_RS_BUCKET_ENDPOINT` (the core's, for its port; without one, AWS S3's
 //! 443) when one of its modules adds files it fetched (`Module::ADDS_FETCHED_FILES`) or reads its
 //! input file (`Module::READS_INPUT_FILE`). It contains itself before its runtime starts a thread:
 //! it may connect only to its modules' and its handlers' TCP ports, the lease API's and the
@@ -42,10 +42,10 @@
 //! uploads to the core's presigned URLs (PLAN.md decision 28), or reads its input file, which it
 //! downloads from the core's presigned URL (decision 45).
 //!
-//! A scanner pool (PLAN.md 7.7) reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_STACK` (`ace4`), which
-//! its containers' labels and names carry, `ACE4_DOCKER_SOCKET` (`/var/run/docker.sock`),
-//! `ACE4_CONCURRENCY` (4), each scanner's image and network variables (`ace_sdk::scanners`) and
-//! `ACE4_HEALTH_FILE`. It holds the Docker socket and parses nothing a scanner wrote
+//! A scanner pool (PLAN.md 7.7) reads `ACE_RS_API_URL`, `ACE_RS_POOL_TOKEN`, `ACE_RS_STACK` (`ace-rs`), which
+//! its containers' labels and names carry, `ACE_RS_DOCKER_SOCKET` (`/var/run/docker.sock`),
+//! `ACE_RS_CONCURRENCY` (4), each scanner's image and network variables (`ace_sdk::scanners`) and
+//! `ACE_RS_HEALTH_FILE`. It holds the Docker socket and parses nothing a scanner wrote
 //! (`ace_pool::scanners`).
 //!
 //! All run until SIGTERM.
@@ -74,9 +74,9 @@ fn overlay(path: Option<&Path>) -> Result<Overlay, String> {
     }
 }
 
-/// The overlay's path from `ACE4_OVERLAY`, if it's set.
+/// The overlay's path from `ACE_RS_OVERLAY`, if it's set.
 fn overlay_path() -> Option<PathBuf> {
-    std::env::var_os("ACE4_OVERLAY")
+    std::env::var_os("ACE_RS_OVERLAY")
         .filter(|path| !path.is_empty())
         .map(PathBuf::from)
 }
@@ -141,12 +141,12 @@ fn number(name: &str, default: usize) -> usize {
         .unwrap_or(default)
 }
 
-/// Where the heartbeat goes, `ACE4_HEALTH_FILE`; in the temporary directory, which a contained
+/// Where the heartbeat goes, `ACE_RS_HEALTH_FILE`; in the temporary directory, which a contained
 /// network pool may write.
 fn health_file() -> PathBuf {
-    std::env::var_os("ACE4_HEALTH_FILE")
+    std::env::var_os("ACE_RS_HEALTH_FILE")
         .map(PathBuf::from)
-        .unwrap_or_else(|| std::env::temp_dir().join("ace4-health"))
+        .unwrap_or_else(|| std::env::temp_dir().join("ace-rs-health"))
 }
 
 /// This process's name as a worker: the host's name, which is the container's id in Compose,
@@ -319,11 +319,11 @@ fn parser_modules(
 }
 
 fn supervisor(pool: &ParserPool) -> ExitCode {
-    let mut telemetry = ace_pool::telemetry::init(&format!("ace4-{}", pool.name), "info");
+    let mut telemetry = ace_pool::telemetry::init(&format!("ace-rs-{}", pool.name), "info");
     let overlay_at = overlay_path();
     let rulesets = match pool.rulesets {
         Some(rulesets) => {
-            let dir = PathBuf::from(var("ACE4_RULESET_DIR", "/var/lib/ace4/rulesets"));
+            let dir = PathBuf::from(var("ACE_RS_RULESET_DIR", "/var/lib/ace-rs/rulesets"));
             if let Err(e) = std::fs::create_dir_all(&dir) {
                 eprintln!("the ruleset directory {}: {e}", dir.display());
                 return ExitCode::from(2);
@@ -356,7 +356,7 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
         }
     };
     let modules = Arc::new(modules);
-    let user_name = var("ACE4_TASK_USER", "ace4-task");
+    let user_name = var("ACE_RS_TASK_USER", "ace-rs-task");
     let Some(user) = ace_pool::supervisor::user_ids(&user_name) else {
         eprintln!("no user {user_name} for task processes");
         return ExitCode::from(2);
@@ -389,20 +389,20 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
         program: program.clone(),
         args: task_args,
         user: Some(user),
-        concurrency: number("ACE4_CONCURRENCY", 4),
+        concurrency: number("ACE_RS_CONCURRENCY", 4),
         read_paths: Vec::new(),
         tools,
         tool_args: Vec::new(),
         cache_probes,
     };
-    let poll = Duration::from_secs(number("ACE4_RULESET_POLL_SECONDS", 30) as u64);
+    let poll = Duration::from_secs(number("ACE_RS_RULESET_POLL_SECONDS", 30) as u64);
     let watcher = rulesets.map(|(rulesets, dir)| {
         RulesetWatcher::new(client.clone(), dir, Arc::new(rulesets.check)).every(poll)
     });
     let mut supervisor = Supervisor::new(client, modules, config);
     if pool.commands {
         let mut commands = CommandConfig::new(program, vec!["command".to_owned()], Some(user));
-        commands.concurrency = number("ACE4_COMMAND_CONCURRENCY", DEFAULT_CONCURRENCY);
+        commands.concurrency = number("ACE_RS_COMMAND_CONCURRENCY", DEFAULT_CONCURRENCY);
         supervisor = supervisor.with_commands(commands);
     }
     with_runtime(async move {
@@ -515,7 +515,7 @@ pub fn connection_ports(pool: &LookupPool, overlay: &Overlay) -> Result<Vec<u16>
 
 /// A network pool's binary.
 pub fn lookup_main(pool: &LookupPool) -> ExitCode {
-    let mut telemetry = ace_pool::telemetry::init(&format!("ace4-{}", pool.name), "info");
+    let mut telemetry = ace_pool::telemetry::init(&format!("ace-rs-{}", pool.name), "info");
     // the modules, their secrets and the client before any thread starts, so containment can
     // follow
     let built = overlay(overlay_path().as_deref()).and_then(|overlay| {
@@ -546,7 +546,7 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
         }
     };
     let Some(port) = client.api_port() else {
-        eprintln!("no port in ACE4_API_URL");
+        eprintln!("no port in ACE_RS_API_URL");
         return ExitCode::from(2);
     };
     let endpoint = std::env::var(ace_pool::pool::BUCKET_ENDPOINT_VAR).ok();
@@ -585,10 +585,10 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
     let definition = PoolDefinition {
         name: pool.name.clone(),
         modules,
-        concurrency: number("ACE4_CONCURRENCY", 16),
+        concurrency: number("ACE_RS_CONCURRENCY", 16),
         sandbox: profile,
     };
-    let action_concurrency = number("ACE4_ACTION_CONCURRENCY", 4);
+    let action_concurrency = number("ACE_RS_ACTION_CONCURRENCY", 4);
     with_runtime(async move {
         let stop = stop_on_signal();
         let mut handles = vec![(
@@ -624,7 +624,7 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
 
 /// A scanner pool's binary.
 pub fn scanner_main(pool: &ScannerPool) -> ExitCode {
-    let mut telemetry = ace_pool::telemetry::init(&format!("ace4-{}", pool.name), "info");
+    let mut telemetry = ace_pool::telemetry::init(&format!("ace-rs-{}", pool.name), "info");
     let client = match LeaseClient::from_env(&worker_name()) {
         Ok(client) => client,
         Err(e) => {
@@ -637,13 +637,13 @@ pub fn scanner_main(pool: &ScannerPool) -> ExitCode {
     }
     let host = std::fs::read_to_string("/etc/hostname").unwrap_or_default();
     let mut config = ace_pool::scanners::ScannerPoolConfig::new(
-        &var("ACE4_STACK", "ace4"),
+        &var("ACE_RS_STACK", "ace-rs"),
         host.trim(),
         &pool.scanners,
         &|name| std::env::var(name).ok(),
     );
-    config.socket = PathBuf::from(var("ACE4_DOCKER_SOCKET", "/var/run/docker.sock"));
-    config.concurrency = number("ACE4_CONCURRENCY", 4);
+    config.socket = PathBuf::from(var("ACE_RS_DOCKER_SOCKET", "/var/run/docker.sock"));
+    config.concurrency = number("ACE_RS_CONCURRENCY", 4);
     with_runtime(async move {
         let stop = stop_on_signal();
         let beating = tokio::spawn(heartbeat(health_file(), stop.clone()));
@@ -708,7 +708,7 @@ mod tests {
 
     /// PLAN.md decision 28: a remediator off by default is in `ace serve`'s catalog, and built by its
     /// pool, only when the overlay's `actions:` has an entry for it, empty or not; one on by default,
-    /// such as ace4's test remediator, is in both either way.
+    /// such as ace-rs's test remediator, is in both either way.
     #[test]
     fn a_remediator_off_by_default_runs_only_with_an_overlay_entry() {
         use ace_sdk::actions::ActionKind::Remediation;
@@ -763,7 +763,7 @@ modules:
           summary: Proxy correlation
           query: index=proxy hostname=\"<O_VALUE>\"
 secrets:
-  splunk_default_password: env:ACE4_TEST_UNSET
+  splunk_default_password: env:ACE_RS_TEST_UNSET
 ",
         )
         .expect("an overlay");
@@ -808,7 +808,7 @@ secrets:
         let components = components(
             &pool.registry,
             &overlay,
-            Some((rulesets, Path::new("/var/lib/ace4/rulesets"))),
+            Some((rulesets, Path::new("/var/lib/ace-rs/rulesets"))),
         )
         .expect("components");
         let yara = components
@@ -819,7 +819,7 @@ secrets:
             yara.settings,
             Some(serde_json::json!({
                 "blacklist": ["noisy"],
-                "rulesets": "/var/lib/ace4/rulesets",
+                "rulesets": "/var/lib/ace-rs/rulesets",
             }))
         );
         // the network pool's section isn't the parser pool's, so it's skipped

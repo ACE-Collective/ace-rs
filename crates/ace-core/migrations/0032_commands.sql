@@ -53,7 +53,7 @@ CREATE INDEX commands_leases ON queue.commands (lease_expires_at) WHERE state = 
 CREATE FUNCTION queue.notify_command() RETURNS trigger
     LANGUAGE plpgsql AS $$
 BEGIN
-    PERFORM pg_notify('ace4_tasks', '@commands');
+    PERFORM pg_notify('ace_rs_tasks', '@commands');
     RETURN NULL;
 END
 $$;

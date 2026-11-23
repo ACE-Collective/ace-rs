@@ -6,12 +6,12 @@
 //! the archive and `downloaded_from` its URL when that's http or https. A script a page loads with
 //! `<script src>` gets that page's DOM snapshot as its sidecar.
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
-//! - The DOM snapshots are in the result's `dom_snapshots`, since ace4 keeps no file outside the
+//! - The DOM snapshots are in the result's `dom_snapshots`, since ace-rs keeps no file outside the
 //!   tree.
 //! - What Python raises out of ace3's module, such as `urlsplit`'s `ValueError` on a URL with a
-//!   broken IPv6 host, leaves ace3's analysis as far as it got; ace4 stores that much.
+//!   broken IPv6 host, leaves ace3's analysis as far as it got; ace-rs stores that much.
 //! - A `status` the archive writes as a number past 64 bits is its nearest float, and NaN or an
 //!   infinity is null, since JSON here has no such numbers.
 

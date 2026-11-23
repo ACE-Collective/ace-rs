@@ -1,0 +1,123 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/octet-stream",
+        "type": "data"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: data (application/octet-stream)",
+      "tags": []
+    },
+    {
+      "class": "HiddenMIMEAnalysis",
+      "details": {
+        "extracted_files": [
+          "<root>/files/hidden_mime.bin.mime/extracted-0",
+          "<root>/files/hidden_mime.bin.mime/extracted-1"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mime:HiddenMIMEAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "hidden_mime.bin.mime/extracted-0",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 17,
+          "tags": [],
+          "type": "file",
+          "value": "5d260513a9bd166079119e4d5acff833260ab117813682edc1a144dcfb2bb181",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=executable"
+          ],
+          "excluded_analysis": [],
+          "file_path": "hidden_mime.bin.mime/extracted-1",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 102,
+          "tags": [
+            "executable"
+          ],
+          "type": "file",
+          "value": "2e91b674b68e4b790b75d756bf8cfe7e68d52c9631dc9f58247dd26b854c63e5",
+          "yara_meta": [
+            "type=executable"
+          ]
+        }
+      ],
+      "summary": "Hidden MIME Analysis: extracted <root>/files/hidden_mime.bin.mime/extracted-0, <root>/files/hidden_mime.bin.mime/extracted-1",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/hidden_mime.bin",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "hidden_mime.bin",
+      "size": 408,
+      "type": "file",
+      "value": "c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83"
+    }
+  },
+  "module": "hidden_mime",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "hidden_mime.bin",
+    "relationships": [],
+    "size": 408,
+    "tags": [],
+    "type": "file",
+    "value": "c3ce1983c63b328862137b7d05fee20b6f81d53cb200f2d4297bc2526a1c2b83",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

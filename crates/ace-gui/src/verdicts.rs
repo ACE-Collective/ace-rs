@@ -12,7 +12,7 @@
 //!
 //! From ace3, and what differs: ace3 fills its chips from the API with a script, beside each detection in
 //! the tree; here the list is drawn with the page and needs no script. ace3's disposition dialog also lists
-//! the detections of a multi-signature alert to mark as noise while setting a TP disposition; ace4's alert
+//! the detections of a multi-signature alert to mark as noise while setting a TP disposition; ace-rs's alert
 //! page has no disposition dialog yet, so marking them is this list's, after the disposition. The list
 //! shows the alert's first `MAX_DETECTIONS_PAGE` detections and says when there are more.
 

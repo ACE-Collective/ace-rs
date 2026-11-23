@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Makes samples/ace4/pdf, for tools/samples/gather and PLAN.md 4.9: PDFs with what ace3's PDFAnalyzer
+"""Makes samples/ace-rs/pdf, for tools/samples/gather and PLAN.md 4.9: PDFs with what ace3's PDFAnalyzer
 reads, encrypted in each way it reports, and broken in the ways that decide what it and pdf-parser.py
 do. The real samples have none of the first and little of the second.
 
@@ -7,7 +7,7 @@ do. The real samples have none of the first and little of the second.
 
 Run it on the pdf-libraries image, which has pikepdf (tools/library-diff/run builds that image):
 
-    docker run --rm -u "$(id -u)" -v "$PWD:/w" -w /w <image> python tools/samples/make-pdf samples/ace4/pdf
+    docker run --rm -u "$(id -u)" -v "$PWD:/w" -w /w <image> python tools/samples/make-pdf samples/ace-rs/pdf
 
 Most are written by hand, byte by byte, because a library wouldn't write them. The encrypted ones go
 through pikepdf, which picks random keys, so those bytes differ each run. The manifest holds their
@@ -218,7 +218,7 @@ def encrypted_samples():
         "encrypted_needs_password_rc4.pdf": encrypted(owner="owner", user="secret", R=3),
         "encrypted_needs_password_aes_128.pdf": encrypted(owner="owner", user="secret", R=4),
         "encrypted_needs_password_aes_256.pdf": encrypted(owner="owner", user="secret", R=6),
-        # pikepdf's save rewrites this XMP through lxml, and ace4's doesn't. So this save mustn't.
+        # pikepdf's save rewrites this XMP through lxml, and ace-rs's doesn't. So this save mustn't.
         "encrypted_with_xmp.pdf": encrypted(
             source=for_encryption(metadata=True), owner="owner", user="", R=6, fix_metadata_version=False
         ),

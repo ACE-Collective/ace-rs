@@ -388,7 +388,7 @@ mod tests {
 
     #[test]
     fn names_and_paths_are_encoded() {
-        assert_eq!(encode("ace4-scan-1"), "ace4-scan-1");
+        assert_eq!(encode("ace-rs-scan-1"), "ace-rs-scan-1");
         assert_eq!(encode("/phishkit/output"), "%2Fphishkit%2Foutput");
         assert_eq!(encode("a b&c"), "a%20b%26c");
         assert_eq!(

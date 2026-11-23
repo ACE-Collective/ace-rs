@@ -55,7 +55,7 @@ def epoch(text):
 
 def main(argv):
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--project", default="ace4-e2e")
+    parser.add_argument("--project", default="ace-rs-e2e")
     parser.add_argument("--every", type=int, default=5, help="seconds between readings")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("start")

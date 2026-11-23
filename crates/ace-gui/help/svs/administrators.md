@@ -38,7 +38,7 @@ them.
 | The `svs_marker` alert router | `ace serve`'s routing worker | Reads the attributions and moves a fully attributed alert, or one in a maintenance window, to the `svs` queue |
 | The scheduler | `ace serve` | Runs SVS's five tasks: the run timers, the catalog refresh, the coverage refresh, the daily snapshot and the validations prune |
 | The validation workers | `ace serve`, when `svs.yara.repositories` lists a repository | Claim queued YARA validations, replay the samples in a contained process, store the report |
-| The ruleset builder | `ace serve`, when `ACE4_SIGNATURES_REPO` names a signatures checkout | Adds the `SVS_Marker` rule to every ruleset, as the namespace `svs_marker`. The rule finds run markers inside files. |
+| The ruleset builder | `ace serve`, when `ACE_RS_SIGNATURES_REPO` names a signatures checkout | Adds the `SVS_Marker` rule to every ruleset, as the namespace `svs_marker`. The rule finds run markers inside files. |
 | `svs_yara_sample_capture` | the `lookups` pool | Stores the YARA samples of dispositioned alerts |
 | The hunter | `ace hunter` | Records each hunt's latency, which a run's windows are computed from, and asks SVS which run owns a match before it suppresses one |
 | Postgres | the `postgres` container | Schema `svs`: runs, attributions, results, coverage, validations, test hosts |
@@ -149,8 +149,8 @@ keys with no owner, and each key has a Revoke button; a user's keys are on the u
 
 ## Configuration
 
-SVS is configured in the site overlay, the YAML file `ACE4_OVERLAY` names. In the Compose stack that is
-`overlay.yaml` in the directory `ACE4_SITE` names, mounted at `/etc/ace4`. SVS's settings are in the
+SVS is configured in the site overlay, the YAML file `ACE_RS_OVERLAY` names. In the Compose stack that is
+`overlay.yaml` in the directory `ACE_RS_SITE` names, mounted at `/etc/ace-rs`. SVS's settings are in the
 `svs:` section, and its tasks' schedules in `scheduler:`. Both are checked strictly: an unknown or
 misspelled key, or a value SVS can't run with, stops every process that reads the overlay, and the error
 names the key.
@@ -708,7 +708,7 @@ failed since one succeeded, and the runs themselves, to whoever holds `monitorin
 `GET /api/monitoring/v1/state` returns the same. The table can be read directly too:
 
 ```bash
-docker compose exec postgres psql -U ace4 -d ace4 -c \
+docker compose exec postgres psql -U ace_rs -d ace_rs -c \
   "SELECT task, scheduled_for, outcome, error FROM scheduler.runs
    WHERE task LIKE 'svs%' ORDER BY id DESC LIMIT 20"
 ```
@@ -785,7 +785,7 @@ a replica clones a repository the first time it needs it.
 ## Logs
 
 ACE's processes log to standard error as `tracing` records: a message and named fields.
-`docker compose logs ace` shows them. `ACE4_LOG` sets the level (the Compose stack sets `info`; the
+`docker compose logs ace` shows them. `ACE_RS_LOG` sets the level (the Compose stack sets `info`; the
 binary's own default shows only warnings and errors, which hides most of the records below). Every record
 about a run carries `svs_run` (the run's uuid), and `svs_test` and `svs_marker` wherever they are known,
 which is every record in the table below. One search on `svs_run=<run uuid>` returns everything ACE did
@@ -797,7 +797,7 @@ docker compose logs ace | grep svs-4zq5otxbasx7j22an2dkuoevhu
 ```
 
 ACE keeps no log files and ships logs nowhere. To search by field, collect the containers' output with
-your own log pipeline. Spans are exported over OTLP when `ACE4_OTLP_ENDPOINT` is set.
+your own log pipeline. Spans are exported over OTLP when `ACE_RS_OTLP_ENDPOINT` is set.
 
 A person's or a key's change is also a row of the audit log, `service.audit`, written in the same
 transaction as the change: the actor, the action (the service function's name, such as
@@ -909,7 +909,7 @@ minutes hasn't been moved.
 ### Weekly
 
 1. **Rulesets are being built.** The marker rule is part of every ruleset, so markers inside files are
-   found only while `ace serve` builds rulesets: `ACE4_SIGNATURES_REPO` must name the signatures
+   found only while `ace serve` builds rulesets: `ACE_RS_SIGNATURES_REPO` must name the signatures
    checkout, and the log says `building rulesets` at start.
 2. **Samples are complete.** On [Samples](/signatures/samples), the table *Captures missing something*
    counts, per rule, the captures whose bytes could not be stored.

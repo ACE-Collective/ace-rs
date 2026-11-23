@@ -38,7 +38,7 @@
 //! to the name that sorts first, where ace3's goes to whichever alert it reads first.
 //!
 //! **`css`.** ace3 takes any text and writes it into a badge's class attribute as `text-bg-<css>`, escaped
-//! by Jinja. ace4 writes `disposition-<css>` the same way, escaped by the templates (the owner's decision of
+//! by Jinja. ace-rs writes `disposition-<css>` the same way, escaped by the templates (the owner's decision of
 //! 2026-11-14: any text, not only Bootstrap's eight colours). One restriction keeps it one class: `css` is 1
 //! to `MAX_BADGE_CLASS_CHARS` of ASCII letters, digits, `-` and `_`. That leaves out white space, which
 //! would add other classes of the stylesheet's to the badge, and every character that means something in

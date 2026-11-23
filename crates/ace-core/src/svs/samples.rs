@@ -39,7 +39,7 @@
 //!   raced a deletion writes nothing, where ace3's removes what it wrote.
 //! - The match record is the row's `record`, as 2.27's QA matches keep theirs, where ace3 puts it in its
 //!   CAS pool by digest.
-//! - ace4's bucket is one, shared by every node, so there's no node to record or to read the bytes from.
+//! - ace-rs's bucket is one, shared by every node, so there's no node to record or to read the bytes from.
 //! - The scanner's version is yara-x's (`ace_yara::YARA_X_VERSION`), where ace3 records yara-python's and
 //!   yara_scanner's. The rule's content hash, which ace3 reads from its rule inventory, is left NULL: the
 //!   ruleset (2.25) doesn't record one per rule, and batch 3's validation is what reads it.

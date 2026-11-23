@@ -19,15 +19,15 @@ It prints each form's median and range in milliseconds and how the `whole` tasks
 task that failed isn't a task that ran. Each module runs on its defaults, as a pool with no section
 for it in the site overlay runs it, unless --settings gives its block. The ruleset module needs
 its block, as the pool gives it its ruleset directory: --settings yara_scanner_v3_4='{"rulesets":
-"/var/lib/ace4/rulesets"}' with --rulesets DIR, a directory in the layout of ace_sdk::generation.
+"/var/lib/ace-rs/rulesets"}' with --rulesets DIR, a directory in the layout of ace_sdk::generation.
 
-    tools/task-start/measure ace4-parsers:latest ace-parsers file_type email_analyzer
-    tools/task-start/measure ace4-sandbox:latest ace-sandbox archive --runs 200
+    tools/task-start/measure ace-rs-parsers:latest ace-parsers file_type email_analyzer
+    tools/task-start/measure ace-rs-sandbox:latest ace-sandbox archive --runs 200
 
 What the numbers hold besides the task process: bash starting it (fork and exec) and reaping it,
 which `process` measures alone. What they leave out: the supervisor's own work for a task (the
 lease, the input's download, the task's directory, the pipes), and the task user, since these run
-as the image's user where a pool runs them as ace4-task. The file is read from the container's own
+as the image's user where a pool runs them as ace-rs-task. The file is read from the container's own
 filesystem, not a mount. The request is written here by hand in the form of
 `ace_pool::supervisor::TaskRequest`; if that type changes, this must follow.
 
@@ -131,14 +131,14 @@ def main():
     parser.add_argument("--settings", action="append", default=[], metavar="MODULE=JSON",
                         help="a module's settings block, in place of its defaults")
     parser.add_argument("--rulesets", type=Path,
-                        help="a ruleset directory, mounted at /var/lib/ace4/rulesets")
+                        help="a ruleset directory, mounted at /var/lib/ace-rs/rulesets")
     parser.add_argument("--site", type=Path, default=ROOT / "tests" / "e2e" / "site",
-                        help="the site overlay directory, mounted at /etc/ace4")
+                        help="the site overlay directory, mounted at /etc/ace-rs")
     parser.add_argument("--observable", default="file", metavar="TYPE[=VALUE]",
                         help="the task's observable; a file by default")
     parser.add_argument("--task-arg", action="append", default=[], metavar="ARG",
                         help="an argument of the task mode, such as --task-arg=--overlay "
-                             "--task-arg=/etc/ace4/overlay.yaml")
+                             "--task-arg=/etc/ace-rs/overlay.yaml")
     parser.add_argument("--head-request", action="store_true",
                         help="write the request without `module` and `settings`, as a binary "
                              "from before a task process built only its own module reads it")
@@ -166,9 +166,9 @@ def main():
             (work / f"built-{module}.json").write_text(json.dumps(built))
             (work / f"whole-{module}.json").write_text(json.dumps(whole))
         command = ["docker", "run", "--rm", "--entrypoint", "env",
-                   "-v", f"{work}:/measure:ro", "-v", f"{args.site.resolve()}:/etc/ace4:ro"]
+                   "-v", f"{work}:/measure:ro", "-v", f"{args.site.resolve()}:/etc/ace-rs:ro"]
         if args.rulesets:
-            command += ["-v", f"{args.rulesets.resolve()}:/var/lib/ace4/rulesets:ro"]
+            command += ["-v", f"{args.rulesets.resolve()}:/var/lib/ace-rs/rulesets:ro"]
         # an empty environment, as the supervisor gives a task process
         command += [args.image, "-i", "bash", "/measure/loop.sh", args.binary, str(args.runs)]
         command += args.modules

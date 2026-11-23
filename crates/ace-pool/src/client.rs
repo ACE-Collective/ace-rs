@@ -17,7 +17,7 @@ use serde::de::DeserializeOwned;
 use tokio::io::AsyncWriteExt;
 
 /// The header a task-scoped request names its worker in.
-pub const WORKER_HEADER: &str = "x-ace4-worker";
+pub const WORKER_HEADER: &str = "x-ace-rs-worker";
 
 /// The timeout of each call that doesn't wait for a task or move a file.
 pub const CALL_TIMEOUT: Duration = Duration::from_secs(30);
@@ -79,12 +79,12 @@ impl LeaseClient {
         })
     }
 
-    /// The API's URL from `ACE4_API_URL` and the pool's token from `ACE4_POOL_TOKEN`.
+    /// The API's URL from `ACE_RS_API_URL` and the pool's token from `ACE_RS_POOL_TOKEN`.
     pub fn from_env(worker: &str) -> Result<LeaseClient, ClientError> {
-        let base = std::env::var("ACE4_API_URL")
-            .map_err(|_| ClientError::MissingConfig("ACE4_API_URL"))?;
-        let token = std::env::var("ACE4_POOL_TOKEN")
-            .map_err(|_| ClientError::MissingConfig("ACE4_POOL_TOKEN"))?;
+        let base = std::env::var("ACE_RS_API_URL")
+            .map_err(|_| ClientError::MissingConfig("ACE_RS_API_URL"))?;
+        let token = std::env::var("ACE_RS_POOL_TOKEN")
+            .map_err(|_| ClientError::MissingConfig("ACE_RS_POOL_TOKEN"))?;
         LeaseClient::new(&base, &token, worker)
     }
 

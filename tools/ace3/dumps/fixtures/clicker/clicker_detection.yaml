@@ -1,4 +1,4 @@
-# ace4's clicker detection fixture (PLAN.md 7.4): searches written for these tests, in the form of
+# ace-rs's clicker detection fixture (PLAN.md 7.4): searches written for these tests, in the form of
 # ace3's etc/clicker_detection.yaml, against made-up indexes that tools/ace3/dumps/fake_splunk.py
 # answers from fixtures/splunk/clicker_rows.json.
 splunk:
@@ -7,7 +7,7 @@ splunk:
     url_clicks:
       observable_types: [url, fqdn]
       query: |
-        index=ace4_clicks sourcetype="ace4:click" Url=<O_VALUE> <TIMESPEC>
+        index=ace_rs_clicks sourcetype="ace-rs:click" Url=<O_VALUE> <TIMESPEC>
         | table Timestamp AccountUpn ActionType Url NetworkMessageId
       time_ranges: { TIMESPEC: { duration_before: "07:00:00:00", duration_after: "00:01:00:00" } }
       use_index_time: false
@@ -18,7 +18,7 @@ splunk:
     proxy:
       observable_types: [url, fqdn]
       query: |
-        index=ace4_proxy <O_VALUE> <TIMESPEC>
+        index=ace_rs_proxy <O_VALUE> <TIMESPEC>
         ```one comment the web link leaves out```
         | table _time user url
       time_ranges: { TIMESPEC: { duration_before: "01:00:00:00", duration_after: "00:01:00:00" } }
@@ -30,10 +30,10 @@ splunk:
       on_hit: { escalate_on_any: true, add_detection_point: true, crawl_clicked_url: true }
     domains_only:
       observable_types: [fqdn]
-      query: index=ace4_dns query=<O_VALUE> <TIMESPEC>
+      query: index=ace_rs_dns query=<O_VALUE> <TIMESPEC>
       time_ranges: { TIMESPEC: "00:12:00:00" }
       event_mapping: { timestamp: _time }
       on_hit: {}
     for_addresses:
       observable_types: [ipv4]
-      query: index=ace4_never <O_VALUE>
+      query: index=ace_rs_never <O_VALUE>

@@ -180,14 +180,14 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
     }
 }
 
-/// What the officeparser3 port leaves for each file in `ACE4_OFFICEPARSER_DIR`, one JSON line each:
+/// What the officeparser3 port leaves for each file in `ACE_RS_OFFICEPARSER_DIR`, one JSON line each:
 /// how it ended, whether it made a manifest, and each file's sha256, for a comparison with
 /// officeparser3 itself in ace3's container (`docs/measurements/office-containers.md`).
 #[test]
 #[ignore = "a comparison, with files a script mutates"]
 fn officeparser3_outputs() {
     use sha2::{Digest, Sha256};
-    let dir = std::env::var("ACE4_OFFICEPARSER_DIR").expect("ACE4_OFFICEPARSER_DIR");
+    let dir = std::env::var("ACE_RS_OFFICEPARSER_DIR").expect("ACE_RS_OFFICEPARSER_DIR");
     let mut names: Vec<_> = std::fs::read_dir(&dir)
         .expect("the directory")
         .map(|e| {

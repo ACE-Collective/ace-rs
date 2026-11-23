@@ -13,7 +13,7 @@
 //! Each match carries `strings`, `[offset, identifier, length]` for every occurrence of every
 //! pattern, and each unit lists the matches the meta filter `dropped` beside the ones it kept.
 //!
-//! Where ace4 differs from ace3, the result says what ace4 does: a rule file that isn't UTF-8
+//! Where ace-rs differs from ace3, the result says what ace-rs does: a rule file that isn't UTF-8
 //! is left out instead of failing the whole load, a `re:` item the regex crate rejects leaves
 //! its file out, the mime type comes from libmagic once per unit instead of `file` once per
 //! scan, and `combined_compile_seconds` includes compiling each file alone.
@@ -266,7 +266,7 @@ pub fn run_with(
     let job = read_job(workdir)?;
     let mut result = ReplayResult {
         version: PROTOCOL_VERSION,
-        child: "ace4",
+        child: "ace-rs",
         yara_x_version: yara_x::VERSION,
         files: Vec::new(),
         ruleset_error: None,

@@ -1,0 +1,49 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "QRCodeAnalysis",
+      "details": {
+        "extracted_text": null,
+        "inverted": false
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.qrcode:QRCodeAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/pdf/js_names_dictionary.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "js_names_dictionary.pdf",
+      "size": 359,
+      "type": "file",
+      "value": "921e1c1e60d06c37519c6a11f72a385552bb50b8c07d52e1ac195f92b10e4662"
+    }
+  },
+  "module": "qrcode",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "js_names_dictionary.pdf",
+    "relationships": [],
+    "size": 359,
+    "tags": [],
+    "type": "file",
+    "value": "921e1c1e60d06c37519c6a11f72a385552bb50b8c07d52e1ac195f92b10e4662",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

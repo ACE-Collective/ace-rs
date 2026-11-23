@@ -3,7 +3,7 @@
 //!
 //! The database is read before containment, which can't open it (`Magic::load`), and a cookie
 //! is made from those bytes in the task. libmagic is the one ace3's image has, 5.46, and the
-//! database is the same file (`docker/ace4/Dockerfile` pins both).
+//! database is the same file (`docker/ace-rs/Dockerfile` pins both).
 
 use std::ffi::{CStr, c_char, c_int, c_void};
 
@@ -33,7 +33,7 @@ use magic_sys as _;
 const MAGIC_NONE: c_int = 0;
 const MAGIC_PARAM_NAME_MAX: c_int = 1;
 
-/// Where ace4's images keep the database, the one ace3's python-magic loads by default.
+/// Where ace-rs's images keep the database, the one ace3's python-magic loads by default.
 pub const DATABASE: &str = "/usr/lib/file/magic.mgc";
 
 /// libmagic with a database loaded. Not shared between threads.

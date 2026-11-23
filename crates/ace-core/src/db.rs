@@ -49,8 +49,8 @@ pub const AREAS: &[&str] = &[
 ];
 
 /// The variable that holds the database URL, such as
-/// `postgres://ace4:password@postgres:5432/ace4`.
-pub const URL_VAR: &str = "ACE4_DATABASE_URL";
+/// `postgres://ace_rs:password@postgres:5432/ace_rs`.
+pub const URL_VAR: &str = "ACE_RS_DATABASE_URL";
 
 #[derive(Debug, thiserror::Error)]
 pub enum DbError {
@@ -144,7 +144,7 @@ pub struct DbConfig {
 }
 
 impl DbConfig {
-    /// A config for `url`, such as `postgres://ace4:password@postgres:5432/ace4`, with the
+    /// A config for `url`, such as `postgres://ace_rs:password@postgres:5432/ace_rs`, with the
     /// default limits.
     pub fn parse(url: &str, component: impl Into<String>) -> Result<Self, DbError> {
         Ok(DbConfig {
@@ -157,7 +157,7 @@ impl DbConfig {
         })
     }
 
-    /// The URL from `ACE4_DATABASE_URL`, with the default limits.
+    /// The URL from `ACE_RS_DATABASE_URL`, with the default limits.
     pub fn from_env(component: impl Into<String>) -> Result<Self, DbError> {
         let url = std::env::var(URL_VAR).map_err(|_| DbError::NoUrl)?;
         DbConfig::parse(&url, component)

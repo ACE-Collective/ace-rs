@@ -423,7 +423,7 @@ fn detection_branches(tree: &AlertTree) -> (HashSet<i64>, HashSet<i64>) {
     (observables, results)
 }
 
-/// The tree's lines in a mode: the whole tree, or its branches that carry a detection, with ace4's
+/// The tree's lines in a mode: the whole tree, or its branches that carry a detection, with ace-rs's
 /// own pivot link icons, which are none.
 pub fn tree_view_in(
     tree: &AlertTree,
@@ -1001,7 +1001,7 @@ pub struct PageOptions<'a> {
     pub dispositions: Option<&'a ace_service::Dispositions>,
     /// The alert's remediation coverage and timeline, when the viewer may read them.
     pub remediation: Option<&'a ace_service::RemediationTimeline>,
-    /// None draws pivot links with ace4's own icons, which are none.
+    /// None draws pivot links with ace-rs's own icons, which are none.
     pub icons: Option<&'a crate::icons::PivotIcons>,
     /// The alert's emails' body texts, for a summary that reads them (PLAN.md decision 55).
     pub bodies: &'a [crate::analysis::summary::EmailBody],

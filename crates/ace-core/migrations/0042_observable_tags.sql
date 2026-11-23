@@ -1,7 +1,7 @@
 -- The tags analysts map to an observable (PLAN.md 7.6), which `user_defined_tagging` adds to that
 -- observable in every alert, through the core's `observable-tags` read (`reads.md`). ace3 keeps them in
 -- its `observable_tag_mapping` and `tags` tables, keyed by its index of every observable (type and the
--- sha256 of the value). ace4 has no such index, so a mapping holds the type and value itself, matched as
+-- sha256 of the value). ace-rs has no such index, so a mapping holds the type and value itself, matched as
 -- 5.6's observable comments are: by type, value_hash and value.
 --
 -- Nothing in ace3 writes these rows but its tests and its unused `add_observable_tag_mapping`, so

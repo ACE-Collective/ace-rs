@@ -32,7 +32,7 @@
 //! (a time range around the observable's own time), `<O_VALUEn>` and `<observable.*>` tokens other
 //! than `<observable.value>` and `<observable.type>`:
 //! a search using one fails the task. ace3 also clears a skipped Phishkit analysis when it crawls,
-//! which ace4 has no Phishkit for. `tests/clicker_differences.md` lists the rest.
+//! which ace-rs has no Phishkit for. `tests/clicker_differences.md` lists the rest.
 //!
 //! What doesn't depend on Splunk is public (PLAN.md decision 51), for a site's clicker on another
 //! source, such as a LogScale one: the watched config ([`ClickerConfig`]), the searches that

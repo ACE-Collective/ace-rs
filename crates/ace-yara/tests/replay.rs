@@ -62,7 +62,7 @@ fn matches_carry_offsets_and_the_filter_keeps_what_it_dropped() {
     let result = run(dir.path());
 
     assert_eq!(result["version"], 1);
-    assert_eq!(result["child"], "ace4");
+    assert_eq!(result["child"], "ace-rs");
     assert_eq!(result["ruleset_error"], Value::Null);
 
     // Each file alone: the broken one is reported with its error, the others with their rules.
@@ -199,7 +199,7 @@ fn the_slowest_rules_are_reported_only_with_rules_profiling() {
 // ---- PLAN.md 7.10 batch 3: ace3's tests/saq/svs/yara/test_child.py ----
 //
 // The child is held to what the YARA pool does with the same rules: `load_dir`, which the ruleset build
-// and the pool load with, and `Scanner`. Where ace4's loader differs from yara_scanner (a file that isn't
+// and the pool load with, and `Scanner`. Where ace-rs's loader differs from yara_scanner (a file that isn't
 // UTF-8, an include that can't be read), the child does what the pool does, and the case says so.
 // test_child.py's `test_the_sandboxed_scan_cannot_read_saq_home` is ace-site-example's
 // `a_contained_replay_reads_only_its_validation`, which runs this binary's contained replay.
@@ -449,7 +449,7 @@ fn a_ruleset_that_does_not_compile_together_would_not_load() {
     assert_eq!(rules_of(&result["units"]["0"], "namespace"), ["one", "two"]);
 }
 
-/// test_child.py's `test_a_file_that_is_not_utf8_fails_the_whole_load`. ace4's loader leaves such a file out
+/// test_child.py's `test_a_file_that_is_not_utf8_fails_the_whole_load`. ace-rs's loader leaves such a file out
 /// alone (`ace_yara::load`'s docs), so the child does: the rest loads and scans.
 #[test]
 fn a_file_that_is_not_utf8_is_left_out_as_the_pool_leaves_it_out() {
@@ -499,7 +499,7 @@ fn a_file_that_is_not_utf8_is_left_out_as_the_pool_leaves_it_out() {
 }
 
 /// test_child.py's `test_a_missing_include_compiles_and_is_reported`. yara_scanner compiles a missing include
-/// as empty; ace4's loader leaves the file that includes it out, with the include's error, and the child
+/// as empty; ace-rs's loader leaves the file that includes it out, with the include's error, and the child
 /// reports that. An include that resolves inside the signature directory compiles, another namespace's
 /// file too.
 ///

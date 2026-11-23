@@ -1,5 +1,5 @@
 //! The overlay's `hooks:` section (PLAN.md 7.6): the settings of the two modules ace3 runs over the
-//! whole tree, which ace4 runs in the core rather than on a pool (`ace_core::hooks`).
+//! whole tree, which ace-rs runs in the core rather than on a pool (`ace_core::hooks`).
 //!
 //! ```yaml
 //! hooks:
@@ -20,7 +20,7 @@
 //! Each level refuses keys it doesn't know, as the rest of the overlay does. The core compiles and checks
 //! the rules when it starts (`ace_core::hooks::Hooks::from_section`), so a rule ace3 would log and skip, one
 //! with no uuid, an unknown phase or scope, or a pattern that doesn't compile, stops startup here. A module
-//! is named as ace4 names it, by its key (`archive`, `email_analyzer`), where ace3's rules name a Python
+//! is named as ace-rs names it, by its key (`archive`, `email_analyzer`), where ace3's rules name a Python
 //! path (`saq.modules.archive:ArchiveAnalyzer`).
 
 use std::collections::BTreeMap;

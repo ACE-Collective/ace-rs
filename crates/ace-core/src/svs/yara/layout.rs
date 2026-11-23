@@ -9,7 +9,7 @@
 //!
 //! ace3 derives the layout from where `service_yara.signature_dir` sits against the checkout, and has a
 //! second, *linked*, layout, where entries of the signature directory are symbolic links into the checkout.
-//! ace4's ruleset build has only the first, so a repository names its signature directory
+//! ace-rs's ruleset build has only the first, so a repository names its signature directory
 //! (`svs.yara.repositories`) and there's no linked layout to derive.
 
 use std::path::{Path, PathBuf};
@@ -64,7 +64,7 @@ pub struct TreeNamespace {
 pub struct TreeLayout {
     pub namespaces: Vec<TreeNamespace>,
     pub not_loaded: Vec<NotLoaded>,
-    /// Namespaces the layout names that the commit doesn't have. ace4's layout names none, so this is
+    /// Namespaces the layout names that the commit doesn't have. ace-rs's layout names none, so this is
     /// always empty; the report keeps ace3's field.
     pub absent: Vec<String>,
 }

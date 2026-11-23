@@ -30,8 +30,8 @@
 //! JSON. The task process writes a request, an `ace_sdk::tools::ToolRun`:
 //!
 //! ```text
-//! {"tool": "pdftotext", "args": ["/tmp/ace4-task-x/input", "output.txt"],
-//!  "reads": ["/tmp/ace4-task-x/input"], "keep": {"named": ["output.txt"]}, "env": [],
+//! {"tool": "pdftotext", "args": ["/tmp/ace-rs-task-x/input", "output.txt"],
+//!  "reads": ["/tmp/ace-rs-task-x/input"], "keep": {"named": ["output.txt"]}, "env": [],
 //!  "timeout": {"secs": 5, "nanos": 0}}
 //! ```
 //!

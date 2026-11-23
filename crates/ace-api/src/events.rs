@@ -18,11 +18,11 @@
 //! | `DELETE /threats/?malware_id=&threat_type_id=` | `DELETE /threats/{malware}/{threat_type}`, audited |
 //!
 //! What differs, or is left out, and why:
-//! - An event's body is ace4's own (decision 7): `type` for ace3's event type, `owner` with the user's
+//! - An event's body is ace-rs's own (decision 7): `type` for ace3's event type, `owner` with the user's
 //!   id, username and display name, `malware` as `[{id, name, threat_types}]` where ace3 gives
 //!   `[{name: [types]}]`, and `alerts` with each alert's own state in place of ace3's `alerts`,
 //!   `alert_versions` and `alert_details`. ace3's `companies`, `wiki` and an alert's owner aren't there,
-//!   since ace4 has no companies, wiki or alert owners, and no version token.
+//!   since ace-rs has no companies, wiki or alert owners, and no version token.
 //! - The open list is paged, up to 1000 events at a time, where ace3's isn't.
 //! - The export takes up to 1000 ids, as `ids=1,2,3`, which axum's query reader takes, where ace3 repeats
 //!   `checked_events[]` and takes any number. It has ace3's columns in ace3's order, with times in RFC 3339

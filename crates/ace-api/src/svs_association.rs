@@ -1,7 +1,7 @@
 //! SVS's association routes (PLAN.md 7.10 batch 7a): what SVS makes of an alert, and a person's changes
 //! to which alerts belong to a test run, over `ace_service`'s `svs_association`.
 //!
-//! | ace3 (`aceapi_v2/svs`) | ace4 |
+//! | ace3 (`aceapi_v2/svs`) | ace-rs |
 //! |---|---|
 //! | `GET /alerts/{alert_uuid}/svs` | `GET /api/alerts/v1/alerts/{id}/svs` |
 //! | `POST /alerts/{alert_uuid}/svs/disassociate` | `POST /api/alerts/v1/alerts/{id}/svs/disassociate` |

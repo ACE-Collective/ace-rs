@@ -41,10 +41,10 @@
 //!   what the ones before it added from the same index rather than read their results (`budget`).
 //! - ace3's tls_keylog applies a key log that arrives after a capture's decryption finished, which
 //!   happens in ace3 when an analyst adds one to an alert; that changes the capture's decryption
-//!   analysis, a result on another observable. ace4 has no way to add a file to an analyzed alert,
+//!   analysis, a result on another observable. ace-rs has no way to add a file to an analyzed alert,
 //!   and its decryption runs once everything else is done, key logs included, so the port
 //!   recognizes and tags key logs and leaves `applied_to` and `skipped` empty.
-//! - Observables aren't volatile and have no sort order, which ace4 doesn't have.
+//! - Observables aren't volatile and have no sort order, which ace-rs doesn't have.
 
 pub mod analyzer;
 pub mod budget;

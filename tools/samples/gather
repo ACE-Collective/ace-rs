@@ -2,7 +2,7 @@
 """Gathers the local sample set for PLAN.md step 0.8 and writes samples/manifest.json.
 
 Copies test fixtures from ace3's checkout into samples/ace3/, which is in git, makes the
-end-to-end test's email in samples/ace4/, which is too, and makes benign samples that ace3's repository doesn't hold as files into samples/local/, which
+end-to-end test's email in samples/ace-rs/, which is too, and makes benign samples that ace3's repository doesn't hold as files into samples/local/, which
 .gitignore keeps out of git. The local ones follow the fixtures ace3's tests build in
 code, so both systems see the same shapes.
 
@@ -571,9 +571,9 @@ def encrypted_email(path, body, attachments=(), html=None, nested=None):
 
 def library_image():
     """The image with the libraries the files' encryption comes from, built if it has changed."""
-    image = "ace4-python-libraries:latest"
+    image = "ace-rs-python-libraries:latest"
     subprocess.run(
-        ["docker", "build", "-q", "-f", REPO / "docker" / "ace4" / "Dockerfile",
+        ["docker", "build", "-q", "-f", REPO / "docker" / "ace-rs" / "Dockerfile",
          "--target", "python-libraries", "-t", image, REPO],
         check=True, stdout=subprocess.DEVNULL,
     )
@@ -988,7 +988,7 @@ def make_lure_context_emails(directory, pdf_directory):
 def pdf_libraries_image():
     """The Dockerfile's pdf-libraries stage, which has pikepdf, as an image id."""
     return subprocess.run(
-        ["docker", "build", "-q", "-f", "docker/ace4/Dockerfile", "--target", "pdf-libraries", "."],
+        ["docker", "build", "-q", "-f", "docker/ace-rs/Dockerfile", "--target", "pdf-libraries", "."],
         cwd=REPO, check=True, capture_output=True, text=True,
     ).stdout.strip()
 
@@ -1036,67 +1036,67 @@ def main():
         for path, kinds, how in make_local(SAMPLES / "local", Path(work)):
             samples.append(entry(path, kinds, f"made by tools/samples/gather: {how}"))
 
-    e2e_email = SAMPLES / "ace4" / "email" / "e2e.email.rfc822"
+    e2e_email = SAMPLES / "ace-rs" / "email" / "e2e.email.rfc822"
     make_e2e_email(e2e_email)
     samples.append(
         entry(e2e_email, ["email", "archive/zip"], "made by tools/samples/gather: Python email")
     )
 
-    for path in make_url_emails(SAMPLES / "ace4" / "email"):
+    for path in make_url_emails(SAMPLES / "ace-rs" / "email"):
         samples.append(entry(path, ["email"], "made by tools/samples/gather: Python email"))
 
     receipt = (SAMPLES / "ace3" / "office" / "receipt_687790.doc").read_bytes()
-    for path in make_lure_emails(SAMPLES / "ace4" / "email", receipt):
+    for path in make_lure_emails(SAMPLES / "ace-rs" / "email", receipt):
         kinds = ["email", "office/macro"] if path.name.startswith("macro_") else ["email"]
         samples.append(entry(path, kinds, "made by tools/samples/gather: Python email"))
 
     docm = SAMPLES / "ace3" / "office" / "mortgage_payment-0873821-0565.docm"
-    for path in make_office_edges(SAMPLES / "ace4" / "office", docm):
+    for path in make_office_edges(SAMPLES / "ace-rs" / "office", docm):
         samples.append(entry(path, ["office/edge"], "made by tools/samples/gather: by hand"))
 
     macro_doc = (SAMPLES / "ace3" / "office" / "receipt_687790.doc").read_bytes()
-    for path in make_rtf_edges(SAMPLES / "ace4" / "rtf", macro_doc):
+    for path in make_rtf_edges(SAMPLES / "ace-rs" / "rtf", macro_doc):
         samples.append(entry(path, ["rtf", "rtf/edge"], "made by tools/samples/gather: by hand"))
 
-    office_files, office_emails = make_encrypted_office(SAMPLES / "ace4" / "office", SAMPLES / "ace4" / "email")
+    office_files, office_emails = make_encrypted_office(SAMPLES / "ace-rs" / "office", SAMPLES / "ace-rs" / "email")
     how = "made by tools/samples/gather: tools/samples/make-encrypted-office"
     for path in office_files:
         samples.append(entry(path, ["office/encrypted"], how))
     for path in office_emails:
         samples.append(entry(path, ["email", "office/encrypted"], how))
     samples.extend(
-        make_encrypted_binary(SAMPLES / "ace4" / "office", SAMPLES / "ace4" / "email", SAMPLES / "ace4" / "html")
+        make_encrypted_binary(SAMPLES / "ace-rs" / "office", SAMPLES / "ace-rs" / "email", SAMPLES / "ace-rs" / "html")
     )
 
     samples.append(
-        entry(SAMPLES / "ace4" / "office" / "xlm_info_3805.xls", ["office/macro", "office/xlm"],
+        entry(SAMPLES / "ace-rs" / "office" / "xlm_info_3805.xls", ["office/macro", "office/xlm"],
               "made by tools/samples/gather: tools/samples/make-encrypted-office: ace3's info_3805.xls, decrypted")
     )
     xlm = subprocess.run(
-        [sys.executable, "-I", str(REPO / "tools" / "samples" / "make-xlm"), str(SAMPLES / "ace4" / "office")],
+        [sys.executable, "-I", str(REPO / "tools" / "samples" / "make-xlm"), str(SAMPLES / "ace-rs" / "office")],
         check=True, capture_output=True, text=True,
     ).stdout.split()
     for name in xlm:
         samples.append(
-            entry(SAMPLES / "ace4" / "office" / name, ["office/macro", "office/xlm"],
+            entry(SAMPLES / "ace-rs" / "office" / name, ["office/macro", "office/xlm"],
                   "made by tools/samples/gather: tools/samples/make-xlm")
         )
 
     # on the pdf-libraries image, because the encrypted ones go through pikepdf
-    (SAMPLES / "ace4" / "pdf").mkdir(parents=True, exist_ok=True)
+    (SAMPLES / "ace-rs" / "pdf").mkdir(parents=True, exist_ok=True)
     pdfs = subprocess.run(
         ["docker", "run", "--rm", "--user", f"{os.getuid()}:{os.getgid()}", "-v", f"{REPO}:/repo:ro",
-         "-v", f"{SAMPLES / 'ace4' / 'pdf'}:/out", pdf_libraries_image(), "python", "-I",
+         "-v", f"{SAMPLES / 'ace_rs' / 'pdf'}:/out", pdf_libraries_image(), "python", "-I",
          "/repo/tools/samples/make-pdf", "/out"],
         check=True, capture_output=True, text=True,
     ).stdout.split()
     for name in pdfs:
         samples.append(
-            entry(SAMPLES / "ace4" / "pdf" / name, ["pdf", "pdf/made"], "made by tools/samples/gather: tools/samples/make-pdf")
+            entry(SAMPLES / "ace-rs" / "pdf" / name, ["pdf", "pdf/made"], "made by tools/samples/gather: tools/samples/make-pdf")
         )
 
     # after the PDFs, which these attach
-    for path in make_lure_context_emails(SAMPLES / "ace4" / "email", SAMPLES / "ace4" / "pdf"):
+    for path in make_lure_context_emails(SAMPLES / "ace-rs" / "email", SAMPLES / "ace-rs" / "pdf"):
         samples.append(entry(path, ["email"], "made by tools/samples/gather: Python email"))
 
     covered = {kind for sample in samples for kind in sample["kinds"]}

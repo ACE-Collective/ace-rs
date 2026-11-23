@@ -69,8 +69,8 @@ pub struct ScannerSpec {
 /// does this.
 pub const JS_DEOBFUSCATOR: ScannerSpec = ScannerSpec {
     name: "js-deobfuscator",
-    image: "ace4-js-deobfuscator:latest",
-    image_variable: "ACE4_JS_DEOBFUSCATOR_IMAGE",
+    image: "ace-rs-js-deobfuscator:latest",
+    image_variable: "ACE_RS_JS_DEOBFUSCATOR_IMAGE",
     command: &["node", "/opt/app/harness.js"],
     input_dir: "/js-deobfuscator/input",
     output_dir: "/js-deobfuscator/output",
@@ -88,13 +88,13 @@ pub const JS_DEOBFUSCATOR: ScannerSpec = ScannerSpec {
 /// `etc/phishkit_config.yaml`'s `resource_limits` (2 GiB, swap included, and 2 CPUs).
 pub const PHISHKIT: ScannerSpec = ScannerSpec {
     name: "phishkit",
-    image: "ace4-phishkit:latest",
-    image_variable: "ACE4_PHISHKIT_IMAGE",
+    image: "ace-rs-phishkit:latest",
+    image_variable: "ACE_RS_PHISHKIT_IMAGE",
     command: &["/opt/venv/bin/python", "/opt/app/scanner.py"],
     input_dir: "/phishkit/input",
     output_dir: "/phishkit/output",
     network: ScannerNetwork::Default {
-        variable: "ACE4_PHISHKIT_NETWORK",
+        variable: "ACE_RS_PHISHKIT_NETWORK",
     },
     memory_bytes: Some(2 << 30),
     nano_cpus: Some(2_000_000_000),
@@ -104,7 +104,7 @@ pub const PHISHKIT: ScannerSpec = ScannerSpec {
     max_output_bytes: 256 << 20,
 };
 
-/// The scanners ace4 builds images for (`docker/scanners/build`).
+/// The scanners ace-rs builds images for (`docker/scanners/build`).
 pub const SCANNERS: &[ScannerSpec] = &[JS_DEOBFUSCATOR, PHISHKIT];
 
 /// The spec named `name` among `specs`.
@@ -119,7 +119,7 @@ pub const MAX_ARG_BYTES: usize = 64 * 1024;
 /// The longest a scan may wait for a scanner pool before the core gives up on it, past its timeout.
 pub const QUEUED_GRACE: Duration = Duration::from_secs(600);
 
-/// What `ACE4_POOLS` lists for a pool that runs scanner `name`: `@scan/<name>`, which no module
+/// What `ACE_RS_POOLS` lists for a pool that runs scanner `name`: `@scan/<name>`, which no module
 /// can be called.
 pub fn pool_entry(name: &str) -> String {
     format!("@scan/{name}")

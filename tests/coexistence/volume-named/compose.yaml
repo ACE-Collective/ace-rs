@@ -1,4 +1,4 @@
-name: ace4
+name: ace-rs
 services:
   web:
     image: alpine:3.24.2
@@ -6,4 +6,4 @@ services:
       - data:/data
 volumes:
   data:
-    name: ace4_data
+    name: ace_rs_data

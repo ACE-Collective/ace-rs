@@ -3,7 +3,7 @@
 //! reads through a service function, which checks the permission, and a form writes through one, which
 //! checks it and writes the audit row.
 //!
-//! `ace serve` merges `Gui::router` into the JSON API's listener (`ACE4_WEB_LISTEN`), so the pages and
+//! `ace serve` merges `Gui::router` into the JSON API's listener (`ACE_RS_WEB_LISTEN`), so the pages and
 //! the API share one origin and one session cookie, and the lease API stays on its own.
 //!
 //! What's here:
@@ -153,7 +153,7 @@ pub use icons::{PivotIcon, PivotIcons};
 const MAX_FORM_BYTES: usize = 16 << 10;
 
 /// What every handler gets: the service, and whether the browser reaches this server over TLS, which
-/// the site's configuration says (`ace_api::WebConfig::transport`, from `ACE4_WEB_TLS`) and the session
+/// the site's configuration says (`ace_api::WebConfig::transport`, from `ACE_RS_WEB_TLS`) and the session
 /// cookie follows.
 #[derive(Clone)]
 pub struct Gui {
@@ -222,7 +222,7 @@ impl Gui {
     }
 
     /// The GUI offering these alert actions on the alert page (PLAN.md decision 55), the site's, rather
-    /// than ace4's own, which are none.
+    /// than ace-rs's own, which are none.
     pub fn with_alert_actions(mut self, actions: AlertActions) -> Self {
         self.alert_actions = std::sync::Arc::new(actions);
         self
@@ -236,7 +236,7 @@ impl Gui {
     }
 
     /// The GUI serving these pivot link icons (PLAN.md decision 32 part (b)), the binary's list,
-    /// rather than ace4's own, which are none.
+    /// rather than ace-rs's own, which are none.
     pub fn with_icons(mut self, icons: icons::PivotIcons) -> Self {
         self.icons = std::sync::Arc::new(icons);
         self

@@ -753,16 +753,17 @@ mod tests {
         assert!(source_url("v20.0").ends_with("/enterprise-attack/enterprise-attack-20.0.json"));
     }
 
-    /// A trial against MITRE's own bundle, for whoever vendors a release: `ACE4_ATTACK_BUNDLE` is the
-    /// enterprise STIX bundle, `ACE4_ATTACK_RELEASE` its release, and `ACE4_ATTACK_EXPECTED` the extract
+    /// A trial against MITRE's own bundle, for whoever vendors a release: `ACE_RS_ATTACK_BUNDLE` is the
+    /// enterprise STIX bundle, `ACE_RS_ATTACK_RELEASE` its release, and `ACE_RS_ATTACK_EXPECTED` the extract
     /// ace3's `bin/update-attack-catalog` wrote from the same file. The two builders give the same bytes.
     #[test]
-    #[ignore = "needs ACE4_ATTACK_BUNDLE, ACE4_ATTACK_RELEASE and ACE4_ATTACK_EXPECTED"]
+    #[ignore = "needs ACE_RS_ATTACK_BUNDLE, ACE_RS_ATTACK_RELEASE and ACE_RS_ATTACK_EXPECTED"]
     fn a_real_bundle_builds_as_ace3_s_script_does() {
         let env = |name: &str| std::env::var(name).unwrap_or_else(|_| panic!("{name}"));
-        let bundle = std::fs::read(env("ACE4_ATTACK_BUNDLE")).expect("reads the bundle");
-        let expected = std::fs::read_to_string(env("ACE4_ATTACK_EXPECTED")).expect("reads ace3's");
-        let release = parse_release(&env("ACE4_ATTACK_RELEASE")).expect("a release");
+        let bundle = std::fs::read(env("ACE_RS_ATTACK_BUNDLE")).expect("reads the bundle");
+        let expected =
+            std::fs::read_to_string(env("ACE_RS_ATTACK_EXPECTED")).expect("reads ace3's");
+        let release = parse_release(&env("ACE_RS_ATTACK_RELEASE")).expect("a release");
         let started = std::time::Instant::now();
         let built = build(&bundle, &release, &source_url(&release), None).expect("builds");
         println!(

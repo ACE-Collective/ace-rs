@@ -14,7 +14,7 @@ Measured on 2026-11-10 on the dev container of `build-loop.md` (Rancher Desktop,
 
     cargo test -p ace-pool --features test-pools --test supervisor measure_lure -- --ignored --nocapture
 
-submits each email to the real supervisor with the file type, email, URL, protected URL and lure modules, which run as `ace4-task` under Landlock and seccomp with their limits. 3 runs each, each in a new root. "Root" runs from the root's start to its last task's end, so it includes the email module, the URL module's search of each body and every upload and lease. The lure module runs last, so "Lure" is from the root's last other result landing to the lure's own: its hold, its lease, its bodies' download and its run. A dev build, unoptimized.
+submits each email to the real supervisor with the file type, email, URL, protected URL and lure modules, which run as `ace-rs-task` under Landlock and seccomp with their limits. 3 runs each, each in a new root. "Root" runs from the root's start to its last task's end, so it includes the email module, the URL module's search of each body and every upload and lease. The lure module runs last, so "Lure" is from the root's last other result landing to the lure's own: its hold, its lease, its bodies' download and its run. A dev build, unoptimized.
 
 | Email | Size | End | Candidates | Root, seconds | Lure, seconds |
 |---|---|---|---|---|---|

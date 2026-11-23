@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/pdf/parser_nested_trailer_995.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "parser_nested_trailer_995.pdf",
+      "size": 7003,
+      "type": "file",
+      "value": "ddc73c0928562d528043b651f5dbac3d501ceb9b893ab8a8d2a04afe1eee693c"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "parser_nested_trailer_995.pdf",
+    "relationships": [],
+    "size": 7003,
+    "tags": [],
+    "type": "file",
+    "value": "ddc73c0928562d528043b651f5dbac3d501ceb9b893ab8a8d2a04afe1eee693c",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

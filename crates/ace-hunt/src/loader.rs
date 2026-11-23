@@ -10,7 +10,7 @@
 //! are made absolute against the file that names them.
 //!
 //! ace3 loops forever on a loop whose path grows each time round, such as `a` including
-//! `../dir/a`, until the path is too long to open. ace4 stops at the first file that is already
+//! `../dir/a`, until the path is too long to open. ace-rs stops at the first file that is already
 //! being read further up the chain of includes, and fails the hunt there.
 //!
 //! The rest is what ace3 does with what loaded: `rule` validates as the hunt type's model, each of

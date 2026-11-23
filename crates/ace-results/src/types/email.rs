@@ -23,14 +23,14 @@ pub struct EmailAnalysis {
     pub extraction_errors: Vec<ExtractionError>,
     pub email: Option<EmailDetails>,
     /// Each part the module extracted, in order: its file, its declared content type and its role
-    /// (ace3's `details["parts"]`, 5474fd6b). Absent from a result made before ace4 recorded them,
+    /// (ace3's `details["parts"]`, 5474fd6b). Absent from a result made before ace-rs recorded them,
     /// whose body parts are told by their names, as ace3 tells an email's analyzed before.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub parts: Option<Vec<EmailPart>>,
 }
 
 /// A part the email module extracted (ace3's entry of `details["parts"]`). ace3 names the file by its
-/// observable's uuid; ace4's observables have none, so it's named by its path in the alert, which the
+/// observable's uuid; ace-rs's observables have none, so it's named by its path in the alert, which the
 /// comparison's normal form gives ace3's too.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

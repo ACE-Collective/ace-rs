@@ -1,6 +1,6 @@
 //! `ace user`: accounts an operator makes from a shell. `ace user create-first` makes the first user
-//! (PLAN.md 5.4), because ace4 ships no default account. It reads Postgres directly, so whoever can run it
-//! already has the database, and it runs where `ace serve` does, with `ACE4_DATABASE_URL`. A password
+//! (PLAN.md 5.4), because ace-rs ships no default account. It reads Postgres directly, so whoever can run it
+//! already has the database, and it runs where `ace serve` does, with `ACE_RS_DATABASE_URL`. A password
 //! never goes on the command line, where `ps` and a shell's history keep it.
 //!
 //! `ace user create-key` makes an API key that stands for a service rather than a user, with the grants

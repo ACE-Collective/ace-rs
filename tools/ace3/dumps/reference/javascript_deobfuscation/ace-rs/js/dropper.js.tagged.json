@@ -1,0 +1,98 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "JavaScriptDeobfuscationAnalysis",
+      "details": {
+        "dom_snapshot": false,
+        "dom_snapshot_source": null,
+        "error_type": "runtime",
+        "event_count": 0,
+        "exit_code": 0,
+        "extracted_files": [
+          "deobfuscated-dropper.txt"
+        ],
+        "secondary_script_count": 0,
+        "stderr": "",
+        "stdout": "{\"status\":\"error_during_run\",\"event_count\":0,\"secondary_script_count\":0,\"error\":\"evalmachine.<anonymous>:1\\nvar s = new ActiveXObject(\\\"WScript.Shell\\\");\\n        ^\\n\\nReferenceError: ActiveXObject is not defined\\n    at evalmachine.<anonymous>:1:9\\n    at Script.runInContext (node:vm:150:12)\\n    at file:///opt/app/harness.js:914:12\",\"error_type\":\"runtime\",\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":false}",
+        "webcrack_error": null,
+        "webcrack_status": "applied (cosmetic only)"
+      },
+      "detections": [],
+      "error": "evalmachine.<anonymous>:1\nvar s = new ActiveXObject(\"WScript.Shell\");\n        ^\n\nReferenceError: ActiveXObject is not defined\n    at evalmachine.<anonymous>:1:9\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
+      "module_path": "saq.modules.file_analysis.js:JavaScriptDeobfuscationAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.js:<class 'saq.modules.file_analysis.js.JavaScriptDeobfuscationAnalyzer'>"
+          ],
+          "file_path": "deobfuscated-dropper.txt",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "4bcb59f7ca66c88ab96a6dbb2069a2822d920d4fef4c176690d99db49ecba517"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 461,
+          "tags": [],
+          "type": "file",
+          "value": "0643922b2bffa07518e288af4f61c91b9c2218b4b68db1276f473e72ade29f37",
+          "yara_meta": [
+            "type=script.javascript"
+          ]
+        }
+      ],
+      "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:1\nvar s = new ActiveXObject(\"WScript.Shell\");\n        ^\n\nReferenceError: ActiveXObject is not defined\n    at evalmachine.<anonymous>:1:9\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/js/dropper.js as dropper.txt tagged type=script.javascript",
+    "meta_tags": [
+      "type=script.javascript"
+    ],
+    "observable": {
+      "file_path": "dropper.txt",
+      "size": 104,
+      "type": "file",
+      "value": "4bcb59f7ca66c88ab96a6dbb2069a2822d920d4fef4c176690d99db49ecba517"
+    }
+  },
+  "module": "javascript_deobfuscation",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=script.javascript"
+    ],
+    "excluded_analysis": [],
+    "file_path": "dropper.txt",
+    "relationships": [],
+    "size": 104,
+    "tags": [
+      "js"
+    ],
+    "type": "file",
+    "value": "4bcb59f7ca66c88ab96a6dbb2069a2822d920d4fef4c176690d99db49ecba517",
+    "yara_meta": [
+      "type=script.javascript"
+    ]
+  },
+  "scanner_request": {
+    "dom_snapshot": null,
+    "file_name": "dropper.txt",
+    "scanner": "js-deobfuscator",
+    "scanner_timeout": 30,
+    "timeout": 60
+  }
+}

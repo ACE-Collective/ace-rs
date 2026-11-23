@@ -6,7 +6,7 @@
 //! A unit test rather than a test binary of its own (the brief's 2.33). Every difference is listed
 //! and explained in `tests/differences.md`.
 //!
-//! A module that follows pcap_analyzer gets its result as the core would send it, from ace4's own
+//! A module that follows pcap_analyzer gets its result as the core would send it, from ace-rs's own
 //! pcap_analyzer on the same sample, and the files it adds with no upload get the size of what
 //! pcap_analyzer stored, as the core gives them.
 
@@ -31,7 +31,7 @@ fn sample(dump: &Dump) -> String {
     label.split(' ').next().expect("a path").to_owned()
 }
 
-/// ace4's pcap_analyzer on a sample: its details, as a JSON value, and the size of each file it
+/// ace-rs's pcap_analyzer on a sample: its details, as a JSON value, and the size of each file it
 /// stored.
 fn analyzer(path: &str) -> (Option<Value>, BTreeMap<String, u64>) {
     let harness = Harness::<PcapAnalyzer>::new()
@@ -255,7 +255,7 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         "pcap_http_http_tls",
     ))));
     compared.extend(compare_category::<PcapFiles>(Some((
-        "ace4/pcap/many_files.pcap",
+        "ace-rs/pcap/many_files.pcap",
         "pcap_files_many_files",
     ))));
     compared.extend(compare_decryption());

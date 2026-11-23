@@ -26,7 +26,7 @@
 //! them, a module with any has no key, and nothing is looked up.
 //! ace3's key is made the same way, with each node probing its own tools.
 //!
-//! **What is kept**, and what isn't (`refusal`): ace3's rules, on ace4's envelope. ace3 has to find
+//! **What is kept**, and what isn't (`refusal`): ace3's rules, on ace-rs's envelope. ace3 has to find
 //! what a module did by diffing the tree around its run; here the envelope is what it did, so it is
 //! what is kept, with the sha256 of each file it adds. Each file is held in the bucket by its row
 //! until the row expires (a hold `cache`, `<row id>`, with the row's expiry), so the bucket's

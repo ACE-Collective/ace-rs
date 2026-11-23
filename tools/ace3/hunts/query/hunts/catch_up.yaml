@@ -4,7 +4,7 @@ rule:
   uuid: 00000000-0000-0000-0000-00000000a009
   name: catching up
   description: full coverage behind by hours, a window at most max_time_range long
-  query: index=auth ace4case=catch_up
+  query: index=auth ace_rs_case=catch_up
   full_coverage: true
   max_time_range: "01:00:00"
   observable_mapping:

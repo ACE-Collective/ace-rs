@@ -25,7 +25,7 @@
 //! the yara_meta tags. askama escapes it, and a sha256 or a rule uuid in a link is percent-encoded.
 //!
 //! Left out: ace3's copy buttons and select boxes, which need a script, and its `wrong_node` notes, since
-//! ace4's bucket is one. ace3's validations pages come with batch 3.
+//! ace-rs's bucket is one. ace3's validations pages come with batch 3.
 
 use ace_service::filters::FilterScreen;
 use ace_service::{

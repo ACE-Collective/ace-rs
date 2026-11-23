@@ -4,7 +4,7 @@ rule:
   uuid: 00000000-0000-0000-0000-00000000a005
   name: mapping options
   description: the observable mapping options one at a time
-  query: index=edr ace4case=mappings
+  query: index=edr ace_rs_case=mappings
   ignored_values:
     - "10\\.0\\.0\\.1"
   observable_mapping:

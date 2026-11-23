@@ -5,7 +5,7 @@ cases. No Office was involved: each container is written here, byte by byte. The
 is the real one in ace3's mortgage_payment-0873821-0565.docm, so its p-code is genuine, and only its
 container is hand-made. It needs only Python, and writes the same bytes each time.
 
-    tools/samples/make-oletools          writes samples/ace4/office and samples/ace4/rtf, and the manifest
+    tools/samples/make-oletools          writes samples/ace-rs/office and samples/ace-rs/rtf, and the manifest
 """
 
 import base64
@@ -19,8 +19,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SAMPLES = ROOT / "samples"
-OFFICE = SAMPLES / "ace4" / "office"
-RTF = SAMPLES / "ace4" / "rtf"
+OFFICE = SAMPLES / "ace-rs" / "office"
+RTF = SAMPLES / "ace-rs" / "rtf"
 SOURCE_DOCM = SAMPLES / "ace3" / "office" / "mortgage_payment-0873821-0565.docm"
 
 FREE = 0xFFFFFFFF
@@ -627,7 +627,7 @@ def main():
             (folder / name).write_bytes(data)
             made.append(
                 {
-                    "path": f"ace4/{folder.name}/{name}",
+                    "path": f"ace-rs/{folder.name}/{name}",
                     "sha256": hashlib.sha256(data).hexdigest(),
                     "size": len(data),
                     "kinds": [f"{kind}/hand-made"],

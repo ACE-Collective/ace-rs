@@ -1,0 +1,164 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:21 15:08:12+00:00",
+          "File:FileInodeChangeDate": "2026:11:21 15:08:12+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
+          "File:FileName": "msoffcrypto_plain.ppt",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 43008,
+          "File:FileType": "PPT",
+          "File:FileTypeExtension": "PPT",
+          "File:MIMEType": "application/vnd.ms-powerpoint",
+          "FlashPix:AppVersion": 16.0,
+          "FlashPix:Author": "Microsoft Office User",
+          "FlashPix:Bytes": 38706,
+          "FlashPix:Category": "",
+          "FlashPix:CodePage": 10000,
+          "FlashPix:Comments": "",
+          "FlashPix:Company": "",
+          "FlashPix:CreateDate": "2019:03:20 13:43:09",
+          "FlashPix:CurrentUser": "Microsoft Office User\b",
+          "FlashPix:HeadingPairs": [
+            "Fonts Used",
+            3,
+            "Theme",
+            1,
+            "Slide Titles",
+            1
+          ],
+          "FlashPix:HiddenSlides": 0,
+          "FlashPix:HyperlinkBase": "",
+          "FlashPix:HyperlinksChanged": 0,
+          "FlashPix:Keywords": "",
+          "FlashPix:LastModifiedBy": "Microsoft Office User",
+          "FlashPix:LinksUpToDate": 0,
+          "FlashPix:MMClips": 0,
+          "FlashPix:Manager": "",
+          "FlashPix:ModifyDate": "2019:03:20 13:44:24",
+          "FlashPix:Notes": 0,
+          "FlashPix:Paragraphs": 1,
+          "FlashPix:PresentationTarget": "Widescreen",
+          "FlashPix:RevisionNumber": 2,
+          "FlashPix:ScaleCrop": 0,
+          "FlashPix:SharedDoc": 0,
+          "FlashPix:Slides": 1,
+          "FlashPix:Software": "Microsoft Macintosh PowerPoint",
+          "FlashPix:Subject": "",
+          "FlashPix:Title": "Lorem ipsum",
+          "FlashPix:TitleOfParts": [
+            "Calibri",
+            "Arial",
+            "Calibri Light",
+            "Office Theme",
+            "Lorem ipsum"
+          ],
+          "FlashPix:TotalEditTime": 75.211,
+          "FlashPix:Words": 2,
+          "SourceFile": "<root>/files/msoffcrypto_plain.ppt"
+        },
+        "output_dir": "<root>/files/msoffcrypto_plain.ppt.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "msoffcrypto_plain.ppt.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1874,
+          "tags": [],
+          "type": "file",
+          "value": "c1bcad5980c042889d666abd880a1252733ad7a03ccb1172a9170c1446b250c4",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: Title=Lorem ipsum, Subject=, Author=Microsoft Office User, Keywords=, Comments=, LastModifiedBy=Microsoft Office User, RevisionNumber=2, Software=Microsoft Macintosh PowerPoint, TotalEditTime=75.211, CreateDate=2019:03:20 13:43:09, ModifyDate=2019:03:20 13:44:24, Words=2, Category=, PresentationTarget=Widescreen, Manager=, Company=, Bytes=38706, Paragraphs=1, Slides=1, Notes=0 + 12 more",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/vnd.ms-powerpoint",
+        "type": "Composite Document File V2 Document, Little Endian, Os: MacOS, Version 13.10, Code page: 10000, Title: Lorem ipsum, Author: Microsoft Office User, Last Saved By: Microsoft Office User, Revision Number: 2, Name of Creating Application: Microsoft Macintosh PowerPoint, Total Editing Time: 01:15, Create Time/Date: Wed Mar 20 13:43:09 2019, Last Saved Time/Date: Wed Mar 20 13:44:24 2019, Number of Words: 2"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: MacOS, Version 13.10, Code page: 10000, Title: Lorem ipsum, Author: Microsoft Office User, Last Saved By: Microsoft Office User, Revision Number: 2, Name of Creating Application: Microsoft Macintosh PowerPoint, Total Editing Time: 01:15, Create Time/Date: Wed Mar 20 13:43:09 2019, Last Saved Time/Date: Wed Mar 20 13:44:24 2019, Number of Words: 2 (application/vnd.ms-powerpoint) (ms office document) (ole compound file) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/msoffcrypto_plain.ppt",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "msoffcrypto_plain.ppt",
+      "size": 43008,
+      "type": "file",
+      "value": "18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "msoffcrypto_plain.ppt",
+    "relationships": [],
+    "size": 43008,
+    "tags": [
+      "microsoft_office",
+      "ole",
+      "zip"
+    ],
+    "type": "file",
+    "value": "18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

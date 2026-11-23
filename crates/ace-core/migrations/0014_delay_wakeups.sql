@@ -8,7 +8,7 @@ CREATE OR REPLACE FUNCTION queue.notify_claimable() RETURNS trigger
     LANGUAGE plpgsql AS $$
 BEGIN
     IF (NEW.state = 'queued' AND NEW.run_after <= now()) OR NEW.state = 'delayed' THEN
-        PERFORM pg_notify('ace4_tasks', NEW.module);
+        PERFORM pg_notify('ace_rs_tasks', NEW.module);
     END IF;
     RETURN NULL;
 END

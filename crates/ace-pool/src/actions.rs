@@ -263,7 +263,7 @@ async fn run_traced(
     let id = action.id;
     let stop = shutdown.child_token();
     let keeper = keep_lease(client, &action, stop.clone());
-    let dir = match tempfile::Builder::new().prefix("ace4-action-").tempdir() {
+    let dir = match tempfile::Builder::new().prefix("ace-rs-action-").tempdir() {
         Ok(dir) => dir,
         Err(e) => {
             keeper.abort();

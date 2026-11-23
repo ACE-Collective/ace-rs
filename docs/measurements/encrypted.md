@@ -17,14 +17,14 @@ PLAN.md 7.5 batch 7. `zip_encryption_analyzer`, `rar_encryption_analyzer` and `p
 
 `tools/samples/make-encrypted-hostile <dir>` writes the files, in Debian containers with 7-Zip, Info-ZIP, qpdf and RARLAB's rar 6.24. In the dev container:
 
-    ACE4_ENCRYPTED_HOSTILE=<dir> cargo test -p ace-pool --features test-pools --test supervisor \
+    ACE_RS_ENCRYPTED_HOSTILE=<dir> cargo test -p ace-pool --features test-pools --test supervisor \
         measure_encrypted -- --ignored --nocapture
 
-attaches each file to an email whose body is 1,200 letters with no whitespace, so 5,000 candidates and none of them the password, and submits it to the real supervisor, which runs each module as `ace4-task` under Landlock and seccomp with its limits. 3 runs each, each in a new root. The time runs from the root's submission until the root is idle, so it includes the email module, the upload, the lease and the task process's start. It's a dev build, with the hashes, ciphers and libunrar optimized (`Cargo.toml`) and the rest not. Measured on 2026-11-09 on the dev container (Rancher Desktop, 10 CPUs, 24 GB), with ace3's and budge's stacks up.
+attaches each file to an email whose body is 1,200 letters with no whitespace, so 5,000 candidates and none of them the password, and submits it to the real supervisor, which runs each module as `ace-rs-task` under Landlock and seccomp with its limits. 3 runs each, each in a new root. The time runs from the root's submission until the root is idle, so it includes the email module, the upload, the lease and the task process's start. It's a dev build, with the hashes, ciphers and libunrar optimized (`Cargo.toml`) and the rest not. Measured on 2026-11-09 on the dev container (Rancher Desktop, 10 CPUs, 24 GB), with ace3's and budge's stacks up.
 
 ace3's column is one run of its module on the same file and body in ace3's dev container (`run_module.py --carrying-email`), from the process's start, about 3 s of which is ace3's engine starting. Its John has ten threads.
 
-| File | Size | ace4, median (range), s | ace4's result | ace3, s | ace3's result |
+| File | Size | ace-rs, median (range), s | ace-rs's result | ace3, s | ace3's result |
 |---|---|---|---|---|---|
 | `pdf_aes_256.pdf`, revision 6 | 3 KB | 4.3 (4.1-4.4) | could not crack | 2.9 | the same |
 | `rar4.rar`, files encrypted | 145 B | 38.5 (38.0-38.7) | could not crack | 8.8 | the same |
@@ -41,7 +41,7 @@ What it means:
 
 - A RAR5 candidate costs about 25 ms of one thread in libunrar, so a full list takes about 125 s, inside the RAR module's 300 s; ace3's John takes 6 s with ten threads and SIMD. A RAR4 candidate costs about 7.5 ms. libunrar's SHA-256 is portable C; checking RAR5's check value with the `sha2` crate would be faster, and is left for now.
 - A crafted RAR5 KDF count makes each candidate cost up to 256 times as much; the module stops at its deadline, as ace3's John is stopped.
-- 200 AES entries and no password cost 200 derivations a candidate, and the module stops at its deadline, where ace3's John finishes the list. Both find nothing; with the password in the list, ace4 cracks the last entry alone, and the rest share it.
+- 200 AES entries and no password cost 200 derivations a candidate, and the module stops at its deadline, where ace3's John finishes the list. Both find nothing; with the password in the list, ace-rs cracks the last entry alone, and the rest share it.
 - In the PDF, the time is the email module and the task's start as much as the 5,000 hardened hashes.
 
 The fixtures' dumps (`tools/ace3/dumps/reference/{zip,rar,pdf}_encryption_analyzer`) cover a full list: `zip/zipcrypto.zip.full_early` cracks with the password among the first 5,000 windows, and `full_late` doesn't, with the password past them, on both sides.

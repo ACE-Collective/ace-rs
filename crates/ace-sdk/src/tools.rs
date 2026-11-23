@@ -96,7 +96,7 @@ impl ToolSpec {
     }
 }
 
-/// The tools of the sandbox pool's image (`docker/ace4/Dockerfile`), at ace3's versions
+/// The tools of the sandbox pool's image (`docker/ace-rs/Dockerfile`), at ace3's versions
 /// (`docs/modules.md`, *External tools*). What each reads besides its libraries is what it opened
 /// under strace on the samples, with the directories those paths' symlinks lead to; the runner adds
 /// the dynamic loader's cache, the time zone, the C locale, glibc's character set modules and the
@@ -238,7 +238,7 @@ pub const SANDBOX_TOOLS: &[ToolSpec] = &[
 ];
 
 /// Where tshark and capinfos look for a home and personal configuration: nowhere that exists.
-pub const NO_HOME: &str = "/nonexistent/ace4-tool-home";
+pub const NO_HOME: &str = "/nonexistent/ace-rs-tool-home";
 const WIRESHARK_ENV: &[(&str, &str)] = &[("HOME", NO_HOME), ("WIRESHARK_CONFIG_DIR", NO_HOME)];
 const WIRESHARK_FILE_SIZE_LIMIT: u64 = 256 * 1024 * 1024;
 #[cfg(target_arch = "aarch64")]
@@ -421,7 +421,7 @@ impl ToolRun {
 
 /// Why a run was stopped before the tool ended on its own. ace3's `run_sandboxed_tool` returns
 /// nothing for these: a timeout, too much output, a file past the size limit. The last two are
-/// ace4's: ace3's sandbox lets a tool start processes and programs.
+/// ace-rs's: ace3's sandbox lets a tool start processes and programs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolStop {
@@ -705,7 +705,7 @@ pub struct LocalRunner {
 
 impl LocalRunner {
     pub fn new(tools: &[ToolSpec], declared: &[&'static str]) -> io::Result<LocalRunner> {
-        let dir = tempfile::Builder::new().prefix("ace4-tools-").tempdir()?;
+        let dir = tempfile::Builder::new().prefix("ace-rs-tools-").tempdir()?;
         let scratch = dir.path().join("scratch");
         fs::create_dir(&scratch)?;
         Ok(LocalRunner {

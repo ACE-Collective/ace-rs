@@ -7,7 +7,7 @@
 -- What differs from ace3's:
 -- - An attribution names its detection by `analysis.detections.id`, where ace3's names the detection's
 --   content hash: ace3's marker router writes it inside ALERT(), before the alert's detection rows exist,
---   and ace4 has no such stage, so a detection is a row before anything judges the alert (7.14 keys a
+--   and ace-rs has no such stage, so a detection is a row before anything judges the alert (7.14 keys a
 --   verdict on the same id). The signature isn't copied, since the detection has it, and the alert is the
 --   root it's on (`root_id`), the uuid ace3 keys on.
 -- - Who did something is a `service.actor`, as every row here records one, where ace3 stores a user id

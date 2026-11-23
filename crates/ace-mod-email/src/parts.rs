@@ -172,7 +172,7 @@ impl<'w> Extractor<'w> {
         };
 
         let payload: Vec<u8> = if is_message {
-            // ace3 writes Python's re-serialization of the inner message (as_bytes); ace4 writes
+            // ace3 writes Python's re-serialization of the inner message (as_bytes); ace-rs writes
             // the message as it appears in the email
             match node.children.first() {
                 Some(inner) => inner.part.raw().to_vec(),

@@ -8,10 +8,10 @@ Measured on 2026-11-09 on the dev container of `build-loop.md` (Rancher Desktop,
 
 In the dev container, for each module:
 
-    ACE4_VALUES_MODULE=<module> cargo test -p ace-pool --features test-pools --test supervisor \
+    ACE_RS_VALUES_MODULE=<module> cargo test -p ace-pool --features test-pools --test supervisor \
         measure_observable_values -- --ignored --nocapture
 
-builds each of the module's values in the test, puts it in a new root and queues the module's task, which the real supervisor runs as `ace4-task` under Landlock and seccomp with the module's limits. The module is alone in the catalog, so what it adds queues nothing else. 3 runs each, the value changed by trailing spaces each run. The time runs from the task's queueing to its end with its result landed, so it includes the lease, the task process's start, the uploads and the core writing the result's observables. It's a dev build, with `ace-mod-urls` at `opt-level = 3` and the rest of the task unoptimized.
+builds each of the module's values in the test, puts it in a new root and queues the module's task, which the real supervisor runs as `ace-rs-task` under Landlock and seccomp with the module's limits. The module is alone in the catalog, so what it adds queues nothing else. 3 runs each, the value changed by trailing spaces each run. The time runs from the task's queueing to its end with its result landed, so it includes the lease, the task process's start, the uploads and the core writing the result's observables. It's a dev build, with `ace-mod-urls` at `opt-level = 3` and the rest of the task unoptimized.
 
 ## Results
 
@@ -36,7 +36,7 @@ builds each of the module's values in the test, puts it in a new root and queues
 Every task ended `done`, well inside its deadline. What each value does:
 
 - `prefixes_1mb` makes 65,536 `file_path` observables. ace3 drops a path another starts with by comparing every pair, which is 4 billion comparisons here; the port sorts, and the time is the core writing the observables.
-- `base64_words_1mb` first ran past 420 s and was still uploading when the test gave up: each `QUJD` after PowerShell's `-e` is a payload, and the module wrote 80,659 files in 30 s, which the supervisor then uploaded one by one. ace3 would write them all too, but its root takes at most 500 file observables (`maximum_observable_count`), which ace4's core doesn't have. So the module writes the first 500 payloads' files and lists the rest in its details, and the task takes under 5 s.
+- `base64_words_1mb` first ran past 420 s and was still uploading when the test gave up: each `QUJD` after PowerShell's `-e` is a payload, and the module wrote 80,659 files in 30 s, which the supervisor then uploaded one by one. ace3 would write them all too, but its root takes at most 500 file observables (`maximum_observable_count`), which ace-rs's core doesn't have. So the module writes the first 500 payloads' files and lists the rest in its details, and the task takes under 5 s.
 - `unc_open_1mb` and `quoted_paths_1mb` exercise `find_nt_paths_in_text`'s four patterns, each a scan to the next quote from each start, so the text is read a few times over.
 - `label_100k` is too long a label for the idna package and for Python's IDNA 2003 codec, so its IDNA spelling is empty, as urlfinderlib gives it, and the result has no observable. `labels_1mb` has 262,144 short labels, each encoded, and its 2.6 MB IDNA spelling isn't a domain ace3's fqdn check takes, so it isn't added either. Neither is a name ace3 would hold as an fqdn, since that check refuses both.
 - `proofpoint_1mb` runs urlfinderlib's text finder over the URL. The other two never reach it.

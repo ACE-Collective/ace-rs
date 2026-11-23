@@ -3,11 +3,11 @@
 #
 # Usage: tools/ace3/yara/in-ace3 SCRIPT [ARG...]
 #
-# The script is copied into the container's /tmp/ace4-yara/, never under /opt/ace, which is
+# The script is copied into the container's /tmp/ace-rs-yara/, never under /opt/ace, which is
 # ace3's checkout, runs there with ace3's venv in isolated mode (-I), so it imports nothing
 # from the directory it sits in, and is deleted afterwards. Its stdin is this command's stdin.
 #
-# ACE4_ACE3_CONTAINER names the container (default ace-dev-1).
+# ACE_RS_ACE3_CONTAINER names the container (default ace-dev-1).
 set -euo pipefail
 
 if [ $# -lt 1 ]; then
@@ -15,8 +15,8 @@ if [ $# -lt 1 ]; then
     exit 2
 fi
 
-container=${ACE4_ACE3_CONTAINER:-ace-dev-1}
-dest=/tmp/ace4-yara
+container=${ACE_RS_ACE3_CONTAINER:-ace-dev-1}
+dest=/tmp/ace-rs-yara
 script=$1
 shift
 name=$(basename "$script")

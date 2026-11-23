@@ -7,14 +7,14 @@
 -- none, and the view falls back to the type's default label, then to its name.
 ALTER TABLE analysis.observables ADD COLUMN display_type text;
 
--- A notification on channel ace4_results when a result lands, with `<root>/<result id>` as the payload,
+-- A notification on channel ace_rs_results when a result lands, with `<root>/<result id>` as the payload,
 -- so an open alert page can show it without a reload. It carries ids only: whoever listens reads the
 -- result through the service layer, which checks the reader's permission. It goes out when the landing
 -- transaction commits, so the result is there to read.
 CREATE FUNCTION analysis.notify_result() RETURNS trigger
     LANGUAGE plpgsql AS $$
 BEGIN
-    PERFORM pg_notify('ace4_results', NEW.root_id::text || '/' || NEW.id::text);
+    PERFORM pg_notify('ace_rs_results', NEW.root_id::text || '/' || NEW.id::text);
     RETURN NULL;
 END
 $$;

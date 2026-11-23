@@ -4,7 +4,7 @@
 -- A name is the user's own on a screen. A quick filter is a row with an order, ace3's badges.
 --
 -- ace3 also keeps each analyst's unsaved working filter and an active pivot here, because its session
--- cookie can't hold them. ace4's list keeps its filters in the page's URL, so a row here is only ever a
+-- cookie can't hold them. ace-rs's list keeps its filters in the page's URL, so a row here is only ever a
 -- filter someone saved. Like a preference, a row goes with its user.
 CREATE TABLE service.saved_filters (
     id uuid PRIMARY KEY,

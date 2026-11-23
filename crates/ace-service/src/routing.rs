@@ -66,14 +66,14 @@
 //!
 //! - Routing runs when an alert's pass completes, in `ace serve`, where ace3 runs it inside every alert
 //!   insert (`ALERT()`) and after every engine pass, in whichever process does those. So the first routing
-//!   sees the alert after the pass that made it an alert, its correlation analysis included: ace4 makes a
+//!   sees the alert after the pass that made it an alert, its correlation analysis included: ace-rs makes a
 //!   root an alert when its detection lands and goes on in correlation mode in the same pass, where ace3
 //!   inserts the alert at the end of the detection pass and analyzes it again. An alert a submitter made
 //!   (a hunt) is first routed after its analysis too, not before it.
-//! - There is no `final` flag. A pass completes in ace4 only when nothing is queued, delayed or running, so
+//! - There is no `final` flag. A pass completes in ace-rs only when nothing is queued, delayed or running, so
 //!   every routing is after what ace3 calls the final pass; a cancelled pass completes too, as ace3's
 //!   aborted pass is final.
-//! - The first routing moves only an OPEN alert nobody has taken too, since in ace4 the alert existed while
+//! - The first routing moves only an OPEN alert nobody has taken too, since in ace-rs the alert existed while
 //!   it was analyzed. ace3's owner check (an analyst who took the alert keeps it) is in `move_alert`,
 //!   over `analysis.roots.owner_id` (7.10 batch 7a). ace3's automation user owns
 //!   what it dispositions and counts as nobody; here a component never owns an alert.
@@ -84,7 +84,7 @@
 //! - A router's move is made by the component `alert_routing`, which every move records, with the router's
 //!   name; ace3 records no user. Every move has an audit row, as ace3's `log_audit` line.
 //! - The tree carries no queue of its own to reconcile: the root's row is the alert's one queue.
-//! - ace3 refreshes a moved alert's search payload; ace4's search comes with 7.11.
+//! - ace3 refreshes a moved alert's search payload; ace-rs's search comes with 7.11.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::future::Future;

@@ -5,7 +5,7 @@
 //! (`bin` when it gives none), `extracted_from` the file, kept from this module and OCR, and tagged
 //! `type=document.html.embedded`. `n` counts the URLs that decoded.
 //!
-//! Where ace4 departs: ace3's root takes at most 500 files, which ace4's core doesn't, so this
+//! Where ace-rs departs: ace3's root takes at most 500 files, which ace-rs's core doesn't, so this
 //! writes at most 500 and stops there, as ace3 would when nothing else in the root had any.
 
 use std::sync::LazyLock;

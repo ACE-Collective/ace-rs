@@ -137,7 +137,7 @@ pub(crate) struct Scope<'a> {
 /// How long the alert list's query may run. A filter that takes longer is refused, to be narrowed.
 pub const LIST_TIMEOUT: &str = "10s";
 
-/// The alert list's orders, ace3's sort filters that ace4's alerts have fields for.
+/// The alert list's orders, ace3's sort filters that ace-rs's alerts have fields for.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum AlertSort {
     /// When each became an alert, ace3's `Alert Date`, its default.

@@ -1,33 +1,33 @@
 # Differences from ace3's reference dumps
 
-`tests/reference.rs` runs the archive module on each sample that `tools/ace3/dumps/reference/archive/` has a dump for, with the mime type ace3's file_type module found, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 85c8e9e5. A second test runs the module with no file limit and checks every file ace3 extracted against ace4's by path, size and sha256.
+`tests/reference.rs` runs the archive module on each sample that `tools/ace3/dumps/reference/archive/` has a dump for, with the mime type ace3's file_type module found, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 85c8e9e5. A second test runs the module with no file limit and checks every file ace3 extracted against ace-rs's by path, size and sha256.
 
 In the Dumps column, `*` matches any text in a dump's name. In the Path column, a `*` segment matches one segment of the JSON pointer, `**` any number, and a `*` inside a segment any text; `/` alone is the whole result.
 
 | Dumps | Path | Why |
 |---|---|---|
-| `*` | `/analyzed/tags/zip` | ace3's file_type module tags a zip file `zip`. The dumps ran it as the archive module's dependency. In ace4 that's `file_type`'s own result (`crates/ace-mod-files`), which this test doesn't run; the trees compare its tags. |
+| `*` | `/analyzed/tags/zip` | ace3's file_type module tags a zip file `zip`. The dumps ran it as the archive module's dependency. In ace-rs that's `file_type`'s own result (`crates/ace-mod-files`), which this test doesn't run; the trees compare its tags. |
 | `*` | `/analyzed/tags/jar` | file_type's tag for a JAR. |
 | `*` | `/analyzed/yara_meta/type=archive.jar` | file_type's `yara_meta` tag for a JAR. |
 | `*` | `/observables/*/tags/*` | file_type's tags on the extracted files (`zip`, `jar`, `executable`). The archive module tags no file. |
 | `*` | `/observables/*/yara_meta/*` | file_type's `yara_meta` tags on the extracted files (`type=archive.jar`, `type=executable`, `type=script.javascript`). The archive module sets none. |
 | `local/archive/zip-slip.zip` | `/details/extracted_files/*` | The two files come out in archive order, `x` (stored as `../x`) then `readme.txt`. ace3 lists its extraction directory with `os.walk`, whose order is the filesystem's: on the tmpfs the dumps ran on that is newest first, so `readme.txt` came first. On ext4 it is the order of the names' hashes. The files, names and tags match. |
 | `local/archive/zip-slip.zip` | `/summary` | The summary lists the files in the same order. |
-| `ace4/pcap/*_keys.zip` | `/details/extracted_files/*` | The same two files in another order: ace4 in archive order, the capture first as `tools/samples/make-pcaps` wrote it, ace3 in its filesystem's (`os.walk`), the key log first. The trees list the same (`tools/ace3/trees/differences.md`). |
-| `ace4/pcap/*_keys.zip` | `/summary` | The summary lists the files in the same order. |
-| `ace3/archive/malicious.jar` | `/observables/*` | More files than the limit (68 entries, 30 extracted). Both pick the riskiest kinds first, but within a kind ace3 takes them in its filesystem's order (above) and ace4 in archive order, so they pick different files of the same kind. The no-limit test shows every file ace3 extracted comes out of ace4 with the same bytes. |
+| `ace-rs/pcap/*_keys.zip` | `/details/extracted_files/*` | The same two files in another order: ace-rs in archive order, the capture first as `tools/samples/make-pcaps` wrote it, ace3 in its filesystem's (`os.walk`), the key log first. The trees list the same (`tools/ace3/trees/differences.md`). |
+| `ace-rs/pcap/*_keys.zip` | `/summary` | The summary lists the files in the same order. |
+| `ace3/archive/malicious.jar` | `/observables/*` | More files than the limit (68 entries, 30 extracted). Both pick the riskiest kinds first, but within a kind ace3 takes them in its filesystem's order (above) and ace-rs in archive order, so they pick different files of the same kind. The no-limit test shows every file ace3 extracted comes out of ace-rs with the same bytes. |
 | `ace3/archive/malicious.jar` | `/details/extracted_files/*` | The same choice of files. |
 | `ace3/archive/malicious.jar` | `/summary` | The same choice of files, in the summary. |
 | `ace3/archive/too_many_files.jar` | `/observables/*` | More files than the limit (1,037 entries, 30 extracted); the same choice of files as `malicious.jar`. |
 | `ace3/archive/too_many_files.jar` | `/details/extracted_files/*` | The same choice of files. |
 | `ace3/archive/too_many_files.jar` | `/summary` | The same choice of files, in the summary. |
-| `ace3/archive/over.7z` | `/observables/*` | More files than the limit (11, 6 extracted); the same choice of files as `malicious.jar`. ace3 took `hello_world_9.txt` down to `_4`, the last ones 7z wrote; ace4 takes the first six. |
+| `ace3/archive/over.7z` | `/observables/*` | More files than the limit (11, 6 extracted); the same choice of files as `malicious.jar`. ace3 took `hello_world_9.txt` down to `_4`, the last ones 7z wrote; ace-rs takes the first six. |
 | `ace3/archive/over.7z` | `/details/extracted_files/*` | The same choice of files. |
 | `ace3/archive/over.7z` | `/summary` | The same choice of files, in the summary. |
 | `ace3/archive/test.jar` | `/observables/*` | More files than the limit (42 entries, 30 extracted); the same choice of files as `malicious.jar`. |
 | `ace3/archive/test.jar` | `/details/extracted_files/*` | The same choice of files. |
 | `ace3/archive/test.jar` | `/summary` | The same choice of files, in the summary. |
-| `ace3/archive/test.jar` | `/observables/*/size` | 30 of this JAR's 42 entries have a CRC that doesn't match their bytes, a trick that a JVM ignores. Python's `zipfile`, which ace3 extracts JARs with, raises when it reaches the end of such an entry and loses the last chunk it read, so ace3 wrote these classes empty. ace4 writes each entry's bytes whole and logs the mismatch. |
+| `ace3/archive/test.jar` | `/observables/*/size` | 30 of this JAR's 42 entries have a CRC that doesn't match their bytes, a trick that a JVM ignores. Python's `zipfile`, which ace3 extracts JARs with, raises when it reaches the end of such an entry and loses the last chunk it read, so ace3 wrote these classes empty. ace-rs writes each entry's bytes whole and logs the mismatch. |
 | `ace3/archive/test.jar` | `/observables/*/sha256` | The same entries. |
 
 ## Behaviour the dumps don't exercise

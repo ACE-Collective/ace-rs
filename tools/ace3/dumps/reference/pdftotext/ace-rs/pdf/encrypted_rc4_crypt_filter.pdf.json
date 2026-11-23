@@ -1,0 +1,81 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PDFTextAnalysis",
+      "details": {
+        "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+        "stderr": "Syntax Error (204): Warning: name token is longer than what the specification says it can be\nSyntax Error (204): Warning: name token is longer than what the specification says it can be\nSyntax Error (204): Warning: name token is longer than what the specification says it can be\nSyntax Error (204): Warning: name token is longer than what the specification says it can be\nSyntax Error (204): Warning: name token is longer than what the specification says it can be\nSyntax Error: Unknown font tag 'F1'\nSyntax Error: No font in show\nSyntax Warning: Direct object in rootFields\nSyntax Warning: Direct object in rootFields\n",
+        "stdout": ""
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pdf:PDFTextAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.pdf.text"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.archive:<class 'saq.modules.file_analysis.archive.ArchiveAnalyzer'>"
+          ],
+          "file_path": "encrypted_rc4_crypt_filter.pdf.txt",
+          "redirection": {
+            "type": "file",
+            "value": "277c468f2ca08eaa645073b6d83b403feb23220ace9cbf6c508b8e0c3a59887c"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "277c468f2ca08eaa645073b6d83b403feb23220ace9cbf6c508b8e0c3a59887c"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1,
+          "tags": [],
+          "type": "file",
+          "value": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+          "yara_meta": [
+            "type=document.pdf.text"
+          ]
+        }
+      ],
+      "summary": "PDF Text Analysis",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/pdf/encrypted_rc4_crypt_filter.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "encrypted_rc4_crypt_filter.pdf",
+      "size": 1852,
+      "type": "file",
+      "value": "277c468f2ca08eaa645073b6d83b403feb23220ace9cbf6c508b8e0c3a59887c"
+    }
+  },
+  "module": "pdftotext",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "encrypted_rc4_crypt_filter.pdf",
+    "relationships": [],
+    "size": 1852,
+    "tags": [],
+    "type": "file",
+    "value": "277c468f2ca08eaa645073b6d83b403feb23220ace9cbf6c508b8e0c3a59887c",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

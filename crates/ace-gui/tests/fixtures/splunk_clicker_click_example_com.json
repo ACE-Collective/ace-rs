@@ -7,7 +7,7 @@
     "question": "Did anyone click this URL or visit this domain?",
     "query_summary": "URL Clicks",
     "query_start": 1795269664.20627,
-    "gui_link": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F20%2F2026%3A14%3A01%3A11+_index_latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%7C+table+_time+user+url",
+    "gui_link": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace_rs_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F20%2F2026%3A14%3A01%3A11+_index_latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%7C+table+_time+user+url",
     "gui_link_label": "Open in Splunk",
     "search_id": null,
     "dispatch_state": null,
@@ -23,7 +23,7 @@
     "clicker_events": [
       {
         "source": "splunk:url_clicks",
-        "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_clicks+sourcetype%3D%22ace4%3Aclick%22+Url%3D%28%22https%3A%2F%2Fclick.example.com%2Flogin%22%29+earliest+%3D+11%2F14%2F2026%3A14%3A01%3A11+latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId",
+        "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace_rs_clicks+sourcetype%3D%22ace-rs%3Aclick%22+Url%3D%28%22https%3A%2F%2Fclick.example.com%2Flogin%22%29+earliest+%3D+11%2F14%2F2026%3A14%3A01%3A11+latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId",
         "timestamp": "2026-11-08T10:00:00.1234567Z",
         "user": "alice@example.com",
         "action_type": "ClickAllowed",
@@ -33,7 +33,7 @@
       },
       {
         "source": "splunk:url_clicks",
-        "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_clicks+sourcetype%3D%22ace4%3Aclick%22+Url%3D%28%22https%3A%2F%2Fclick.example.com%2Flogin%22%29+earliest+%3D+11%2F14%2F2026%3A14%3A01%3A11+latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId",
+        "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace_rs_clicks+sourcetype%3D%22ace-rs%3Aclick%22+Url%3D%28%22https%3A%2F%2Fclick.example.com%2Flogin%22%29+earliest+%3D+11%2F14%2F2026%3A14%3A01%3A11+latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId",
         "timestamp": "2026-11-08T10:02:00Z",
         "user": "bob@example.com",
         "action_type": "ClickBlocked",
@@ -43,7 +43,7 @@
       },
       {
         "source": "splunk:proxy",
-        "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F20%2F2026%3A14%3A01%3A11+_index_latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%7C+table+_time+user+url",
+        "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace_rs_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F20%2F2026%3A14%3A01%3A11+_index_latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%7C+table+_time+user+url",
         "timestamp": "2026-11-08T10:05:00.000+00:00",
         "user": "carol@example.com",
         "action_type": null,
@@ -53,7 +53,7 @@
       },
       {
         "source": "splunk:proxy",
-        "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F20%2F2026%3A14%3A01%3A11+_index_latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%7C+table+_time+user+url",
+        "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace_rs_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F20%2F2026%3A14%3A01%3A11+_index_latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%7C+table+_time+user+url",
         "timestamp": "2026-11-08T10:06:00.000+00:00",
         "user": "dave@example.com",
         "action_type": null,

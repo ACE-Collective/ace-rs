@@ -1,5 +1,5 @@
 //! ace-store against the stack's bucket, and the node cache on its own. The bucket tests need
-//! the `bucket` service and the ACE4_BUCKET_* variables the dev container sets.
+//! the `bucket` service and the ACE_RS_BUCKET_* variables the dev container sets.
 
 use std::io::Read;
 use std::time::{Duration, SystemTime};
@@ -9,7 +9,7 @@ use ace_store::{BucketConfig, NodeCache, Store, StoreError};
 
 async fn store(cache: &tempfile::TempDir) -> Store {
     let config = BucketConfig::from_env().expect(
-        "the ACE4_BUCKET_* variables; bucket tests run in the dev container with the stack up",
+        "the ACE_RS_BUCKET_* variables; bucket tests run in the dev container with the stack up",
     );
     Store::new(
         &config,
@@ -140,18 +140,18 @@ fn the_cache_evicts_the_least_recently_read_entries_past_its_cap() {
 // with only the variables it names: `chain_child` below, which does nothing in an ordinary run.
 
 /// The variable that tells `chain_child` it is a case's child, and which case.
-const CHAIN_CASE: &str = "ACE4_TEST_CHAIN_CASE";
+const CHAIN_CASE: &str = "ACE_RS_TEST_CHAIN_CASE";
 
 /// Runs `chain_child` in a child of this binary with the dev container's variables, less every
-/// `ACE4_BUCKET_*` key and region and every `AWS_*` one, plus `extra`, and fails if it does.
+/// `ACE_RS_BUCKET_*` key and region and every `AWS_*` one, plus `extra`, and fails if it does.
 async fn run_chain_child(case: &str, extra: &[(&str, String)]) {
     let mut command = tokio::process::Command::new(std::env::current_exe().expect("this binary"));
     command
         .args(["chain_child", "--exact", "--ignored", "--nocapture"])
         .env(CHAIN_CASE, case)
-        .env_remove("ACE4_BUCKET_ACCESS_KEY")
-        .env_remove("ACE4_BUCKET_SECRET_KEY")
-        .env_remove("ACE4_BUCKET_REGION");
+        .env_remove("ACE_RS_BUCKET_ACCESS_KEY")
+        .env_remove("ACE_RS_BUCKET_SECRET_KEY")
+        .env_remove("ACE_RS_BUCKET_REGION");
     for (name, _) in std::env::vars() {
         if name.starts_with("AWS_") {
             command.env_remove(name);
@@ -188,8 +188,8 @@ async fn run_chain_child(case: &str, extra: &[(&str, String)]) {
 /// The dev stack's static keys, which the cases hand to the chain through AWS's own sources.
 fn dev_keys() -> (String, String) {
     (
-        std::env::var("ACE4_BUCKET_ACCESS_KEY").expect("ACE4_BUCKET_ACCESS_KEY"),
-        std::env::var("ACE4_BUCKET_SECRET_KEY").expect("ACE4_BUCKET_SECRET_KEY"),
+        std::env::var("ACE_RS_BUCKET_ACCESS_KEY").expect("ACE_RS_BUCKET_ACCESS_KEY"),
+        std::env::var("ACE_RS_BUCKET_SECRET_KEY").expect("ACE_RS_BUCKET_SECRET_KEY"),
     )
 }
 
@@ -282,14 +282,14 @@ async fn the_chain_takes_credentials_and_region_from_a_profile() {
     let config = dir.path().join("config");
     std::fs::write(
         &credentials,
-        format!("[ace4-test]\naws_access_key_id = {key}\naws_secret_access_key = {secret}\n"),
+        format!("[ace-rs-test]\naws_access_key_id = {key}\naws_secret_access_key = {secret}\n"),
     )
     .expect("writes");
-    std::fs::write(&config, "[profile ace4-test]\nregion = eu-central-1\n").expect("writes");
+    std::fs::write(&config, "[profile ace-rs-test]\nregion = eu-central-1\n").expect("writes");
     run_chain_child(
         "profile",
         &[
-            ("AWS_PROFILE", "ace4-test".to_owned()),
+            ("AWS_PROFILE", "ace-rs-test".to_owned()),
             ("AWS_SHARED_CREDENTIALS_FILE", path_text(&credentials)),
             ("AWS_CONFIG_FILE", path_text(&config)),
         ],
@@ -353,9 +353,9 @@ async fn fake_metadata_service(
                     ("200 OK", TOKEN.to_owned())
                 }
                 ("GET", "/latest/meta-data/iam/security-credentials/", true) => {
-                    ("200 OK", "ace4-role".to_owned())
+                    ("200 OK", "ace-rs-role".to_owned())
                 }
-                ("GET", "/latest/meta-data/iam/security-credentials/ace4-role", true) => {
+                ("GET", "/latest/meta-data/iam/security-credentials/ace-rs-role", true) => {
                     ("200 OK", credentials)
                 }
                 ("GET", "/latest/meta-data/placement/region", true) => {
@@ -393,7 +393,7 @@ async fn the_chain_takes_the_instance_role_and_region_from_the_metadata_service(
     for request in [
         "PUT /latest/api/token",
         "GET /latest/meta-data/iam/security-credentials/ (token)",
-        "GET /latest/meta-data/iam/security-credentials/ace4-role (token)",
+        "GET /latest/meta-data/iam/security-credentials/ace-rs-role (token)",
         "GET /latest/meta-data/placement/region (token)",
     ] {
         assert!(seen.iter().any(|r| r == request), "{request} in {seen:?}");
@@ -430,9 +430,9 @@ async fn the_bucket_refuses_what_the_chain_finds_when_it_is_wrong() {
     command
         .args(["chain_child", "--exact", "--ignored", "--nocapture"])
         .env(CHAIN_CASE, "wrong keys")
-        .env_remove("ACE4_BUCKET_ACCESS_KEY")
-        .env_remove("ACE4_BUCKET_SECRET_KEY")
-        .env_remove("ACE4_BUCKET_REGION")
+        .env_remove("ACE_RS_BUCKET_ACCESS_KEY")
+        .env_remove("ACE_RS_BUCKET_SECRET_KEY")
+        .env_remove("ACE_RS_BUCKET_REGION")
         .env("AWS_ACCESS_KEY_ID", dev_keys().0)
         .env("AWS_SECRET_ACCESS_KEY", "not-the-secret")
         .env("AWS_REGION", "eu-central-1")

@@ -1,0 +1,118 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:21 15:08:41+00:00",
+          "File:FileInodeChangeDate": "2026:11:21 15:08:41+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
+          "File:FileName": "ole_deep_directory.doc",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 238592,
+          "File:FileType": "DOC",
+          "File:FileTypeExtension": "DOC",
+          "File:MIMEType": "application/msword",
+          "SourceFile": "<root>/files/ole_deep_directory.doc"
+        },
+        "output_dir": "<root>/files/ole_deep_directory.doc.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "ole_deep_directory.doc.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "d398d2b59b94270cf3fbd62f954f627f5d9c54e0d09dbfbb76369f4e29e1f377"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 608,
+          "tags": [],
+          "type": "file",
+          "value": "61c14ae2cff9f56368fc48b77a600a83cfd1d8d14305668334b00db6cac46baa",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/x-ole-storage",
+        "type": "Composite Document File V2 Document, Cannot read section info"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/ole_deep_directory.doc",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "ole_deep_directory.doc",
+      "size": 238592,
+      "type": "file",
+      "value": "d398d2b59b94270cf3fbd62f954f627f5d9c54e0d09dbfbb76369f4e29e1f377"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "ole_deep_directory.doc",
+    "relationships": [],
+    "size": 238592,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "d398d2b59b94270cf3fbd62f954f627f5d9c54e0d09dbfbb76369f4e29e1f377",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

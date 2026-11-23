@@ -8,17 +8,17 @@
 //!
 //! The parser is `ace-mod-oletools`' port of Python's feed parser, with the stock header pattern.
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
-//! - ace3's root takes at most 500 files, which ace4's core doesn't, so this writes at most 500
+//! - ace3's root takes at most 500 files, which ace-rs's core doesn't, so this writes at most 500
 //!   parts.
 //! - ace3 runs a pass's modules in the order of a set of their names, which Python's hash seed
 //!   decides, so whether `file_type`'s `yara_meta` types are on the file when the parts copy its
-//!   types changes from process to process (with the trees' seed, 0, this runs first). ace4 would
+//!   types changes from process to process (with the trees' seed, 0, this runs first). ace-rs would
 //!   decide it by which task the pool takes first, so this waits for `file_type`, and the parts
 //!   always carry its types.
 //! - A page Blink saves starts `From: <Saved by Blink>`, which file_type calls an email, so the
-//!   email module writes the same parts too. ace4 analyzes those bytes once, under the path whose
+//!   email module writes the same parts too. ace-rs analyzes those bytes once, under the path whose
 //!   result lands first, where ace3 analyzes each path, so which module's name a script extracted
 //!   from a part carries depends on which finished first.
 

@@ -14,14 +14,14 @@
 //!
 //! The parser is `ace_lxml::target`, libxml2 as lxml 6.1.3 drives it.
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
 //! - `xml_plain_text_analyzer` reads the tags of the file its file was extracted from, which the
 //!   core gives it as they are when the task is leased. The modules that extract Office parts, the
 //!   archive module above all, wait for file_type as ace3's do, so file_type has tagged that file
 //!   by then, as ace3 has a pass before. A module that extracts XML without waiting for file_type
 //!   could be read before the tag lands. ace3 takes the first `extracted_from` relationship the
-//!   file got; ace4 has them in the order of their targets.
+//!   file got; ace-rs has them in the order of their targets.
 //! - `xml_binary_analyzer` sees only its own input and outputs when it numbers a name, where ace3
 //!   sees the whole alert's directory.
 //! - An XML file in an encoding libxml2 doesn't decode itself, such as windows-1252, is refused

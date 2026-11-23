@@ -19,7 +19,7 @@
 //!         settings:
 //!           query: index=proxy hostname="<O_VALUE>"
 //! secrets:
-//!   splunk_default_password: env:ACE4_SPLUNK_PASSWORD
+//!   splunk_default_password: env:ACE_RS_SPLUNK_PASSWORD
 //!   resolver_token: file:/run/secrets/resolver_token
 //! ```
 //!
@@ -554,7 +554,7 @@ pub fn is_attack_release_name(value: &str) -> bool {
 ///
 /// What differs from ace3's:
 /// - A repository is named here with its URL and branch, as `svs.yara`'s are, where ace3 names a
-///   `git_repo_*` section whose checkout `service_git` keeps: ace4 has no such sections. The catalog reads a
+///   `git_repo_*` section whose checkout `service_git` keeps: ace-rs has no such sections. The catalog reads a
 ///   commit from SVS's own mirror of the repository, never a working tree.
 /// - ace3's `refresh_interval_seconds` is the schedule of the scheduler's `svs_catalog_refresh`
 ///   (`scheduler:` in this file), every five minutes by default as ace3's 300 seconds.
@@ -768,10 +768,10 @@ fn check_repository(
 ///
 /// What differs from ace3's:
 /// - A repository is named here with its URL, branch and signature directory, where ace3 names a
-///   `git_repo_*` section and finds the directory from `service_yara.signature_dir`: ace4 has no such
+///   `git_repo_*` section and finds the directory from `service_yara.signature_dir`: ace-rs has no such
 ///   sections, and its ruleset build reads one directory of a repository (PLAN.md 2.25).
 /// - `file_timeout_seconds` is ace3's `service_yara.default_timeout`, and the work and mirror directories are
-///   absolute, as ace4 has no `DATA_DIR`.
+///   absolute, as ace-rs has no `DATA_DIR`.
 /// - The corpus is bounded (`max_corpus_files`, `max_corpus_bytes`) and so is the scan's memory
 ///   (`scan_memory_mb`), where ace3 bounds neither.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -856,7 +856,7 @@ pub struct SvsRepository {
     /// The branch the repository's rules are merged into, fetched with every validation.
     pub branch: String,
     /// The signature directory, relative to the repository's top: each directory in it is a namespace, as
-    /// the ruleset build loads it. `yara` by default, as the core's `ACE4_SIGNATURES_DIR`.
+    /// the ruleset build loads it. `yara` by default, as the core's `ACE_RS_SIGNATURES_DIR`.
     #[serde(default = "default_signature_dir")]
     pub signature_dir: String,
     /// The SSH private key the mirror fetches with, ace3's `git_repo_*` section's `ssh_key_path`: the name
@@ -2607,18 +2607,19 @@ mod tests {
     #[test]
     fn secrets_name_their_sources() {
         let overlay = Overlay::from_yaml(
-            "secrets:\n  resolver_token: env:ACE4_RESOLVER_TOKEN\n  other: file:/run/secrets/other\n",
+            "secrets:\n  resolver_token: env:ACE_RS_RESOLVER_TOKEN\n  other: file:/run/secrets/other\n",
         )
         .expect("loads");
         assert_eq!(
             overlay.secrets["resolver_token"],
-            SecretSource::Env("ACE4_RESOLVER_TOKEN".to_owned())
+            SecretSource::Env("ACE_RS_RESOLVER_TOKEN".to_owned())
         );
         assert_eq!(
             overlay.secrets["other"],
             SecretSource::File("/run/secrets/other".into())
         );
-        let err = Overlay::from_yaml("secrets: {resolver_token: ACE4_RESOLVER_TOKEN}").unwrap_err();
+        let err =
+            Overlay::from_yaml("secrets: {resolver_token: ACE_RS_RESOLVER_TOKEN}").unwrap_err();
         println!("{err}");
         assert!(
             matches!(&err, OverlayError::Parse { path, .. } if path == "secrets.resolver_token"),
@@ -2699,7 +2700,7 @@ mod tests {
         let overlay = Overlay::from_yaml(
             "connections:\n  east: {type: test_store, secrets: {token: east_token}}\n  \
              west: {type: test_store}\n  other: {type: something_else}\n\
-             secrets:\n  east_token: env:ACE4_TEST_UNSET\n",
+             secrets:\n  east_token: env:ACE_RS_TEST_UNSET\n",
         )
         .expect("an overlay");
         const SLOTS: &[ConnectionSlot] = &[ConnectionSlot::by_name::<Store>("stores")];

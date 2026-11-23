@@ -8,7 +8,7 @@
 //! can't forge either. `authenticate_request` applies it to every session, so a route can't forget it.
 //! The login route has no session yet, so 5.7 calls `same_origin` itself there, and also has to keep a GET
 //! from writing, since a GET passes. ace3 compares hostnames, since its proxy drops the port, which would
-//! pass a page on another port of the same host, as ace3 and ace4 are on a laptop. This compares the port
+//! pass a page on another port of the same host, as ace3 and ace-rs are on a laptop. This compares the port
 //! too, so a production proxy must forward `Host` whole.
 
 /// How the browser reached this server. A site behind TLS says so, which turns on `Secure` and the
@@ -22,7 +22,7 @@ pub enum Transport {
 /// The session cookie. `SameSite=Lax` as in ace3, whose comment gives the reason: `Strict` drops the
 /// cookie when an analyst follows a link to an alert from a ticket or an email, and `Lax` still withholds
 /// it from another site's POST. ace3's own cookie on the same host is `session`, and a browser doesn't
-/// keep cookies apart by port, so this name is ace4's own.
+/// keep cookies apart by port, so this name is ace-rs's own.
 #[derive(Debug, Clone, Copy)]
 pub struct SessionCookie {
     transport: Transport,
@@ -37,8 +37,8 @@ impl SessionCookie {
         match self.transport {
             // A browser only accepts this name from a secure origin, on the whole host, so a subdomain
             // or a plain-HTTP response can't set it.
-            Transport::Tls => "__Host-ace4_session",
-            Transport::Plain => "ace4_session",
+            Transport::Tls => "__Host-ace_rs_session",
+            Transport::Plain => "ace_rs_session",
         }
     }
 

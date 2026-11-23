@@ -1,0 +1,126 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:21 15:10:04+00:00",
+          "File:FileInodeChangeDate": "2026:11:21 15:10:04+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
+          "File:FileName": "vba_powerpoint.pptm",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 11485,
+          "File:FileType": "PPTM",
+          "File:FileTypeExtension": "PPTM",
+          "File:MIMEType": "application/vnd.ms-powerpoint.presentation.macroEnabled.12",
+          "SourceFile": "<root>/files/vba_powerpoint.pptm",
+          "ZIP:ZipBitFlag": 0,
+          "ZIP:ZipCRC": 780177294,
+          "ZIP:ZipCompressedSize": 208,
+          "ZIP:ZipCompression": 8,
+          "ZIP:ZipFileName": "[Content_Types].xml",
+          "ZIP:ZipModifyDate": "2026:01:01 00:00:00",
+          "ZIP:ZipRequiredVersion": 20,
+          "ZIP:ZipUncompressedSize": 361
+        },
+        "output_dir": "<root>/files/vba_powerpoint.pptm.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "vba_powerpoint.pptm.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "51033c0fde249aea99d9ed95904de1c3558d84a3b865e93f7e21e6cde33a2887"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 894,
+          "tags": [],
+          "type": "file",
+          "value": "7f315ffc7de6169bffe247e36bf077bbed17578d709993fca203636205d127af",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=0, ZipCompression=8, ZipModifyDate=2026:01:01 00:00:00, ZipCRC=780177294, ZipCompressedSize=208, ZipUncompressedSize=361, ZipFileName=[Content_Types].xml",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "type": "Microsoft PowerPoint 2007+"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Microsoft PowerPoint 2007+ (application/vnd.openxmlformats-officedocument.presentationml.presentation) (ms office document) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/vba_powerpoint.pptm",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "vba_powerpoint.pptm",
+      "size": 11485,
+      "type": "file",
+      "value": "51033c0fde249aea99d9ed95904de1c3558d84a3b865e93f7e21e6cde33a2887"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "vba_powerpoint.pptm",
+    "relationships": [],
+    "size": 11485,
+    "tags": [
+      "microsoft_office",
+      "zip"
+    ],
+    "type": "file",
+    "value": "51033c0fde249aea99d9ed95904de1c3558d84a3b865e93f7e21e6cde33a2887",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

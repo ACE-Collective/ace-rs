@@ -9,7 +9,7 @@ PLAN.md 7.5: a contained parser task is one thread with no exec, so each module 
 - `xml_binary_analyzer`, `office_xml_rel` and `xml_plain_text_analyzer` parse with libxml2 as lxml does, with its limits: 256 levels of nesting, its guard on entity expansion, and no external entities. `xml_binary_analyzer` writes at most 500 parts and `office_xml_rel` adds at most 500 URLs. `xml_plain_text_analyzer` reads at most `maximum_size` (128 KiB), as ace3 does.
 - `extracted_ole_analyzer` reads its file for file_type's JavaScript check, which `docs/measurements/javascript-check.md` measures.
 
-The 500s are ace3's `maximum_observable_count` for files and URLs in a root, which ace4's core doesn't have.
+The 500s are ace3's `maximum_observable_count` for files and URLs in a root, which ace-rs's core doesn't have.
 
 Measured on 2026-11-09 on the dev container of `build-loop.md` (Rancher Desktop, 10 CPUs), with ace3's and budge's stacks up.
 
@@ -17,10 +17,10 @@ Measured on 2026-11-09 on the dev container of `build-loop.md` (Rancher Desktop,
 
 `tools/samples/make-office-hostile <dir>` writes the files. In the dev container:
 
-    ACE4_OFFICE_HOSTILE=<dir> ACE4_OFFICE_MODULE=<module> cargo test -p ace-pool --features test-pools \
+    ACE_RS_OFFICE_HOSTILE=<dir> ACE_RS_OFFICE_MODULE=<module> cargo test -p ace-pool --features test-pools \
         --test supervisor measure_office -- --ignored --nocapture
 
-submits each file whose name starts with the module's to the real supervisor, which runs the module, and `file_type` first for `officeparser3` and `hidden_mime`, which wait for it, as `ace4-task` under Landlock and seccomp with their limits. 3 runs each, each in a new root under a new name; a `.rels` file is named `document.xml.rels` in its root, the one name `office_xml_rel` reads. The time runs from the root's submission to the end of the module's task on the file, so it includes the upload, the lease, the task process's start, file_type's task where there is one, and the uploads of the module's files. It's a dev build, unoptimized but for the crates `Cargo.toml` raises.
+submits each file whose name starts with the module's to the real supervisor, which runs the module, and `file_type` first for `officeparser3` and `hidden_mime`, which wait for it, as `ace-rs-task` under Landlock and seccomp with their limits. 3 runs each, each in a new root under a new name; a `.rels` file is named `document.xml.rels` in its root, the one name `office_xml_rel` reads. The time runs from the root's submission to the end of the module's task on the file, so it includes the upload, the lease, the task process's start, file_type's task where there is one, and the uploads of the module's files. It's a dev build, unoptimized but for the crates `Cargo.toml` raises.
 
 ## Results
 

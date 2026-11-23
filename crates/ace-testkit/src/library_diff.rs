@@ -213,7 +213,7 @@ pub fn compare(work: &Path, differences: Option<&Path>) -> Result<Report, String
                     "sample": sample,
                     "path": difference.path,
                     "left": difference.ace3,
-                    "right": difference.ace4,
+                    "right": difference.ace_rs,
                 })
             })
         })

@@ -66,18 +66,18 @@ That confirms `compare-speed.md`'s 22.5 ms and 15.5 ms, which are near these run
 
 ```sh
 # RULESETS is the parser pool's ruleset directory, copied out of a stack the comparison left up:
-# docker cp ace4-e2e-parsers-1:/var/lib/ace4/rulesets RULESETS
+# docker cp ace-rs-e2e-parsers-1:/var/lib/ace-rs/rulesets RULESETS
 # at HEAD, whose task mode takes the overlay and the ruleset directory as arguments
-tools/task-start/measure ace4-parsers:latest ace-parsers file_type email_analyzer yara_scanner_v3_4 \
-    --rulesets RULESETS --head-request --task-arg=--overlay --task-arg=/etc/ace4/overlay.yaml \
-    --task-arg=--rulesets --task-arg=/var/lib/ace4/rulesets
-tools/task-start/measure ace4-sandbox:latest ace-sandbox archive ocr exif \
-    --head-request --task-arg=--overlay --task-arg=/etc/ace4/overlay.yaml
+tools/task-start/measure ace-rs-parsers:latest ace-parsers file_type email_analyzer yara_scanner_v3_4 \
+    --rulesets RULESETS --head-request --task-arg=--overlay --task-arg=/etc/ace-rs/overlay.yaml \
+    --task-arg=--rulesets --task-arg=/var/lib/ace-rs/rulesets
+tools/task-start/measure ace-rs-sandbox:latest ace-sandbox archive ocr exif \
+    --head-request --task-arg=--overlay --task-arg=/etc/ace-rs/overlay.yaml
 # on this change
-tools/task-start/measure ace4-parsers:latest ace-parsers file_type email_analyzer yara_scanner_v3_4 \
+tools/task-start/measure ace-rs-parsers:latest ace-parsers file_type email_analyzer yara_scanner_v3_4 \
     url_extraction phishkit_analyzer protected_url_analyzer ioc_extraction lure_url_analyzer site_tagger \
-    --rulesets RULESETS --settings 'yara_scanner_v3_4={"rulesets": "/var/lib/ace4/rulesets"}'
-tools/task-start/measure ace4-sandbox:latest ace-sandbox archive ocr exif de4dot ilspy \
+    --rulesets RULESETS --settings 'yara_scanner_v3_4={"rulesets": "/var/lib/ace-rs/rulesets"}'
+tools/task-start/measure ace-rs-sandbox:latest ace-sandbox archive ocr exif de4dot ilspy \
     cve_2021_30657_analyzer qrcode upx
 ```
 
@@ -163,7 +163,7 @@ The series' medians differ by up to 0.6 ms between series, so a difference under
 | Sandbox task processes | 55,662 | 55,662 |
 
 - **The stack does the same work on half the CPU**: 4,601 core-seconds less, 51%. The two pools lost 4,841, which is more than the phase timing predicts (150,252 parser tasks at 22.0 ms and 55,662 sandbox tasks at 15.1 ms are 4,150, less the 40 or so that tasks still spend on their own modules): eight task processes at once, each reading libmagic's database three or four times, cost each other more than one alone does. Postgres and the core used 221 more, which one run each can't tell from noise.
-- **The run is 3% shorter, not half.** The median sample is 24% shorter and the sum of the samples' times 3%, and some samples took longer than at HEAD (`ace4/office/xlm_branch_err_*.xlsm`, five samples, 28 to 33 s at HEAD and 79 to 91 s here). A sample's time with eight in the stack is mostly its wait for the others' tasks, so one sample's time isn't comparable between runs. What bounds the whole run is in the next section.
+- **The run is 3% shorter, not half.** The median sample is 24% shorter and the sum of the samples' times 3%, and some samples took longer than at HEAD (`ace-rs/office/xlm_branch_err_*.xlsm`, five samples, 28 to 33 s at HEAD and 79 to 91 s here). A sample's time with eight in the stack is mostly its wait for the others' tasks, so one sample's time isn't comparable between runs. What bounds the whole run is in the next section.
 - **The 24 more parser task processes** are tasks that asked for a delay once more, which follows the timing.
 - **One run of each, and a second pair without the sampler.** `tests/e2e/run` whole, which runs the same comparison with nothing sampling it: the director's run at HEAD earlier the same day took 1,222.9 s for the comparison (median sample 15.75 s, 2.04 to 97.59), and this change's took 1,063.9 s (12.85 s, 1.28 to 90.79), 13% less. So the runs with the sampler were 16% and 29% longer than the runs without it on the same code, which is more than the change itself moves a run, and what else the machine did differed too. The CPU figures are the ones to read. The wall times say the run got somewhat shorter, 3% in one pair and 13% in the other, and not by how much.
 
@@ -190,9 +190,9 @@ Leasing several tasks a request, or keeping several requests in flight, would be
 
 ### What decides today
 
-The core decides before it queues a task (`ace_core::eligibility::check`): the observable's type against the component's inputs, the root's analysis mode or an observable modifier's limit, a whitelisted observable (since removed, as ace3 removed whitelisting), the directives that keep a module off (`SKIP_DIRECTIVES`, `exclude_all`), the directives it requires (`REQUIRED_DIRECTIVES`, `REQUIRED_DIRECTIVES_BY_KIND`), the observable's own exclusions, and the modules it depends on having a result. That is ace3's `accepts()`: its `valid_observable_types`, `required_directives`, exclusions and limited analysis. ace3's `accepts()` also has `required_tags`, `requires_detection_path`, `valid_queues`, `invalid_queues`, `invalid_alert_types` and `file_size_limit`, which ace4's core hasn't; ace3's shipped configuration sets only `file_size_limit`, on five modules, and ace4's modules check that themselves.
+The core decides before it queues a task (`ace_core::eligibility::check`): the observable's type against the component's inputs, the root's analysis mode or an observable modifier's limit, a whitelisted observable (since removed, as ace3 removed whitelisting), the directives that keep a module off (`SKIP_DIRECTIVES`, `exclude_all`), the directives it requires (`REQUIRED_DIRECTIVES`, `REQUIRED_DIRECTIVES_BY_KIND`), the observable's own exclusions, and the modules it depends on having a result. That is ace3's `accepts()`: its `valid_observable_types`, `required_directives`, exclusions and limited analysis. ace3's `accepts()` also has `required_tags`, `requires_detection_path`, `valid_queues`, `invalid_queues`, `invalid_alert_types` and `file_size_limit`, which ace-rs's core hasn't; ace3's shipped configuration sets only `file_size_limit`, on five modules, and ace-rs's modules check that themselves.
 
-Everything else is decided inside the module, in ace4 and in ace3 alike: whether the file is a PDF, an archive, an email, named `.dmg`, an output of another module. ace3 pays almost nothing for it, because its modules run one after another in one Python process. ace4 pays a task for it.
+Everything else is decided inside the module, in ace-rs and in ace3 alike: whether the file is a PDF, an archive, an email, named `.dmg`, an output of another module. ace3 pays almost nothing for it, because its modules run one after another in one Python process. ace-rs pays a task for it.
 
 ### What decides each of the 199,921
 
@@ -327,9 +327,9 @@ The core evaluates them with its own matcher (`Takes::check`), so it runs no mod
 | `olevba_v1_2` | 3 | 0 | the store's mime type: left, being 3 |
 | **All** | **67,993** | **64,926** | **95.5%** |
 
-Of the 3,067 left, 3,040 need the whole root's tree or another observable's tags, and 27 come after a check that has to stay in the module (YARA's ruleset, file_type's result for url_extraction, the bytes behind javascript_deobfuscation's tag) or are olevba's 3. A rule on them would have to be checked again whenever anything in the root changed, and the attachment module's check that the root has an email is one ace4 makes once, at the lease: run again when an email lands later, the module would analyze attachments it declines today, which changes what it finds. So they stay in the module. A `takes` function in the core, the other form, could reach the same facts and no more, since it would see what the core holds: what it would add is the code to run them, not coverage.
+Of the 3,067 left, 3,040 need the whole root's tree or another observable's tags, and 27 come after a check that has to stay in the module (YARA's ruleset, file_type's result for url_extraction, the bytes behind javascript_deobfuscation's tag) or are olevba's 3. A rule on them would have to be checked again whenever anything in the root changed, and the attachment module's check that the root has an email is one ace-rs makes once, at the lease: run again when an email lands later, the module would analyze attachments it declines today, which changes what it finds. So they stay in the module. A `takes` function in the core, the other form, could reach the same facts and no more, since it would see what the core holds: what it would add is the code to run them, not coverage.
 
-The rules are the modules' own checks, moved: the same subject, the same comparison and the same case rule (`Case` names each: exact, `eq_ignore_ascii_case`, or Python's `str.lower`, which lowers to the same ASCII as Rust's `to_lowercase`). Only a check that ends the task with nothing whatever comes after it moved, so the order of the rules and the module's later checks doesn't change what a task does. Spot checks against ace3 at `37a765bf`, which ace4's modules ported these from: phishkit's `custom_requirement` (render or an attachment's tag, correlation mode, not empty, extension or mime type), the DMG, VBS, XML, exif, PDF, archive and encrypted archive name checks, and the email module's test. The table in `docs/modules.md` (*What a module takes*) lists every module's rules.
+The rules are the modules' own checks, moved: the same subject, the same comparison and the same case rule (`Case` names each: exact, `eq_ignore_ascii_case`, or Python's `str.lower`, which lowers to the same ASCII as Rust's `to_lowercase`). Only a check that ends the task with nothing whatever comes after it moved, so the order of the rules and the module's later checks doesn't change what a task does. Spot checks against ace3 at `37a765bf`, which ace-rs's modules ported these from: phishkit's `custom_requirement` (render or an attachment's tag, correlation mode, not empty, extension or mime type), the DMG, VBS, XML, exif, PDF, archive and encrypted archive name checks, and the email module's test. The table in `docs/modules.md` (*What a module takes*) lists every module's rules.
 
 ### Facts that arrive later
 
@@ -346,9 +346,9 @@ Eligibility reruns for an observable whenever a result adds to it, adds it again
 
 ### The audit setting
 
-`ACE4_TAKES_AUDIT=1` in `ace serve`'s environment (the Compose file passes it through). The core then queues every task as before and records in `queue.tasks.declined` why a declaration would have declined it (migration 0067). A mark is cleared when eligibility reruns and the declaration takes the task, which is when the core would have queued it without the setting. The pool checks every task's declaration as always, so a marked task ends skipped. A marked task that stores a result, which is how a module adds an observable, a tag, a detection or a file, or that fails, is what a declaration would lose: the core logs each at ERROR under the target `ace_takes` as it ends, and `ace_core::takes::audit_report` lists them all. `tests/e2e/run` with `ACE4_TAKES_AUDIT=1` writes the marked tasks by module to `target/e2e/takes-audit.txt` and fails if any of them stored a result or failed. An operator who finds one has a declaration that is narrower than its module: the module's rules are wrong for that task, and the fix is the module's, before the setting comes off.
+`ACE_RS_TAKES_AUDIT=1` in `ace serve`'s environment (the Compose file passes it through). The core then queues every task as before and records in `queue.tasks.declined` why a declaration would have declined it (migration 0067). A mark is cleared when eligibility reruns and the declaration takes the task, which is when the core would have queued it without the setting. The pool checks every task's declaration as always, so a marked task ends skipped. A marked task that stores a result, which is how a module adds an observable, a tag, a detection or a file, or that fails, is what a declaration would lose: the core logs each at ERROR under the target `ace_takes` as it ends, and `ace_core::takes::audit_report` lists them all. `tests/e2e/run` with `ACE_RS_TAKES_AUDIT=1` writes the marked tasks by module to `target/e2e/takes-audit.txt` and fails if any of them stored a result or failed. An operator who finds one has a declaration that is narrower than its module: the module's rules are wrong for that task, and the fix is the module's, before the setting comes off.
 
-Over the whole comparison with the setting on (`ACE4_TAKES_AUDIT=1 tests/e2e/run --compare --keep`):
+Over the whole comparison with the setting on (`ACE_RS_TAKES_AUDIT=1 tests/e2e/run --compare --keep`):
 
 ```
 68836 of 232927 tasks marked as declined by their module's declaration
@@ -431,7 +431,7 @@ What else the numbers could be measuring: one fresh stack and one second pass fo
 ### What reads the task table
 
 - **The alert view's failed modules** (`ace_service` `alerts.rs`, `queue::failed_tasks`): failed tasks without a result. A task a declaration declines never existed and couldn't fail, and a declined task in the pool ends done, as its module's skip did. No change.
-- **The metrics event's `task_count`** (`ace_core::metrics`): the root's tasks, less the core's hooks task. It counts 29.6% fewer over the comparison, because those tasks no longer exist. It is ace4's own count, not ace3's, and what it counts is still the tasks a root ran; `failed_task_count` is unchanged.
+- **The metrics event's `task_count`** (`ace_core::metrics`): the root's tasks, less the core's hooks task. It counts 29.6% fewer over the comparison, because those tasks no longer exist. It is ace-rs's own count, not ace3's, and what it counts is still the tasks a root ran; `failed_task_count` is unchanged.
 - **The monitoring page** (`ace_core::monitoring`): queued, delayed and running tasks by module. It shows fewer queued tasks of the declaring modules, which is the point.
 - **Crash listings** (`ace_service` `crashes.rs`): failed tasks only. No change.
 - **`ace compare`'s own waiting**: it waits for the root to be idle and reads its failed tasks, neither of which counts tasks. No change, and every sample completed.
@@ -439,7 +439,7 @@ What else the numbers could be measuring: one fresh stack and one second pass fo
 
 ### What a site does
 
-Nothing, for a site whose modules declare nothing: they take everything, as before. A site's module declares its own in `Module::takes`, as the open-source modules do; `crates/ace-site-example`'s ticket parser declares from a setting (`skip_extensions`), and its test shows the site's binary declining before `analyze` and the core reading the declaration from the overlay. A site checks its declarations with `ACE4_TAKES_AUDIT=1` over its own traffic, and its binary's test can assert `App::modules_with_unusable_declarations` is empty. A site gets this when its `Cargo.toml` moves to the tag.
+Nothing, for a site whose modules declare nothing: they take everything, as before. A site's module declares its own in `Module::takes`, as the open-source modules do; `crates/ace-site-example`'s ticket parser declares from a setting (`skip_extensions`), and its test shows the site's binary declining before `analyze` and the core reading the declaration from the overlay. A site checks its declarations with `ACE_RS_TAKES_AUDIT=1` over its own traffic, and its binary's test can assert `App::modules_with_unusable_declarations` is empty. A site gets this when its `Cargo.toml` moves to the tag.
 
 ### What is left
 
@@ -459,7 +459,7 @@ PLAN.md decision 25, docs/decisions/0003. Every new file's first task is its typ
 
 ### What the type covers, of the tasks decided by the first bytes
 
-From the run with `ACE4_TAKES_AUDIT=1` on this change (`tests/e2e/run --keep`), by `tools/task-start/declines`' classes on the tasks and the core's log, joined to each task's mark. The run had 98,885 tasks decided by the first bytes, not the 98,164 above: the sample set and the modules moved with the ace3 checkpoint at `fe6da632`, and the type step now runs where `file_type` didn't (below). "Declared" is the tasks the type rules marked; the audit found none of them that stored a result or failed.
+From the run with `ACE_RS_TAKES_AUDIT=1` on this change (`tests/e2e/run --keep`), by `tools/task-start/declines`' classes on the tasks and the core's log, joined to each task's mark. The run had 98,885 tasks decided by the first bytes, not the 98,164 above: the sample set and the modules moved with the ace3 checkpoint at `fe6da632`, and the type step now runs where `file_type` didn't (below). "Declared" is the tasks the type rules marked; the audit found none of them that stored a result or failed.
 
 | Module | First-byte tasks | Declared | The rule, or why not |
 |---|---:|---:|---|
@@ -472,7 +472,7 @@ From the run with `ACE4_TAKES_AUDIT=1` on this change (`tests/e2e/run --keep`), 
 | `olevba_v1_2` | 3,757 | 3,757 | its whole first test: RTF, `.msi`, an Office extension or OLE or zip, the size, the mime type |
 | `officeparser3` | 3,579 | 3,579 | the OLE signature; an installer by name or description |
 | `exif` | 3,018 | 3,018 | an Office extension or description, OLE, or `is_pdf_file` |
-| `archive` | 3,132 | 139 | an OLE file and the excluded mime types; "not an archive ace4 opens" reads each format's structure, and a packet capture's magic isn't in the type |
+| `archive` | 3,132 | 139 | an OLE file and the excluded mime types; "not an archive ace-rs opens" reads each format's structure, and a packet capture's magic isn't in the type |
 | `rar_encryption_analyzer`, `autoit`, `tls_keylog` | 12,271 | 0 | a parse of the format |
 | `pcap_analyzer`, `onenote_extraction`, `java_class_decompiler`, `xml_binary_analyzer`, `xml_plain_text_analyzer`, `microsoft_script_encoding_analysis`, `har_extraction` | 26,044 | 0 | a magic number or a marker the type step doesn't check (pcap, OneNote, `CAFEBABE`, `<?xml`, `#@~^`, a HAR's JSON) |
 | `binary_file_analyzer` | 4,040 | 0 | RTF or EPS, and EPS isn't in the type |

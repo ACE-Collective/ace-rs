@@ -3,10 +3,10 @@
 //! pydantic does. Two cases are the type system's in Rust: a handler that isn't a
 //! `CorrelationCommand` (`test_handler_must_be_a_correlation_command`) and one that returns a
 //! list (`test_non_string_return_raises`) don't compile. `TestLoadCommandTypesFromConfig` loads
-//! classes named in ace3's configuration; ace4's binary registers its types with
+//! classes named in ace3's configuration; ace-rs's binary registers its types with
 //! `App::command_type`, whose tests (`ace_app`) port those six: the registry's part of
 //! `test_failing_type_does_not_abort_others` is here too. ace3's context also carries the
-//! configuration and a temporary directory, which ace4's doesn't (the `command` module says why),
+//! configuration and a temporary directory, which ace-rs's doesn't (the `command` module says why),
 //! so those assertions are dropped.
 
 use std::sync::{Arc, Mutex};

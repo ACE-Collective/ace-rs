@@ -1,6 +1,6 @@
 //! `test_schema.py`: 66 cases, against the schema 6.2 ported (`crate::correlate`). ace3 builds
 //! some models from model instances; here every model validates from its loaded value. A
-//! ConditionConfig is only validated inside its step in ace4, as a hunt's is in ace3.
+//! ConditionConfig is only validated inside its step in ace-rs, as a hunt's is in ace3.
 
 use chrono::TimeDelta;
 use serde_json::{Value as Json, json};

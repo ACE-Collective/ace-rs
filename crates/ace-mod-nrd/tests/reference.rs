@@ -125,7 +125,7 @@ async fn matches_the_reference_dumps_or_lists_each_difference() {
         }
         // an error names the URL asked, which here is the replay's
         let local = replay.local_url("https://");
-        let ace4: Value = serde_json::from_str(
+        let ace_rs: Value = serde_json::from_str(
             &serde_json::to_string(&normal_form(&outcome))
                 .expect("serializes")
                 .replace(&local, "https://"),
@@ -133,7 +133,7 @@ async fn matches_the_reference_dumps_or_lists_each_difference() {
         .expect("JSON");
         compared.push((
             dump.short_name().to_owned(),
-            diff(&dump.normal_form("NRDAnalysis"), &ace4),
+            diff(&dump.normal_form("NRDAnalysis"), &ace_rs),
         ));
     }
     if let Err(report) = listed.check(&compared, &[]) {

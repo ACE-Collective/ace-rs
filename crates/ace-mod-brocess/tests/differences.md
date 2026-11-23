@@ -40,7 +40,7 @@ These depart from ace3:
 
 ## email_thread_analyzer
 
-The test runs the thread module on each `message_id` value `tools/ace3/dumps/reference/email_thread_analyzer/` has a dump for. ace3 read the brocess the email logger's thread runs left (`run_module.py --brocess-store`), and its dumps keep what `get_conversation` answered. Here the `email-thread` read is answered with that; ace-pool's `lease_api` test runs the core's read over the same rows in Postgres and checks it against the same answers. The analysis goes into the normal form `ace_testkit::reference` describes, beside the findings: the markdown ace3 adds as a summary detail, which ace4's view draws from the details, since its results have no summary details. Two runs have settings of their own: `.capped`, with 2 messages and 1 thread, and `.ignored`, with a pair never reported.
+The test runs the thread module on each `message_id` value `tools/ace3/dumps/reference/email_thread_analyzer/` has a dump for. ace3 read the brocess the email logger's thread runs left (`run_module.py --brocess-store`), and its dumps keep what `get_conversation` answered. Here the `email-thread` read is answered with that; ace-pool's `lease_api` test runs the core's read over the same rows in Postgres and checks it against the same answers. The analysis goes into the normal form `ace_testkit::reference` describes, beside the findings: the markdown ace3 adds as a summary detail, which ace-rs's view draws from the details, since its results have no summary details. Two runs have settings of their own: `.capped`, with 2 messages and 1 thread, and `.ignored`, with a pair never reported.
 
 | Dumps | Path | Why |
 |---|---|---|
@@ -55,14 +55,14 @@ These depart from ace3:
 
 ## email_conversation_attachment_analyzer
 
-The test runs the attachment module on each file of each email `make-dumps emailtree` ran it on with ace3's parsers and the frequency module (`run_module.py --tree-view`), against no smtplog rows, so each sender is new, and the macro email against `tools/ace3/dumps/fixtures/brocess/smtplog.json`, which has its sender. Each file gets the dump's root as the core's tree and ace3's file type as its dependency; each conversation's frequency result and tags are ace4's frequency module's, over the same rows. Compared, for each observable: whether the module made an analysis there, whether its detection is there and whether it added `sandbox`.
+The test runs the attachment module on each file of each email `make-dumps emailtree` ran it on with ace3's parsers and the frequency module (`run_module.py --tree-view`), against no smtplog rows, so each sender is new, and the macro email against `tools/ace3/dumps/fixtures/brocess/smtplog.json`, which has its sender. Each file gets the dump's root as the core's tree and ace3's file type as its dependency; each conversation's frequency result and tags are ace-rs's frequency module's, over the same rows. Compared, for each observable: whether the module made an analysis there, whether its detection is there and whether it added `sandbox`.
 
 | Dumps | Path | Why |
 |---|---|---|
 
 ## email_conversation_link_analyzer
 
-The test runs the link module on each URL of the lure emails `make-dumps emailtree` ran it on, with `url_pattern_lure` and a pattern that doesn't compile, against no smtplog rows and against a row for the sender, and with a pattern that matches nothing. Each URL gets the dump's root as the core's tree, with ace4's frequency module's results, as above. Compared, for each observable: whether the module made an analysis there and whether its detection is there.
+The test runs the link module on each URL of the lure emails `make-dumps emailtree` ran it on, with `url_pattern_lure` and a pattern that doesn't compile, against no smtplog rows and against a row for the sender, and with a pattern that matches nothing. Each URL gets the dump's root as the core's tree, with ace-rs's frequency module's results, as above. Compared, for each observable: whether the module made an analysis there and whether its detection is there.
 
 | Dumps | Path | Why |
 |---|---|---|
@@ -72,9 +72,9 @@ The test runs the link module on each URL of the lure emails `make-dumps emailtr
 These depart from ace3:
 
 - `email_conversation_attachment_analyzer`
-  - ace3 looks for `macro` anywhere below the document (`recurse_tree`), when the document's own modules have run, before its engine analyzes what they found; in the dumps that's why an encrypted document isn't flagged and its decrypted copy is (`encrypted_in_body`, `encrypted_in_zip`, `encrypted_standard`). ace4's tasks run in no such order, so the module looks at the document, its results and what they added, which gives ace3's answer whichever task lands first. A document whose macro only a deeper module tags is flagged by neither.
-  - ace3 waits for the frequency module's analysis of each conversation, and for olevba and officeparser3 on the document, by raising until they've run; ace4 delays the task while one of those has a task in the tree it read, each time longer, to 64 s.
+  - ace3 looks for `macro` anywhere below the document (`recurse_tree`), when the document's own modules have run, before its engine analyzes what they found; in the dumps that's why an encrypted document isn't flagged and its decrypted copy is (`encrypted_in_body`, `encrypted_in_zip`, `encrypted_standard`). ace-rs's tasks run in no such order, so the module looks at the document, its results and what they added, which gives ace3's answer whichever task lands first. A document whose macro only a deeper module tags is flagged by neither.
+  - ace3 waits for the frequency module's analysis of each conversation, and for olevba and officeparser3 on the document, by raising until they've run; ace-rs delays the task while one of those has a task in the tree it read, each time longer, to 64 s.
 - `email_conversation_link_analyzer`
-  - ace3's module is enabled with no pattern, so it does nothing. ace4's is off until a site gives it a section, whose keys are the patterns, so it isn't queued for every URL to do nothing. A key that doesn't start `url_pattern_` is refused when the overlay loads; ace3 ignores it.
+  - ace3's module is enabled with no pattern, so it does nothing. ace-rs's is off until a site gives it a section, whose keys are the patterns, so it isn't queued for every URL to do nothing. A key that doesn't start `url_pattern_` is refused when the overlay loads; ace3 ignores it.
   - Patterns are Python `re` on fancy-regex (`ace_mod_urls::pyre`). One ace3 compiles and fancy-regex doesn't, or the reverse, is logged and left out by the side that can't, as ace3 leaves out one that doesn't compile.
-  - ace3 adds its detection once per conversation from a new sender, which `add_detection_point` keeps once; ace4 adds it once.
+  - ace3 adds its detection once per conversation from a new sender, which `add_detection_point` keeps once; ace-rs adds it once.

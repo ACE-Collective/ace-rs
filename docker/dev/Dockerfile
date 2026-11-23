@@ -5,7 +5,7 @@
 # modules' `opencv` crate (PLAN.md 7.3). It keeps the wheel's defaults, so the same code runs: its
 # KleidiCV and carotene HALs on arm64 and pthreads for parallel_for. It differs where nothing here
 # uses it: static libraries of only the modules the two modules call, built-in image libraries, and
-# no OpenCL, GUI or video. docker/dev/Dockerfile and docker/ace4/Dockerfile have this same stage, so
+# no OpenCL, GUI or video. docker/dev/Dockerfile and docker/ace-rs/Dockerfile have this same stage, so
 # BuildKit builds it once.
 FROM rust:1.99.1-trixie AS opencv
 RUN apt-get update \
@@ -34,7 +34,7 @@ RUN tar -xzf /tmp/opencv-5.0.0.tar.gz -C /tmp \
 # vendor/unautoit (compose.yaml gives this build the vendor directory), which is ace3's third_party/unautoit, as ace3's Dockerfile builds it: libautoit's
 # tests, then a static binary with Go 1.27.3, ace3's, so it's the same binary. It's GPL-3 and runs as
 # a program of its own; its licence and those of the Go modules in it go beside it, as ace3's do.
-# docker/dev/Dockerfile and docker/ace4/Dockerfile have this same stage.
+# docker/dev/Dockerfile and docker/ace-rs/Dockerfile have this same stage.
 FROM golang:1.27.3-trixie AS unautoit
 ARG TARGETOS
 ARG TARGETARCH
@@ -56,7 +56,7 @@ RUN cd /src/unautoit/third_party/libautoit && go test ./... \
 # decision 18), as ace3's Dockerfile installs them: ilspycmd 11.0.0.9375 as a .NET tool, and de4dotEx
 # 3.10.0 (commit 5ffdf0f0) published self-contained, on the .NET SDK 10.0.403, ace3's, which bundles
 # the 10.0.14 runtime. The SDK stays in this stage: ilspycmd runs on the runtime alone.
-# docker/dev/Dockerfile and docker/ace4/Dockerfile have this same stage.
+# docker/dev/Dockerfile and docker/ace-rs/Dockerfile have this same stage.
 FROM debian:13.7-slim AS dotnet-tools
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
 ADD --checksum=sha256:d0c2f69250c6ce0d4c6220b142f999d039a3c560af7f980b943687d106ca8e38 \
@@ -82,7 +82,7 @@ RUN dotnet tool install --tool-path /opt/dotnet ilspycmd --version 11.0.0.9375 \
 # The search index's embedding model (PLAN.md 7.11): sentence-transformers/all-MiniLM-L6-v2, the model
 # ace3's search uses, from its repository on Hugging Face at one commit, each file pinned by hash
 # (vendor/README.md says what it is and its licence). `ace_search::model` checks the same hashes when
-# it loads the files. docker/dev/Dockerfile and docker/ace4/Dockerfile have this same stage.
+# it loads the files. docker/dev/Dockerfile and docker/ace-rs/Dockerfile have this same stage.
 #
 # The files are fetched in a RUN step, not with ADD. The builder fetches an ADD's URL itself, outside
 # any proxy the Docker client is set up with, so on a network that reaches Hugging Face's download
@@ -156,10 +156,10 @@ CMD ["poll-host-changes"]
 # has no capabilities, which closes containment's gaps for raw sockets and for calls on other
 # processes of the same user. It owns no files and has no shell or home.
 RUN useradd --system --uid 10001 --user-group --no-create-home --home-dir /nonexistent \
-        --shell /usr/sbin/nologin ace4-task
+        --shell /usr/sbin/nologin ace-rs-task
 
 # The sandbox pool's tools (PLAN.md 7.5 batches 10 to 13, docs/modules.md's *External tools*), at the
-# versions docker/ace4/Dockerfile's sandbox image pins, which are ace3's, so the sandbox runner's
+# versions docker/ace-rs/Dockerfile's sandbox image pins, which are ace3's, so the sandbox runner's
 # tests and the modules' tests run the programs ace3 runs. unace is in non-free. strace is for
 # finding what a tool opens. libclang is what the `opencv` crate generates its bindings with, over
 # the OpenCV stage above (OPENCV_* below).
@@ -222,8 +222,8 @@ RUN echo "wireshark-common wireshark-common/install-setuid boolean false" | debc
     && rm -rf /var/lib/apt/lists/*
 # the search index's embedding model (PLAN.md 7.11), for the search tests, at the end so the layers
 # above stay cached
-COPY --from=search-model /model /usr/local/share/ace4/search-model/all-MiniLM-L6-v2
-ENV ACE4_SEARCH_MODEL=/usr/local/share/ace4/search-model/all-MiniLM-L6-v2
+COPY --from=search-model /model /usr/local/share/ace-rs/search-model/all-MiniLM-L6-v2
+ENV ACE_RS_SEARCH_MODEL=/usr/local/share/ace-rs/search-model/all-MiniLM-L6-v2
 # The coverage report (`make coverage`): cargo-llvm-cov and the llvm-tools component it reads the
 # profiles with; and cargo-nextest, which `make test` runs the tests with. At the end so the layers
 # above stay cached.

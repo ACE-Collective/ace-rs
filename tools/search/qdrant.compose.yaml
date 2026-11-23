@@ -1,26 +1,26 @@
 # The retrieval comparison's Qdrant (PLAN.md 7.11, docs/decisions/0002-search-index.md): a throwaway
-# Qdrant of the version ace3 runs, in a Compose project of its own, on ace4's dev network so the dev
-# container reaches it as http://qdrant:6333. It isn't part of ace4's stack and nothing ships with it:
+# Qdrant of the version ace3 runs, in a Compose project of its own, on ace-rs's dev network so the dev
+# container reaches it as http://qdrant:6333. It isn't part of ace-rs's stack and nothing ships with it:
 # tools/search/compare starts it, runs ace-search's Qdrant tests against it, and removes it with its
 # volume. It is never ace3's Qdrant, which nothing here reads or writes.
 #
 # The image is ace3's, pinned by digest: ace3's Compose file names `qdrant/qdrant` with no tag, and
 # its running container's image is v1.20.0 with this digest.
-name: ace4-search
+name: ace-rs-search
 
 services:
   qdrant:
     image: qdrant/qdrant:v1.20.0@sha256:9bfc89f9914fc14876a88c05270685921a55b8877b254a98bcc1cc2f0a424cd2
     networks:
-      - ace4
+      - ace-rs
     volumes:
       - qdrant-data:/qdrant/storage
-    mem_limit: ${ACE4_SEARCH_QDRANT_MEM_LIMIT:-2g}
+    mem_limit: ${ACE_RS_SEARCH_QDRANT_MEM_LIMIT:-2g}
 
 networks:
-  # ace4's dev stack's network, which that stack made
-  ace4:
-    name: ${ACE4_STACK:-ace4}_default
+  # ace-rs's dev stack's network, which that stack made
+  ace-rs:
+    name: ${ACE_RS_STACK:-ace-rs}_default
     external: true
 
 volumes:

@@ -9,6 +9,6 @@
 
 These depart from ace3:
 
-- ace3 adds the rule to the root's summary details (`Suricata Signature <sid> rev <rev>`). ace4's roots have no summary details yet, so the rule is in the result only. The dumps don't hold the root's summary details.
-- ace3 reads the index `ace signatures build-db` last built, which goes stale when the rules file changes until it's built again. The core indexes the file again whenever its size or modification time changes (`ACE4_SNORT_RULES`).
+- ace3 adds the rule to the root's summary details (`Suricata Signature <sid> rev <rev>`). ace-rs's roots have no summary details yet, so the rule is in the result only. The dumps don't hold the root's summary details.
+- ace3 reads the index `ace signatures build-db` last built, which goes stale when the rules file changes until it's built again. The core indexes the file again whenever its size or modification time changes (`ACE_RS_SNORT_RULES`).
 - ace3 makes a Redis connection per call and logs a failed one, answering "unknown signature". A core that can't answer (503) fails the task as unavailable, so it runs again later.

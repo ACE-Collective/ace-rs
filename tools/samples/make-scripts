@@ -6,7 +6,7 @@ written here byte by byte; the encoder below is the inverse of the decoder ace3 
 (bin/jscript.decode.pl). It needs only Python, and writes the same bytes each time.
 
     tools/samples/make-scripts    writes tools/ace3/dumps/fixtures/scripts, the dumps' files,
-                                  and a few samples under samples/ace4/scripts, in the manifest
+                                  and a few samples under samples/ace-rs/scripts, in the manifest
 """
 
 import base64
@@ -17,7 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SAMPLES = ROOT / "samples"
-SCRIPTS = SAMPLES / "ace4" / "scripts"
+SCRIPTS = SAMPLES / "ace-rs" / "scripts"
 FIXTURES = ROOT / "tools" / "ace3" / "dumps" / "fixtures" / "scripts"
 SOURCE = "tools/samples/make-scripts"
 
@@ -247,7 +247,7 @@ def main():
         (SCRIPTS / name).write_bytes(data)
         made.append(
             {
-                "path": f"ace4/scripts/{name}",
+                "path": f"ace-rs/scripts/{name}",
                 "sha256": hashlib.sha256(data).hexdigest(),
                 "size": len(data),
                 "kinds": ["scripts"],

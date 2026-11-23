@@ -19,7 +19,7 @@ use ace_yara::{LoadOptions, Ruleset, ScanRequest, Scanner};
 use common::fixture;
 
 /// Set to a signature directory to make `print_build_key` print that directory's build.
-const KEY_DIR_VAR: &str = "ACE4_YARA_TEST_BUILD_DIR";
+const KEY_DIR_VAR: &str = "ACE_RS_YARA_TEST_BUILD_DIR";
 
 fn copy_dir(from: &Path, to: &Path) {
     std::fs::create_dir_all(to).unwrap();
@@ -40,7 +40,7 @@ fn git(dir: &Path, args: &[&str]) -> String {
         .arg(dir)
         .args([
             "-c",
-            "user.name=ace4 test",
+            "user.name=ace-rs test",
             "-c",
             "user.email=test@example.invalid",
             "-c",

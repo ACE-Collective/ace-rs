@@ -893,7 +893,7 @@ mod runner {
     async fn dmg2img_and_7z_convert_list_and_extract_under_the_runner() {
         let dirs = Dirs::new();
         let dmg = dirs.task().join("script_app.dmg");
-        fs::copy(samples().join("ace4/macos/script_app.dmg"), &dmg).unwrap();
+        fs::copy(samples().join("ace-rs/macos/script_app.dmg"), &dmg).unwrap();
         let input = dmg.to_str().unwrap();
         let convert = exec(&dirs, "dmg2img", &[input, "image.img"], &["script_app.dmg"]);
         let keep = Keep::Named(vec!["image.img".into()]);
@@ -1269,7 +1269,7 @@ mod runner {
         let dirs = Dirs::new();
         let sample = dirs.task().join("emitted.exe");
         fs::copy(
-            samples().join("ace4/executables/emitted_methods.exe"),
+            samples().join("ace-rs/executables/emitted_methods.exe"),
             &sample,
         )
         .unwrap();

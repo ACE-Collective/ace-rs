@@ -51,7 +51,7 @@ impl Time {
         }
     }
 
-    /// The instant, taking a naive time as UTC, as ace4's hunter's container runs in UTC and
+    /// The instant, taking a naive time as UTC, as ace-rs's hunter's container runs in UTC and
     /// Python's `astimezone` takes a naive time as the system's local time.
     pub fn utc(&self) -> DateTime<Utc> {
         match self {

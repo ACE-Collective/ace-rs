@@ -7,7 +7,7 @@
 //! (`crate::actions`): a name, a label, an optional title, the permission a viewer needs to see it, and its
 //! link for an alert, or None when it isn't one for that alert, which is ace3's `is_available`. The site
 //! registers it with `ace_app::App::alert_action`, which builds it from the overlay's
-//! `alert_actions.<name>` at `ace serve`'s start. It has no template, no script and no icon (ace4 draws no
+//! `alert_actions.<name>` at `ace serve`'s start. It has no template, no script and no icon (ace-rs draws no
 //! Bootstrap icons): what it does is the page it leads to, which checks its own permission.
 //!
 //! **Where it may lead.** An observable action's link is built from an observable's value, which an
@@ -203,7 +203,7 @@ pub struct AlertActionLink {
 }
 
 impl AlertActions {
-    /// No actions, ace4's own.
+    /// No actions, ace-rs's own.
     pub fn empty() -> Self {
         AlertActions::default()
     }

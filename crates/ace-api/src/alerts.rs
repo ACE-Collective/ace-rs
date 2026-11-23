@@ -511,7 +511,7 @@ pub(crate) struct ObservableBody {
     display_type: Option<String>,
     files: Vec<FileBody>,
     /// A file's type: what the type step found in its bytes (PLAN.md decision 25). ace3 showed this
-    /// as file_type's result, which ace4 doesn't store. Absent for an observable that isn't a file,
+    /// as file_type's result, which ace-rs doesn't store. Absent for an observable that isn't a file,
     /// for a file whose type step hasn't ended or failed, and from the AI investigation API.
     #[serde(skip_serializing_if = "Option::is_none")]
     file_type: Option<FileTypeBody>,
@@ -1271,7 +1271,7 @@ pub(crate) struct DirectivesBody {
 }
 
 /// The directives an analyst may add to an observable (PLAN.md decision 31): those of ace3's
-/// `GUI_DIRECTIVES` an ace4 module reads and the site's, in name order, with ace3's descriptions. ace3's `GET /api/v2/common/valid_directives` lists
+/// `GUI_DIRECTIVES` an ace-rs module reads and the site's, in name order, with ace3's descriptions. ace3's `GET /api/v2/common/valid_directives` lists
 /// every directive under `system:read`; this lists the ones an analyst may add, under `alert:read`.
 #[utoipa::path(
     get,

@@ -24,7 +24,13 @@ async fn an_infinite_loop_is_killed_at_its_deadline_and_its_row_names_its_inputs
     let started = Instant::now();
     let mut pool = PoolProcess::start(test_pool(
         &core,
-        &["parsers", "--task-user", "ace4-task", "--concurrency", "1"],
+        &[
+            "parsers",
+            "--task-user",
+            "ace-rs-task",
+            "--concurrency",
+            "1",
+        ],
     ));
     wait_until_idle(&core, root, Duration::from_secs(30)).await;
     let took = started.elapsed();
@@ -251,7 +257,7 @@ fn command_pool(core: &Core) -> PoolProcess {
         &[
             "parsers",
             "--task-user",
-            "ace4-task",
+            "ace-rs-task",
             "--concurrency",
             "1",
             "--commands",
@@ -548,7 +554,7 @@ async fn a_task_whose_tool_is_stopped_or_refused_ends_with_the_reason() {
         &[
             "parsers",
             "--task-user",
-            "ace4-task",
+            "ace-rs-task",
             "--concurrency",
             "4",
             "--tool",
@@ -600,7 +606,13 @@ async fn the_sandbox_modules_run_opencv_contained() {
     enqueue(&core, ocr_root, &ocr_sha.to_hex(), "ocr").await;
     let mut pool = PoolProcess::start(test_pool(
         &core,
-        &["parsers", "--task-user", "ace4-task", "--concurrency", "2"],
+        &[
+            "parsers",
+            "--task-user",
+            "ace-rs-task",
+            "--concurrency",
+            "2",
+        ],
     ));
     for root in [qr_root, ocr_root] {
         wait_until_idle(&core, root, Duration::from_secs(120)).await;
@@ -633,8 +645,8 @@ async fn the_executable_modules_run_their_tools_as_the_task_user() {
         ),
         ("upx", "ace3/executables/cmd-upx.exe"),
         ("autoit", "ace3/executables/hello_autoit.exe"),
-        ("de4dot", "ace4/executables/emitted_methods.exe"),
-        ("ilspy", "ace4/executables/hello_dotnet.dll"),
+        ("de4dot", "ace-rs/executables/emitted_methods.exe"),
+        ("ilspy", "ace-rs/executables/hello_dotnet.dll"),
     ];
     let manifests = vec![
         ace_sdk::Manifest::parser::<ace_mod_sandbox::JavaClassDecompiler>(),
@@ -656,7 +668,13 @@ async fn the_executable_modules_run_their_tools_as_the_task_user() {
     }
     let mut pool = PoolProcess::start(test_pool(
         &core,
-        &["parsers", "--task-user", "ace4-task", "--concurrency", "2"],
+        &[
+            "parsers",
+            "--task-user",
+            "ace-rs-task",
+            "--concurrency",
+            "2",
+        ],
     ));
     for (root, _) in &roots {
         wait_until_idle(&core, *root, Duration::from_secs(180)).await;
@@ -689,12 +707,18 @@ async fn the_macos_image_modules_run_their_tools_as_the_task_user() {
     let modules = ["dmg_analyzer", "cve_2021_30657_analyzer"];
     let core = Core::start(manifests, &modules, Duration::from_secs(30)).await;
     let samples = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../samples");
-    let bytes = std::fs::read(samples.join("ace4/macos/script_app.dmg")).expect("the sample");
+    let bytes = std::fs::read(samples.join("ace-rs/macos/script_app.dmg")).expect("the sample");
     let (root, sha256) = root_with_bytes(&core, "event", &bytes, "script_app.dmg").await;
     enqueue(&core, root, &sha256.to_hex(), "dmg_analyzer").await;
     let mut pool = PoolProcess::start(test_pool(
         &core,
-        &["parsers", "--task-user", "ace4-task", "--concurrency", "2"],
+        &[
+            "parsers",
+            "--task-user",
+            "ace-rs-task",
+            "--concurrency",
+            "2",
+        ],
     ));
     wait_until_idle(&core, root, Duration::from_secs(180)).await;
     let image: String = sqlx::query_scalar(
@@ -768,7 +792,13 @@ async fn the_pcap_modules_run_tshark_as_the_task_user() {
     enqueue(&core, root, &sha256.to_hex(), "pcap_analyzer").await;
     let mut pool = PoolProcess::start(test_pool(
         &core,
-        &["parsers", "--task-user", "ace4-task", "--concurrency", "2"],
+        &[
+            "parsers",
+            "--task-user",
+            "ace-rs-task",
+            "--concurrency",
+            "2",
+        ],
     ));
     wait_until_idle(&core, root, Duration::from_secs(180)).await;
     for module in ["pcap_files", "pcap_tls"] {
@@ -836,13 +866,13 @@ async fn the_pcap_modules_run_tshark_as_the_task_user() {
 }
 
 /// docs/measurements/sandbox-modules.md, executables.md and pdf-link-text.md: crafted files through the sandbox modules,
-/// contained, as the pool runs them. `ACE4_CRAFTED` names a directory of them, and a file goes to the
+/// contained, as the pool runs them. `ACE_RS_CRAFTED` names a directory of them, and a file goes to the
 /// module its name starts with, or to batch 10's five when none; each line printed is a module, a
 /// file, how its task ended, how long it took and the result's details.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "a measurement, run by hand"]
 async fn crafted_files_through_the_sandbox_modules() {
-    let dir = std::path::PathBuf::from(std::env::var("ACE4_CRAFTED").expect("ACE4_CRAFTED"));
+    let dir = std::path::PathBuf::from(std::env::var("ACE_RS_CRAFTED").expect("ACE_RS_CRAFTED"));
     let batch_10 = ["qrcode", "ocr", "pdftotext", "exif", "pdf_analyzer"];
     let batch_11 = ["java_class_decompiler", "upx", "autoit", "de4dot", "ilspy"];
     let mut modules = batch_10.to_vec();
@@ -881,7 +911,13 @@ async fn crafted_files_through_the_sandbox_modules() {
     let core = Core::start(manifests, &modules, Duration::from_secs(30)).await;
     let mut pool = PoolProcess::start(test_pool(
         &core,
-        &["parsers", "--task-user", "ace4-task", "--concurrency", "1"],
+        &[
+            "parsers",
+            "--task-user",
+            "ace-rs-task",
+            "--concurrency",
+            "1",
+        ],
     ));
     let mut names: Vec<String> = std::fs::read_dir(&dir)
         .expect("the directory")

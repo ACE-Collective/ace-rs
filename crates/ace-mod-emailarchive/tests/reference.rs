@@ -129,7 +129,7 @@ async fn a_message_id_its_email_added_isn_t_looked_up() {
     assert!(reads.requests().is_empty());
 }
 
-/// The email's file, and ace4's email module's result for it.
+/// The email's file, and ace-rs's email module's result for it.
 fn email(dump: &Dump) -> (Observable, Value) {
     let harness = Harness::<EmailAnalyzer>::new()
         .expect("harness")

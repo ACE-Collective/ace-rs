@@ -1,0 +1,69 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "NoWhiteSpaceAnalysis",
+      "details": {
+        "count": 4
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.rtf:NoWhiteSpaceAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.rtf.stripped"
+          ],
+          "excluded_analysis": [],
+          "file_path": "nul_byte.rtf.nowhitespace",
+          "redirection": {
+            "type": "file",
+            "value": "2fc8f016584d950c5288f79848b62356e4517fe8b0b33feb99a2a829f39e8fac"
+          },
+          "relationships": [],
+          "size": 66,
+          "tags": [],
+          "type": "file",
+          "value": "76fa2f41a069908de6738ee8af3de47cd0988e9c0ac300b695bcaface0c352b7",
+          "yara_meta": [
+            "type=document.rtf.stripped"
+          ]
+        }
+      ],
+      "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (4 removed)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/rtf/nul_byte.rtf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "nul_byte.rtf",
+      "size": 70,
+      "type": "file",
+      "value": "2fc8f016584d950c5288f79848b62356e4517fe8b0b33feb99a2a829f39e8fac"
+    }
+  },
+  "module": "nowhitespace_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "nul_byte.rtf",
+    "relationships": [],
+    "size": 70,
+    "tags": [],
+    "type": "file",
+    "value": "2fc8f016584d950c5288f79848b62356e4517fe8b0b33feb99a2a829f39e8fac",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

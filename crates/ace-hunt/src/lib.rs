@@ -54,7 +54,7 @@ pub enum HuntError {
         title: String,
         errors: Vec<LineError>,
     },
-    /// One of ace4's bounds on what a hunt file may make it build, which ace3 doesn't have.
+    /// One of ace-rs's bounds on what a hunt file may make it build, which ace3 doesn't have.
     #[error("{0}")]
     Limit(String),
 }

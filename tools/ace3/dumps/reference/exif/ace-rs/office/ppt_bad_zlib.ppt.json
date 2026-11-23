@@ -1,0 +1,119 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:21 15:09:11+00:00",
+          "File:FileInodeChangeDate": "2026:11:21 15:09:11+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
+          "File:FileName": "ppt_bad_zlib.ppt",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 2560,
+          "File:FileType": "PPT",
+          "File:FileTypeExtension": "PPT",
+          "File:MIMEType": "application/vnd.ms-powerpoint",
+          "FlashPix:CurrentUser": "a",
+          "SourceFile": "<root>/files/ppt_bad_zlib.ppt"
+        },
+        "output_dir": "<root>/files/ppt_bad_zlib.ppt.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "ppt_bad_zlib.ppt.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "89cda29aedc3344557e064ea49951df36164f64a841f78706bae0a231c5cc7d9"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 623,
+          "tags": [],
+          "type": "file",
+          "value": "852527a901f8d30ce55de5d0c6272c8384aa7ea336ccaeabed22f9ada060ba02",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: CurrentUser=a",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/x-ole-storage",
+        "type": "Composite Document File V2 Document, Cannot read section info"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/ppt_bad_zlib.ppt",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "ppt_bad_zlib.ppt",
+      "size": 2560,
+      "type": "file",
+      "value": "89cda29aedc3344557e064ea49951df36164f64a841f78706bae0a231c5cc7d9"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "ppt_bad_zlib.ppt",
+    "relationships": [],
+    "size": 2560,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "89cda29aedc3344557e064ea49951df36164f64a841f78706bae0a231c5cc7d9",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

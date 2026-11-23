@@ -1,5 +1,5 @@
 # A long-running service with no mem_limit.
-name: ${ACE4_STACK:-ace4}
+name: ${ACE_RS_STACK:-ace-rs}
 services:
   pool:
     image: alpine:3.24.2

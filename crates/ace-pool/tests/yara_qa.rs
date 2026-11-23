@@ -42,7 +42,7 @@ fn git(dir: &Path, args: &[&str]) -> String {
         .arg(dir)
         .args([
             "-c",
-            "user.name=ace4 test",
+            "user.name=ace-rs test",
             "-c",
             "user.email=test@example.invalid",
             "-c",
@@ -99,7 +99,7 @@ async fn a_qa_match_is_recorded_and_raises_no_alert() {
         &[
             "parsers",
             "--task-user",
-            "ace4-task",
+            "ace-rs-task",
             "--rulesets",
             dir,
             "--ruleset-poll-ms",

@@ -5,12 +5,12 @@
 //! named by its slug, holding one Markdown file per guide and the images those guides use under
 //! `images/`, so a guide also reads correctly where the repository is browsed. The one set is SVS's:
 //! ace3's `app/help/content/svs/` guides (ace3's own documentation, Apache-2.0 as this repository is),
-//! rewritten to say what ace4 does. Its five diagrams are brought, redrawn where ace4 differs. Its
-//! screenshots are of ace3's pages and aren't: the guides' screenshots are of ace4's own pages showing
-//! made-up data, where ace4 has the page ace3's guide illustrated, and `tools/help-screenshots/run`
+//! rewritten to say what ace-rs does. Its five diagrams are brought, redrawn where ace-rs differs. Its
+//! screenshots are of ace3's pages and aren't: the guides' screenshots are of ace-rs's own pages showing
+//! made-up data, where ace-rs has the page ace3's guide illustrated, and `tools/help-screenshots/run`
 //! draws them again when a page changes (its docstring says how). ace3's pictures with no page here:
 //! `run-candidates` (a candidate's decisions are in the Result table, which `run-result-candidates`
-//! shows), `run-expected-modal` and `run-close-modal` (ace4 has no dialogs: the reason is a field
+//! shows), `run-expected-modal` and `run-close-modal` (ace-rs has no dialogs: the reason is a field
 //! beside the buttons) and `run-logs` (a run's page links to the site's log search, and has no Logs
 //! section).
 //!

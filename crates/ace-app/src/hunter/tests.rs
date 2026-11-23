@@ -17,7 +17,7 @@
 //! provenance, with the rows `differences.md` gives. The cases of ace3's `test_sources_loader.py`
 //! and `test_splunk_source.py`, and `test_command_types.py`'s `TestLoadCommandTypesFromConfig`, are
 //! at the end: ace3 builds its sources and command types from classes its configuration names, and
-//! ace4's hunter builds its sources from its own configuration and takes its command types from the
+//! ace-rs's hunter builds its sources from its own configuration and takes its command types from the
 //! binary (`App::command_type`).
 
 use std::path::{Path, PathBuf};
@@ -110,7 +110,7 @@ fn config(signatures: &Path, instance_type: &str) -> HunterConfig {
 }
 
 /// The overlay's two Splunk instances at `base_url` (PLAN.md decision 41): `default`, in GMT, and
-/// `eastern`, in New York's time, each logging in as ace4 with its password under ace3's secret
+/// `eastern`, in New York's time, each logging in as ace-rs with its password under ace3's secret
 /// name, `splunk_<instance>_password`.
 fn splunk_connections(base_url: &str) -> Json {
     let instance = |name: &str, timezone: &str| {
@@ -119,7 +119,7 @@ fn splunk_connections(base_url: &str) -> Json {
             "settings": {
                 "host": "127.0.0.1",
                 "base_url": base_url,
-                "username": "ace4",
+                "username": "ace-rs",
                 "timezone": timezone,
                 "request_timeout_seconds": 10,
             },
@@ -132,8 +132,8 @@ fn splunk_connections(base_url: &str) -> Json {
             "eastern": instance("eastern", "America/New_York"),
         },
         "secrets": {
-            "splunk_default_password": "env:ACE4_TEST_UNSET",
-            "splunk_eastern_password": "env:ACE4_TEST_UNSET",
+            "splunk_default_password": "env:ACE_RS_TEST_UNSET",
+            "splunk_eastern_password": "env:ACE_RS_TEST_UNSET",
         },
     })
 }
@@ -147,7 +147,7 @@ fn secrets() -> Secrets {
     for name in ["default", "eastern"] {
         secrets = secrets.with(
             format!("splunk_{name}_password"),
-            Secret::new("ace4-fake-password".to_owned()),
+            Secret::new("ace-rs-fake-password".to_owned()),
         );
     }
     secrets
@@ -166,15 +166,15 @@ fn state_json(state: &State) -> Json {
     })
 }
 
-fn ace4_submission(submission: &ace_hunt::query::Submission) -> Json {
+fn ace_rs_submission(submission: &ace_hunt::query::Submission) -> Json {
     let mut value = serde_json::to_value(submission).expect("JSON");
     value.as_object_mut().expect("an object").remove("files");
     value
 }
 
 /// Where two values differ, by the JSON pointer of each difference.
-fn diff(ace3: &Json, ace4: &Json, hunt: &str, pointer: &str, out: &mut Vec<Difference>) {
-    match (ace3, ace4) {
+fn diff(ace3: &Json, ace_rs: &Json, hunt: &str, pointer: &str, out: &mut Vec<Difference>) {
+    match (ace3, ace_rs) {
         (Json::Object(a), Json::Object(b)) => {
             for key in a.keys().chain(b.keys().filter(|k| !a.contains_key(*k))) {
                 let next = format!("{pointer}/{}", key.replace('~', "~0").replace('/', "~1"));
@@ -184,7 +184,7 @@ fn diff(ace3: &Json, ace4: &Json, hunt: &str, pointer: &str, out: &mut Vec<Diffe
                         hunt: hunt.to_owned(),
                         pointer: next,
                         ace3: x.cloned(),
-                        ace4: y.cloned(),
+                        ace_rs: y.cloned(),
                     }),
                 }
             }
@@ -198,7 +198,7 @@ fn diff(ace3: &Json, ace4: &Json, hunt: &str, pointer: &str, out: &mut Vec<Diffe
             hunt: hunt.to_owned(),
             pointer: pointer.to_owned(),
             ace3: Some(a.clone()),
-            ace4: Some(b.clone()),
+            ace_rs: Some(b.clone()),
         }),
         _ => {}
     }
@@ -281,15 +281,15 @@ async fn the_cases_submit_as_ace3_s_hunter_does() {
                     replay.unmatched()
                 );
                 let ace3: Vec<Json> = tick["submissions"].as_array().expect("submissions").clone();
-                let ace4: Vec<Json> = ran
+                let ace_rs: Vec<Json> = ran
                     .processed
                     .submissions
                     .iter()
-                    .map(ace4_submission)
+                    .map(ace_rs_submission)
                     .collect();
                 diff(
                     &json!(ace3),
-                    &json!(ace4),
+                    &json!(ace_rs),
                     &label,
                     "/submissions",
                     &mut differences,
@@ -378,8 +378,8 @@ async fn the_cases_submit_as_ace3_s_hunter_does() {
         .iter()
         .map(|d| {
             format!(
-                "{} {}: ace3 {:?} ace4 {:?}",
-                d.hunt, d.pointer, d.ace3, d.ace4
+                "{} {}: ace3 {:?} ace-rs {:?}",
+                d.hunt, d.pointer, d.ace3, d.ace_rs
             )
         })
         .collect();
@@ -413,7 +413,7 @@ impl Recorder {
         let db = ace_core::testing::TestDb::new().await;
         let cache = tempfile::tempdir().expect("a cache directory");
         let store = Store::new(
-            &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+            &BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
             NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
         )
         .await;
@@ -521,7 +521,7 @@ fn a_hunt_submission_becomes_the_core_s() {
                     icon: Some("splunk".to_owned()),
                     text: "Search".to_owned(),
                 },
-                // ace3 would draw these; ace4 shows only https:// with a named icon
+                // ace3 would draw these; ace-rs shows only https:// with a named icon
                 ace_hunt::query::PivotLink {
                     url: "http://splunk.example.com/".to_owned(),
                     icon: None,
@@ -573,7 +573,7 @@ fn a_hunt_submission_becomes_the_core_s() {
         origin.details.as_ref().expect("details")["tags"],
         json!(["vpn", "correlated"])
     );
-    // the hunt's links are the root's, less those ace4 can't show (decision 32 part (b))
+    // the hunt's links are the root's, less those ace-rs can't show (decision 32 part (b))
     assert_eq!(
         origin.pivot_links,
         [
@@ -738,7 +738,7 @@ async fn test_registers_configured_source() {
 }
 
 /// test_loaded_flag_prevents_double_registration and test_force_reloads: ace3 keeps its sources in
-/// a module global loaded once; ace4 builds them for each correlation from the configuration, so a
+/// a module global loaded once; ace-rs builds them for each correlation from the configuration, so a
 /// run's sources are always the configuration's, and a stop ends only that run's.
 #[tokio::test(flavor = "multi_thread")]
 async fn test_loaded_flag_prevents_double_registration() {
@@ -849,7 +849,7 @@ fn test_execute_query_passes_correct_params() {
 }
 
 /// test_format_timespec_unknown_config_raises: ace3 raises when it formats for an instance it
-/// hasn't; ace4 never builds a source for one (test_failing_source_does_not_abort_others).
+/// hasn't; ace-rs never builds a source for one (test_failing_source_does_not_abort_others).
 #[tokio::test(flavor = "multi_thread")]
 async fn test_format_timespec_unknown_config_raises() {
     let hunter =
@@ -875,7 +875,7 @@ impl ace_hunt::correlate::command::CommandType for Echo {
 }
 
 /// test_command_types.py TestLoadCommandTypesFromConfig: ace3 imports each configured class with
-/// its `kwargs`; ace4's binary adds each with `App::command_type`, the integration's own settings in
+/// its `kwargs`; ace-rs's binary adds each with `App::command_type`, the integration's own settings in
 /// what it builds.
 #[test]
 fn test_registers_configured_type_with_kwargs() {
@@ -914,7 +914,7 @@ fn test_no_op_when_hunter_config_absent_for_types() {
     assert!(App::new().command_types().names().is_empty());
 }
 
-/// test_config_entry_rejects_unknown_keys: ace3's configuration entry is a model; ace4's is a call,
+/// test_config_entry_rejects_unknown_keys: ace3's configuration entry is a model; ace-rs's is a call,
 /// whose name is checked as ace3 checks a registered one.
 #[test]
 fn test_config_entry_rejects_unknown_keys() {
@@ -1047,7 +1047,7 @@ async fn splunk_instances_are_connections_taken_by_name() {
         &overlay,
     )
     .expect("a hunter");
-    assert!(hunter.secrets.iter().any(|s| s == "ace4-fake-password"));
+    assert!(hunter.secrets.iter().any(|s| s == "ace-rs-fake-password"));
     let search = hunter.search_of("splunk").expect("the splunk search");
     let loaded = |instance: &str| {
         let dir = tempfile::tempdir().expect("a directory");

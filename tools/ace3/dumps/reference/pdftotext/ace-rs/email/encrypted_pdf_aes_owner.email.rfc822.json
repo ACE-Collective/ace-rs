@@ -1,0 +1,30 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/email/encrypted_pdf_aes_owner.email.rfc822",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 4809,
+      "type": "file",
+      "value": "ede3d7253fae79ba1ec33acacf809f41af6282439c53be41e9bd819ce42e71aa"
+    }
+  },
+  "module": "pdftotext",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 4809,
+    "tags": [],
+    "type": "file",
+    "value": "ede3d7253fae79ba1ec33acacf809f41af6282439c53be41e9bd819ce42e71aa",
+    "yara_meta": []
+  }
+}

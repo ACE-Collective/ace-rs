@@ -1,7 +1,7 @@
 //! Logs and spans for the pool and core processes (PLAN.md 2.22).
 //!
-//! `init` sends log lines to stderr, filtered by `ACE4_LOG`. `Telemetry::start_export` then
-//! exports every span to an OpenTelemetry collector over OTLP/HTTP, when `ACE4_OTLP_ENDPOINT`
+//! `init` sends log lines to stderr, filtered by `ACE_RS_LOG`. `Telemetry::start_export` then
+//! exports every span to an OpenTelemetry collector over OTLP/HTTP, when `ACE_RS_OTLP_ENDPOINT`
 //! (such as `http://collector:4318`) is set. Export starts threads, its batch processor's and its
 //! HTTP client's, so a contained process calls it after containment, and those threads inherit
 //! the process's Landlock rules. A parser's task process doesn't export at all: it may not start
@@ -30,7 +30,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 /// The variable that names the collector's OTLP/HTTP endpoint.
-pub const OTLP_ENDPOINT_VAR: &str = "ACE4_OTLP_ENDPOINT";
+pub const OTLP_ENDPOINT_VAR: &str = "ACE_RS_OTLP_ENDPOINT";
 
 /// A span processor that drops spans until export starts, then hands them to the batch
 /// processor `start_export` makes. It lets the OpenTelemetry layer be in place from the start,
@@ -73,7 +73,7 @@ pub struct Telemetry {
     provider: SdkTracerProvider,
 }
 
-/// Starts logging to stderr, at `default_filter` unless `ACE4_LOG` says otherwise, and starts
+/// Starts logging to stderr, at `default_filter` unless `ACE_RS_LOG` says otherwise, and starts
 /// recording spans for export, which `Telemetry::start_export` sends. Starts no thread.
 pub fn init(service: &str, default_filter: &str) -> Telemetry {
     let resource = Resource::builder()
@@ -85,9 +85,9 @@ pub fn init(service: &str, default_filter: &str) -> Telemetry {
         .with_resource(resource.clone())
         .build();
     let filter =
-        EnvFilter::try_from_env("ACE4_LOG").unwrap_or_else(|_| EnvFilter::new(default_filter));
+        EnvFilter::try_from_env("ACE_RS_LOG").unwrap_or_else(|_| EnvFilter::new(default_filter));
     let installed = tracing_subscriber::registry()
-        .with(tracing_opentelemetry::layer().with_tracer(provider.tracer("ace4")))
+        .with(tracing_opentelemetry::layer().with_tracer(provider.tracer("ace-rs")))
         .with(tracing_subscriber::fmt::layer().with_writer(std::io::stderr))
         .with(filter)
         .try_init();
@@ -112,7 +112,7 @@ pub enum TelemetryError {
 }
 
 impl Telemetry {
-    /// Exports spans to the collector at `ACE4_OTLP_ENDPOINT`, if it is set. Returns whether
+    /// Exports spans to the collector at `ACE_RS_OTLP_ENDPOINT`, if it is set. Returns whether
     /// export started.
     pub fn start_export(&mut self) -> Result<bool, TelemetryError> {
         match std::env::var(OTLP_ENDPOINT_VAR) {

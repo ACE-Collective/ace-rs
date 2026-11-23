@@ -674,7 +674,10 @@ mod tests {
 
     #[test]
     fn a_file_oletools_cant_open_fails_only_under_an_office_extension() {
-        let result = done(olevba("ace4/office/garbage.doc", OlevbaSettings::default()));
+        let result = done(olevba(
+            "ace-rs/office/garbage.doc",
+            OlevbaSettings::default(),
+        ));
         assert_eq!(result.analyzed.tags, ["olevba_failed"]);
         assert_eq!(result.analyzed.directives, [SANDBOX]);
         assert_eq!(result.details.kind, None);
@@ -685,7 +688,7 @@ mod tests {
     #[test]
     fn a_hostile_name_stays_bytes() {
         let result = done(olevba(
-            "ace4/office/surrogate_name.doc",
+            "ace-rs/office/surrogate_name.doc",
             OlevbaSettings::default(),
         ));
         let item = &result.details.macros[0];
@@ -702,7 +705,7 @@ mod tests {
     #[test]
     fn a_ppt_macro_has_no_file_name_as_in_ace3() {
         let result = done(olevba(
-            "ace4/office/vba_powerpoint.ppt",
+            "ace-rs/office/vba_powerpoint.ppt",
             OlevbaSettings::default(),
         ));
         assert_eq!(result.details.kind.as_deref(), Some("PPT"));
@@ -713,7 +716,7 @@ mod tests {
     #[test]
     fn a_macro_sheet_beside_vba_is_a_macro_file_too() {
         let result = done(olevba(
-            "ace4/office/vba_xlm_biff8.xls",
+            "ace-rs/office/vba_xlm_biff8.xls",
             OlevbaSettings::default(),
         ));
         assert_eq!(result.analyzed.tags, ["olevba"]);
@@ -732,7 +735,7 @@ mod tests {
 
     #[test]
     fn objects_become_files_with_ace3s_names_tags_and_links() {
-        let Outcome::Done(result) = rtfole("ace4/rtf/objects.rtf") else {
+        let Outcome::Done(result) = rtfole("ace-rs/rtf/objects.rtf") else {
             panic!("not done")
         };
         let details = &result.details;
@@ -771,7 +774,7 @@ mod tests {
 
     #[test]
     fn the_report_is_the_commands() {
-        let outcome = rtfole("ace4/rtf/objects.rtf");
+        let outcome = rtfole("ace-rs/rtf/objects.rtf");
         // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
         ace_testkit::check_view_fixture("rtfole_objects_rtf", &outcome);
         let Outcome::Done(result) = outcome else {
@@ -792,7 +795,7 @@ mod tests {
 
     #[test]
     fn an_exception_is_an_exit_code_and_what_was_saved_stays() {
-        let Outcome::Done(result) = rtfole("ace4/rtf/bin_at_end.rtf") else {
+        let Outcome::Done(result) = rtfole("ace-rs/rtf/bin_at_end.rtf") else {
             panic!("not done")
         };
         assert_eq!(result.details.return_code, 1);
@@ -804,7 +807,7 @@ mod tests {
         );
         assert!(result.details.extracted_files.is_empty());
 
-        let Outcome::Done(result) = rtfole("ace4/rtf/long_name.rtf") else {
+        let Outcome::Done(result) = rtfole("ace-rs/rtf/long_name.rtf") else {
             panic!("not done")
         };
         assert_eq!(result.details.return_code, 1);
@@ -822,7 +825,7 @@ mod tests {
 
     #[test]
     fn a_name_with_glob_characters_is_read() {
-        let Outcome::Done(result) = rtfole("ace4/rtf/bracket[1].rtf") else {
+        let Outcome::Done(result) = rtfole("ace-rs/rtf/bracket[1].rtf") else {
             panic!("not done")
         };
         assert_eq!(
@@ -834,14 +837,14 @@ mod tests {
     #[test]
     fn what_ace3_checks_before_it_reads_a_rtf() {
         assert!(matches!(
-            rtfole("ace4/rtf/text_named.rtf"),
+            rtfole("ace-rs/rtf/text_named.rtf"),
             Outcome::Skipped(_)
         ));
-        let Outcome::Done(result) = rtfole("ace4/rtf/backslash_start.rtf") else {
+        let Outcome::Done(result) = rtfole("ace-rs/rtf/backslash_start.rtf") else {
             panic!("not done")
         };
         assert_eq!(result.files.len(), 1);
-        let Outcome::Done(result) = rtfole("ace4/rtf/no_objects.rtf") else {
+        let Outcome::Done(result) = rtfole("ace-rs/rtf/no_objects.rtf") else {
             panic!("not done")
         };
         assert!(result.details.extracted_files.is_empty());

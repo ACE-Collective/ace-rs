@@ -20,7 +20,7 @@
 //! the engine skips a module whose analysis exists.
 //!
 //! Not here from ace3: `request_analyst_analysis` also clears the root's failed modules so they run
-//! again, and ace4 never claims a failed task again (the owner's decision of 2026-11-16). ace3 has no way
+//! again, and ace-rs never claims a failed task again (the owner's decision of 2026-11-16). ace3 has no way
 //! for an analyst to remove a directive, and neither has this.
 
 use ace_core::modes::CORRELATION;

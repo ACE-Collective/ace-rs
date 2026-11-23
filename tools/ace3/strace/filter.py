@@ -2,7 +2,7 @@
 
 Default: a thread (clone with CLONE_THREAD) is allowed, and a new process (clone without it, fork,
 vfork) or io_uring_setup kills the process; clone3 fails with ENOSYS, since seccomp can't read its
-flags, so glibc falls back to clone. With --no-threads every clone kills, as ace4's parser filter
+flags, so glibc falls back to clone. With --no-threads every clone kills, as ace-rs's parser filter
 does. execve stays allowed: it's the next call. Standard library only.
 """
 import ctypes

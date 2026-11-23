@@ -16,7 +16,7 @@
 //!   sets an expiry or, with its Never button, takes it away (`set_detection_expiration`); and
 //!   `POST /admin/detection/{id}/delete` removes one (`delete_detection`). Each is a `SignedIn` post that
 //!   passed 5.7's same-origin check, and goes back to the page with the filters it came from and a notice.
-//!   A refusal about the form, such as a type ace4 doesn't have, a value that isn't one for it, an expiry
+//!   A refusal about the form, such as a type ace-rs doesn't have, a value that isn't one for it, an expiry
 //!   that passed or a duplicate, draws the page again at 400 or 409 with the service's reason and what was
 //!   typed; anything else is the error page.
 //!
@@ -29,7 +29,7 @@
 //! export left out with why. ace3 has no such section: its export logs a value its YARA refuses.
 //!
 //! What differs, and why: ace3's "not yet observed" and FA hits come from its index of every observable,
-//! which ace4 doesn't have; its confirm before a delete needs a script; and its `style=` and `<style>`
+//! which ace-rs doesn't have; its confirm before a delete needs a script; and its `style=` and `<style>`
 //! are classes in the stylesheet.
 
 use ace_service::{

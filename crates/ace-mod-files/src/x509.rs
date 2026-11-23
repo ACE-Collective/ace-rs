@@ -8,7 +8,7 @@
 //! the certificate's SHA-256, and the details written to `<file's sha256>.metadata` with the
 //! `yara_meta` type `metadata.x509`.
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
 //! - ace3 doesn't crawl a certificate's names when the file came from a URL observable (one of
 //!   its parents). A task doesn't carry its observable's parents, and no ported module adds a

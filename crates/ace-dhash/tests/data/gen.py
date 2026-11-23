@@ -1,6 +1,6 @@
 """Writes the test images for ace-dhash into a directory (argv[1]), with Pillow and by hand.
 
-Run in ace3's container: /venv/bin/python3 -I gen.py /tmp/ace4-ace-dhash/cases
+Run in ace3's container: /venv/bin/python3 -I gen.py /tmp/ace-rs-ace-dhash/cases
 Every image is made here from seeded noise, gradients and shapes; nothing is copied in.
 """
 import io, os, random, struct, sys, zlib

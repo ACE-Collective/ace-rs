@@ -2,7 +2,7 @@
 //! submits roots (PLAN.md 6.1), ace3's `CollectorService` hosting a `Collector`.
 //!
 //! **What a collector is.** A site adds one with `App::collector`: a [`CollectorSpec`] (its name and
-//! the secrets it reads) and a builder that makes the [`Collector`] from its [`CollectorSetup`]. ace4
+//! the secrets it reads) and a builder that makes the [`Collector`] from its [`CollectorSetup`]. ace-rs
 //! ships none; `ace-site-example` has one over a directory, as a test of this. A collector's
 //! [`Collector::collect`] runs one pass: it reads what its source has ready, hands each item to the
 //! [`Submitter`], and tells the source it has the item only once [`Submitter::submit`] says the item
@@ -15,7 +15,7 @@
 //! 2.24 keeps out of `ace serve`; a pool reaches only the lease API and the bucket, and can't make a
 //! root. So `ace collect <name>` resolves the secrets its spec names, from the overlay's `secrets:`,
 //! and no others, and reads only its own `collectors.<name>` section. It reads the database and the
-//! bucket as the hunter does (`ACE4_DATABASE_URL`, `ACE4_BUCKET_*`, the overlay at `ACE4_OVERLAY`) and
+//! bucket as the hunter does (`ACE_RS_DATABASE_URL`, `ACE_RS_BUCKET_*`, the overlay at `ACE_RS_OVERLAY`) and
 //! submits through the service layer as the component `collector:<name>`, which holds what the class
 //! `collector` is granted, `alert:create` and nothing else (migration 0074,
 //! `ace_service::Component::class`). Every root records it in `submitted_by` and in its audit row.
@@ -51,9 +51,9 @@
 //! `event_type` `collector`, `collector`, `outcome` (`submitted`, `duplicate`, `refused` or
 //! `given_back`), `root_uuid` when there is one, `attempts`, `seconds` from the first attempt to the
 //! last answer, and `has_key`; ace3's line has the outcome and the stage times. Spans export as the
-//! other processes' do when `ACE4_OTLP_ENDPOINT` is set.
+//! other processes' do when `ACE_RS_OTLP_ENDPOINT` is set.
 //!
-//! **A site's Compose service.** ace4's Compose file runs no collector, as ace4 ships none. A site
+//! **A site's Compose service.** ace-rs's Compose file runs no collector, as ace-rs ships none. A site
 //! runs each of its own as a service of its `ace` image, beside `ace`, with the same database and
 //! bucket variables and only its own source's:
 //!
@@ -63,12 +63,12 @@
 //!   command: ["site-ace", "collect", "journal"]
 //!   depends_on: {ace: {condition: service_healthy}}
 //!   environment:
-//!     ACE4_DATABASE_URL: ...      # as the ace service's
-//!     ACE4_BUCKET_ENDPOINT: ...   # and the other ACE4_BUCKET_* variables
-//!     ACE4_OVERLAY: /etc/ace4/overlay.yaml
-//!     ACE4_LOG: info
+//!     ACE_RS_DATABASE_URL: ...      # as the ace service's
+//!     ACE_RS_BUCKET_ENDPOINT: ...   # and the other ACE_RS_BUCKET_* variables
+//!     ACE_RS_OVERLAY: /etc/ace-rs/overlay.yaml
+//!     ACE_RS_LOG: info
 //!     JOURNAL_QUEUE_TOKEN: ...    # what the overlay's secrets: names for this collector, and no other
-//!   volumes: ["${ACE4_SITE}:/etc/ace4:ro"]
+//!   volumes: ["${ACE_RS_SITE}:/etc/ace-rs:ro"]
 //!   restart: unless-stopped
 //!   stop_grace_period: 40s        # more than its stop_seconds
 //! ```
@@ -613,7 +613,8 @@ async fn collect(app: &App, name: &str) -> Result<ExitCode> {
     let db = Db::connect(&DbConfig::from_env(format!("ace-collect-{name}"))?)
         .await
         .context("connecting to Postgres")?;
-    let bucket = crate::cli::submitting_bucket(&db, &format!("ace4-collect-{name}-cache")).await?;
+    let bucket =
+        crate::cli::submitting_bucket(&db, &format!("ace-rs-collect-{name}-cache")).await?;
     let service = crate::cli::submitting_service(app, &overlay, db)?;
     let stop = CancellationToken::new();
     let stopping = stop.clone();

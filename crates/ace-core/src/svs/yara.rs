@@ -68,7 +68,7 @@ impl ValidationConfig {
     /// The settings `section` gives, or why they can't run.
     pub fn from_section(section: &SvsYaraSection) -> Result<ValidationConfig, String> {
         section.check()?;
-        let temp = std::env::temp_dir().join("ace4-svs");
+        let temp = std::env::temp_dir().join("ace-rs-svs");
         let work_dir = section
             .work_dir
             .clone()

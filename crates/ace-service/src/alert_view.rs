@@ -10,7 +10,7 @@
 //! repeatable-read transaction, so a page never shows half a landing. ace3 draws an alert of any size;
 //! here a tree holds at most `MAX_TREE_OBSERVABLES`, and says when it was cut short.
 //!
-//! The watch is `LISTEN ace4_results`, which migration 0029's trigger notifies with a result's root and
+//! The watch is `LISTEN ace_rs_results`, which migration 0029's trigger notifies with a result's root and
 //! id when it lands, and migration 0063's with the root when the alert's owner changes, so an open page
 //! can say so. A notification is a wakeup and carries nothing to show: the watcher reads the tree
 //! again through `alert_tree`, which checks its permission again. One listener serves every watch in the
@@ -40,7 +40,7 @@ pub const MAX_TREE_OBSERVABLES: i64 = 5000;
 
 /// The channel migration 0029's trigger notifies, with `<root>/<result id>`, and migration 0063's, with
 /// `<root>/owner`.
-pub const RESULTS_CHANNEL: &str = "ace4_results";
+pub const RESULTS_CHANNEL: &str = "ace_rs_results";
 
 /// How often the listener, with nothing to hear, checks whether anything still watches.
 const IDLE_CHECK: Duration = Duration::from_secs(1);

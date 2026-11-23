@@ -3,7 +3,7 @@
 //! (`har.py`) and `HTMLJavaScriptExtractionAnalysis` (`html_js_extraction.py`).
 //!
 //! ace3 writes a DOM snapshot beside each script it extracts, `<script>.dom.json`, a file that
-//! isn't an observable, which its JavaScript deobfuscator reads. ace4 keeps no file outside the
+//! isn't an observable, which its JavaScript deobfuscator reads. ace-rs keeps no file outside the
 //! tree, so the snapshots ride in the result: `dom_snapshots`, which ace3's details don't have.
 
 use std::collections::BTreeMap;
@@ -96,7 +96,7 @@ pub struct HtmlJavaScriptExtractionAnalysis {
     pub duplicate_count: u64,
     /// The names of the `.dom.json` sidecars written.
     pub dom_snapshot_files: Vec<String>,
-    /// ace4's: the snapshots themselves, which ace3 writes as files.
+    /// ace-rs's: the snapshots themselves, which ace3 writes as files.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dom_snapshots: Vec<DomSnapshotFile>,
 }
@@ -135,7 +135,7 @@ pub struct HarAnalysis {
     /// Responses past `max_extracted_files`. Why nothing was extracted, when nothing was, is the
     /// result's `error` (ace3's `Analysis.error`).
     pub skipped_count: u64,
-    /// ace4's: the snapshots ace3 writes as files beside the scripts a page loads.
+    /// ace-rs's: the snapshots ace3 writes as files beside the scripts a page loads.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dom_snapshots: Vec<DomSnapshotFile>,
 }

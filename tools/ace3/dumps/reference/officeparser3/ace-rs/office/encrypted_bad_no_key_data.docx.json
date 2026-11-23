@@ -1,0 +1,240 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/encrypted",
+        "type": "CDFV2 Encrypted"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: CDFV2 Encrypted (application/encrypted) (ms office document) (ole compound file)",
+      "tags": []
+    },
+    {
+      "class": "OfficeParserAnalysis3",
+      "details": {
+        "extracted_files": [
+          "stream_1_0.dat",
+          "stream_3_0.dat",
+          "stream_4_0.dat",
+          "stream_6_0.dat",
+          "stream_9_0.dat",
+          "stream_10_0.dat"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.officeparser3:OfficeParserAnalysis3",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "encrypted_bad_no_key_data.docx.officeparser/stream_1_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 4096,
+          "tags": [],
+          "type": "file",
+          "value": "ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "encrypted_bad_no_key_data.docx.officeparser/stream_3_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 76,
+          "tags": [],
+          "type": "file",
+          "value": "e81d2d7f4d8b4aa96a9d1ac9aad489caa06f24c3de2b66471479daf34672ce3a",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "encrypted_bad_no_key_data.docx.officeparser/stream_4_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 112,
+          "tags": [],
+          "type": "file",
+          "value": "b520d7662070c97304b0bbff09af9f61baaa6872976663ed1a886abc7c29cb15",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "encrypted_bad_no_key_data.docx.officeparser/stream_6_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 64,
+          "tags": [],
+          "type": "file",
+          "value": "167181108f6fd083cd67d569e9906a592ca923bc2d4c571ed1242caf92ed48f8",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "encrypted_bad_no_key_data.docx.officeparser/stream_9_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 200,
+          "tags": [],
+          "type": "file",
+          "value": "990349482cd707ba3093d6fff5bb72167a38f0831e58789a92c25cdeb01f7f93",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "encrypted_bad_no_key_data.docx.officeparser/stream_10_0.dat",
+          "redirection": {
+            "type": "file",
+            "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+          },
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1442,
+          "tags": [],
+          "type": "file",
+          "value": "5d57de6a9aabe9a395d3f9a3cc699317ac2203551b6e9a433680ad8f66ec095c",
+          "yara_meta": []
+        }
+      ],
+      "summary": "OfficeParser3 Analysis: extracted 6 files",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/encrypted_bad_no_key_data.docx",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "encrypted_bad_no_key_data.docx",
+      "size": 9216,
+      "type": "file",
+      "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771"
+    }
+  },
+  "module": "officeparser3",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "encrypted_bad_no_key_data.docx",
+    "relationships": [],
+    "size": 9216,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "70248c875bc8b174c33d493732238ad6b138762305f2cad09d91f816da83d771",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -12,7 +12,7 @@
 //! one on that path, its size the store's for its bytes and its type what the type step found in
 //! them (`crate::type_step`), which is known before any task but the type step is queued.
 //!
-//! **The audit setting**, `ACE4_TAKES_AUDIT=1` for `ace serve` and the hunter: the core queues
+//! **The audit setting**, `ACE_RS_TAKES_AUDIT=1` for `ace serve` and the hunter: the core queues
 //! every task as it did before declarations, and marks the ones a declaration would have declined
 //! with the reason (`queue.tasks.declined`). A mark is cleared when eligibility reruns and the
 //! declaration takes the task, which is when the core would have queued it without the setting.
@@ -49,12 +49,12 @@ pub enum TakesMode {
 }
 
 impl TakesMode {
-    /// `ACE4_TAKES_AUDIT`: `1` or `true` audits, unset, empty, `0` or `false` applies.
+    /// `ACE_RS_TAKES_AUDIT`: `1` or `true` audits, unset, empty, `0` or `false` applies.
     pub fn from_env() -> Result<TakesMode, String> {
-        match std::env::var("ACE4_TAKES_AUDIT").as_deref() {
+        match std::env::var("ACE_RS_TAKES_AUDIT").as_deref() {
             Err(_) | Ok("" | "0" | "false") => Ok(TakesMode::Applied),
             Ok("1" | "true") => Ok(TakesMode::Audit),
-            Ok(other) => Err(format!("ACE4_TAKES_AUDIT is 1 or 0, not {other:?}")),
+            Ok(other) => Err(format!("ACE_RS_TAKES_AUDIT is 1 or 0, not {other:?}")),
         }
     }
 }

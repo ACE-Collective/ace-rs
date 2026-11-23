@@ -1,6 +1,6 @@
 //! `test_validation.py`: 34 cases. Two pass ace3's checks a raw dict where a parsed model belongs
 //! (`test_unparsed_config_objects_are_ignored`, and the second half of
-//! `test_non_correlate_hunt_is_a_no_op`); ace4's checks take the parsed models, so that's the
+//! `test_non_correlate_hunt_is_a_no_op`); ace-rs's checks take the parsed models, so that's the
 //! type system's. A type that failed to load is the registry's record of it, which `App` makes
 //! from a factory's error.
 

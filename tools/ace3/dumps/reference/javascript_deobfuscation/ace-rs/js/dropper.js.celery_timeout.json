@@ -1,0 +1,62 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "JavaScriptDeobfuscationAnalysis",
+      "details": {
+        "dom_snapshot": false,
+        "dom_snapshot_source": null,
+        "error_type": null,
+        "event_count": 0,
+        "exit_code": null,
+        "extracted_files": [],
+        "secondary_script_count": 0,
+        "stderr": null,
+        "stdout": null,
+        "webcrack_error": null,
+        "webcrack_status": null
+      },
+      "detections": [],
+      "error": "js deobfuscator call failed: The operation timed out.",
+      "module_path": "saq.modules.file_analysis.js:JavaScriptDeobfuscationAnalysis",
+      "observables": [],
+      "summary": "JavaScript Deobfuscation: failed: js deobfuscator call failed: The operation timed out.",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/js/dropper.js, the Celery call timing out",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "dropper.js",
+      "size": 104,
+      "type": "file",
+      "value": "4bcb59f7ca66c88ab96a6dbb2069a2822d920d4fef4c176690d99db49ecba517"
+    }
+  },
+  "module": "javascript_deobfuscation",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "dropper.js",
+    "relationships": [],
+    "size": 104,
+    "tags": [
+      "js"
+    ],
+    "type": "file",
+    "value": "4bcb59f7ca66c88ab96a6dbb2069a2822d920d4fef4c176690d99db49ecba517",
+    "yara_meta": []
+  },
+  "scanner_request": {
+    "dom_snapshot": null,
+    "file_name": "dropper.js",
+    "scanner": "js-deobfuscator",
+    "scanner_timeout": 30,
+    "timeout": 60
+  }
+}

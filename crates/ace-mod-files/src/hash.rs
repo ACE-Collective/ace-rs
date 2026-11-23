@@ -3,7 +3,7 @@
 //! The file's MD5, SHA-1 and SHA-256, with MD5 and SHA-256 observables that are hashes of it,
 //! unless the file is empty, or its path or its mime type matches an ignore pattern.
 //!
-//! Where ace4 departs:
+//! Where ace-rs departs:
 //!
 //! - ace3's patterns are config keys that start `ignore_pattern_` and `ignore_mime_type_`, and
 //!   `fnmatch` each on the file's path on its node. Here they are two maps, and each path pattern
@@ -12,7 +12,7 @@
 //!   that doesn't, `email.rfc822.combined` and `phishkit/*`, never matches in either. ace3's
 //!   default config also has `ignore_pattenr_eml` and `ignore_pattenr_eml_extra`, which its code
 //!   never reads; they aren't here.
-//! - ace3 also links each hash to the file for its alert page; ace4's relationship is the link.
+//! - ace3 also links each hash to the file for its alert page; ace-rs's relationship is the link.
 
 use std::collections::BTreeMap;
 use std::fs;

@@ -36,7 +36,7 @@ enum Command {
     /// or database privilege the API doesn't need, and refuses to start if it is handed one.
     ServeAi,
     /// Run the hunts in the signatures checkout on their schedules and submit what they find
-    /// (`ACE4_HUNTER` names its configuration).
+    /// (`ACE_RS_HUNTER` names its configuration).
     Hunter,
     /// Run the collector NAME, which the binary has, until a stop: it reads its source and submits
     /// what it finds, each item once (the overlay's `collectors.NAME`).
@@ -76,10 +76,10 @@ enum Command {
 /// `--help`, a command's `--help` and `--version` run. The process's stdout and stderr are the output.
 ///
 /// ace3's GUI runs any `ace` command but global options and secrets (`ace3/docs/GUI_CLI.md`). Of
-/// ace3's commands, ace4 has `yara scan` (here over a ruleset file, not ace3's scanner service) and
-/// `user`, whose `create-first` and `create-key` are an operator's, not ace3's `user add`. ace4's
+/// ace3's commands, ace-rs has `yara scan` (here over a ruleset file, not ace3's scanner service) and
+/// `user`, whose `create-first` and `create-key` are an operator's, not ace3's `user add`. ace-rs's
 /// `svs yara` is ace3's (`validate`, `layout`, `prune`), as are `svs catalog` (`refresh`, `status`) and `svs coverage` (`refresh`, `status`, `snapshot`), and `svs
-/// attack extract` is ace3's `bin/update-attack-catalog`; each is refused like the rest. ace4's `signatures check` is new; ace3's `signatures` lists what a node loads (`list`, `locations`) and
+/// attack extract` is ace3's `bin/update-attack-catalog`; each is refused like the rest. ace-rs's `signatures check` is new; ace3's `signatures` lists what a node loads (`list`, `locations`) and
 /// builds the Suricata lookup (`build-db`). ace3's other commands (`alert`, `cache`, `cas`,
 /// `company`, `config`, `correlate`, `crash`, `cron`, `encryption`, `event`, `gui`, `hunt`,
 /// `integration`, `js-deobfuscator`, `modules`, `node`, `nrd`, `observables`, `partitions`, `perm`,
@@ -156,8 +156,8 @@ fn refusal(command: &Command) -> (&'static str, &'static str) {
 }
 
 pub fn main(app: &App) -> ExitCode {
-    // Logs go to stderr, filtered by ACE4_LOG (tracing's EnvFilter syntax), WARN and up by
-    // default. `ace serve` also exports spans when ACE4_OTLP_ENDPOINT is set.
+    // Logs go to stderr, filtered by ACE_RS_LOG (tracing's EnvFilter syntax), WARN and up by
+    // default. `ace serve` also exports spans when ACE_RS_OTLP_ENDPOINT is set.
     // `ace signatures check` reports each rule file that doesn't compile itself, so ace-yara's log of
     // the file it leaves out would say it twice.
     let cli = Cli::parse();
@@ -193,10 +193,10 @@ pub fn main(app: &App) -> ExitCode {
     }
 }
 
-/// The overlay at `ACE4_OVERLAY`, or none, checked against the binary (`App::check_overlay`). With
+/// The overlay at `ACE_RS_OVERLAY`, or none, checked against the binary (`App::check_overlay`). With
 /// none, every module runs as itself on its defaults.
 pub fn overlay(app: &App) -> anyhow::Result<ace_sdk::Overlay> {
-    let overlay = match std::env::var_os("ACE4_OVERLAY").filter(|path| !path.is_empty()) {
+    let overlay = match std::env::var_os("ACE_RS_OVERLAY").filter(|path| !path.is_empty()) {
         Some(path) => ace_sdk::Overlay::read(path.as_ref())?,
         None => ace_sdk::Overlay::default(),
     };

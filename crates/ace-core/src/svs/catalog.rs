@@ -41,7 +41,7 @@
 //! last read.
 //!
 //! **What differs from ace3's.**
-//! - ace3 reads the working tree `service_git` keeps at a `git_repo_*` section's `local_path`. ace4 has no
+//! - ace3 reads the working tree `service_git` keeps at a `git_repo_*` section's `local_path`. ace-rs has no
 //!   such sections or service: a repository is the overlay's entry, and its tests are read from one commit
 //!   of the mirror. So nothing can move while it's read, and ace3's check for that
 //!   (`test_a_commit_that_moves_while_reading_stores_nothing`) has no counterpart; and ace3's errors for a
@@ -148,7 +148,7 @@ impl CatalogConfig {
             // may share a name
             mirror_dir: section.mirror_dir.clone().unwrap_or_else(|| {
                 std::env::temp_dir()
-                    .join("ace4-svs")
+                    .join("ace-rs-svs")
                     .join("catalog-mirrors")
             }),
             limits: CatalogLimits {
@@ -1551,19 +1551,19 @@ mod tests {
         assert!(error.0.contains("more than 2 tests"), "{error}");
     }
 
-    /// A trial against a real repository, for whoever points the catalog at one: `ACE4_ART_REPOSITORY` is
-    /// its path or URL and `ACE4_ART_BRANCH` its branch (master by default). It fetches it into a mirror of
+    /// A trial against a real repository, for whoever points the catalog at one: `ACE_RS_ART_REPOSITORY` is
+    /// its path or URL and `ACE_RS_ART_BRANCH` its branch (master by default). It fetches it into a mirror of
     /// its own, reads it within the default limits, stores it in a test database twice, and prints what
-    /// a refresh stores and skips, with how long each part took. With `ACE4_ART_REPORT`, it writes each
+    /// a refresh stores and skips, with how long each part took. With `ACE_RS_ART_REPORT`, it writes each
     /// test's guid, content hash, technique, platforms, executor and a hash of its name, description and
     /// technique's name there, one a line, to compare with ace3's `parse_atomics` over the same commit.
     /// Nothing of the repository is kept: the mirror is in a temporary directory, and the database goes
     /// with the test.
     #[tokio::test]
-    #[ignore = "needs ACE4_ART_REPOSITORY, the path or URL of an Atomic Red Team repository"]
+    #[ignore = "needs ACE_RS_ART_REPOSITORY, the path or URL of an Atomic Red Team repository"]
     async fn a_real_repository_parses() {
-        let url = std::env::var("ACE4_ART_REPOSITORY").expect("ACE4_ART_REPOSITORY");
-        let branch = std::env::var("ACE4_ART_BRANCH").unwrap_or_else(|_| "master".to_owned());
+        let url = std::env::var("ACE_RS_ART_REPOSITORY").expect("ACE_RS_ART_REPOSITORY");
+        let branch = std::env::var("ACE_RS_ART_BRANCH").unwrap_or_else(|_| "master".to_owned());
         let mirrors = tempfile::tempdir().expect("a directory");
         let section = SvsCatalogSection {
             repositories: BTreeMap::from([(
@@ -1633,7 +1633,7 @@ mod tests {
         }
         println!("platforms: {platforms:?}");
         println!("executors: {executors:?}");
-        if let Ok(report) = std::env::var("ACE4_ART_REPORT") {
+        if let Ok(report) = std::env::var("ACE_RS_ART_REPORT") {
             let mut lines: Vec<String> = parsed
                 .entries
                 .iter()

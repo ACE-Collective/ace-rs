@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/pdf/name_only_pdf_not_a_pdf.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "name_only_pdf_not_a_pdf.pdf",
+      "size": 16,
+      "type": "file",
+      "value": "f2df5f5485a3067e5c9e72e25ead1232d91c5c2c287b7ebdc18d1aeb02c9d1b3"
+    }
+  },
+  "module": "qrcode",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "name_only_pdf_not_a_pdf.pdf",
+    "relationships": [],
+    "size": 16,
+    "tags": [],
+    "type": "file",
+    "value": "f2df5f5485a3067e5c9e72e25ead1232d91c5c2c287b7ebdc18d1aeb02c9d1b3",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

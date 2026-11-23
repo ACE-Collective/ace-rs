@@ -391,7 +391,7 @@ pub struct TlsKeylogAnalysis {
     /// How many sessions it has keys for, by client random.
     pub client_randoms: u64,
     /// The captures a late key log was applied to, and those out of time, by sha256: ace3's late
-    /// application, which ace4 has no case for (`ace-mod-pcap`'s docs), so both stay empty.
+    /// application, which ace-rs has no case for (`ace-mod-pcap`'s docs), so both stay empty.
     pub applied_to: Vec<String>,
     pub skipped: Vec<String>,
 }

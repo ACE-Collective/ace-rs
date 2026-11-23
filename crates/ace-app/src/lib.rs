@@ -23,7 +23,7 @@
 //! pool's modules.
 //!
 //! Each kind of thing an ace3 integration can add (`ace3/docs/INTEGRATIONS.md`) becomes an entry
-//! here once its feature exists in ace4: analysis modules and observable types (2.31), analysis
+//! here once its feature exists in ace-rs: analysis modules and observable types (2.31), analysis
 //! templates and observable actions (5.9, `analysis_view`, `observable_action`), the alert page's
 //! summaries by alert type (ace3's `custom_alerts` templates, `alert_summary`) and by template name
 //! (decision 40, `alert_template`), hunt types (6.2, `hunt_type`) and their searches (decision 40,
@@ -199,7 +199,7 @@ pub type ActionFactory =
     Arc<dyn Fn(&ActionSetup) -> Result<ace_pool::actions::Handler, String> + Send + Sync>;
 
 /// A scanner pool (PLAN.md 7.7): the process that holds the Docker socket and runs the scanner images
-/// modules' scans ask for (`ace_pool::scanners`), as many at once as `ACE4_CONCURRENCY` says.
+/// modules' scans ask for (`ace_pool::scanners`), as many at once as `ACE_RS_CONCURRENCY` says.
 pub struct ScannerPool {
     name: String,
     scanners: Vec<ace_sdk::scanners::ScannerSpec>,
@@ -371,7 +371,7 @@ impl App {
         self
     }
 
-    /// The icons pivot links may name: ace4's own, none, and the site's.
+    /// The icons pivot links may name: ace-rs's own, none, and the site's.
     pub fn pivot_link_icons(&self) -> &ace_gui::PivotIcons {
         &self.icons
     }
@@ -1558,7 +1558,7 @@ impl App {
             })
     }
 
-    /// The pools and their modules, as `ACE4_POOLS` lists them: the core's default.
+    /// The pools and their modules, as `ACE_RS_POOLS` lists them: the core's default.
     fn pool_list(&self) -> String {
         let pool = |name: &str, registry: &Registry| {
             let modules: Vec<&str> = registry.manifests().iter().map(|m| m.name).collect();
@@ -1612,7 +1612,7 @@ fn refuse_repeats(name: &str, pool: &Registry, added: &Registry) {
 }
 
 impl ParserPool {
-    /// An empty pool. Its name is what `ACE4_POOLS` and `pool_main` call it.
+    /// An empty pool. Its name is what `ACE_RS_POOLS` and `pool_main` call it.
     pub fn new(name: &str) -> ParserPool {
         ParserPool {
             name: name.to_owned(),
@@ -1644,7 +1644,7 @@ impl ParserPool {
     }
 
     /// Keeps the pool on the core's current YARA ruleset: the supervisor downloads each new
-    /// ruleset into its ruleset directory (`ACE4_RULESET_DIR`), publishes it once `check` loads
+    /// ruleset into its ruleset directory (`ACE_RS_RULESET_DIR`), publishes it once `check` loads
     /// it, and leases nothing before the first one has. The module `M` gets the directory as its
     /// `rulesets` setting, whatever the overlay says.
     pub fn yara_rulesets<M: Parser>(
@@ -1697,7 +1697,7 @@ mod tests {
     use super::*;
 
     /// PLAN.md decision 32 part (b): a site registers a pivot link icon by name, a PNG, which the
-    /// GUI then serves; ace4 registers none.
+    /// GUI then serves; ace-rs registers none.
     #[test]
     fn a_site_registers_a_pivot_link_icon() {
         const PNG: &[u8] = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89";
@@ -1712,7 +1712,7 @@ mod tests {
 
     /// A script type is built with its settings; one that can't be is recorded and fails the
     /// steps that run it, and settings for a type the binary hasn't are refused (decision 16).
-    /// ace4's example type stands for a site's.
+    /// ace-rs's example type stands for a site's.
     #[test]
     fn hunt_scripts_are_built_with_their_settings() {
         use ace_hunt::correlate::scripts::example;

@@ -35,7 +35,7 @@
 //!   time a root last changed, which roots don't record. Each alert carries its observables as
 //!   `{id, type, value}` (a file's value is its sha256), up to 500 of them, a page at most 200
 //!   alerts where ace3's is 1,000 rows of ids, and its detections with
-//!   the observable each is on: ace4 keeps no index of observables to look an id up in, so ace3's
+//!   the observable each is on: ace-rs keeps no index of observables to look an id up in, so ace3's
 //!   `POST /export/observables` has no counterpart, and `disposition_review` and
 //!   `incorrect_disposition` aren't here because 7.14 keeps a detection's verdict, not an alert's.
 //! - A search's body and answer are the main API's (`search`'s docs).

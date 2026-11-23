@@ -9,19 +9,19 @@
 //! and it doesn't start if it holds more than it needs.
 //!
 //! **What it holds.**
-//! - `ACE4_DATABASE_URL`, as a login that is a member of the role `ace4_ai` (migration 0064,
+//! - `ACE_RS_DATABASE_URL`, as a login that is a member of the role `ace_rs_ai` (migration 0064,
 //!   `ace_service::ai::role`): alerts, events and the search index to read, API keys and grants to
 //!   check, an audit row to insert, the rate limiter's tables to keep. No session, no password hash,
 //!   no email archive, no write to anything else. It never migrates: it refuses a database that isn't
 //!   at the migration this binary was built with, and `ace serve` is what brings one there.
-//! - `ACE4_OVERLAY`, an overlay of its own with `ai_api`, `secrets`, `dispositions` and
+//! - `ACE_RS_OVERLAY`, an overlay of its own with `ai_api`, `secrets`, `dispositions` and
 //!   `disposition_classification` and no other section, as ace3's container has `etc/saq.ai.yaml`
 //!   alone. With none, or with `ai_api.enabled` false, it serves and every route answers 404 saying
 //!   the API is off, once the caller's key is found to hold the route's permission.
 //! - The secrets its enabled backends list, from where `secrets:` says, and no other.
-//! - `ACE4_SEARCH_MODEL`, the embedding model's directory, for the two search routes. Without it a
+//! - `ACE_RS_SEARCH_MODEL`, the embedding model's directory, for the two search routes. Without it a
 //!   search runs its exact lane and its listings, as in `ace serve`.
-//! - `ACE4_AI_LISTEN`, where it listens: `0.0.0.0:8001` by default.
+//! - `ACE_RS_AI_LISTEN`, where it listens: `0.0.0.0:8001` by default.
 //!
 //! It serves `/api/ai/v1`, the ping and its own `GET /api/openapi.json` (`ace_api::AiWeb`), and
 //! nothing else: no other route of the JSON API, no GUI, no lease API. `ace serve` doesn't serve
@@ -43,7 +43,7 @@ use crate::App;
 use crate::ai::custody::{self, Environment, Holdings};
 
 /// The variable that names where the AI API listens.
-pub const LISTEN_VAR: &str = "ACE4_AI_LISTEN";
+pub const LISTEN_VAR: &str = "ACE_RS_AI_LISTEN";
 pub const DEFAULT_LISTEN: &str = "0.0.0.0:8001";
 
 pub fn run(app: &App, telemetry: &mut ace_pool::telemetry::Telemetry) -> Result<ExitCode> {
@@ -57,9 +57,9 @@ pub fn run(app: &App, telemetry: &mut ace_pool::telemetry::Telemetry) -> Result<
     code
 }
 
-/// The overlay's text and what it parses to: the file `ACE4_OVERLAY` names, or none.
+/// The overlay's text and what it parses to: the file `ACE_RS_OVERLAY` names, or none.
 fn overlay(app: &App) -> Result<(String, Overlay)> {
-    let Some(path) = std::env::var_os("ACE4_OVERLAY").filter(|path| !path.is_empty()) else {
+    let Some(path) = std::env::var_os("ACE_RS_OVERLAY").filter(|path| !path.is_empty()) else {
         return Ok((String::new(), Overlay::default()));
     };
     let path = std::path::PathBuf::from(path);

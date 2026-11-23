@@ -8,11 +8,11 @@ comparison and the ticks each one runs at in runs.yaml, and tools/ace3/dumps/fak
 Splunk they search. It writes reference/query.json: for each tick, every exchange with the fake,
 the submissions ace3's hunter staged, the hunt's state after it, and its suppression decisions
 (step 6.5): the groups a suppression dropped and the staged submissions ace3's collector would drop
-as duplicates. ace4's side is `ace_app::hunter`'s test, which replays those exchanges to ace4's
+as duplicates. ace-rs's side is `ace_app::hunter`'s test, which replays those exchanges to ace-rs's
 hunter, diffs its submissions, searches and state with these, and records each run in a test
 database, where its suppression rows must be these decisions.
 
-Everything happens under /tmp/ace4-dumps/query in the container, and nothing reaches ace3's
+Everything happens under /tmp/ace-rs-dumps/query in the container, and nothing reaches ace3's
 database: the hunter's file manager is replaced by one that records what it would stage. The cases
 are made up, so the output is committed. Rerun this when ace3 moves (PLAN.md decision 14).
 """
@@ -22,8 +22,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-CONTAINER = os.environ.get("ACE4_ACE3_CONTAINER", "ace-dev-1")
-REMOTE = "/tmp/ace4-dumps/query"
+CONTAINER = os.environ.get("ACE_RS_ACE3_CONTAINER", "ace-dev-1")
+REMOTE = "/tmp/ace-rs-dumps/query"
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "reference" / "query.json"
 

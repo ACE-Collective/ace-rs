@@ -7,11 +7,11 @@
 //! `archived_messages` does since its 4f1fa192: each row of `email_archive.archive` (migration 0041,
 //! cut down by 0079) is the SHA-256 of a normalized Message-ID, the SHA-256 of the email's bytes
 //! (ace3's digest), the object and when it was archived. ace3 dropped its URL index, its
-//! `email_history` and its `archive_server` registration, and ace4 dropped the first two with it; one
+//! `email_history` and its `archive_server` registration, and ace-rs dropped the first two with it; one
 //! bucket is every node's here, so there never was a server.
 //!
 //! **How it's encrypted.** AES-256-GCM, as ace3's `saq.crypto`, under a 32-byte key the core reads
-//! from `ACE4_ENCRYPTION_KEY` (64 hex digits) and nothing else holds: workers never see it, since
+//! from `ACE_RS_ENCRYPTION_KEY` (64 hex digits) and nothing else holds: workers never see it, since
 //! the core seals and opens for them (`reads.md`). The core writes ace3's `v1` layout, `ACE-GCM`, a
 //! version byte, an 8-byte key id, the plaintext's size and the nonce, all authenticated, with the
 //! tag at the end, and reads only that. Nothing is released before the tag verifies. Without a key
@@ -100,8 +100,8 @@ impl ArchiveKey {
     }
 }
 
-/// The archive's settings: `ACE4_ENCRYPTION_KEY`, and ace3's `email_archive.partition_retention_days`
-/// in `ACE4_EMAIL_ARCHIVE_RETENTION_DAYS`, 30 by default.
+/// The archive's settings: `ACE_RS_ENCRYPTION_KEY`, and ace3's `email_archive.partition_retention_days`
+/// in `ACE_RS_EMAIL_ARCHIVE_RETENTION_DAYS`, 30 by default.
 #[derive(Debug, Clone)]
 pub struct ArchiveConfig {
     pub key: Option<ArchiveKey>,
@@ -120,13 +120,13 @@ impl Default for ArchiveConfig {
 impl ArchiveConfig {
     pub fn from_env() -> Result<Self, String> {
         let mut config = ArchiveConfig::default();
-        if let Some(key) = std::env::var("ACE4_ENCRYPTION_KEY")
+        if let Some(key) = std::env::var("ACE_RS_ENCRYPTION_KEY")
             .ok()
             .filter(|k| !k.trim().is_empty())
         {
             config.key = Some(ArchiveKey::from_hex(&key)?);
         }
-        let var = "ACE4_EMAIL_ARCHIVE_RETENTION_DAYS";
+        let var = "ACE_RS_EMAIL_ARCHIVE_RETENTION_DAYS";
         if let Ok(days) = std::env::var(var) {
             config.retention_days = days
                 .parse::<u32>()
@@ -147,7 +147,7 @@ impl ArchiveConfig {
 #[derive(Debug, thiserror::Error)]
 pub enum ArchiveError {
     #[error(
-        "the core has no encryption key (ACE4_ENCRYPTION_KEY), so it can't archive or open an email"
+        "the core has no encryption key (ACE_RS_ENCRYPTION_KEY), so it can't archive or open an email"
     )]
     NoKey,
     #[error("{0} is larger than the {MAX_EMAIL_BYTES} bytes the core archives or opens")]

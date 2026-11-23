@@ -22,7 +22,7 @@ pub use js::HtmlJavaScriptExtractor;
 pub use mhtml::MhtmlAnalyzer;
 
 /// ace3's root takes at most this many file observables and this many URLs
-/// (`maximum_observable_count`), which ace4's core doesn't, so a module stops writing there.
+/// (`maximum_observable_count`), which ace-rs's core doesn't, so a module stops writing there.
 pub const MAX_FILES: usize = 500;
 pub const MAX_URLS: usize = 500;
 

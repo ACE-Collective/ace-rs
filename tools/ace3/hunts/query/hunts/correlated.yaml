@@ -5,7 +5,7 @@ commands:
     description: the rows a host has around an event's time
     type: query
     source: splunk
-    query: "search index=ctx ace4case=correlated host={{ _event.host }}"
+    query: "search index=ctx ace_rs_case=correlated host={{ _event.host }}"
     time_range:
       before: 1h
       after: 5m
@@ -13,7 +13,7 @@ rule:
   uuid: 00000000-0000-0000-0000-00000000a013
   name: "{{ user }} on {{ host }}"
   description: one alert a row that its correlation keeps, with each row's host context from a second search
-  query: index=auth ace4case=correlated
+  query: index=auth ace_rs_case=correlated
   observable_mapping:
     - field: user
       type: user

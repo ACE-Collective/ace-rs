@@ -2,7 +2,7 @@
 //! `aceapi_v2/observable_comments` and its `ObservableComment` model.
 //!
 //! A comment is on an observable's type and value, not on one alert's observable, so it applies to that
-//! observable in every alert, as ace3's does through its index of every observable. ace4 has no such
+//! observable in every alert, as ace3's does through its index of every observable. ace-rs has no such
 //! index: a comment holds the type and the value, normalized as 5.5's lookup normalizes them (a file's
 //! sha256 lowercased, anything else as given), and is matched as the lookup matches, by type, value hash
 //! and value. A type this binary doesn't have is refused, as ace3 refuses one its registry doesn't

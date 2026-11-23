@@ -6,8 +6,8 @@
 //! check, `ace_mod_files::javascript`). A suspect file gets a detection and the
 //! `suspect_ole_attachment` tag.
 //!
-//! Where ace4 departs: ace3 asks which analyses hold the file when it runs, in the pass after
-//! officeparser3 added it. ace4's core tells the module which modules' results added the file, as
+//! Where ace-rs departs: ace3 asks which analyses hold the file when it runs, in the pass after
+//! officeparser3 added it. ace-rs's core tells the module which modules' results added the file, as
 //! they are when the task is leased, so the module runs once everything else in the root has
 //! finished, by when officeparser3's result has landed even where another module added the same
 //! bytes first. The file's path is the one the core kept, which is the first module's to land

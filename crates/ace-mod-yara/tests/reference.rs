@@ -51,12 +51,12 @@ fn the_fixture_rule_matches_only_with_the_right_meta_tag() {
     let harness = harness();
     assert_eq!(
         matched(&scan(&harness, &["type=email.attachment"])),
-        ["ace4_fixture_zip_attachment", "ace4_fixture_zip_any"]
+        ["ace_rs_fixture_zip_attachment", "ace_rs_fixture_zip_any"]
     );
-    assert_eq!(matched(&scan(&harness, &[])), ["ace4_fixture_zip_any"]);
+    assert_eq!(matched(&scan(&harness, &[])), ["ace_rs_fixture_zip_any"]);
     assert_eq!(
         matched(&scan(&harness, &["type=email.headers"])),
-        ["ace4_fixture_zip_any"]
+        ["ace_rs_fixture_zip_any"]
     );
 }
 

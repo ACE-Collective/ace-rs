@@ -2,7 +2,7 @@
 -- on the alert list, which `ace_service`'s `seed_saved_filters` writes when the list is first drawn for them.
 --
 -- ace3 seeds a user who has no `saved_filters` row of any kind on the screen, and its page writes the
--- user's working row straight after, so it seeds once. ace4 keeps no working row (0030), so this table is
+-- user's working row straight after, so it seeds once. ace-rs keeps no working row (0030), so this table is
 -- what says a screen was seeded for a user: someone who deletes the two filters doesn't get them back.
 -- Like a saved filter, a row goes with its user.
 CREATE TABLE service.saved_filter_seeds (

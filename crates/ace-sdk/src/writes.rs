@@ -172,7 +172,7 @@ pub const MAX_SVS_CAPTURES: usize = 1000;
 /// (`get_pending_external_check_by_observable`), queues one when there's none
 /// (`queue_external_check`), and records its own answer as a try (`persist_probe_outcome`); the
 /// core does the same in the end's transaction, so the module needs no read of the check. No module
-/// of ace4's makes it: a site's remediation modules do.
+/// of ace-rs's makes it: a site's remediation modules do.
 pub struct RemediationCheck;
 
 impl WriteKind for RemediationCheck {
@@ -208,7 +208,7 @@ pub const MAX_CHECK_CONTEXT_BYTES: usize = 16 * 1024;
 /// `wait_on_file_collection`), or queues one (`queue_file_collection`), and then waits; the core does
 /// the same in the end's transaction (`ace_core::actions::request_collection`): it joins a pending
 /// one, from any alert or person, takes the root's own earlier success, or queues a new one. The
-/// module reads where it stands with the `file-collection` read. No module of ace4's makes it:
+/// module reads where it stands with the `file-collection` read. No module of ace-rs's makes it:
 /// a site's endpoint modules do.
 pub struct FileCollection;
 

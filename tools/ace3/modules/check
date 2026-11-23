@@ -9,7 +9,7 @@ there, and fails when the inventory's table of modules:
   the config's module_group_* and analysis_mode_* sections give it;
 - gives a module no pool or step from the inventory's lists, or a 7.5 batch the list of batches
   doesn't have, or a batch list that disagrees with the table;
-- names a crate as ace4's that crates/ace doesn't register, or misses one it does, or names
+- names a crate as ace-rs's that crates/ace doesn't register, or misses one it does, or names
   ace-core, where the core runs a module as a hook (PLAN.md 7.6), for a module off the core's pool;
 - disagrees with a module's entry below it, or with its own counts.
 
@@ -25,17 +25,17 @@ decisions other than those of the "Tools" rows that name it, when a decision doe
 module's pool (the sandbox runner needs the sandbox pool, or a ported module whose tool comes
 later; a scanner the scanner pool), or when a tool has no decision or names a module with no row.
 
-    tools/ace3/modules/check                  at the commit ace4 follows
-    tools/ace3/modules/check --commit HEAD    at ace3's head, when a checkpoint brings ace4 up to it
+    tools/ace3/modules/check                  at the commit ace-rs follows
+    tools/ace3/modules/check --commit HEAD    at ace3's head, when a checkpoint brings ace-rs up to it
     tools/ace3/modules/check --commit f72f894 at another commit
     tools/ace3/modules/check --allow-absent   exits 0 with a SKIP when there's no checkout (CI)
 
-ace4 follows ace3 at checkpoints, not at every commit (PLAN.md decision 14): the commit it follows
+ace-rs follows ace3 at checkpoints, not at every commit (PLAN.md decision 14): the commit it follows
 is the one the trees were made at, tools/ace3/trees/reference/index.json's `ace3_commit`. Checked
 there, ace3's checkout moving doesn't fail a step that changed nothing ace3 has. When the checkout
 is past that commit, a note says by how many commits.
 
-ACE4_ACE3_CHECKOUT is ace3's checkout on the host (default: ../ace3 beside this checkout, or
+ACE_RS_ACE3_CHECKOUT is ace3's checkout on the host (default: ../ace3 beside this checkout, or
 ~/Development/public/ace3). Exits 0 when every check passes. Needs only python3 and git.
 """
 
@@ -52,7 +52,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[3]
 DOC = REPO / "docs" / "modules.md"
 READS = REPO / "crates" / "ace-core" / "src" / "reads.md"
-# the ace3 commit ace4 follows: the one tools/ace3/trees/make-trees made the trees at
+# the ace3 commit ace-rs follows: the one tools/ace3/trees/make-trees made the trees at
 FOLLOWED = REPO / "tools" / "ace3" / "trees" / "reference" / "index.json"
 POOLS = ["parser", "lookup", "core", "sandbox", "scanner"]
 STEPS = ["done", "7.4", "7.5", "7.6", "7.7", "7.8", "7.9", "7.10", "owner"]
@@ -63,14 +63,14 @@ REGISTERED_WITHOUT_A_SECTION = {"ace-mod-splunk"}
 # so it's in the core's crate rather than a crate crates/ace registers
 CORE_CRATE = "ace-core"
 ROW = re.compile(
-    r"^\| `(?P<name>[a-z0-9_]+)` \| `(?P<cls>[A-Za-z0-9_]+)` \| (?P<ace4>not yet|`[a-z0-9-]+`) "
+    r"^\| `(?P<name>[a-z0-9_]+)` \| `(?P<cls>[A-Za-z0-9_]+)` \| (?P<ace_rs>not yet|`[a-z0-9-]+`) "
     r"\| (?P<pool>[^|]+) \| (?P<step>[^|]+) \| (?P<groups>[^|]+) \| (?P<modes>[^|]+) \|$"
 )
 
 
 def checkout():
-    if "ACE4_ACE3_CHECKOUT" in os.environ:
-        candidates = [Path(os.environ["ACE4_ACE3_CHECKOUT"])]
+    if "ACE_RS_ACE3_CHECKOUT" in os.environ:
+        candidates = [Path(os.environ["ACE_RS_ACE3_CHECKOUT"])]
     else:
         candidates = [REPO.parent / "ace3", Path.home() / "Development" / "public" / "ace3"]
     for candidate in candidates:
@@ -204,10 +204,10 @@ def check_doc(doc, ace3, failures):
             failures.append(f"{name}: step {step!r} isn't one of {', '.join(STEPS)} or a 7.5 batch")
         elif name in in_batch:
             failures.append(f"{name}: 7.5's batch {in_batch[name]} has it, and the table says {step}")
-        crate = row["ace4"].strip("`") if row["ace4"] != "not yet" else None
+        crate = row["ace_rs"].strip("`") if row["ace_rs"] != "not yet" else None
         if crate == CORE_CRATE:
             if pool != "core":
-                failures.append(f"{name}: ace4 {CORE_CRATE} is for a module on the core's pool")
+                failures.append(f"{name}: ace-rs {CORE_CRATE} is for a module on the core's pool")
             if f"`{name}`" not in (REPO / "crates" / "ace-core" / "src" / "hooks.rs").read_text():
                 failures.append(f"{name}: crates/ace-core/src/hooks.rs doesn't run it")
         elif crate:
@@ -215,7 +215,7 @@ def check_doc(doc, ace3, failures):
             if crate not in crates:
                 failures.append(f"{name}: crates/ace doesn't register {crate}")
         if (crate is not None) != (step == "done"):
-            failures.append(f"{name}: ace4 {row['ace4']} with step {step}")
+            failures.append(f"{name}: ace-rs {row['ace_rs']} with step {step}")
 
         entry = re.search(rf"^### {name}\n(.*?)(?=^### |^## |\Z)", doc, re.M | re.S)
         if not entry:
@@ -224,9 +224,9 @@ def check_doc(doc, ace3, failures):
         body = entry.group(1)
         if not re.search(rf"^- \*\*Pool\*\*: {re.escape(pool)}\. ", body, re.M):
             failures.append(f"{name}: its entry's pool isn't the table's {pool}")
-        ace4 = f"ported in `{crate}`" if crate else "not yet"
-        if f"- **ace4**: {ace4}." not in body:
-            failures.append(f"{name}: its entry's ace4 isn't the table's {row['ace4']}")
+        ace_rs = f"ported in `{crate}`" if crate else "not yet"
+        if f"- **ace-rs**: {ace_rs}." not in body:
+            failures.append(f"{name}: its entry's ace-rs isn't the table's {row['ace_rs']}")
         if not re.search(rf"^- \*\*Step\*\*: {re.escape(step)}[ .]", body, re.M):
             failures.append(f"{name}: its entry's step isn't the table's {step}")
         if cls is not None and f"class `{cls}`" not in body:
@@ -237,7 +237,7 @@ def check_doc(doc, ace3, failures):
         failures.append(f"7.5's batches name {name}, which has no row")
 
     pools = collections.Counter(r["pool"].strip() for r in rows.values())
-    ported = collections.Counter(r["pool"].strip() for r in rows.values() if r["ace4"] != "not yet")
+    ported = collections.Counter(r["pool"].strip() for r in rows.values() if r["ace_rs"] != "not yet")
     steps = collections.Counter(r["step"].strip().split(" batch")[0] for r in rows.values())
     for pool in POOLS:
         want = f"| {pool} | {pools[pool]} | {ported[pool]} |"
@@ -273,11 +273,11 @@ PROCESS = {
 # what 7.3 decides for a program a module starts
 DECISIONS = {"crate", "runner", "children", "scanner", "none"}
 # what serves a module besides a read of reads.md
-# Reads ace4 adds for a module whose data ace3 keeps outside ACE's own databases, so the scan
-# doesn't find the module: nrd_analyzer's list is a SQLite file on each node in ace3, and in ace4
+# Reads ace-rs adds for a module whose data ace3 keeps outside ACE's own databases, so the scan
+# doesn't find the module: nrd_analyzer's list is a SQLite file on each node in ace3, and in ace-rs
 # the core's list, which a worker reads through the core (PLAN.md 7.4).
 ADDED_READS = {"newly-registered": "nrd_analyzer"}
-# Reads ace4 serves for a site integration's module, which isn't one of ace3's sections and so has no
+# Reads ace-rs serves for a site integration's module, which isn't one of ace3's sections and so has no
 # row here: a site's thread recovery module asks the thread store which ids it holds, as
 # ace3's get_recorded_message_ids (PLAN.md decision 29); its endpoint file collector reads its
 # collection's state, as its get_file_collection (decision 49), and its sandbox module the sandbox
@@ -571,19 +571,19 @@ def main(argv):
         if args.allow_absent:
             print("SKIP  the module inventory: no ace3 checkout")
             return 0
-        sys.exit("modules: no ace3 checkout; set ACE4_ACE3_CHECKOUT")
+        sys.exit("modules: no ace3 checkout; set ACE_RS_ACE3_CHECKOUT")
     followed = args.commit is None
     if followed:
         args.commit = json.loads(FOLLOWED.read_text())["ace3_commit"]
     commit = git(ace3, "rev-parse", "--short=8", args.commit).strip()
     if followed:
-        # how far ace3's checkout is past the commit ace4 follows: for a checkpoint to bring ace4
+        # how far ace3's checkout is past the commit ace-rs follows: for a checkpoint to bring ace-rs
         # up to, and nothing a step fails on
         ahead = int(git(ace3, "rev-list", "--count", f"{commit}..HEAD").strip())
         if ahead:
             head = git(ace3, "rev-parse", "--short=8", "HEAD").strip()
             print(f"note  ace3's checkout is at {head}, {ahead} commits past {commit}, the commit "
-                  "ace4 follows; a checkpoint brings ace4 up to it (PLAN.md decision 14)")
+                  "ace-rs follows; a checkpoint brings ace-rs up to it (PLAN.md decision 14)")
     text = git(ace3, "show", f"{commit}:etc/saq.default.yaml")
     sections_ = config(text)
     doc = args.doc.read_text()

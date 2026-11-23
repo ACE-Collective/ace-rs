@@ -1,7 +1,7 @@
 //! `ace task`: tools for one task. `ace task replay <id>` (PLAN.md 2.20) fetches a task's input
 //! from the bucket by hash, through the lease API, and runs its module here, outside
-//! containment, so a debugger can attach. It needs `ACE4_API_URL` and `ACE4_ADMIN_TOKEN`, and
-//! the site overlay at `ACE4_OVERLAY` when the task's component needs settings, such as the
+//! containment, so a debugger can attach. It needs `ACE_RS_API_URL` and `ACE_RS_ADMIN_TOKEN`, and
+//! the site overlay at `ACE_RS_OVERLAY` when the task's component needs settings, such as the
 //! YARA module's signature directory or a Splunk instance's query, and for the secrets the
 //! module declares.
 
@@ -32,8 +32,8 @@ pub fn run(app: &App, command: TaskCommand) -> Result<ExitCode> {
     let registry = app.registry();
     let overlay = crate::cli::overlay(app)?;
     let components = crate::cli::components(&registry, &overlay)?;
-    let base = std::env::var("ACE4_API_URL").context("ACE4_API_URL isn't set")?;
-    let token = std::env::var("ACE4_ADMIN_TOKEN").context("ACE4_ADMIN_TOKEN isn't set")?;
+    let base = std::env::var("ACE_RS_API_URL").context("ACE_RS_API_URL isn't set")?;
+    let token = std::env::var("ACE_RS_ADMIN_TOKEN").context("ACE_RS_ADMIN_TOKEN isn't set")?;
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()

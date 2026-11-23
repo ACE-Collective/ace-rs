@@ -164,7 +164,7 @@ def main():
         "cve_2021_30657_analyzer_members_5000.dmg": lambda: zip_image(
             [(f"Many.app/Contents/MacOS/m{i:04}", b"#!/bin/sh\necho %d\n" % i) for i in range(5000)]),
         "dmg_analyzer_nested.dmg": lambda: images.udif(
-            (ROOT / "samples" / "ace4" / "macos" / "script_app.dmg").read_bytes(), "raw", 1 << 20, pad=False),
+            (ROOT / "samples" / "ace-rs" / "macos" / "script_app.dmg").read_bytes(), "raw", 1 << 20, pad=False),
     }
     only = [a for a in sys.argv[2:] if not a.startswith("--")]
     for name, make in files.items():

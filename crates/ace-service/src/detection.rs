@@ -34,12 +34,12 @@
 //! only logs.
 //!
 //! What differs:
-//! - ace3 runs a value through its observable class, which normalizes some types. ace4's observables
+//! - ace3 runs a value through its observable class, which normalizes some types. ace-rs's observables
 //!   have no normalization: a `file` value is trimmed, lowercased and has to be a sha256, as ace3's is,
 //!   and any other value is stored as given, up to 4096 bytes, the list's limit. ace3 checks the type
 //!   against its registry; here it's one this binary has.
-//! - ace3's `batch_id` has no column on a list entry, and nothing in ace4 sends one. Its `fa_hits` and
-//!   `observable_id` come from its index of every observable, which ace4 doesn't have.
+//! - ace3's `batch_id` has no column on a list entry, and nothing in ace-rs sends one. Its `fa_hits` and
+//!   `observable_id` come from its index of every observable, which ace-rs doesn't have.
 //! - ace3 sets any expiry. Here, as on every list, a new expiry has to be in the future: a detection is
 //!   turned off by removing it, which ace3's page offers too.
 //! - A list holds at most 1000 entries (`ace_sdk::lists::MAX_ENTRIES`), where ace3's table has no limit.

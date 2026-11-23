@@ -309,7 +309,7 @@ impl Parser for TlsKeylogAnalyzer {
             skipped: Vec::new(),
         });
         result.analyzed.add_tag(TAG_TLS_KEYLOG);
-        // ace3 applies a key log that arrives after a capture's decryption finished; ace4's
+        // ace3 applies a key log that arrives after a capture's decryption finished; ace-rs's
         // decryption runs once everything else in the alert is done, this module among them
         // (the crate's docs)
         result.summary = Some(keylog_summary(&result.details));

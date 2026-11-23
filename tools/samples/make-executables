@@ -9,9 +9,9 @@ autoit, de4dot, ilspy) and adds them to samples/manifest.json, replacing any it 
   an assembly to `file` but which neither de4dot nor ilspycmd can load, as ace3's tests cut it. ace3
   keeps the .NET sample hex-encoded, so its decoded bytes stay out of git, as samples/local/ does;
   the hex is in tools/ace3/dumps/fixtures/executables.
-- samples/ace4/executables/: files made here for the branches ace3's fixtures don't reach: a .NET
+- samples/ace-rs/executables/: files made here for the branches ace3's fixtures don't reach: a .NET
   assembly with no obfuscator (de4dot detects an "Unknown Obfuscator" and cleans it anyway), built
-  from the C# below with the .NET SDK of docker/ace4/Dockerfile's dotnet-tools stage, which is
+  from the C# below with the .NET SDK of docker/ace-rs/Dockerfile's dotnet-tools stage, which is
   deterministic; one written by System.Reflection.Emit, whose references carry their public keys
   rather than tokens, so de4dot hashes them, which loads OpenSSL; a cut class file and a Mach-O universal binary, which share Java's magic; a PE file
   holding AutoIt's marker and nothing of AutoIt's, and an .au3 text file holding it; the packed
@@ -76,12 +76,12 @@ def decode_hex(name):
 
 
 def sdk_image():
-    """docker/ace4/Dockerfile's dotnet-tools stage, which needs nothing from the build context."""
+    """docker/ace-rs/Dockerfile's dotnet-tools stage, which needs nothing from the build context."""
     subprocess.run(
-        ["docker", "build", "-q", "--target", "dotnet-tools", "-t", "ace4-dotnet-sdk:latest", "-"],
-        stdin=(REPO / "docker" / "ace4" / "Dockerfile").open("rb"), check=True, stdout=subprocess.DEVNULL,
+        ["docker", "build", "-q", "--target", "dotnet-tools", "-t", "ace-rs-dotnet-sdk:latest", "-"],
+        stdin=(REPO / "docker" / "ace-rs" / "Dockerfile").open("rb"), check=True, stdout=subprocess.DEVNULL,
     )
-    return "ace4-dotnet-sdk:latest"
+    return "ace-rs-dotnet-sdk:latest"
 
 
 def hello_dotnet():
@@ -236,7 +236,7 @@ def main():
     samples.append(entry(write(local / "dotnet_truncated.exe", dotnet[:4096]), ["executable/pe", "executable/dotnet"],
                          f"{how}: the .NET sample's first 4,096 bytes", "neither de4dot nor ilspycmd loads it"))
 
-    made = SAMPLES / "ace4" / "executables"
+    made = SAMPLES / "ace-rs" / "executables"
     samples.append(entry(write(made / "hello_dotnet.dll", hello_dotnet()), ["executable/pe", "executable/dotnet"],
                          f"{how}: C# built with the .NET SDK 10.0.403", "no obfuscator"))
     emit(made, [("emitted_methods.exe", "methods", 10)])

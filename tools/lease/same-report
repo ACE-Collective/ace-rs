@@ -10,7 +10,7 @@ any two runs and compares everything else exactly:
   run, and so have the observables that hold its hashes, so such a hash is compared as "a hash of
   this run" wherever it stands, in a path or in a value. A hash both reports have is compared as
   it is;
-- ace4's values that hold a time or a task's temporary directory: exif's three file dates,
+- ace-rs's values that hold a time or a task's temporary directory: exif's three file dates,
   `dmg_analyzer`'s stderr and `de4dot`'s stdout;
 - the redirection of pdftotext's text, which goes to whichever of a PDF and its rewrite has the
   lower sha256, a coin toss each run. These are counted and listed apart: the samples where the
@@ -30,7 +30,7 @@ import re
 import sys
 
 HASH = re.compile(r"\b[0-9a-f]{32}\b|\b[0-9a-f]{40}\b|\b[0-9a-f]{64}\b")
-# ace4's values that are a time or hold a temporary directory, by where they stand
+# ace-rs's values that are a time or hold a temporary directory, by where they stand
 VOLATILE = [
     re.compile(r"/results/exif/details/exifdata/File:File(Access|InodeChange|Modify)Date$"),
     re.compile(r"/results/dmg_analyzer/details/.*stderr"),
@@ -62,7 +62,7 @@ def normal(report, own):
         for difference in sample["differences"]:
             difference = dict(difference)
             if any(pattern.search(difference["path"]) for pattern in VOLATILE):
-                difference["ace4"] = "<volatile>"
+                difference["ace-rs"] = "<volatile>"
             text = mask(json.dumps(difference, sort_keys=True))
             (redirections if is_redirection(difference) else kept)[text] += 1
         samples.append({

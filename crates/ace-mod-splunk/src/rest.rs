@@ -198,17 +198,17 @@ mod tests {
         assert_eq!(namespace(None, None), "/services");
         assert_eq!(namespace(Some("ace"), None), "/servicesNS/ace/system");
         assert_eq!(namespace(None, Some("search")), "/servicesNS/nobody/search");
-        let acl = json!({"owner": "ace4", "app": "search", "sharing": "global"});
+        let acl = json!({"owner": "ace-rs", "app": "search", "sharing": "global"});
         assert_eq!(
             job_namespace(Some(&acl), "/services"),
             "/servicesNS/nobody/search"
         );
-        let acl = json!({"owner": "ace4", "app": "search", "sharing": "user"});
+        let acl = json!({"owner": "ace-rs", "app": "search", "sharing": "user"});
         assert_eq!(
             job_namespace(Some(&acl), "/services"),
-            "/servicesNS/ace4/search"
+            "/servicesNS/ace-rs/search"
         );
-        let acl = json!({"owner": "ace4", "app": "search", "sharing": "system"});
+        let acl = json!({"owner": "ace-rs", "app": "search", "sharing": "system"});
         assert_eq!(
             job_namespace(Some(&acl), "/services"),
             "/servicesNS/nobody/system"
@@ -226,8 +226,8 @@ mod tests {
       <s:key name="dispatchState">RUNNING</s:key>
       <s:key name="eai:acl">
         <s:dict>
-          <s:key name="owner">ace4</s:key>
-          <s:key name="perms"><s:dict><s:key name="read"><s:list><s:item>ace4</s:item></s:list></s:key></s:dict></s:key>
+          <s:key name="owner">ace-rs</s:key>
+          <s:key name="perms"><s:dict><s:key name="read"><s:list><s:item>ace-rs</s:item></s:list></s:key></s:dict></s:key>
         </s:dict>
       </s:key>
       <s:key name="label"></s:key>
@@ -236,8 +236,8 @@ mod tests {
 </entry>"#;
         let content = entry_content(xml).expect("parses");
         assert_eq!(content["dispatchState"], json!("RUNNING"));
-        assert_eq!(content["eai:acl"]["owner"], json!("ace4"));
-        assert_eq!(content["eai:acl"]["perms"]["read"], json!(["ace4"]));
+        assert_eq!(content["eai:acl"]["owner"], json!("ace-rs"));
+        assert_eq!(content["eai:acl"]["perms"]["read"], json!(["ace-rs"]));
         assert_eq!(content["label"], json!(""));
     }
 

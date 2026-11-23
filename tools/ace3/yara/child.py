@@ -1,7 +1,7 @@
 """ace3's SVS replay child, copied from ace3's saq/svs/yara/child.py (checkout at 844e3584) with
 pattern offsets added, for PLAN.md 1.9. It runs on ace3's Python in ace3's dev container
 (tools/ace3/yara/run-child), and `ace yara replay` is its Rust counterpart (1.10). Only these
-lines change, each marked "ace4:":
+lines change, each marked "ace-rs:":
 
 - each match also records "strings": [offset, identifier, length] for every occurrence of every
   string, with length the full match length (yara's matched_length);
@@ -130,7 +130,7 @@ class Compiler:
 
 
 class _RecordingRules:
-    """ace4: compiled rules that keep what their last match() returned, so the raw matches can
+    """ace-rs: compiled rules that keep what their last match() returned, so the raw matches can
     be read after YaraScanner.scan() filtered them."""
 
     def __init__(self, rules: yara.Rules):
@@ -146,7 +146,7 @@ class _RecordingRules:
 
 
 def _strings(match) -> list[list]:
-    """ace4: [offset, identifier, length] for every occurrence of every string of a yara.Match."""
+    """ace-rs: [offset, identifier, length] for every occurrence of every string of a yara.Match."""
     return [
         [instance.offset, string.identifier, instance.matched_length]
         for string in match.strings
@@ -177,7 +177,7 @@ def run(workdir: str) -> dict:
     compiler = Compiler(job["tree_root"])
     result = {
         "version": PROTOCOL_VERSION,
-        # ace4: which child wrote this
+        # ace-rs: which child wrote this
         "child": "ace3",
         "yara_python_version": yara.__version__,
         "yara_scanner_version": yara_scanner.__version__,
@@ -250,7 +250,7 @@ def run(workdir: str) -> dict:
         timing = {"compile_seconds": 0.0, "scan_seconds": 0.0, "rules": 0}
         result["namespaces"][namespace["name"]] = timing
         start = time.monotonic()
-        # ace4: wrapped, to keep the raw matches
+        # ace-rs: wrapped, to keep the raw matches
         recorder = _RecordingRules(compiler.compile_sources({key: source}))
         scanner.rules = recorder
         timing["compile_seconds"] = time.monotonic() - start
@@ -258,7 +258,7 @@ def run(workdir: str) -> dict:
 
         start = time.monotonic()
         for unit in job["units"]:
-            # ace4: "dropped" added
+            # ace-rs: "dropped" added
             outcome = result["units"].setdefault(str(unit["id"]), {"matches": [], "dropped": [], "errors": []})
             recorder.last = []
             try:
@@ -270,7 +270,7 @@ def run(workdir: str) -> dict:
                 outcome["errors"].append({"namespace": namespace["name"], "type": "error", "message": _error_text(e)})
                 continue
 
-            # ace4: the raw match of each rule, for its strings; a rule matches at most once
+            # ace-rs: the raw match of each rule, for its strings; a rule matches at most once
             raw = {match.rule: match for match in recorder.last}
             kept = set()
             for match in scanner.scan_results:
@@ -279,11 +279,11 @@ def run(workdir: str) -> dict:
                     "namespace": namespace["name"],
                     "rule": match["rule"],
                     "meta": {key: _plain(value) for key, value in match["meta"].items()},
-                    # ace4: offsets
+                    # ace-rs: offsets
                     "strings": _strings(raw[match["rule"]]),
                 })
 
-            # ace4: the matches the filter dropped
+            # ace-rs: the matches the filter dropped
             for match in recorder.last:
                 if match.rule not in kept:
                     outcome["dropped"].append({

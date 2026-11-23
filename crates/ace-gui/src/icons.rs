@@ -6,7 +6,7 @@
 //! ace3's pivot link names its icon as a `data:` URL, another site's image or a file under its static
 //! directory, and its alert page draws whichever. A result here names a registered icon
 //! (`ace_results::PivotLink::icon`), and the link shows its label alone when the binary has no icon by
-//! that name. A site registers its own with `ace_app::App::pivot_link_icon`. ace4 ships none: no ace3
+//! that name. A site registers its own with `ace_app::App::pivot_link_icon`. ace-rs ships none: no ace3
 //! open-source module adds a pivot link unless a site's configuration gives it one (the Splunk API
 //! analyzer's `pivot_links`, a hunt's), and those name the site's own images.
 //!
@@ -73,7 +73,7 @@ pub struct PivotIcons {
 }
 
 impl PivotIcons {
-    /// ace4's own: none (the module's docs).
+    /// ace-rs's own: none (the module's docs).
     pub fn builtin() -> PivotIcons {
         PivotIcons::default()
     }

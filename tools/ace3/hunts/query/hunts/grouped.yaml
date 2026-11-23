@@ -4,7 +4,7 @@ rule:
   uuid: 00000000-0000-0000-0000-00000000a002
   name: failed sign-ins
   description: rows grouped by their source, each group suppressed for an hour once it alerts
-  query: index=auth ace4case=grouped action=failure
+  query: index=auth ace_rs_case=grouped action=failure
   group_by: src_ip
   suppression: "01:00:00"
   full_coverage: true

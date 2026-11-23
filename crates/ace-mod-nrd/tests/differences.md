@@ -4,7 +4,7 @@
 
 | Dumps | Path | Why |
 |---|---|---|
-| `fqdn_ace4-norecord.com` | `/error` | The registry's answer has no registration event, so ace3 asks WHOIS, which fails in a replay: its error (`Analysis.error`, its `lookup_error` until `41d44392`) is `rdap: rdap result has no registration date; whois: no WHOIS in a replay`. The WHOIS fallback isn't ported, so ace4's is `rdap: rdap result has no registration date`. Both keep the hit unverified. |
+| `fqdn_ace4-norecord.com` | `/error` | The registry's answer has no registration event, so ace3 asks WHOIS, which fails in a replay: its error (`Analysis.error`, its `lookup_error` until `41d44392`) is `rdap: rdap result has no registration date; whois: no WHOIS in a replay`. The WHOIS fallback isn't ported, so ace-rs's is `rdap: rdap result has no registration date`. Both keep the hit unverified. |
 | `fqdn_ace4-norecord.com` | `/summary` | The same error in the summary. |
 
 ## Behaviour the dumps don't exercise
@@ -12,7 +12,7 @@
 These depart from ace3:
 
 - The list is in Postgres, one for every node, rebuilt in one transaction by `ace serve`'s `nrd_refresh` task (`ace_app::nrd`), which the module reads through the core's `newly-registered` read. ace3 opens a SQLite file on its node, which the node's cron job swaps in whole. A read the core can't answer (503) fails the task as unavailable, so it runs again later; ace3's failed SQLite query is a miss.
-- ace3 caches the module's results for a day in its analysis result cache, keyed by the list file's modification time and size. ace4 has no such cache (PLAN.md 6.7), so every task reads the list. The RDAP lookup's successes are remembered for the pool's process, at most 4096, as ace3's `_creation_date_memo` is.
+- ace3 caches the module's results for a day in its analysis result cache, keyed by the list file's modification time and size. ace-rs has no such cache (PLAN.md 6.7), so every task reads the list. The RDAP lookup's successes are remembered for the pool's process, at most 4096, as ace3's `_creation_date_memo` is.
 - When RDAP can't answer, ace3 asks WHOIS through python-whois. That isn't ported: the error is RDAP's alone, `rdap: <error>`, and the hit is kept unverified, as ace3 keeps it when both fail. An RDAP server that can't be reached, or answers 429, 502, 503 or 504, fails the task as unavailable (PLAN.md 1.20), where ace3 records the error and tries WHOIS.
 - A name is encoded as Python's `idna` package encodes it (IDNA 2008), with RFC 5892's derived property computed from Unicode's general category and NFKC rather than from `idna`'s generated tables, and a label that needs a joiner or context rule (CONTEXTJ, CONTEXTO) or the bidi rule refused rather than checked (`ace_sdk::nrd::idna_encode`). So a label with a zero-width joiner, a Greek keraia or Arabic-Indic digits isn't looked up, where ace3 may look it up. Every case of `fixtures/nrd/lookups.json` and every line of the fixture lists normalizes as ace3's did.
 - The public suffix list is the snapshot tldextract 5.4.0 ships, as for the RDAP module; ace3's tldextract may fetch the live list.

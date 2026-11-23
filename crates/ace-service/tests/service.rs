@@ -201,7 +201,7 @@ fn test_actions() -> ace_core::actions::ActionCatalog {
 async fn bucket(db: &Db) -> (Bucket, tempfile::TempDir) {
     let cache = tempfile::tempdir().expect("a cache directory");
     let store = Store::new(
-        &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        &BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
     )
     .await;
@@ -5290,10 +5290,10 @@ async fn a_token_must_match_in_every_byte() {
     }
 
     let (key_kind, session_kind) = (key.token.expose(), session.token.expose());
-    let as_session = key_kind.replacen("ace4k", "ace4s", 1);
-    let as_key = session_kind.replacen("ace4s", "ace4k", 1);
+    let as_session = key_kind.replacen("ace-rs-k", "ace-rs-s", 1);
+    let as_key = session_kind.replacen("ace-rs-s", "ace-rs-k", 1);
     let other_id = format!(
-        "ace4k_{}_{}",
+        "ace-rs-k_{}_{}",
         other.id.0.simple(),
         key_kind.rsplit('_').next().expect("a secret")
     );
@@ -5301,7 +5301,7 @@ async fn a_token_must_match_in_every_byte() {
         ("a key as a session", key_kind),
         ("a key's kind changed", as_session.as_str()),
         ("empty", ""),
-        ("no secret", "ace4s_0_"),
+        ("no secret", "ace-rs-s_0_"),
         ("cut short", &session_kind[..session_kind.len() - 1]),
     ] {
         assert!(
@@ -6189,27 +6189,27 @@ async fn the_session_cookie_has_its_attributes() {
     assert_eq!(
         tls.set(&session),
         format!(
-            "__Host-ace4_session={token}; Max-Age={SESSION_LIFETIME_SECONDS}; \
+            "__Host-ace_rs_session={token}; Max-Age={SESSION_LIFETIME_SECONDS}; \
              Path=/; HttpOnly; SameSite=Lax; Secure"
         )
     );
     assert_eq!(
         tls.clear(),
-        "__Host-ace4_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax; Secure"
+        "__Host-ace_rs_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax; Secure"
     );
     let plain = SessionCookie::new(Transport::Plain);
     assert_eq!(
         plain.set(&session),
         format!(
-            "ace4_session={token}; Max-Age={SESSION_LIFETIME_SECONDS}; Path=/; HttpOnly; SameSite=Lax"
+            "ace_rs_session={token}; Max-Age={SESSION_LIFETIME_SECONDS}; Path=/; HttpOnly; SameSite=Lax"
         )
     );
     assert_eq!(
         plain.clear(),
-        "ace4_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax"
+        "ace_rs_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax"
     );
 
-    let header = format!("session=ace3-flask-cookie; ace4_session={token}; other=1");
+    let header = format!("session=ace3-flask-cookie; ace_rs_session={token}; other=1");
     assert_eq!(plain.read(&header), Some(token));
     assert_eq!(tls.read(&header), None, "not the name a TLS site uses");
     assert_eq!(plain.read("session=ace3-flask-cookie"), None);
@@ -6320,7 +6320,7 @@ async fn a_request_authenticates_by_its_key_or_its_same_origin_session() {
         .authenticate_api_key(key.token.expose())
         .await
         .expect("authenticates");
-    let cookie = format!("ace4_session={}", session.token.expose());
+    let cookie = format!("ace_rs_session={}", session.token.expose());
 
     let good_read = request("GET", Some(&cookie));
     assert_eq!(
@@ -6587,7 +6587,7 @@ async fn no_credential_reaches_the_log() {
         )
         .await
         .expect("forced");
-    let cookie = format!("ace4_session={}", session.token.expose());
+    let cookie = format!("ace_rs_session={}", session.token.expose());
     assert!(is_not_authenticated(
         service
             .authenticate_request(&request("POST", Some(&cookie)))
@@ -11627,7 +11627,7 @@ async fn every_page(
     }
 }
 
-/// The event list, through the service: every filter ace4 has a field for, each sort both ways with the id
+/// The event list, through the service: every filter ace-rs has a field for, each sort both ways with the id
 /// breaking ties, a keyset that pages through each once, the cursor checked, the total, hostile text as
 /// data, and `event:read`; the filters' choices; and an event's alerts with their state and tags.
 #[tokio::test]
@@ -18076,7 +18076,7 @@ async fn only_source_never_overwrites_a_verdict_set_meanwhile() {
 }
 
 /// test_store.py's `test_a_refused_cause_fails_the_whole_batch`, with the alert's disposition as the cause,
-/// since ace4 has no detection that predates detection identity (the module's docs).
+/// since ace-rs has no detection that predates detection identity (the module's docs).
 #[tokio::test]
 async fn a_refused_cause_fails_the_whole_batch() {
     let test_db = TestDb::new().await;
@@ -19973,7 +19973,7 @@ async fn contributing_detections_of_each_capture() {
 }
 
 /// test_config.py's `test_the_sample_pool_is_defined`: the pool is the bucket's, held. ace3's is a
-/// node-local, encrypted directory; ace4's bucket is one, shared, and unencrypted, as every pool of it is.
+/// node-local, encrypted directory; ace-rs's bucket is one, shared, and unencrypted, as every pool of it is.
 #[test]
 fn the_sample_pool_is_defined() {
     let settings = BucketSettings::default();
@@ -20114,7 +20114,7 @@ fn clear(captured: &Captured) {
 /// A bucket whose store can't be reached: a backend that's down.
 async fn broken_bucket(db: &Db) -> (Bucket, tempfile::TempDir) {
     let cache = tempfile::tempdir().expect("a cache directory");
-    let mut config = BucketConfig::from_env().expect("the ACE4_BUCKET_* variables");
+    let mut config = BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables");
     config.endpoint = Some("http://127.0.0.1:9".to_owned());
     config.path_style = true;
     let store = Store::new(
@@ -23290,7 +23290,7 @@ async fn what_cannot_be_replayed_is_skipped() {
     );
 }
 
-/// The corpus's bounds (new in ace4): past `max_corpus_files` or `max_corpus_bytes` the validation fails,
+/// The corpus's bounds (new in ace-rs): past `max_corpus_files` or `max_corpus_bytes` the validation fails,
 /// rather than reporting on part of the corpus.
 #[tokio::test]
 async fn the_corpus_is_bounded() {
@@ -24110,7 +24110,7 @@ async fn a_worker_that_loses_its_lease_stops() {
 }
 
 /// test_service.py's `test_the_service_starts_its_workers_and_stops_them`. ace3's
-/// `test_the_service_stays_idle_off_the_primary_node` has no counterpart: ace4 has no primary node, and
+/// `test_the_service_stays_idle_off_the_primary_node` has no counterpart: ace-rs has no primary node, and
 /// every replica's workers share the queue through the claim (`only_one_worker_claims_a_validation`).
 #[tokio::test]
 async fn the_workers_start_and_stop() {
@@ -24916,7 +24916,7 @@ async fn prune_svs_validations_records_its_row(db: &Db) -> String {
 //   routing_a_router_returning_something_else_is_skipped (a decision that can't be made: Rust's types leave
 //   nothing else to return), routing_a_decision_needs_a_usable_queue.
 //   TestConfiguration: routing_configured_routers_are_loaded, routing_one_broken_entry_is_named_and_stops_startup
-//   (ace3 loads the others; ace4 stops, as the rest of the overlay does), routing_unknown_settings_are_a_load_error;
+//   (ace3 loads the others; ace-rs stops, as the rest of the overlay does), routing_unknown_settings_are_a_load_error;
 //   test_the_shipped_configuration_loads is the site crate's
 //   the_shipped_routers_are_the_marker_router_and_the_built_in_one, since 7.10 batch 7a added svs_marker;
 //   test_loading_never_leaves_an_empty_registry has no case, as the routers are
@@ -26277,7 +26277,7 @@ mod routing_tests {
 //   test_the_service_refreshes_the_catalog, test_the_refresher_runs_until_stopped_and_survives_a_failure:
 //     ace-app's scheduler tests, svs_catalog_refresh_reads_the_catalog and
 //     svs_catalog_refresh_survives_a_failure.
-//   test_the_refresher_stays_idle_off_the_primary_node: no counterpart. ace4 has no primary node: every
+//   test_the_refresher_stays_idle_off_the_primary_node: no counterpart. ace-rs has no primary node: every
 //     replica's scheduler shares the task through its claim (6.7's two-replica test).
 //   test_cli_refresh_and_status, test_cli_refresh_reports_a_retired_repository,
 //     test_cli_refresh_reports_an_error: ace-app's svs tests of the same names.
@@ -46465,7 +46465,7 @@ mod svs_attribution_tests {
             ///   `post_analysis`. The router reads what the core's hook wrote (batch 6), so its record's
             ///   `confidence` is the standing attribution's, and a mismatch's run is the one its
             ///   detection's marker names.
-            /// - A message's text is ace4's: the run is in `svs_run`, not in the message.
+            /// - A message's text is ace-rs's: the run is in `svs_run`, not in the message.
             /// - ace3's `AUDIT:` records are audit rows here (5.3), and the association's and the
             ///   worklist's are logged too, with the same fields.
             mod logging {
@@ -47085,7 +47085,7 @@ mod svs_attribution_tests {
 /// `test_set_dispositions_does_not_take_a_frozen_alert` are the `a_disposition_*` tests;
 /// `test_change_alert_owner_takes`, `_assigns`, `_unassigns` and `_audits_who_made_the_change` are the
 /// `changing_owners_*` tests. `test_set_dispositions_leaves_ineligible_alerts_alone` is SVS's `eligible`
-/// check, which 7.10 batch 7a's closing tests cover (`svs_attribution_tests::association`): ace4's
+/// check, which 7.10 batch 7a's closing tests cover (`svs_attribution_tests::association`): ace-rs's
 /// closings read their own condition under the alert's lock instead of passing a callback.
 ///
 /// `tests/aceapi_v2/alerts/test_owner.py`'s service halves are `changing_owners_*` and
@@ -48328,7 +48328,7 @@ mod ownership_tests {
         let db = test_db.db();
         let service = service(db);
         let me = holding(&service, db, "seeded", &[("*", "*")]).await;
-        // seeded for the alert list first, as someone who used ace4 before the other screens seeded
+        // seeded for the alert list first, as someone who used ace-rs before the other screens seeded
         assert_eq!(
             service
                 .seed_saved_filters(&me, FilterScreen::Alerts)
@@ -48774,7 +48774,7 @@ mod search_tests {
             syntax::parse("observable:url:https://evil.example:8443/a").exact,
             vec![pair("url", "https://evil.example:8443/a")]
         );
-        // test_explicit_observable_accepts_an_unregistered_type: ace4 has no types beyond its own, so
+        // test_explicit_observable_accepts_an_unregistered_type: ace-rs has no types beyond its own, so
         // an unknown one is refused by the one gate for a filter, and reported
         let parsed = syntax::parse("observable:made_up:value");
         assert!(parsed.exact.is_empty());
@@ -48801,7 +48801,7 @@ mod search_tests {
             syntax::parse("uuid:1f2e3d4c-00").exact,
             vec![ExactTerm::Uuids(vec!["1f2e3d4c-00".to_owned()])]
         );
-        // test_uuid_field_wins_over_the_uuid_observable_type: `uuid:` is the alert's id. ace4 has no
+        // test_uuid_field_wins_over_the_uuid_observable_type: `uuid:` is the alert's id. ace-rs has no
         // observable type of that name, so the explicit form names a type that isn't one
         assert!(matches!(
             syntax::parse("uuid:1f2e3d4c").exact[0],
@@ -49792,7 +49792,7 @@ mod search_tests {
         assert_eq!(found.results[0].hits[0].text, "shared.example.com");
         assert_eq!(found.results[0].hits[0].score, 1.0);
         assert_eq!(ids(found), vec![alerts[4], alerts[2]]);
-        // test_the_type_has_to_match, and a value is matched as it is stored: ace4's types don't fold case
+        // test_the_type_has_to_match, and a value is matched as it is stored: ace-rs's types don't fold case
         assert_eq!(search("ipv4:shared.example.com").await.total, 0);
         assert_eq!(search("fqdn:SHARED.example.com").await.total, 0);
         assert_eq!(

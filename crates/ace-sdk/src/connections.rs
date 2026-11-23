@@ -18,8 +18,8 @@
 //!     connections:
 //!       mail_api: mail_readonly
 //! secrets:
-//!   mail_readonly_certificate: env:ACE4_MAIL_READONLY_CERTIFICATE
-//!   mail_readonly_certificate_password: env:ACE4_MAIL_READONLY_CERTIFICATE_PASSWORD
+//!   mail_readonly_certificate: env:ACE_RS_MAIL_READONLY_CERTIFICATE
+//!   mail_readonly_certificate_password: env:ACE_RS_MAIL_READONLY_CERTIFICATE_PASSWORD
 //! ```
 //!
 //! **A connection type** ([`ConnectionType`]) is what an integration declares for its service: its

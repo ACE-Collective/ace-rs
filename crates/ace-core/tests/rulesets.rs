@@ -18,7 +18,7 @@ fn git(dir: &Path, args: &[&str]) -> String {
         .arg(dir)
         .args([
             "-c",
-            "user.name=ace4 test",
+            "user.name=ace-rs test",
             "-c",
             "user.email=test@example.invalid",
             "-c",
@@ -55,7 +55,7 @@ async fn a_new_commit_gets_a_row_that_lists_the_files_left_out() {
     let test_db = TestDb::new().await;
     let cache = tempfile::tempdir().unwrap();
     let store = Store::new(
-        &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        &BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).unwrap(),
     )
     .await;
@@ -402,7 +402,7 @@ async fn the_detections_are_rules_of_the_ruleset_and_follow_the_list() {
     let test_db = TestDb::new().await;
     let cache = tempfile::tempdir().unwrap();
     let store = Store::new(
-        &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        &BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
         NodeCache::new(cache.path(), 1 << 30).unwrap(),
     )
     .await;

@@ -7,7 +7,7 @@
 //! core keeps them once per sha256 (`store.file_types`); they are not a result in the tree.
 //!
 //! `FileTypeAnalysis` is ace3's `file_type_analysis` result (`saq/modules/file_analysis/file_type.py`),
-//! which ace4 no longer stores. It is built from a file's facts and the path it is analyzed under
+//! which ace-rs no longer stores. It is built from a file's facts and the path it is analyzed under
 //! (`FileTypeAnalysis::from_facts`), because two of its checks read the name as well as the bytes,
 //! for what still reads it: the comparison's normal form, the modules ace3 makes depend on
 //! `file_type`, and the hooks' tree conditions. `TypeFacts::view` gives the tags and `yara_meta`

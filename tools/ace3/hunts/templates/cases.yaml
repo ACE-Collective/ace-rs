@@ -1,7 +1,7 @@
 # Templates written for 6.3's comparison (PLAN.md 6.3). make-templates renders each with ace3's
 # Jinja code in ace-dev-1 into ../reference/templates-cases.json, and
 # `the_template_cases_render_as_they_do_in_ace3` (crates/ace-hunt/src/render/cases.rs) renders them
-# with ace4 and diffs the two. Every template is rendered by every call against every event; a
+# with ace-rs and diffs the two. Every template is rendered by every call against every event; a
 # `rows` call takes the case's templates together, and `grouped` and `sd_grouped` get all the events
 # at once as `events`.
 

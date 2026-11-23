@@ -1,6 +1,6 @@
 # URL and IOC extraction against their deadlines
 
-PLAN.md 7.5 says `url_extraction` is done when a multi-line blob that times out in ace3 finishes in under 15 seconds in ace4. Both modules parse attacker text in one contained thread, so this also records what crafted text costs them against their limits: `url_extraction` has ace3's 15 s (deadline and CPU) and 2 GiB, `ioc_extraction` ace3's global 60 s and 2 GiB.
+PLAN.md 7.5 says `url_extraction` is done when a multi-line blob that times out in ace3 finishes in under 15 seconds in ace-rs. Both modules parse attacker text in one contained thread, so this also records what crafted text costs them against their limits: `url_extraction` has ace3's 15 s (deadline and CPU) and 2 GiB, `ioc_extraction` ace3's global 60 s and 2 GiB.
 
 Measured on 2026-11-09 on the dev container of `docs/measurements/build-loop.md` (Rancher Desktop, 10 CPUs), with ace3's and budge's stacks up and idle.
 
@@ -14,12 +14,12 @@ Measured on 2026-11-09 on the dev container of `docs/measurements/build-loop.md`
 - urlfinderlib's `find_urls` on the bytes, which is the module's work, 5 runs in one process: median 17.35 s, range 17.27 to 18.74 s.
 - With the cap raised to 600 s for one run (`fixtures/urls/uncapped.yaml`), the module finishes with the 6 URLs: the reference dump `url_extraction/chat_log.txt.uncapped`.
 
-**ace4**: `ACE4_URL_HOSTILE=<dir with chat_log.txt> ACE4_URL_RUNS=7 cargo test -p ace-pool --features test-pools --test supervisor measure_url_extraction -- --ignored --nocapture` submits the file with `extract_urls` to the real supervisor, which runs `url_extraction` as `ace4-task` under Landlock and seccomp with the module's limits. Each run appends a line, so each is a new file. The time runs from the root's submission to the task's end, so it includes the upload, the lease and the task process's start.
+**ace-rs**: `ACE_RS_URL_HOSTILE=<dir with chat_log.txt> ACE_RS_URL_RUNS=7 cargo test -p ace-pool --features test-pools --test supervisor measure_url_extraction -- --ignored --nocapture` submits the file with `extract_urls` to the real supervisor, which runs `url_extraction` as `ace-rs-task` under Landlock and seccomp with the module's limits. Each run appends a line, so each is a new file. The time runs from the root's submission to the task's end, so it includes the upload, the lease and the task process's start.
 
 - 7 runs: median 3.21 s, range 3.16 to 3.29 s. Each found the 6 URLs of ace3's dump, and `crates/ace-mod-urls/tests/reference.rs` checks the result against that dump field by field.
 - This is a dev build, in which the dev profile builds `ace-urlfinder`, `ace-pycompat`, `ace-mod-urls`, memchr, rustc-hash, fancy-regex and regex-automata at `opt-level = 3` (the root `Cargo.toml`); the rest of the task process is unoptimized. A release build of the port's binary (`urlfinderlib`, uncontained) took 2.95 s once.
 
-So ace4 finishes in about a fifth of ace3's cap, where ace3 doesn't finish. Getting there took three changes that keep the output: `urlsplit_head` for the start of a split where only the scheme and netloc matter, `fix_possible_value` copying a token only when a step changes it, and `is_netloc_valid_tld` reusing the URL's split. Before them the port took 48 s, because each of a token's ten `urlsplit`s copied 300 KB.
+So ace-rs finishes in about a fifth of ace3's cap, where ace3 doesn't finish. Getting there took three changes that keep the output: `urlsplit_head` for the start of a split where only the scheme and netloc matter, `fix_possible_value` copying a token only when a step changes it, and `is_netloc_valid_tld` reusing the URL's split. Before them the port took 48 s, because each of a token's ten `urlsplit`s copied 300 KB.
 
 ## Crafted text
 

@@ -1,0 +1,67 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PDFLinkTextAnalysis",
+      "details": {
+        "links": [
+          {
+            "line": null,
+            "page": 1,
+            "text": null,
+            "url": "https://example.com/p1"
+          },
+          {
+            "line": null,
+            "page": 2,
+            "text": "Rotated",
+            "url": "https://example.com/p2"
+          },
+          {
+            "line": null,
+            "page": 3,
+            "text": null,
+            "url": "https://example.com/p3"
+          }
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pdf:PDFLinkTextAnalysis",
+      "observables": [],
+      "summary": "PDF Link Text Analysis: 3 links, 1 with text",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/pdf/link_text_pages.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "link_text_pages.pdf",
+      "size": 2283,
+      "type": "file",
+      "value": "7fbe89fcd0949d27762ac190509f0b34e61b573d83341cf6cfa5170a8b51071a"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "link_text_pages.pdf",
+    "relationships": [],
+    "size": 2283,
+    "tags": [],
+    "type": "file",
+    "value": "7fbe89fcd0949d27762ac190509f0b34e61b573d83341cf6cfa5170a8b51071a",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

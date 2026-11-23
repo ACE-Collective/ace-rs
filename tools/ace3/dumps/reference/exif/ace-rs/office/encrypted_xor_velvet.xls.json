@@ -1,0 +1,141 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ExifAnalysis",
+      "details": {
+        "exifdata": {
+          "ExifTool:ExifToolVersion": 13.25,
+          "File:Directory": "<root>/files",
+          "File:FileAccessDate": "2026:11:21 15:07:49+00:00",
+          "File:FileInodeChangeDate": "2026:11:21 15:07:49+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
+          "File:FileName": "encrypted_xor_velvet.xls",
+          "File:FilePermissions": 100644,
+          "File:FileSize": 69125,
+          "File:FileType": "XLS",
+          "File:FileTypeExtension": "XLS",
+          "File:MIMEType": "application/vnd.ms-excel",
+          "FlashPix:AppVersion": 16.0,
+          "FlashPix:Author": "",
+          "FlashPix:CodePage": 1252,
+          "FlashPix:Company": "",
+          "FlashPix:CreateDate": "2015:06:05 18:17:20",
+          "FlashPix:HeadingPairs": [
+            "Worksheets",
+            1,
+            "Excel 4.0 Macros",
+            1
+          ],
+          "FlashPix:HyperlinksChanged": 0,
+          "FlashPix:LastModifiedBy": "",
+          "FlashPix:LinksUpToDate": 0,
+          "FlashPix:ModifyDate": "2020:09:07 15:00:28",
+          "FlashPix:ScaleCrop": 0,
+          "FlashPix:Security": 1,
+          "FlashPix:SharedDoc": 0,
+          "FlashPix:Software": "Microsoft Excel",
+          "FlashPix:TitleOfParts": [
+            "Sheet1",
+            "lh"
+          ],
+          "SourceFile": "<root>/files/encrypted_xor_velvet.xls"
+        },
+        "output_dir": "<root>/files/encrypted_xor_velvet.xls.exif"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.exif:ExifAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=metadata.exif"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.file_type:<class 'saq.modules.file_analysis.file_type.FileTypeAnalyzer'>",
+            "saq.modules.file_analysis.hash:<class 'saq.modules.file_analysis.hash.FileHashAnalyzer'>"
+          ],
+          "file_path": "encrypted_xor_velvet.xls.exif/exiftool.out",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "8a11042aaed553905bf28fcd0815b926cc7245104b1a332258e93b62441ff637"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 1148,
+          "tags": [],
+          "type": "file",
+          "value": "dba07e6e202f162d8e7e44946b5a4eaeaed674f8aaf4968c911765b18f265cc8",
+          "yara_meta": [
+            "type=metadata.exif"
+          ]
+        }
+      ],
+      "summary": "Exiftool Analysis: Author=, LastModifiedBy=, Software=Microsoft Excel, CreateDate=2015:06:05 18:17:20, ModifyDate=2020:09:07 15:00:28, Security=1, CodePage=1252, Company=, AppVersion=16.0, ScaleCrop=0, LinksUpToDate=0, SharedDoc=0, HyperlinksChanged=0, TitleOfParts=['Sheet1', 'lh'], HeadingPairs=['Worksheets', 1, 'Excel 4.0 Macros', 1]",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": true,
+        "is_office_ext": true,
+        "is_ole_file": true,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/vnd.ms-excel",
+        "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/office/encrypted_xor_velvet.xls",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "encrypted_xor_velvet.xls",
+      "size": 69125,
+      "type": "file",
+      "value": "8a11042aaed553905bf28fcd0815b926cc7245104b1a332258e93b62441ff637"
+    }
+  },
+  "module": "exif",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "encrypted_xor_velvet.xls",
+    "relationships": [],
+    "size": 69125,
+    "tags": [
+      "microsoft_office",
+      "ole"
+    ],
+    "type": "file",
+    "value": "8a11042aaed553905bf28fcd0815b926cc7245104b1a332258e93b62441ff637",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

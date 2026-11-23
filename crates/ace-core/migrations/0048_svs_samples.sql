@@ -12,7 +12,7 @@
 -- - The alert is the root's id (`root_id`), the uuid ace3 keys on, and the observable is its id in the
 --   root, where ace3 names an observable uuid. Neither is a foreign key: a capture outlives its alert, as
 --   ace3's does, and only casts no vote once the alert is gone.
--- - There's no `node`: ace4's bucket is one, shared by every node, where ace3's default pool is local to
+-- - There's no `node`: ace-rs's bucket is one, shared by every node, where ace3's default pool is local to
 --   the node that stored it.
 -- - The scanner's version is yara-x's, where ace3 records yara-python's and yara_scanner's.
 -- - Who retired or deleted is a `service.actor`, where ace3 stores a user id.

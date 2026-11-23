@@ -1,5 +1,5 @@
 //! `test_trace.py`: 35 cases; the 3 whose executable ran a one-liner run [`super::Echo`]. ace3 stores secrets in its
-//! encrypted store for the engine to load; ace4's caller hands the run its secrets.
+//! encrypted store for the engine to load; ace-rs's caller hands the run its secrets.
 
 use serde_json::{Value as Json, json};
 
@@ -13,7 +13,7 @@ fn secrets(values: &[&str]) -> Vec<String> {
     values.iter().map(|s| (*s).to_owned()).collect()
 }
 
-// TestSanitizeValue: ace3's secrets are a nested dict whose string leaves are the secrets; ace4's
+// TestSanitizeValue: ace3's secrets are a nested dict whose string leaves are the secrets; ace-rs's
 // caller hands over the leaves, so a nested secret is one of them
 
 #[test]
@@ -389,7 +389,7 @@ fn test_transform_with_property_trace() {
 
 #[test]
 fn test_step_duration_defaults_to_none() {
-    // ace3 checks a persisted trace without durations still loads; ace4's trace starts with none
+    // ace3 checks a persisted trace without durations still loads; ace-rs's trace starts with none
     assert_eq!(EventTrace::new(0).duration_ms, None);
 }
 
@@ -414,7 +414,7 @@ fn test_execute_populates_step_and_event_durations() {
 #[test]
 fn test_transform_error_skips_remaining_steps() {
     // an error stops the event's steps: the filter after it doesn't run (ace3's /bin/false fails,
-    // and so does ace4's executable step)
+    // and so does ace-rs's executable step)
     let config = logic(json!([
         {"transform": {"type": "event", "method": "property", "property_name": "result", "property_type": "str",
             "command": {"type": "executable", "path": "/bin/false"}}},

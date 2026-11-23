@@ -4,8 +4,8 @@
   "details": {
     "scan_results": [
       {
-        "rule": "ace4_fixture_zip_attachment",
-        "namespace": "ace4_fixture",
+        "rule": "ace_rs_fixture_zip_attachment",
+        "namespace": "ace_rs_fixture",
         "meta": {
           "description": "A zip archive that arrived as an email attachment",
           "meta_tags": "type=email.attachment",
@@ -45,8 +45,8 @@
         ]
       },
       {
-        "rule": "ace4_fixture_zip_any",
-        "namespace": "ace4_fixture",
+        "rule": "ace_rs_fixture_zip_any",
+        "namespace": "ace_rs_fixture",
         "meta": {
           "description": "Any zip archive",
           "modifiers": "no_alert",
@@ -87,18 +87,18 @@
       }
     ]
   },
-  "summary": "Yara Scan Results: matched yara rules ace4_fixture_zip_attachment, ace4_fixture_zip_any",
+  "summary": "Yara Scan Results: matched yara rules ace_rs_fixture_zip_attachment, ace_rs_fixture_zip_any",
   "analyzed": {
     "directives": [
       "sandbox"
     ],
     "detections": [
       {
-        "description": "test.zip matched yara rule ace4_fixture_zip_attachment",
+        "description": "test.zip matched yara rule ace_rs_fixture_zip_attachment",
         "details": {
           "sha256": "1f0e8019d2bc4dadef1395af870b509adf4e8a226dee0fb7716cc5d8c3a4d147",
-          "rule": "ace4_fixture_zip_attachment",
-          "namespace": "ace4_fixture",
+          "rule": "ace_rs_fixture_zip_attachment",
+          "namespace": "ace_rs_fixture",
           "rule_uuid": "ee5150dd-907d-4b1e-94d4-4b79aeb429bf"
         },
         "signature_uuid": "ee5150dd-907d-4b1e-94d4-4b79aeb429bf",
@@ -110,7 +110,7 @@
   "observables": [
     {
       "type": "yara_rule",
-      "value": "ace4_fixture_zip_attachment"
+      "value": "ace_rs_fixture_zip_attachment"
     },
     {
       "type": "signature_id",
@@ -118,11 +118,11 @@
     },
     {
       "type": "yara_string",
-      "value": "ace4_fixture_zip_attachment:$local_file_header"
+      "value": "ace_rs_fixture_zip_attachment:$local_file_header"
     },
     {
       "type": "yara_rule",
-      "value": "ace4_fixture_zip_any"
+      "value": "ace_rs_fixture_zip_any"
     },
     {
       "type": "signature_id",
@@ -130,7 +130,7 @@
     },
     {
       "type": "yara_string",
-      "value": "ace4_fixture_zip_any:$local_file_header"
+      "value": "ace_rs_fixture_zip_any:$local_file_header"
     }
   ]
 }

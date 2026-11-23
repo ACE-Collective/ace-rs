@@ -1,5 +1,5 @@
 {
-  "about": "The observables enabled for detection when tools/ace3/trees/make-trees runs ace3, its Redis cache for observable_detection (run_module.py --detections). tests/e2e/run adds the same to ace4's observable_detection list through the detection API before its comparison. make-trees also has ace3 export them to YARA rules (run_module.py --export-detections, PLAN.md 7.16), each with its place here from 1 as its id, and tests/e2e/run gives ace4's entries the same ids, since a rule's strings are named by them.",
+  "about": "The observables enabled for detection when tools/ace3/trees/make-trees runs ace3, its Redis cache for observable_detection (run_module.py --detections). tests/e2e/run adds the same to ace-rs's observable_detection list through the detection API before its comparison. make-trees also has ace3 export them to YARA rules (run_module.py --export-detections, PLAN.md 7.16), each with its place here from 1 as its id, and tests/e2e/run gives ace-rs's entries the same ids, since a rule's strings are named by them.",
   "detections": [
     {"type": "fqdn", "value": "corp.example"},
     {"type": "url", "value": "http://example.com/payload.exe"}

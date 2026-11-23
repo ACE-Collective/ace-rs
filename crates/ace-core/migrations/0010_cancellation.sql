@@ -1,5 +1,5 @@
 -- Cancellation (PLAN.md 2.12). Cancelling a root cancels its queued and delayed tasks and asks
--- its running ones to stop: cancel_requested is set, which notifies channel ace4_cancel with
+-- its running ones to stop: cancel_requested is set, which notifies channel ace_rs_cancel with
 -- the task's id, and the worker's next lease renewal sees it too. Dispositioning an alert
 -- cancels it and switches it to dispositioned mode.
 
@@ -16,7 +16,7 @@ ALTER TABLE analysis.roots
 CREATE FUNCTION queue.notify_cancel() RETURNS trigger
     LANGUAGE plpgsql AS $$
 BEGIN
-    PERFORM pg_notify('ace4_cancel', NEW.id::text);
+    PERFORM pg_notify('ace_rs_cancel', NEW.id::text);
     RETURN NULL;
 END
 $$;

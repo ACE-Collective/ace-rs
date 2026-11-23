@@ -71,7 +71,7 @@ def main(out):
         # 64 MB that doesn't compress, so it's stored and every byte is decrypted
         (work / "in" / "large.bin").write_bytes(os.urandom(64 * MB))
         (work / "in" / "small.txt").write_bytes(files.payload("small.txt"))
-        plain_pdf = (files.SAMPLES / "ace4" / "pdf" / "javascript.pdf").read_bytes()
+        plain_pdf = (files.SAMPLES / "ace-rs" / "pdf" / "javascript.pdf").read_bytes()
         (work / "in" / "plain.pdf").write_bytes(plain_pdf)
         files.docker(
             "-v", f"{work}:/w", "-w", "/w/in", files.DEBIAN, "sh", "-c",

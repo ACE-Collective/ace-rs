@@ -4,7 +4,7 @@ way ace3's zip_encryption_analyzer, rar_encryption_analyzer and pdf_encryption_a
 emails that carry some of them with their password in the body.
 
     tools/samples/make-encrypted-files    writes tools/ace3/dumps/fixtures/encrypted/{zip,rar,pdf},
-                                          the dumps' files, and samples under samples/ace4, in the
+                                          the dumps' files, and samples under samples/ace-rs, in the
                                           manifest
 
 The zips are 7-Zip's and Info-ZIP's and the PDFs qpdf's, in a debian:trixie-slim container. The RARs
@@ -33,7 +33,7 @@ DEBIAN = "debian:trixie-slim"
 RAR_URL = "https://www.rarlab.com/rar/rarlinux-x64-624.tar.gz"
 RAR_SHA256 = "88e22a8e84125c947637bbf28c746e338a0a63279d80f9f9d7373603875db1eb"
 FIXED_EPOCH = 1577880000  # 2020-01-01 12:00 UTC
-PLAIN_PDF = SAMPLES / "ace4" / "pdf" / "javascript.pdf"
+PLAIN_PDF = SAMPLES / "ace-rs" / "pdf" / "javascript.pdf"
 
 
 def payload(name):
@@ -141,7 +141,7 @@ def carrying_email(name, body, attachment, data, html=None):
     return message.as_bytes()
 
 
-# samples/ace4/email/<name>: (attachment, the fixture it is, body)
+# samples/ace-rs/email/<name>: (attachment, the fixture it is, body)
 EMAILS = {
     "encrypted_zip_aes.email.rfc822": ("invoice.zip", "aes256.zip", "The password is Aes256Pw thanks\n"),
     "encrypted_zip_wrong.email.rfc822": ("invoice.zip", "zipcrypto.zip", "The password is Wr0ngOne\n"),
@@ -171,17 +171,17 @@ def main():
     manifest_path = SAMPLES / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     entries = []
-    email_dir = SAMPLES / "ace4" / "email"
+    email_dir = SAMPLES / "ace-rs" / "email"
     for name, (attachment, fixture, body) in EMAILS.items():
         data = carrying_email(name.split(".")[0], body, attachment, made[fixture])
         (email_dir / name).write_bytes(data)
-        entries.append((f"ace4/email/{name}", data, ["email", "archive/password" if "pdf" not in fixture else "pdf"],
+        entries.append((f"ace-rs/email/{name}", data, ["email", "archive/password" if "pdf" not in fixture else "pdf"],
                         f"Python email, {fixture} of tools/ace3/dumps/fixtures/encrypted as {attachment}, "
                         + (f"the body: {body.strip()}" if body else "no body"), "email.rfc822", []))
-    rar_dir = SAMPLES / "ace4" / "archive"
+    rar_dir = SAMPLES / "ace-rs" / "archive"
     rar_dir.mkdir(parents=True, exist_ok=True)
     (rar_dir / "encrypted_rar4_headers.rar").write_bytes(made["rar4_headers.rar"])
-    entries.append(("ace4/archive/encrypted_rar4_headers.rar", made["rar4_headers.rar"], ["archive/rar", "archive/password"],
+    entries.append(("ace-rs/archive/encrypted_rar4_headers.rar", made["rar4_headers.rar"], ["archive/rar", "archive/password"],
                     "rar 6.24, RAR4 with its headers encrypted (-hp), no email", "encrypted_rar4_headers.rar",
                     ["type=email.attachment"]))
     manifest["samples"] = [s for s in manifest["samples"] if not s["source"].startswith(f"made by {SOURCE}")]

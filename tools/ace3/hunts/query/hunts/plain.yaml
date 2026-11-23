@@ -4,8 +4,8 @@ rule:
   uuid: 00000000-0000-0000-0000-00000000a001
   name: "{{ user }} signed in from {{ src_ip }}"
   description: one alert a row, with the row's fields in its name, tags and links
-  query: index=auth ace4case=plain action=success
-  query_prefix: "`ace4_macro`"
+  query: index=auth ace_rs_case=plain action=success
+  query_prefix: "`ace_rs_macro`"
   query_suffix: "| eval seen=1"
   description_field: app
   playbook_url: "https://wiki.example.com/playbooks/{{ app }}"

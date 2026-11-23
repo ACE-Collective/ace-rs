@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "85c8e9e5",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/pdf/annots_string.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "annots_string.pdf",
+      "size": 331,
+      "type": "file",
+      "value": "aad8a97acbe86d8911784138ac04b15b2ce42a23a94f96195524f88db94738aa"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "annots_string.pdf",
+    "relationships": [],
+    "size": 331,
+    "tags": [],
+    "type": "file",
+    "value": "aad8a97acbe86d8911784138ac04b15b2ce42a23a94f96195524f88db94738aa",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

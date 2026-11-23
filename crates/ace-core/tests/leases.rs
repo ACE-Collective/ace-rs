@@ -17,18 +17,18 @@ use tokio_util::sync::CancellationToken;
 use common::{root_with, worker};
 
 /// Set to a test database's name, it makes `worker_process` the killed worker.
-const CHILD: &str = "ACE4_LEASE_TEST_CHILD";
+const CHILD: &str = "ACE_RS_LEASE_TEST_CHILD";
 const LEASE: Duration = Duration::from_secs(2);
 
 /// Not a test of its own: the worker process the kill test starts and kills. It claims the task,
-/// keeps its lease and never finishes. Without `ACE4_LEASE_TEST_CHILD` it returns at once.
+/// keeps its lease and never finishes. Without `ACE_RS_LEASE_TEST_CHILD` it returns at once.
 #[tokio::test]
 async fn worker_process() {
     let Ok(database) = std::env::var(CHILD) else {
         return;
     };
     let config = DbConfig::from_env("lease-test-child")
-        .expect("ACE4_DATABASE_URL")
+        .expect("ACE_RS_DATABASE_URL")
         .database(&database);
     let db = Db::connect(&config).await.expect("connects");
     let worker = Worker::new(db, "child", vec!["slow_module".to_owned()], LEASE);

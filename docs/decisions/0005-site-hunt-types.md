@@ -1,17 +1,17 @@
 # 0005: A site's hunt types, query sources and named alert summaries
 
-Status: designed and built on 2026-11-21 as PLAN.md decision 40, for a site's batch C2 (its LogScale hunts) and a later batch, D3. It follows the extension points ace4 already has: `App::hunt_type` for a hunt type's validation, `App::command_type_with_connections` and the overlay's shared connections for a correlation command type, and `App::alert_summary` for the alert page's summary. *What the owner decides* lists the two choices it left open, which the owner made on 2026-11-22: a search past its timeout fails the run, and Splunk's instances became shared connections (PLAN.md decision 41), which changes *Splunk on the same path* below. PLAN.md decision 43 (2026-11-22) moved a row's event time from the search onto the hunt type, which changes *A hunt type's search*.
+Status: designed and built on 2026-11-21 as PLAN.md decision 40, for a site's batch C2 (its LogScale hunts) and a later batch, D3. It follows the extension points ace-rs already has: `App::hunt_type` for a hunt type's validation, `App::command_type_with_connections` and the overlay's shared connections for a correlation command type, and `App::alert_summary` for the alert page's summary. *What the owner decides* lists the two choices it left open, which the owner made on 2026-11-22: a search past its timeout fails the run, and Splunk's instances became shared connections (PLAN.md decision 41), which changes *Splunk on the same path* below. PLAN.md decision 43 (2026-11-22) moved a row's event time from the search onto the hunt type, which changes *A hunt type's search*.
 
 ## The problem
 
-A site's inventory (its `docs/modules.md`, *Missing extension points*) names four gaps that stop a site's hunts from running in ace4:
+A site's inventory (its `docs/modules.md`, *Missing extension points*) names four gaps that stop a site's hunts from running in ace-rs:
 
 2. A hunt type adds only its validation (`App::hunt_type`). `ace hunter` runs a hunt only when its `type` is `splunk`, and skips any other, saying it "waits for its client". There is no way for a site to say how its hunts' query runs.
 3. A correlation's query sources are a closed enum with one variant, Splunk (`ace_app::hunter::QuerySourceConfig`). A site can't add one.
 4. Credentials: since `v0.7.8-g2` a command type takes the shared connections its overlay entry binds, and `ace hunter` resolves their secrets. Nothing gives a hunt type's query or a query source a connection.
-9. ace3 picks an alert's template by the hunt's `alert_template` before it looks at the alert's type (`saq/gui/alert.py`, `GUIAlertPresenter.template_path`). ace4 keeps `alert_template` in the submission's `extensions` and picks a summary by type only.
+9. ace3 picks an alert's template by the hunt's `alert_template` before it looks at the alert's type (`saq/gui/alert.py`, `GUIAlertPresenter.template_path`). ace-rs keeps `alert_template` in the submission's `extensions` and picks a summary by type only.
 
-Splunk, ace4's own hunt type, is special-cased throughout `ace_app::hunter`: its instances, its search, its event time, its source. The design puts Splunk on the same path a site's type takes, so there is one.
+Splunk, ace-rs's own hunt type, is special-cased throughout `ace_app::hunter`: its instances, its search, its event time, its source. The design puts Splunk on the same path a site's type takes, so there is one.
 
 ## The design
 
@@ -86,7 +86,7 @@ So a site's vendor connection can be held by the lookups pool (the vendor's modu
 
 `App::alert_template::<T: AlertSummary>(name)` adds a summary under a template name, such as `example/ticket.html`. The alert page's choice becomes ace3's: the submission's `extensions.alert_template` first, when a summary has that name, then the alert's type as now, then the default. A name with no summary falls through to the type, where ace3 would fail to render the page; that is logged. The open-source hunt summary is registered under ace3's own name too, `analysis/custom/hunter_splunk.html`, which two of the signatures' hunts name.
 
-The summaries live in the binary, as askama templates, as the owner's direction of 2026-11-15 has it for summaries by type ("a site/integration can register its own through `App`"). ace3's Manual Analysis list of selectable templates (`custom_alerts.selectable_templates`) has no counterpart, since ace4 has no Manual Analysis page; when it has one, it offers the named summaries.
+The summaries live in the binary, as askama templates, as the owner's direction of 2026-11-15 has it for summaries by type ("a site/integration can register its own through `App`"). ace3's Manual Analysis list of selectable templates (`custom_alerts.selectable_templates`) has no counterpart, since ace-rs has no Manual Analysis page; when it has one, it offers the named summaries.
 
 ## What it changes
 
@@ -98,5 +98,5 @@ The summaries live in the binary, as askama templates, as the owner's direction 
 
 ## What the owner decides
 
-1. **A search's timeout.** (Decided 2026-11-22: a search past its timeout fails the run.) A site's Python search returns the rows it has when its timeout passes, which is none until the search is done, and ace3's hunter then records the window as searched, so a slow search silently skips a window. ace4's Splunk search fails the run instead, and the window is searched again on the next tick. Recommendation: the site's search fails too, as built; its AI backend already turns the same case into a 504.
+1. **A search's timeout.** (Decided 2026-11-22: a search past its timeout fails the run.) A site's Python search returns the rows it has when its timeout passes, which is none until the search is done, and ace3's hunter then records the window as searched, so a slow search silently skips a window. ace-rs's Splunk search fails the run instead, and the window is searched again on the next tick. Recommendation: the site's search fails too, as built; its AI backend already turns the same case into a 504.
 2. **Splunk's instances.** (Decided 2026-11-22: they become shared connections of type `splunk`, PLAN.md decision 41.) They stay in the hunter configuration, so `ace serve` can't build the Splunk query sources for validation and the Splunk AI backend repeats an instance's settings. Recommendation: leave them for now; if the owner wants one place for every credential, they become shared connections of a type `splunk`, which needs a binding per instance name, not per fixed slot.

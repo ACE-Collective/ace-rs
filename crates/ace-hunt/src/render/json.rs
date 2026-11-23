@@ -176,7 +176,7 @@ impl Parser<'_> {
         } else {
             text.parse::<i128>()
                 .map(Loaded::Int)
-                .map_err(|_| DecodeError("integer past 128 bits (ace4 limit)".to_owned()))
+                .map_err(|_| DecodeError("integer past 128 bits (ace-rs limit)".to_owned()))
         }
     }
 

@@ -10,7 +10,7 @@ use sqlx::{Connection, PgConnection};
 /// The databases on the server whose names start with `prefix`.
 async fn databases(prefix: &str) -> BTreeSet<String> {
     let options = DbConfig::from_env("ace-core-test")
-        .expect("ACE4_DATABASE_URL")
+        .expect("ACE_RS_DATABASE_URL")
         .database("postgres")
         .connect_options();
     let mut admin = PgConnection::connect_with(&options)
@@ -63,13 +63,13 @@ async fn tests_run_in_parallel_on_separate_databases() {
     }
 
     // one template, named for the current migrations and seed
-    let templates = databases("ace4_template_").await;
+    let templates = databases("ace_rs_template_").await;
     assert_eq!(templates, BTreeSet::from([template_name()]));
 
     // dropping a test's database handle drops the database
     let gone: Vec<String> = test_dbs.iter().map(|t| t.name().to_owned()).collect();
     drop(test_dbs);
-    let left = databases("ace4_test_").await;
+    let left = databases("ace_rs_test_").await;
     for name in gone {
         assert!(!left.contains(&name), "{name} is still there");
     }

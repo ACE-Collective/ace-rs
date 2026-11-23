@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Writes the samples of PLAN.md 7.5 batch 13's pcap modules (pcap_analyzer, pcap_dns, pcap_tls,
-pcap_http, pcap_files, pcap_tls_decryption, tls_keylog) into samples/ace4/pcap/ and adds them to
+pcap_http, pcap_files, pcap_tls_decryption, tls_keylog) into samples/ace-rs/pcap/ and adds them to
 samples/manifest.json, replacing any it added before. ace3's own fixtures (network.pcap,
 http_tls.pcapng, http_tls_dsb.pcapng and sslkeylog.txt, a loopback capture of curl over TLS 1.2 and
 1.3 with its key log) are in samples/ace3/pcap/.
@@ -46,7 +46,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
 SAMPLES = REPO / "samples"
-OUT = SAMPLES / "ace4" / "pcap"
+OUT = SAMPLES / "ace-rs" / "pcap"
 ACE3 = SAMPLES / "ace3" / "pcap"
 
 _spec = importlib.util.spec_from_file_location("pcaplib", HERE / "pcaplib.py")

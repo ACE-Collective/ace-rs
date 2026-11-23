@@ -6,7 +6,7 @@
       "body_sha256": "d82625da61bc51f540d4d13a702d9a87cb8600b5e24a92e1cc58aa11b20d0fbf",
       "body_size": 136,
       "method": "POST",
-      "request_body": "username=ace4&password=%3Credacted%3E&cookie=1",
+      "request_body": "username=ace-rs&password=%3Credacted%3E&cookie=1",
       "request_headers": {
         "Accept": "*/*",
         "Accept-Encoding": "identity",
@@ -79,7 +79,7 @@
       "body_sha256": "dd64f6a27b045d96c4042cd94d42cbf916f1db4c379e3e8f37348e20c14ad3f7",
       "body_size": 88,
       "method": "POST",
-      "request_body": "search=search+index%3Dace4_clicks+sourcetype%3D%22ace4%3Aclick%22+Url%3D%28%22https%3A%2F%2Fclick.example.com%2Flogin%22%29+earliest+%3D+11%2F14%2F2026%3A14%3A01%3A11+latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId%0A&max_count=1000&exec_mode=normal",
+      "request_body": "search=search+index%3Dace_rs_clicks+sourcetype%3D%22ace-rs%3Aclick%22+Url%3D%28%22https%3A%2F%2Fclick.example.com%2Flogin%22%29+earliest+%3D+11%2F14%2F2026%3A14%3A01%3A11+latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId%0A&max_count=1000&exec_mode=normal",
       "request_headers": {
         "Accept": "*/*",
         "Accept-Encoding": "identity",
@@ -295,7 +295,7 @@
       "body_sha256": "815ce16dd6c79d9d97e9a291a1bc3a00d7228f1c54bfbe17b702d36adf7730d7",
       "body_size": 88,
       "method": "POST",
-      "request_body": "search=search+index%3Dace4_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F20%2F2026%3A14%3A01%3A11+_index_latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%60%60%60one+comment+the+web+link+leaves+out%60%60%60%0A%7C+table+_time+user+url%0A&max_count=1000&exec_mode=normal",
+      "request_body": "search=search+index%3Dace_rs_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F20%2F2026%3A14%3A01%3A11+_index_latest+%3D+11%2F21%2F2026%3A15%3A01%3A11%0A%60%60%60one+comment+the+web+link+leaves+out%60%60%60%0A%7C+table+_time+user+url%0A&max_count=1000&exec_mode=normal",
       "request_headers": {
         "Accept": "*/*",
         "Accept-Encoding": "identity",

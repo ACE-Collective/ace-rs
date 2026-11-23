@@ -80,7 +80,7 @@ impl Refresher {
             .connect_timeout(Duration::from_secs(10))
             .read_timeout(Duration::from_secs(60))
             .timeout(FETCH_TIMEOUT)
-            .user_agent(concat!("ace4-nrd-refresh/", env!("CARGO_PKG_VERSION")));
+            .user_agent(concat!("ace-rs-nrd-refresh/", env!("CARGO_PKG_VERSION")));
         if let Some(path) = &section.ca_certificates {
             let pem = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
             builder = builder

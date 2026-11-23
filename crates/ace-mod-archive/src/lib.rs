@@ -302,7 +302,7 @@ impl Parser for ArchiveAnalyzer {
             if is_ace(file, &head, file_type.as_ref()) {
                 return ace::analyze(ctx, file);
             }
-            return Ok(Outcome::Skipped("not an archive ace4 opens".to_owned()));
+            return Ok(Outcome::Skipped("not an archive ace-rs opens".to_owned()));
         };
         ctx.check_cancelled()?;
 

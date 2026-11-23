@@ -28,7 +28,7 @@ CREATE TABLE hunts.suppressions (
     -- The window the hit fell into: from the earlier hit, for the suppression or the dedup key's life.
     window_start timestamptz NOT NULL,
     window_end timestamptz NOT NULL,
-    -- The earlier hit's root, when ace4 made it.
+    -- The earlier hit's root, when ace-rs made it.
     cause_root uuid,
     -- The window the run searched.
     search_start timestamptz,

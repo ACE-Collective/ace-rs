@@ -10,7 +10,7 @@
 //! - GC deletes only objects no hold has kept for their pool's grace. What let each go is already
 //!   recorded where it happened: a purge's or a prune's audit row released a QA match's hold, and a
 //!   hold with an expiry lapsed as its writer set it. GC is the retention the index says, applied,
-//!   and in ace3 it's audited nowhere either (`cas_purges` audits a forced purge, which ace4 doesn't have).
+//!   and in ace3 it's audited nowhere either (`cas_purges` audits a forced purge, which ace-rs doesn't have).
 //! - The orphan sweep deletes bytes no index row names. They were never an object anything held:
 //!   what a put left when its transaction didn't commit.
 //! - The verify deletes nothing. It records `verified_at`, and lists what's missing or corrupt.

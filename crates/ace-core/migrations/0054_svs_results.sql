@@ -87,7 +87,7 @@ CREATE TRIGGER run_comments_touch BEFORE UPDATE ON svs.run_comments
 -- What SVS reads of each rule in a ruleset that has a `uuid` meta (`ace_yara::ruleset::RuleSignature`):
 -- [{uuid, name, content_hash, tags, counts}], the rule's name, the sha256 of its own text, its tags and
 -- whether its tags count toward coverage (enabled, and not in QA mode). ace3 reads these from its
--- signature inventory; ace4's is the ruleset the pools scan with. NULL is a row built before this column,
+-- signature inventory; ace-rs's is the ruleset the pools scan with. NULL is a row built before this column,
 -- which the builder fills in on its next run by building that commit again, as it does `qa_rules`.
 ALTER TABLE yara.rulesets ADD COLUMN signatures jsonb;
 

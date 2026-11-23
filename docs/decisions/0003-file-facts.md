@@ -30,7 +30,7 @@ A few of today's flags depend on the name as well as the bytes (`is_office_ext`,
 
 - **The core no longer runs libmagic.** Today `ace-store` computes a mime type for every file the core spools (an API submission, a task's upload) in the core's own process (`crates/ace-store/src/spool.rs`, `mime_type_of`). That is hostile bytes parsed outside containment. The facts replace it: the store records no type, and `store.objects.mime_type`, which decision 23's declarations read, comes from the facts.
 - **`file_type` stops being an analysis module** and becomes the facts step. Its result is no longer a result in the tree.
-- **The comparison with ace3.** ace3's trees have a `file_type_analysis` result on every file. ace4's normal form builds that result from the file's facts, so the comparison checks the same values, and a difference in a fact shows as it does today.
+- **The comparison with ace3.** ace3's trees have a `file_type_analysis` result on every file. ace-rs's normal form builds that result from the file's facts, so the comparison checks the same values, and a difference in a fact shows as it does today.
 - **Observable types are unchanged.** A file is still `file`; nothing in a hunt, a signature or the API's types moves.
 - **A site** declares on the facts the same way, and adds role values as it adds observable types, through `App`, so the vocabulary is fixed when the binary is built.
 

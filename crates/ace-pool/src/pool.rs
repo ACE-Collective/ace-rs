@@ -51,7 +51,7 @@ pub const POOL_ADDRESS_SPACE: u64 = 4 << 30;
 
 /// The variable that names the bucket's endpoint, as the core's (`ace_store::BucketConfig`), which
 /// a network pool reads for its port when one of its modules adds files it fetched.
-pub const BUCKET_ENDPOINT_VAR: &str = "ACE4_BUCKET_ENDPOINT";
+pub const BUCKET_ENDPOINT_VAR: &str = "ACE_RS_BUCKET_ENDPOINT";
 
 /// The port a URL's scheme and authority name: its own, or 80 for `http` and 443 for `https`.
 pub fn url_port(url: &str) -> Option<u16> {
@@ -69,7 +69,7 @@ pub fn url_port(url: &str) -> Option<u16> {
     }
 }
 
-/// The bucket's port, from its endpoint as the core has it (`ACE4_BUCKET_ENDPOINT`): with none,
+/// The bucket's port, from its endpoint as the core has it (`ACE_RS_BUCKET_ENDPOINT`): with none,
 /// the core signs for AWS S3 over HTTPS, so 443. An endpoint whose port can't be read is refused.
 pub fn bucket_port(endpoint: Option<&str>) -> Result<u16, String> {
     match endpoint.map(str::trim).filter(|e| !e.is_empty()) {
