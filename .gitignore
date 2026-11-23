@@ -1,6 +1,8 @@
 /target/
 # make coverage's report.
 /coverage/
+# Coverage data a sandboxed helper writes where it runs, without cargo-llvm-cov's settings.
+*.profraw
 .DS_Store
 /samples/local/
 /.claude/worktrees/
