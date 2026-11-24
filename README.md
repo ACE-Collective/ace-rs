@@ -71,6 +71,9 @@ make help       # the other targets
 copy of every test program, which peaks at about 23 GB on Docker's disk, and refuses to start with
 less than 35 GB free there.
 
+A site's own workspace, which builds its binaries from these crates, can build against this
+checkout's working tree while you change both: see the site workspace's README (`make live`).
+
 ## Why Rust, Postgres and the rest
 
 This is a short version of [DESIGN.md](DESIGN.md).

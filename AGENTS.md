@@ -55,6 +55,14 @@ Your own untracked instructions go in `CLAUDE.local.md` or `AGENTS.local.md`, wh
 A site's integrations live in a repository of its own, which depends on these crates by git tag and
 builds its own binaries through `ace-app`. Nothing here names a site (see *Conventions*).
 
+**Changing a site's workspace too.** A change that spans this repository and a site's is made in both
+checkouts at once: the site's `make live` builds it against this checkout's working tree, with no
+commit or tag here, and its `make pinned` goes back to its tag. Build and test the site's side from
+its checkout. Where the site workspaces are is in `.site-workspaces` at this checkout's root, one
+path per line, which git ignores. When a change needs a site's workspace and that file is missing or
+doesn't name it, ask the user where it is and write the path there. Nothing of the site's (its code,
+its names, its path) goes into a file this repository tracks.
+
 ## Environment
 
 Everything builds and runs in the Compose stack's `dev` container. `make up` starts it with Postgres,
