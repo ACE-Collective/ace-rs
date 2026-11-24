@@ -3,7 +3,7 @@
 //! fake Splunk replayed from the recording beside each dump. Every difference is listed and
 //! explained in differences.md, next to this file.
 
-mod common;
+use crate::common;
 
 use std::path::Path;
 

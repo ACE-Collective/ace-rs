@@ -1,7 +1,7 @@
 //! PLAN.md 1.10: the replay child reads replay.py's job.json and returns child.py's result,
 //! with offsets.
 
-mod common;
+use crate::common;
 
 use std::path::Path;
 

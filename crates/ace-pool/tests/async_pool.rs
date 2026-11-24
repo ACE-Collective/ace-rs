@@ -5,7 +5,7 @@
 //! lookup that doesn't declare it. And decision 45's: a lookup that reads its input file gets its
 //! bytes, and its pool the bucket's port, and one that doesn't gets neither.
 
-mod common;
+use crate::common;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;

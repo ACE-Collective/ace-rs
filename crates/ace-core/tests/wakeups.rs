@@ -1,6 +1,6 @@
 //! PLAN.md 2.8: workers wait on LISTEN/NOTIFY, with a bounded timeout as the fallback.
 
-mod common;
+use crate::common;
 
 use std::time::{Duration, Instant};
 

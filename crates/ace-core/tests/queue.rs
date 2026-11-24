@@ -1,6 +1,6 @@
 //! PLAN.md 2.6: tasks and claims. Two workers draining 1,000 tasks run each one exactly once.
 
-mod common;
+use crate::common;
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};

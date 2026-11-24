@@ -3,7 +3,7 @@
 //! (`ace_core::metrics`, ace3's per-root and per-module ones): one for each completed pass, with the
 //! root's counts, and one for each module that ran in it, with its tasks' run times.
 
-mod common;
+use crate::common;
 
 use std::sync::Arc;
 use std::time::Duration;

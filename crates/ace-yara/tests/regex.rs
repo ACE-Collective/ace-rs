@@ -1,6 +1,6 @@
 //! PLAN.md 1.3: every `re:` item compiles with the regex crate while the rules load.
 
-mod common;
+use crate::common;
 
 use ace_yara::filter::{DirectiveKind, Target};
 use ace_yara::{FileOutcome, LoadOptions, load_dir};

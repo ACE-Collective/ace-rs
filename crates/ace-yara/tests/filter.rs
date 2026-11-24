@@ -3,7 +3,7 @@
 //! tools/ace3/yara/filter_cases.py runs the same table through yara_scanner_v2's
 //! filter_scan_results in ace3's dev container, so the expected values are ace3's.
 
-mod common;
+use crate::common;
 
 use std::collections::BTreeSet;
 

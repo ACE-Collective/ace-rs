@@ -6,7 +6,7 @@
 //! pool scans with that ruleset (2.26). The core's QA recorder runs in the test. A second file,
 //! which a rule that may alert matches, shows the same root mode does alert.
 
-mod common;
+use crate::common;
 
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;

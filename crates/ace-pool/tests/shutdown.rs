@@ -3,7 +3,7 @@
 //! task's cancellation stops, and with one stuck in a blocking call, which nothing stops, so
 //! the pool abandons it at the deadline and gives its lease back.
 
-mod common;
+use crate::common;
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};

@@ -4,7 +4,7 @@
 //! (samples/local/ only where tools/samples/gather made it). Step 1.11 makes the same
 //! comparison against ace3's own `file` over the sample set.
 
-mod common;
+use crate::common;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;

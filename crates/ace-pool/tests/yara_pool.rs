@@ -6,7 +6,7 @@
 //! rules, and the core builds it (2.25). The pool is the test pool binary in its parsers mode,
 //! with task processes as the dev image's ace-rs-task user.
 
-mod common;
+use crate::common;
 
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;

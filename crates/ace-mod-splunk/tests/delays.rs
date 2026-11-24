@@ -3,7 +3,7 @@
 //! search that finishes gives delays and then a result; one that never finishes times out.
 //! Nothing here reaches a real Splunk.
 
-mod common;
+use crate::common;
 
 use std::path::Path;
 use std::time::Duration;

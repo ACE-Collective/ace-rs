@@ -6,6 +6,8 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
+# the tests are one program, tests/main.rs
+autotests = false
 
 [dependencies]
 magic = "0.17.0"
@@ -33,3 +35,7 @@ tracing-subscriber = { version = "0.3.23", features = ["fmt"] }
 
 [lints]
 workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"

@@ -4,7 +4,7 @@
 //! registry holding the sample type from `common`, so its snapshot changes only with the envelope,
 //! not with each module's details.
 
-mod common;
+use crate::common;
 
 use ace_results::{AnalysisTypeInfo, Registry};
 use common::SampleAnalysis;

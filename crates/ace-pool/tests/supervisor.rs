@@ -4,7 +4,7 @@
 //! in its parsers mode, running task processes as the dev image's ace-rs-task user. Also: a cancel
 //! and a shutdown each kill a running task process. `hung_tasks.rs` covers the deadline.
 
-mod common;
+use crate::common;
 
 use std::os::unix::fs::PermissionsExt;
 use std::time::{Duration, Instant};

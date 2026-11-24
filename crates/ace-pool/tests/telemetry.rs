@@ -3,7 +3,7 @@
 //! spans to the telemetry profile's collector, and the task's spans from both land in one trace,
 //! each carrying the task id. Needs `docker compose --profile telemetry up -d --wait collector`.
 
-mod common;
+use crate::common;
 
 use std::collections::BTreeSet;
 use std::time::Duration;

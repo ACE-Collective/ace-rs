@@ -3,7 +3,7 @@
 //! queues the correlation group's modules for the observables already in the tree; and a
 //! cancelled dependency leaves its dependents waiting, not failed (ace3 #846).
 
-mod common;
+use crate::common;
 
 use std::collections::BTreeSet;
 use std::time::Duration;

@@ -2,7 +2,7 @@
 //! their cancellation token; dispositioning an alert cancels it and switches it to
 //! dispositioned mode, where only that mode's modules run.
 
-mod common;
+use crate::common;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;

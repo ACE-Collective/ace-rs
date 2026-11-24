@@ -1,7 +1,7 @@
 //! PLAN.md 1.17: a JSON result is checked against its type's schema, and a failure names the
 //! path of the field that failed.
 
-mod common;
+use crate::common;
 
 use ace_results::{
     AnalysisTypeInfo, FieldError, InvalidResult, Registry, ResultValidator, result_schema,

@@ -2,7 +2,7 @@
 //! delayed module, the Splunk module, runs through the queue against its recorded Splunk API,
 //! and runs again after each delay it asks for.
 
-mod common;
+use crate::common;
 
 use std::sync::Arc;
 use std::time::Duration;

@@ -5,7 +5,7 @@
 //! The builds compared here run in two processes and from two checkouts in different
 //! directories, so neither per-process hash seeds nor paths can hide in the bytes.
 
-mod common;
+use crate::common;
 
 use std::path::Path;
 use std::process::Command;
@@ -67,8 +67,17 @@ fn repository(root: &Path) -> String {
 /// The manifest of a build of `dir` in a new process: this test binary, running only
 /// `print_build_key`.
 fn manifest_in_another_process(dir: &Path) -> Manifest {
+    // libtest names a test by its path in the test program: this module's, less the crate's name
+    let (_, module) = module_path!()
+        .split_once("::")
+        .expect("a module of tests/main.rs");
     let output = Command::new(std::env::current_exe().unwrap())
-        .args(["--exact", "print_build_key", "--ignored", "--nocapture"])
+        .args([
+            "--exact",
+            &format!("{module}::print_build_key"),
+            "--ignored",
+            "--nocapture",
+        ])
         .env(KEY_DIR_VAR, dir)
         .output()
         .unwrap();

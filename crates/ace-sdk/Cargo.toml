@@ -6,6 +6,8 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
+# the tests are one program, tests/main.rs
+autotests = false
 
 [features]
 # The example modules, for this crate's tests and ace-testkit's.
@@ -53,3 +55,7 @@ tracing-subscriber = { version = "0.3.23", default-features = false, features = 
 
 [lints]
 workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/main.rs"

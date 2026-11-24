@@ -1,7 +1,7 @@
 //! PLAN.md 2.19's Done check: the supervisor kills a task process at its deadline and writes a
 //! failed-task row with the error and the input hashes.
 
-mod common;
+use crate::common;
 
 use std::time::{Duration, Instant};
 

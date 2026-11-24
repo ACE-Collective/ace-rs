@@ -5,7 +5,7 @@
 //! Neither asks for the other's variable or file, and each one's startup log lists only its
 //! own. A resolver task then runs through the lease API with the secret its pool resolved.
 
-mod common;
+use crate::common;
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};

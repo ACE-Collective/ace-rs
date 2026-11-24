@@ -2,7 +2,7 @@
 //! the task's input through the lease API by its hash and runs the module in its own process,
 //! uncontained, so a debugger can attach.
 
-mod common;
+use crate::common;
 
 use std::time::Duration;
 

@@ -2,7 +2,7 @@
 //! whose lease expired and fails one at its attempt limit. The Done check kills a real worker
 //! process mid-task.
 
-mod common;
+use crate::common;
 
 use std::process::Stdio;
 use std::time::{Duration, Instant};
@@ -51,9 +51,13 @@ async fn killing_a_worker_mid_task_reruns_the_task_after_its_lease_expires() {
         .expect("new");
     tx.commit().await.expect("commits");
 
+    // libtest names a test by its path in the test program: this module's, less the crate's name
+    let (_, module) = module_path!()
+        .split_once("::")
+        .expect("a module of tests/main.rs");
     let mut child = tokio::process::Command::new(std::env::current_exe().expect("the test binary"))
         .args([
-            "worker_process",
+            &format!("{module}::worker_process"),
             "--exact",
             "--nocapture",
             "--test-threads=1",

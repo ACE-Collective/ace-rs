@@ -2,7 +2,7 @@
 //! worker is the test pool binary, started with an empty environment plus the lease API's URL
 //! and its pool's token, so it holds no database URL and no bucket key.
 
-mod common;
+use crate::common;
 
 use std::path::Path;
 use std::time::Duration;

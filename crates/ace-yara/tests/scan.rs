@@ -1,7 +1,7 @@
 //! PLAN.md 1.5: a scan returns each match's namespace, rule, meta and pattern offsets, with
 //! the externals and the filter set from the file, and a timeout is an error.
 
-mod common;
+use crate::common;
 
 use std::collections::BTreeSet;
 use std::time::{Duration, Instant};

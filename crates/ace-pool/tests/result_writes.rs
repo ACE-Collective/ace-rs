@@ -2,7 +2,7 @@
 //! from it is written. PLAN.md 4.2: the rejection also fails its task at once. The worker here is
 //! this test, through the lease API's client.
 
-mod common;
+use crate::common;
 
 use std::time::Duration;
 

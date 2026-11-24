@@ -5,7 +5,7 @@
 //! recorded Splunk API (tools/ace3/dumps/reference/proxy_domain_lookup/), so nothing reaches a
 //! real Splunk. The overlay's other rules are unit tests in ace-sdk's `overlay`.
 
-mod common;
+use crate::common;
 
 use std::sync::Arc;
 use std::time::Duration;

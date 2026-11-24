@@ -1,6 +1,6 @@
 //! PLAN.md 1.1: a signature directory loads the way yara_scanner_v2 3.0.0 loads it.
 
-mod common;
+use crate::common;
 
 use std::collections::BTreeSet;
 
