@@ -58,6 +58,8 @@ struct Memory {
     takes: Mutex<Duration>,
     due: Mutex<bool>,
     salt: Mutex<String>,
+    /// How many lists it was asked for: one each pass.
+    lists: AtomicU32,
 }
 
 impl Memory {
@@ -68,6 +70,7 @@ impl Memory {
 
 impl DetectionExport for Memory {
     fn export_list(&self, detections: &[Detection]) -> ExportList {
+        self.lists.fetch_add(1, Ordering::SeqCst);
         select(&["email_address", "fqdn"], detections)
     }
 
@@ -511,12 +514,20 @@ async fn the_loop_runs_until_a_stop_or_once() {
     let (passes, failed) = run_passes(&exporter, &export, true, false, &stop).await;
     assert_eq!((passes, failed), (1, true), "one pass, which failed");
 
-    let stopping = stop.clone();
-    tokio::spawn(async move {
-        tokio::time::sleep(Duration::from_millis(300)).await;
-        stopping.cancel();
-    });
-    let (passes, failed) = run_passes(&exporter, &export, false, false, &stop).await;
+    // stopped once two more passes have begun, by count rather than after a fixed time, since a pass
+    // can take longer than any fixed time on a loaded machine
+    let begun = export.lists.load(Ordering::SeqCst);
+    let ((passes, failed), ()) =
+        tokio::join!(run_passes(&exporter, &export, false, false, &stop), async {
+            tokio::time::timeout(Duration::from_secs(60), async {
+                while export.lists.load(Ordering::SeqCst) < begun + 2 {
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+            })
+            .await
+            .expect("two more passes begin within 60 seconds");
+            stop.cancel();
+        },);
     assert!(passes > 1, "{passes}");
     assert!(!failed);
     assert_eq!(export.publishes(), 1, "then nothing changed");

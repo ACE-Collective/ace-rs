@@ -6477,8 +6477,27 @@ async fn a_lease_request_dropped_before_its_answer_gives_its_tasks_back() {
         );
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
-    // long enough for the first task's lease to be decided; the answer waits for the second
-    tokio::time::sleep(Duration::from_millis(500)).await;
+    // the request decides the leases one at a time, so once a session waits on the locked row, the
+    // second's has begun and the first's is decided; the answer waits for the second. Each test has
+    // a database of its own, so a waiting session in it is the request's.
+    let started = std::time::Instant::now();
+    loop {
+        let waiting: bool = sqlx::query_scalar(
+            "SELECT EXISTS (SELECT 1 FROM pg_stat_activity \
+             WHERE datname = current_database() AND wait_event_type = 'Lock')",
+        )
+        .fetch_one(db.pool())
+        .await
+        .expect("reads pg_stat_activity");
+        if waiting {
+            break;
+        }
+        assert!(
+            started.elapsed() < Duration::from_secs(30),
+            "the second task's lease never waited on the locked row"
+        );
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
     assert_eq!(
         states().await,
         [running.clone(), running.clone(), running.clone()]

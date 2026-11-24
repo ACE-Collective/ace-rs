@@ -2582,19 +2582,22 @@ async fn the_indexer_indexes_what_a_completed_pass_left_due() {
         std::time::Duration::from_millis(50),
         stop.clone(),
     ));
+    // Each wait only guards against a hang: an index is an embedding, which under coverage, with the
+    // rest of this crate's tests embedding beside it, has taken over 30 seconds.
     let started = Instant::now();
     while !due().await.is_empty() {
         assert!(
-            started.elapsed().as_secs() < 30,
+            started.elapsed().as_secs() < 120,
             "the worker didn't index the alert"
         );
         tokio::time::sleep(std::time::Duration::from_millis(20)).await;
     }
     // and a completion wakes it
     assert!(complete(alert).await.is_some());
+    let started = Instant::now();
     while !due().await.is_empty() {
         assert!(
-            started.elapsed().as_secs() < 30,
+            started.elapsed().as_secs() < 120,
             "the worker didn't wake for the completion"
         );
         tokio::time::sleep(std::time::Duration::from_millis(20)).await;

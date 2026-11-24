@@ -823,8 +823,10 @@ async fn a_tasks_run_time_is_from_each_claim_to_its_end_in_the_pass() {
             .expect("requeues")
     );
     tx.commit().await.expect("commits");
+    let second_run = std::time::Instant::now();
     let task = claim(&delayed).await;
     delayed.complete(task.id).await.expect("completes");
+    let second_run = second_run.elapsed().as_secs_f64();
     let events = emitted::of(root);
     assert_eq!(events.len(), 2);
     let modules: Vec<Value> = emitted::modules_of(root)
@@ -833,12 +835,14 @@ async fn a_tasks_run_time_is_from_each_claim_to_its_end_in_the_pass() {
         .collect();
     assert_eq!(modules.len(), 1, "{modules:?}");
     assert_eq!(modules[0]["exec_count"], 1, "the runs start over");
+    // its run alone takes no longer than its claim and its end did here; with the first pass's runs
+    // (0.25 s or more) it would be longer, unless that claim and end themselves took as long
     assert!(
         modules[0]["analysis_time_seconds"]
             .as_f64()
             .expect("a number")
-            < 0.25,
-        "{modules:?}"
+            <= second_run,
+        "{modules:?} in {second_run} s"
     );
     assert_module_events_add_up(db, root, 2, &events[1], &modules).await;
     let row: (Option<i32>, i32) =

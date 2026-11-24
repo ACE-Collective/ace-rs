@@ -95,7 +95,9 @@ async fn the_splunk_module_runs_again_after_each_delay_it_asks_for() {
         assert_eq!(waits.timed_out, 0);
         if let Some(run_after) = last_run_after {
             assert!(claimed_at >= run_after, "{claimed_at} before {run_after}");
-            assert!(waits.due >= 1, "{waits:?}");
+            // Not claimed before its due time, and never after a fallback's wait (timed_out, above).
+            // How it woke isn't checked: on a loaded machine the delay can end before the worker's
+            // first claim, or a notification can come once the task is due, and either is right.
             assert_eq!(
                 task.delayed.as_ref().map(|d| d.delays),
                 Some(runs.len() as u32)

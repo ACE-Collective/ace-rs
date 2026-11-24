@@ -70,11 +70,21 @@ async fn a_task_is_claimed_on_its_notification_without_the_fallback_firing() {
     assert_eq!(waits.notified, 1);
 }
 
+/// The task is queued a head start after the worker starts, so its first claim finds nothing and it
+/// waits. On a loaded machine the head start can run out before that first claim, which then takes
+/// the task without waiting and tests nothing: then it tries again with twice the head start, until
+/// one try waits.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn without_a_notification_the_fallback_still_finds_the_task() {
     let test_db = TestDb::new().await;
     let db = test_db.db().clone();
-    let (root, ids) = root_with(&db, "analysis", &[(ObservableKind::Fqdn, "example.com")]).await;
+    const TRIES: usize = 5;
+    let values: Vec<String> = (0..TRIES).map(|i| format!("try{i}.example.com")).collect();
+    let observables: Vec<_> = values
+        .iter()
+        .map(|v| (ObservableKind::Fqdn, v.as_str()))
+        .collect();
+    let (root, ids) = root_with(&db, "analysis", &observables).await;
     let waiter = worker(
         &test_db,
         "waiter",
@@ -88,27 +98,40 @@ async fn without_a_notification_the_fallback_still_finds_the_task() {
         .execute(db.pool())
         .await
         .expect("disables the trigger");
-    let queued = tokio::spawn(async move {
-        tokio::time::sleep(Duration::from_millis(200)).await;
-        let mut tx = db.begin().await.expect("begins");
-        let task = queue::enqueue(&mut tx, root, ids[0], "rdap_analyzer")
-            .await
-            .expect("queues")
-            .expect("new");
-        tx.commit().await.expect("commits");
-        task
-    });
 
-    let started = Instant::now();
-    let (claimed, waits) = waiter
-        .next_task(&mut wakeups, Duration::from_millis(600))
-        .await
-        .expect("claims");
-    let waited = started.elapsed();
-    assert_eq!(claimed.id, queued.await.expect("queues"));
-    assert_eq!(waits.notified, 0);
-    assert_eq!(waits.timed_out, 1);
-    assert!(waited >= Duration::from_millis(600), "{waited:?}");
+    let mut head_start = Duration::from_millis(200);
+    for &observable in ids.iter() {
+        let fallback = head_start * 3;
+        let queuer = db.clone();
+        let queued = tokio::spawn(async move {
+            tokio::time::sleep(head_start).await;
+            let mut tx = queuer.begin().await.expect("begins");
+            let task = queue::enqueue(&mut tx, root, observable, "rdap_analyzer")
+                .await
+                .expect("queues")
+                .expect("new");
+            tx.commit().await.expect("commits");
+            task
+        });
+
+        let started = Instant::now();
+        let (claimed, waits) = waiter
+            .next_task(&mut wakeups, fallback)
+            .await
+            .expect("claims");
+        let waited = started.elapsed();
+        assert_eq!(claimed.id, queued.await.expect("queues"));
+        assert_eq!(waits.notified, 0);
+        if waits.timed_out == 0 {
+            // queued before the first claim: this try didn't wait, so it tested nothing
+            head_start *= 2;
+            continue;
+        }
+        assert_eq!(waits.timed_out, 1);
+        assert!(waited >= fallback, "{waited:?}");
+        return;
+    }
+    panic!("in {TRIES} tries, the task was always queued before the worker's first claim");
 }
 
 /// A task delayed while a worker already waits wakes it, so the worker waits only until the
