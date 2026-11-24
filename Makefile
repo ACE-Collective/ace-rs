@@ -10,6 +10,8 @@
 #                   sample set with ace3's trees
 #   make coverage   every crate's tests with coverage: an HTML report in coverage/html/index.html
 #                   and a per-file summary in coverage/summary.txt (git-ignored)
+#   make stack      build and start the whole stack, with the GUI at http://127.0.0.1:7443, and on a
+#                   new database make a dev login, analyst / analystanalyst
 #
 # The others: make check (the checks without the tests), make e2e, make up, make down, and make
 # hooks, which turns on the repository's git hooks for this clone.
@@ -21,10 +23,10 @@ COVERAGE_JOBS ?= 4
 DEV     := $(COMPOSE) exec -T dev
 DEV_CI  := $(COMPOSE) exec -T -e CI=true dev
 
-.PHONY: help build images up down check test e2e test-all coverage hooks
+.PHONY: help build images up down stack check test e2e test-all coverage hooks
 
 help:
-	@sed -n '1,16p' Makefile | sed 's/^# \{0,1\}//'
+	@sed -n '1,18p' Makefile | sed 's/^# \{0,1\}//'
 
 build: up
 	$(DEV) cargo build --workspace --all-targets --locked
@@ -37,6 +39,22 @@ up:
 
 down:
 	$(COMPOSE) --profile telemetry down
+
+# ace-rs ships no default account (PLAN.md 5.4): ace3's seed makes analyst with a public password on
+# every new database, production's included. This login is the Makefile's, which no deployment
+# runs, and is made only while the database has no user; passwords are at least 12 characters.
+STACK_USER     ?= analyst
+STACK_PASSWORD ?= analystanalyst
+
+stack:
+	$(COMPOSE) up -d --build --wait
+	@out=$$(printf '%s\n' '$(STACK_PASSWORD)' | $(COMPOSE) exec -T ace ace user create-first \
+		$(STACK_USER) --password-stdin 2>&1); status=$$?; \
+	if [ $$status -eq 0 ]; then echo "made the dev login $(STACK_USER) / $(STACK_PASSWORD)"; \
+	elif printf '%s' "$$out" | grep -q 'a user exists already'; then \
+		echo "the database has users already: log in as before"; \
+	else printf '%s\n' "$$out" >&2; exit $$status; fi
+	@echo "the GUI: http://127.0.0.1:$${ACE_RS_PORT_HTTPS:-7443}"
 
 check: up
 	$(DEV) cargo fmt --all --check
