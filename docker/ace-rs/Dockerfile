@@ -7,6 +7,10 @@
 # target of this file. The build's target directory is a BuildKit cache, so a rebuild compiles
 # only what changed; it isn't the dev container's target/ volume.
 
+# Set by BuildKit to the build's architecture (arm64, amd64), and declared here so a stage's FROM
+# can name it.
+ARG TARGETARCH
+
 # OpenCV 5.0.0, the release ace3's opencv-python 5.0.0.93 is built from, for the ocr and qrcode
 # modules' `opencv` crate (PLAN.md 7.3). It keeps the wheel's defaults, so the same code runs: its
 # KleidiCV and carotene HALs on arm64 and pthreads for parallel_for. It differs where nothing here
@@ -108,7 +112,7 @@ RUN mkdir /model && cd /model \
        | sha256sum --check --strict - \
     && chmod 755 /model && chmod 644 /model/*
 
-FROM rust:1.99.1-trixie AS build
+FROM rust:1.99.1-trixie AS build-common
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends clang mold \
@@ -126,8 +130,7 @@ RUN apt-get update \
 COPY --from=opencv /opt/opencv /opt/opencv
 ENV LIBCLANG_PATH=/usr/lib/llvm-19/lib \
     OPENCV_INCLUDE_PATHS=/opt/opencv/include/opencv5 \
-    OPENCV_LINK_PATHS=/opt/opencv/lib,/opt/opencv/lib/opencv5/3rdparty \
-    OPENCV_LINK_LIBS=static=opencv_objdetect,static=opencv_photo,static=opencv_features,static=opencv_flann,static=opencv_imgcodecs,static=opencv_imgproc,static=opencv_geometry,static=opencv_core,static=liblibjpeg-turbo,static=liblibopenjp2,static=liblibpng,static=liblibtiff,static=liblibwebp,static=zlib,static=kleidicv_hal,static=kleidicv_thread,static=kleidicv,static=tegra_hal,static=ittnotify,stdc++
+    OPENCV_LINK_PATHS=/opt/opencv/lib,/opt/opencv/lib/opencv5/3rdparty
 
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=clang \
     CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUSTFLAGS="-C link-arg=-fuse-ld=mold" \
@@ -135,6 +138,16 @@ ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=clang \
     CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS="-C link-arg=-fuse-ld=mold" \
     SQLX_OFFLINE=true
 
+# OpenCV's hardware layer differs by architecture, as the wheel's does: KleidiCV and carotene
+# (tegra_hal) on arm64, Intel's IPP on amd64. So OPENCV_LINK_LIBS, which names every static library
+# the `opencv` crate links, is set in a stage per architecture, and the build's own is picked.
+FROM build-common AS build-arm64
+ENV OPENCV_LINK_LIBS=static=opencv_objdetect,static=opencv_photo,static=opencv_features,static=opencv_flann,static=opencv_imgcodecs,static=opencv_imgproc,static=opencv_geometry,static=opencv_core,static=liblibjpeg-turbo,static=liblibopenjp2,static=liblibpng,static=liblibtiff,static=liblibwebp,static=zlib,static=kleidicv_hal,static=kleidicv_thread,static=kleidicv,static=tegra_hal,static=ittnotify,stdc++
+
+FROM build-common AS build-amd64
+ENV OPENCV_LINK_LIBS=static=opencv_objdetect,static=opencv_photo,static=opencv_features,static=opencv_flann,static=opencv_imgcodecs,static=opencv_imgproc,static=opencv_geometry,static=opencv_core,static=liblibjpeg-turbo,static=liblibopenjp2,static=liblibpng,static=liblibtiff,static=liblibwebp,static=zlib,static=ipphal,static=ippiw,static=ippicv,static=ittnotify,stdc++
+
+FROM build-${TARGETARCH} AS build
 WORKDIR /src
 COPY . .
 RUN --mount=type=cache,id=ace-rs-images-registry,target=/usr/local/cargo/registry \
