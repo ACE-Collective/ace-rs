@@ -170,6 +170,7 @@ use uuid::Uuid;
 
 use gate::{Audited, Change, Gate, Recorded, TITLE_LIMIT, Target};
 
+pub use ace_core::submit::SubmittedFile;
 pub use ace_core::svs::catalog::{
     RefreshResult as CatalogRefresh, RepositoryStatus as CatalogRepository,
     Skipped as CatalogSkipped,
@@ -315,6 +316,7 @@ pub use search::{
     SearchRequest, SearchResponse, SearchResult, SimilarRequest, Tier,
 };
 pub use source::with_source_ip;
+pub use submit::{ManualAlert, ManualAlerts, ManualObservable, ManualValue};
 pub use svs::{
     AlertSvsStatus, AlertSvsView, MAX_TEST_HOSTS_PAGE, MarkerMismatch, RunRef, TestHost,
     TestHostPage,

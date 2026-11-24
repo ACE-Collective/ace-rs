@@ -106,6 +106,14 @@ pub(crate) async fn layout_for(gui: &Gui, actor: Option<&Actor>, parts: &Parts) 
     if layout.svs {
         layout.svs_attention = svs_attention(gui, actor).await;
     }
+    layout.analyze = gui
+        .service
+        .allowed(actor, &ace_service::ALERT_CREATE)
+        .await
+        .unwrap_or_else(|error| {
+            tracing::warn!(%actor, "checking alert:create failed, so the page has no analyze link: {error}");
+            false
+        });
     layout.events = gui
         .service
         .allowed(actor, &ace_service::EVENT_READ)

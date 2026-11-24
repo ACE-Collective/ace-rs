@@ -1579,6 +1579,7 @@ async fn every_write_function_has_an_audit_test_in_turn() {
         login_records_its_row(db).await,
         logout_records_its_row(db).await,
         submit_records_its_row(db).await,
+        manual_tests::submit_manual_records_its_row(db).await,
         submit_collected_records_its_row(db).await,
         download_file_records_its_row(db).await,
         download_crash_records_its_row(db).await,
@@ -3724,6 +3725,14 @@ async fn every_write_fails_when_its_audit_fails_in_turn() {
             "submit",
             service
                 .submit(&actor, &bucket, &submitted, &files)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "submit_manual",
+            service
+                .submit_manual(&actor, &bucket, manual_tests::typed("audit fails"))
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -52721,5 +52730,322 @@ mod observable_pattern_tests {
             );
             assert_eq!((refused.total, refused.results.len()), (0, 0));
         }
+    }
+}
+
+/// Manual alerts, ace3's Analyze page (PLAN.md 7.18): the cases of ace3's
+/// `tests/app/analysis/views/edit/test_new.py` that are the service's. Reading the form (its dates,
+/// timezones, pairs, "one per line" values and a file row without its upload) is the GUI's, and its
+/// cases are `ace-gui`'s.
+mod manual_tests {
+    use ace_service::{ManualAlert, ManualAlerts, ManualObservable, ManualValue};
+    use chrono::TimeZone;
+
+    use super::*;
+
+    fn ipv4(value: &str, directives: &[&str]) -> ManualObservable {
+        ManualObservable {
+            kind: ObservableKind::Ipv4,
+            value: ManualValue::Text(value.to_owned()),
+            time: None,
+            directives: directives.iter().map(|d| (*d).to_owned()).collect(),
+        }
+    }
+
+    fn manual(description: &str, observables: Vec<ManualObservable>) -> ManualAlert {
+        ManualAlert {
+            description: description.to_owned(),
+            queue: "default".to_owned(),
+            alert_template: None,
+            event_time: chrono::Utc.with_ymd_and_hms(2024, 1, 1, 12, 0, 0).unwrap(),
+            observables,
+            alerts: ManualAlerts::One,
+        }
+    }
+
+    /// A manual alert with one typed observable.
+    pub(super) fn typed(description: &str) -> ManualAlert {
+        manual(description, vec![ipv4("192.168.1.1", &["no_scan"])])
+    }
+
+    async fn upload(bucket: &Bucket, name: &str, bytes: &[u8]) -> ManualValue {
+        ManualValue::File(SubmittedFile {
+            path: AlertPath::new(name.to_owned()).expect("a path"),
+            spooled: bucket.store().spool_bytes(bytes).await.expect("spools"),
+        })
+    }
+
+    /// A root's title, origin, queue, owner and event time.
+    async fn made(db: &Db, root: Uuid) -> (String, Value, String, Option<Uuid>, Value) {
+        sqlx::query_as(
+            "SELECT description, origin, queue, owner_id, to_jsonb(event_time)
+             FROM analysis.roots WHERE id = $1 AND alerted_at IS NOT NULL",
+        )
+        .bind(root)
+        .fetch_one(db.pool())
+        .await
+        .expect("the root")
+    }
+
+    /// A root's observables as (type, value, directives), in type and value order.
+    async fn observables(db: &Db, root: Uuid) -> Vec<(String, String, Vec<String>)> {
+        sqlx::query_as(
+            "SELECT type::text, value, directives FROM analysis.observables
+             WHERE root_id = $1 ORDER BY type, value",
+        )
+        .bind(root)
+        .fetch_all(db.pool())
+        .await
+        .expect("the observables")
+    }
+
+    pub(super) async fn submit_manual_records_its_row(db: &Db) -> String {
+        let (bucket, _cache) = bucket(db).await;
+        let actor = admin(db).await;
+        let made = service(db)
+            .submit_manual(&actor, &bucket, typed("Test Alert"))
+            .await
+            .expect("submits");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "submit_manual".to_owned(),
+                target: ("root".to_owned(), made[0].to_string()),
+                before: None,
+                after: Some(json!({
+                    "analysis_mode": "correlation",
+                    "event_time": "2024-01-01T12:00:00Z",
+                    "observables": 1,
+                    "files": 0,
+                    "queued": row.after.as_ref().expect("an after")["queued"],
+                })),
+                details: json!({"title": "Test Alert (192.168.1.1)"}),
+            }
+        );
+        row.action
+    }
+
+    /// ace3's `test_new_alert_single_observable_success`: one observable's value in the title, ace3's
+    /// origin, the queue, the event time, the directive, and the analyst owning it.
+    #[tokio::test]
+    async fn one_observable_is_in_the_title_and_the_analyst_owns_the_alert() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let (bucket, _cache) = bucket(db).await;
+        let actor = admin(db).await;
+        let made = service(db)
+            .submit_manual(&actor, &bucket, typed("Test Alert"))
+            .await
+            .expect("submits");
+        assert_eq!(made.len(), 1);
+        let (title, origin, queue, owner, event_time) =
+            super::manual_tests::made(db, made[0]).await;
+        assert_eq!(title, "Test Alert (192.168.1.1)");
+        assert_eq!(
+            origin,
+            json!({
+                "alert_type": "manual",
+                "tool": "gui",
+                "details": {"user": "alice", "comment": ""},
+            })
+        );
+        assert_eq!(queue, "default");
+        assert_eq!(owner, Some(Uuid::from_u128(0xAD)));
+        assert_eq!(event_time, json!("2024-01-01T12:00:00+00:00"));
+        assert_eq!(
+            observables(db, made[0]).await,
+            [(
+                "ipv4".to_owned(),
+                "192.168.1.1".to_owned(),
+                vec!["no_scan".to_owned()]
+            )]
+        );
+    }
+
+    /// ace3's `test_new_alert_comma_separated_multi_values` and `test_new_alert_no_observables`: several
+    /// observables, or none, keep the description as it is.
+    #[tokio::test]
+    async fn several_observables_or_none_keep_the_description() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let (bucket, _cache) = bucket(db).await;
+        let actor = admin(db).await;
+        let service = service(db);
+        let several = service
+            .submit_manual(
+                &actor,
+                &bucket,
+                manual(
+                    "Comma Separated Alert",
+                    vec![ipv4("192.168.1.1", &[]), ipv4("192.168.1.2", &[])],
+                ),
+            )
+            .await
+            .expect("submits");
+        assert_eq!(made(db, several[0]).await.0, "Comma Separated Alert");
+        assert_eq!(observables(db, several[0]).await.len(), 2);
+        let none = service
+            .submit_manual(&actor, &bucket, manual("No Observable Alert", Vec::new()))
+            .await
+            .expect("submits");
+        let (title, _, _, owner, _) = made(db, none[0]).await;
+        assert_eq!(title, "No Observable Alert");
+        assert_eq!(owner, Some(Uuid::from_u128(0xAD)));
+        assert_eq!(observables(db, none[0]).await, []);
+    }
+
+    /// ace3's `test_new_alert_multiple_observables_multi_submit`: one alert per observable, each titled
+    /// with its own and owned by the analyst, in the order given; and ace3's file upload cases: a file
+    /// is its sha256, titled with its name, carries its directives, and goes only to its own alert.
+    #[tokio::test]
+    async fn one_alert_per_observable_each_with_its_own_file() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let (bucket, _cache) = bucket(db).await;
+        let actor = admin(db).await;
+        let mut alert = manual(
+            "Multi Alert",
+            vec![
+                ipv4("192.168.1.1", &[]),
+                ManualObservable {
+                    kind: ObservableKind::File,
+                    value: upload(&bucket, "upload.txt", b"uploaded content").await,
+                    time: None,
+                    directives: vec!["sandbox".to_owned()],
+                },
+            ],
+        );
+        alert.alerts = ManualAlerts::PerObservable;
+        let made = service(db)
+            .submit_manual(&actor, &bucket, alert)
+            .await
+            .expect("submits");
+        assert_eq!(made.len(), 2);
+        assert_eq!(
+            super::manual_tests::made(db, made[0]).await.0,
+            "Multi Alert (192.168.1.1)"
+        );
+        assert_eq!(
+            super::manual_tests::made(db, made[1]).await.0,
+            "Multi Alert (upload.txt)"
+        );
+        for root in &made {
+            assert_eq!(
+                super::manual_tests::made(db, *root).await.3,
+                Some(Uuid::from_u128(0xAD))
+            );
+        }
+        let sha256 = hex::encode(Sha256::digest(b"uploaded content"));
+        assert_eq!(
+            observables(db, made[1]).await,
+            [("file".to_owned(), sha256, vec!["sandbox".to_owned()])]
+        );
+        assert_eq!(
+            observables(db, made[0]).await.len(),
+            1,
+            "the file isn't in the first alert"
+        );
+        let paths: Vec<String> =
+            sqlx::query_scalar("SELECT path FROM analysis.files WHERE root_id = ANY($1)")
+                .bind(&made)
+                .fetch_all(db.pool())
+                .await
+                .expect("the files");
+        assert_eq!(paths, ["upload.txt"]);
+    }
+
+    /// The template the analyst chose is the root's `extensions.alert_template` (ace3's
+    /// `test_new_alert_with_a_chosen_alert_template`), and Automatic leaves it out (ace3's
+    /// `test_new_alert_with_automatic_alert_template_sets_none`, the first test above).
+    #[tokio::test]
+    async fn a_chosen_template_is_the_roots() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let (bucket, _cache) = bucket(db).await;
+        let mut alert = typed("Templated");
+        alert.alert_template = Some("example/ticket.html".to_owned());
+        let made = service(db)
+            .submit_manual(&admin(db).await, &bucket, alert)
+            .await
+            .expect("submits");
+        assert_eq!(
+            made_origin(db, made[0]).await["extensions"],
+            json!({"alert_template": "example/ticket.html"})
+        );
+    }
+
+    async fn made_origin(db: &Db, root: Uuid) -> Value {
+        made(db, root).await.1
+    }
+
+    /// What can't be taken makes no alert: a file observable that isn't an upload (ace3's
+    /// `test_new_alert_never_reads_a_server_path`), an upload that isn't a file, one alert per
+    /// observable with none, a queue that isn't a name, a template name that's empty, and an actor
+    /// without `alert:create`.
+    #[tokio::test]
+    async fn what_cant_be_taken_makes_no_alert() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let (bucket, _cache) = bucket(db).await;
+        let actor = admin(db).await;
+        let service = service(db);
+        let roots = root_count(db).await;
+        let server_path = manual(
+            "Server Path Alert",
+            vec![
+                ipv4("192.168.1.1", &[]),
+                ManualObservable {
+                    kind: ObservableKind::File,
+                    value: ManualValue::Text("/etc/passwd".to_owned()),
+                    time: None,
+                    directives: Vec::new(),
+                },
+            ],
+        );
+        let uploaded_ip = manual(
+            "x",
+            vec![ManualObservable {
+                kind: ObservableKind::Ipv4,
+                value: upload(&bucket, "a.txt", b"a").await,
+                time: None,
+                directives: Vec::new(),
+            }],
+        );
+        let mut per_observable_of_none = manual("x", Vec::new());
+        per_observable_of_none.alerts = ManualAlerts::PerObservable;
+        let mut bad_queue = typed("x");
+        bad_queue.queue = String::new();
+        let mut empty_template = typed("x");
+        empty_template.alert_template = Some(String::new());
+        for (alert, why) in [
+            (server_path, "a file observable is an uploaded file"),
+            (uploaded_ip, "a ipv4 observable can't be a file"),
+            (
+                per_observable_of_none,
+                "one alert per observable needs an observable",
+            ),
+            (empty_template, "an alert template's name is 1 to 256 bytes"),
+        ] {
+            assert!(
+                matches!(
+                    service.submit_manual(&actor, &bucket, alert).await,
+                    Err(ServiceError::InvalidRequest(ref said)) if said == why
+                ),
+                "{why}"
+            );
+        }
+        assert!(matches!(
+            service.submit_manual(&actor, &bucket, bad_queue).await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+        assert!(matches!(
+            service
+                .submit_manual(&user(UserId(Uuid::from_u128(0x5B))), &bucket, typed("x"))
+                .await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
+        assert_eq!(root_count(db).await, roots, "no alert was made");
     }
 }

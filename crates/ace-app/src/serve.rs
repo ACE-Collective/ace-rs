@@ -321,7 +321,11 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .with_actions(app.actions().clone())
         .with_alert_actions(alert_actions)
         .with_summaries(app.alert_summaries().clone())
-        .with_icons(app.pivot_link_icons().clone());
+        .with_icons(app.pivot_link_icons().clone())
+        .with_submission_limits(ace_gui::analyze::SubmissionLimits {
+            max_bytes: web_config.max_submission_bytes,
+            max_files: web_config.max_submitted_files,
+        });
     let web = ace_api::Web::new(service, bucket.clone(), web_config)
         .with_email_archive(archive)
         .with_hunts(ace_api::HuntSupport {

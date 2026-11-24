@@ -88,6 +88,8 @@ pub struct Layout {
     /// How many test runs need attention, beside that link (batch 9): ace3's `svs_nav_count`. None
     /// when no run does, when the count can't be read, and for a viewer without `svs:run_read`.
     pub svs_attention: Option<String>,
+    /// Whether the viewer holds `alert:create`, for the link to the Analyze page (PLAN.md 7.18).
+    pub analyze: bool,
     /// Whether the viewer holds `event:read`, for the link to the event list.
     pub events: bool,
     /// Whether the viewer holds `remediation:read` and `file_collection:read`, for the links to those
@@ -113,6 +115,7 @@ impl Layout {
             signatures: false,
             svs: false,
             svs_attention: None,
+            analyze: false,
             events: false,
             remediations: false,
             file_collections: false,
@@ -128,13 +131,14 @@ impl Layout {
     }
 
     /// The section of the site the page is in, which the navigation marks as the current one:
-    /// `alerts`, `events`, `remediations`, `file-collections`, `signatures`, `svs`, `admin`, `help`,
+    /// `alerts`, `analyze`, `events`, `remediations`, `file-collections`, `signatures`, `svs`, `admin`, `help`,
     /// or nothing for a page in none, such as the preferences.
     pub fn section(&self) -> &'static str {
         let path = self.path.split(['?', '#']).next().unwrap_or_default();
         let first = path.trim_start_matches('/').split('/').next().unwrap_or("");
         match first {
             "" | "alerts" | "search" | "filters" => "alerts",
+            "analyze" => "analyze",
             "events" => "events",
             "remediations" => "remediations",
             "file-collections" => "file-collections",

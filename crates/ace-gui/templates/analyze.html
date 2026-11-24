@@ -1,0 +1,61 @@
+{#- The Analyze page (PLAN.md 7.18): ace3's analyze.html and analyze_file.html (src/analyze.rs). ace3's
+    new_alert.js is Datastar: Add appends a row from /analyze/row, and each row's fields show by its type
+    (analyze_row.html). The Datastar expressions hold no outside value: the next row's number is a signal
+    set from the server's own count. -#}
+{% extends "base.html" %}
+{% block title %}Manual Analysis · ACE{% endblock %}
+{% block content %}
+<section class="analyze">
+  <h1>Manual Analysis</h1>
+  {%- if let Some(problem) = view.problem %}
+  <p class="error" role="alert">{{ problem }}</p>
+  {%- endif %}
+  <form id="analyze" method="post" action="/analyze" enctype="multipart/form-data"
+        data-signals:next_row="{{ view.next_index }}">
+    <h2>Alert Info</h2>
+    <label for="analyze-date">Insert Date</label>
+    <input id="analyze-date" type="datetime-local" step="1" name="date" value="{{ view.date }}">
+    <p class="muted hint">When the alert is recorded as having happened, in the timezone below.</p>
+    <label for="analyze-timezone">Timezone</label>
+    <select id="analyze-timezone" name="timezone">
+      {%- for zone in view.timezones %}
+      <option value="{{ zone }}"{% if view.is_timezone(zone) %} selected{% endif %}>{{ zone }}</option>
+      {%- endfor %}
+    </select>
+    <p class="muted hint">How the insert date and the observables' times are read.</p>
+    <label for="analyze-description">Description</label>
+    <input id="analyze-description" type="text" name="description" value="{{ view.description }}" required>
+    <p class="muted hint">The alert's title on the alert list. With one observable, its value is added.</p>
+    <label for="analyze-queue">Queue</label>
+    <input id="analyze-queue" type="text" name="queue" value="{{ view.queue }}" maxlength="64" required>
+    <p class="muted hint">The queue the alert starts in.</p>
+    <label for="analyze-template">Alert Template</label>
+    <select id="analyze-template" name="template">
+      <option value=""{% if view.is_template("") %} selected{% endif %}>Automatic</option>
+      {%- for template in view.templates %}
+      <option value="{{ template }}"{% if view.is_template(template) %} selected{% endif %}>{{ template }}</option>
+      {%- endfor %}
+    </select>
+    <p class="muted hint">The template the alert page is shown with. Automatic uses the alert type's own.</p>
+
+    <h2>Observables</h2>
+    <table class="observables">
+      <thead>
+        <tr><th>Time</th><th>Type</th><th>Value</th><th>Directives</th><th></th></tr>
+      </thead>
+      <tbody id="observables">
+        {%- for row in view.rows %}
+        {%- include "analyze_row.html" %}
+        {%- endfor %}
+      </tbody>
+    </table>
+    <p class="muted hint">A time is optional, in the timezone above. A file row's value is its upload.</p>
+    <p><button type="button" data-on:click="@get('/analyze/row?index=' + $next_row); $next_row++">Add</button></p>
+    <p>
+      <button type="submit" name="submit" value="one">Submit</button>
+      <button type="submit" name="submit" value="each">Submit Multiple Alerts</button>
+    </p>
+    <p class="muted hint">Submit makes one alert of every observable; Submit Multiple Alerts makes one alert per observable.</p>
+  </form>
+</section>
+{% endblock %}

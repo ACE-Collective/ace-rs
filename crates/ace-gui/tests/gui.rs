@@ -22359,3 +22359,465 @@ fn bodies_are_read_for_a_summary_that_reads_them_by_name_or_by_type() {
         "a name with no summary falls to the type"
     );
 }
+
+/// The Analyze page (PLAN.md 7.18), ace3's Manual Analysis: the cases of ace3's
+/// `tests/app/analysis/views/edit/test_new.py` that are the form's, through the server. The service's
+/// are `ace-service`'s `manual_tests`.
+mod analyze_pages {
+    use reqwest::multipart::{Form, Part};
+
+    use super::*;
+
+    /// A stack with a bucket, which the form's files go to.
+    async fn analyze_stack() -> (Stack, std::path::PathBuf) {
+        let cache = std::env::temp_dir().join(format!("ace-rs-gui-cache-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&cache).expect("a cache directory");
+        let store = ace_store::Store::new(
+            &ace_store::BucketConfig::from_env().expect("the ACE_RS_BUCKET_* variables"),
+            ace_store::NodeCache::new(&cache, 1 << 30).expect("a cache"),
+        )
+        .await;
+        let stack = stack_of_db(Catalog::new(vec![]), move |service, db| {
+            let bucket = ace_core::bucket::Bucket::new(
+                db.clone(),
+                store,
+                ace_core::bucket::BucketSettings::default(),
+            );
+            Gui::new(service.with_bucket(bucket), Transport::Plain)
+        })
+        .await;
+        (stack, cache)
+    }
+
+    async fn may_create(stack: &Stack, actor: &Actor) {
+        let Actor::User { id, .. } = actor else {
+            panic!("a user");
+        };
+        stack
+            .service
+            .grant(
+                &bootstrap(),
+                &Holder::User(*id),
+                &PermissionPattern::new("alert", "create").expect("a pattern"),
+                Effect::Allow,
+            )
+            .await
+            .expect("grants");
+    }
+
+    /// The form's alert fields, as ace3's test's `_form` has them, with these fields added or in their
+    /// place.
+    fn form(fields: &[(&str, &str)]) -> Form {
+        let defaults = [
+            ("date", "2024-01-01T12:00:00"),
+            ("timezone", "UTC"),
+            ("description", "Test Alert"),
+            ("queue", "default"),
+            ("template", ""),
+            ("submit", "one"),
+        ];
+        let mut form = Form::new();
+        for (name, value) in defaults {
+            if !fields.iter().any(|(field, _)| *field == name) {
+                form = form.text(name, value);
+            }
+        }
+        for (name, value) in fields {
+            form = form.text((*name).to_owned(), (*value).to_owned());
+        }
+        form
+    }
+
+    async fn post(stack: &Stack, session: &str, form: Form) -> reqwest::Response {
+        stack
+            .http
+            .post(format!("{}/analyze", stack.url))
+            .header("origin", &stack.url)
+            .header("cookie", cookie(session))
+            .multipart(form)
+            .send()
+            .await
+            .expect("answered")
+    }
+
+    /// The alert a post went to.
+    fn made(response: &reqwest::Response) -> uuid::Uuid {
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        location(response)
+            .strip_prefix("/alerts/")
+            .expect("goes to an alert")
+            .parse()
+            .expect("an alert's id")
+    }
+
+    async fn root(
+        stack: &Stack,
+        id: uuid::Uuid,
+    ) -> (String, String, Option<uuid::Uuid>, serde_json::Value) {
+        sqlx::query_as(
+            "SELECT description, queue, owner_id, to_jsonb(event_time) FROM analysis.roots WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_one(stack.test_db.db().pool())
+        .await
+        .expect("the root")
+    }
+
+    async fn observables(
+        stack: &Stack,
+        id: uuid::Uuid,
+    ) -> Vec<(String, String, Option<serde_json::Value>, Vec<String>)> {
+        sqlx::query_as(
+            "SELECT type::text, value, to_jsonb(time), directives FROM analysis.observables
+             WHERE root_id = $1 ORDER BY type, value",
+        )
+        .bind(id)
+        .fetch_all(stack.test_db.db().pool())
+        .await
+        .expect("the observables")
+    }
+
+    async fn roots(stack: &Stack) -> i64 {
+        sqlx_count(&stack.test_db, "SELECT count(*) FROM analysis.roots").await
+    }
+
+    /// Signed out goes to the login; without `alert:create` the page, its row and its post are 403 and
+    /// the layout has no Analyze link; with it the link, the form (ace3's `/file`, Automatic chosen
+    /// and the binary's named summaries offered, as ace3's
+    /// `test_file_route_offers_alert_templates_with_automatic_selected`), and a row (ace3's
+    /// `test_new_alert_observable_get`, and a number out of range as its
+    /// `test_new_alert_observable_missing_index`).
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn the_analyze_page_needs_alert_create() {
+        let (stack, _cache) = analyze_stack().await;
+        let alice = user(&stack, "alice").await;
+        let page = stack.get("/analyze").send().await.expect("answered");
+        assert_eq!(page.status(), StatusCode::SEE_OTHER);
+        assert!(location(&page).starts_with("/login?next="));
+
+        let session = session_of(&stack, "alice").await;
+        let home = stack
+            .get("/preferences")
+            .header("cookie", cookie(&session))
+            .send()
+            .await
+            .expect("answered")
+            .text()
+            .await
+            .expect("text");
+        assert!(
+            !home.contains("href=\"/analyze\""),
+            "no link without alert:create"
+        );
+        for path in ["/analyze", "/analyze/row?index=1"] {
+            let refused = stack
+                .get(path)
+                .header("cookie", cookie(&session))
+                .send()
+                .await
+                .expect("answered");
+            assert_eq!(refused.status(), StatusCode::FORBIDDEN, "{path}");
+        }
+        let refused = post(&stack, &session, form(&[])).await;
+        assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+
+        may_create(&stack, &alice).await;
+        let page = stack
+            .get("/analyze")
+            .header("cookie", cookie(&session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(page.status(), StatusCode::OK);
+        let html = page.text().await.expect("text");
+        assert!(
+            html.contains("<a href=\"/analyze\" aria-current=\"page\">Analyze</a>"),
+            "{html}"
+        );
+        assert!(
+            html.contains("<option value=\"\" selected>Automatic</option>"),
+            "{html}"
+        );
+        assert!(
+            html.contains("<option value=\"analysis/custom/hunter_splunk.html\">"),
+            "the named summaries are offered"
+        );
+        assert!(html.contains("value=\"Manual Correlation\""));
+        assert!(html.contains("<tr id=\"observable-0\">"));
+        assert!(html.contains("<option value=\"file\" selected>file</option>"));
+
+        let row = stack
+            .get("/analyze/row?index=3")
+            .header("cookie", cookie(&session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(row.status(), StatusCode::OK);
+        assert_eq!(row.headers()["content-type"], "text/event-stream");
+        let event = row.text().await.expect("text");
+        assert!(event.starts_with(
+            "event: datastar-patch-elements\ndata: selector #observables\ndata: mode append\n"
+        ));
+        assert!(
+            event.contains("data: elements <tr id=\"observable-3\">"),
+            "{event}"
+        );
+        assert!(event.contains("name=\"file_3\""));
+        for bad in [
+            "/analyze/row",
+            "/analyze/row?index=x",
+            "/analyze/row?index=1000",
+        ] {
+            let refused = stack
+                .get(bad)
+                .header("cookie", cookie(&session))
+                .send()
+                .await
+                .expect("answered");
+            assert_eq!(refused.status(), StatusCode::BAD_REQUEST, "{bad}");
+        }
+    }
+
+    /// ace3's `test_new_alert_single_observable_success`, `test_new_alert_observable_with_time` and
+    /// `test_new_alert_directive_list_parsing`: one typed observable is in the title, the times are read in
+    /// the chosen timezone, the directives are picked or typed, the analyst owns the alert, and the page
+    /// goes to it.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_typed_observable_makes_an_alert_the_analyst_owns() {
+        let (stack, _cache) = analyze_stack().await;
+        let alice = user(&stack, "alice").await;
+        may_create(&stack, &alice).await;
+        let session = session_of(&stack, "alice").await;
+        let response = post(
+            &stack,
+            &session,
+            form(&[
+                ("timezone", "America/New_York"),
+                ("type_0", "ipv4"),
+                ("value_0", "192.168.1.1"),
+                // a browser leaves the seconds out when they're 0
+                ("time_0", "2024-01-02T14:30"),
+                ("directive_text_0", "no_scan, archive,"),
+            ]),
+        )
+        .await;
+        let id = made(&response);
+        let Actor::User { id: alice_id, .. } = alice else {
+            panic!("a user");
+        };
+        assert_eq!(
+            root(&stack, id).await,
+            (
+                "Test Alert (192.168.1.1)".to_owned(),
+                "default".to_owned(),
+                Some(alice_id.0),
+                serde_json::json!("2024-01-01T17:00:00+00:00"),
+            )
+        );
+        assert_eq!(
+            observables(&stack, id).await,
+            [(
+                "ipv4".to_owned(),
+                "192.168.1.1".to_owned(),
+                Some(serde_json::json!("2024-01-02T19:30:00+00:00")),
+                vec!["no_scan".to_owned(), "archive".to_owned()],
+            )]
+        );
+        // picked directives win over typed ones, as ace3's
+        let response = post(
+            &stack,
+            &session,
+            form(&[
+                ("type_0", "fqdn"),
+                ("value_0", "evil.example.com"),
+                ("directives_0", "crawl"),
+                ("directives_0", "no_cache"),
+                ("directive_text_0", "ignored"),
+            ]),
+        )
+        .await;
+        assert_eq!(
+            observables(&stack, made(&response)).await[0].3,
+            ["crawl", "no_cache"]
+        );
+    }
+
+    /// ace3's `test_new_alert_file_upload_with_multipart_form`, `test_new_alert_multiple_observables_multi_submit`,
+    /// `test_new_alert_comma_separated_multi_values` and `test_new_alert_joins_the_two_values_of_a_pair_type`.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn files_lines_and_pairs_become_observables() {
+        let (stack, _cache) = analyze_stack().await;
+        let alice = user(&stack, "alice").await;
+        may_create(&stack, &alice).await;
+        let session = session_of(&stack, "alice").await;
+
+        let file = form(&[("type_0", "file")]).part(
+            "file_0",
+            Part::bytes(b"uploaded content".to_vec()).file_name("upload.txt"),
+        );
+        let id = made(&post(&stack, &session, file).await);
+        assert_eq!(root(&stack, id).await.0, "Test Alert (upload.txt)");
+        let sha256 = hex::encode(Sha256::digest(b"uploaded content"));
+        assert_eq!(observables(&stack, id).await[0].0, "file");
+        assert_eq!(observables(&stack, id).await[0].1, sha256);
+
+        // one alert per line, the page going to the last
+        let before = roots(&stack).await;
+        let response = post(
+            &stack,
+            &session,
+            form(&[
+                ("submit", "each"),
+                ("description", "Multi Alert"),
+                ("type_0", "ipv4"),
+                ("multi_0", "1"),
+                ("values_0", "192.168.1.1\n192.168.1.2\n192.168.1.3"),
+                ("value_0", "ignored"),
+            ]),
+        )
+        .await;
+        let last = made(&response);
+        assert_eq!(roots(&stack).await, before + 3);
+        assert_eq!(root(&stack, last).await.0, "Multi Alert (192.168.1.3)");
+
+        // commas, when there are no newlines, in one alert that keeps its description
+        let id = made(
+            &post(
+                &stack,
+                &session,
+                form(&[
+                    ("description", "Comma Separated Alert"),
+                    ("type_0", "ipv4"),
+                    ("multi_0", "1"),
+                    ("values_0", "192.168.1.1,192.168.1.2,192.168.1.3"),
+                ]),
+            )
+            .await,
+        );
+        assert_eq!(root(&stack, id).await.0, "Comma Separated Alert");
+        assert_eq!(observables(&stack, id).await.len(), 3);
+
+        for (kind, a, b, joined) in [
+            (
+                "email_conversation",
+                "sender@example.com",
+                "recipient@example.com",
+                "sender@example.com|recipient@example.com",
+            ),
+            (
+                "ipv4_conversation",
+                "192.168.1.1",
+                "192.168.1.2",
+                "192.168.1.1_192.168.1.2",
+            ),
+            (
+                "file_location",
+                " hostname ",
+                "/path/to/file",
+                "hostname@/path/to/file",
+            ),
+            (
+                "ipv4_full_conversation",
+                "192.168.1.1:80",
+                "192.168.1.2:443",
+                "192.168.1.1:80:192.168.1.2:443",
+            ),
+            (
+                "email_delivery",
+                "<id@example.com>",
+                "box@example.com",
+                "<id@example.com>|box@example.com",
+            ),
+        ] {
+            let id = made(
+                &post(
+                    &stack,
+                    &session,
+                    form(&[("type_0", kind), ("a_0", a), ("b_0", b)]),
+                )
+                .await,
+            );
+            assert_eq!(observables(&stack, id).await[0].1, joined, "{kind}");
+        }
+    }
+
+    /// What can't be taken draws the form again with the reason and what was typed, and makes no alert:
+    /// ace3's `test_new_alert_file_row_without_upload_refuses_every_observable`, its
+    /// `test_new_alert_never_reads_a_server_path`, `test_new_alert_invalid_timezone` and
+    /// `test_new_alert_with_an_unknown_alert_template_is_refused`; and a post from another site is
+    /// refused.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn what_cant_be_taken_draws_the_form_again() {
+        let (stack, _cache) = analyze_stack().await;
+        let alice = user(&stack, "alice").await;
+        may_create(&stack, &alice).await;
+        let session = session_of(&stack, "alice").await;
+        let before = roots(&stack).await;
+        for (fields, said) in [
+            (
+                vec![
+                    ("type_0", "ipv4"),
+                    ("value_0", "192.168.1.1"),
+                    ("type_1", "file"),
+                    ("value_1", "/etc/passwd"),
+                ],
+                "No file was uploaded for observable 1.",
+            ),
+            (
+                vec![
+                    ("timezone", "Mars/Olympus_Mons"),
+                    ("type_0", "ipv4"),
+                    ("value_0", "x"),
+                ],
+                "There&#39;s no timezone &#34;Mars/Olympus_Mons&#34;.",
+            ),
+            (
+                vec![("template", "analysis/nope.html")],
+                "There&#39;s no alert template &#34;analysis/nope.html&#34;.",
+            ),
+            (
+                vec![("type_0", "nope")],
+                "Observable 0: there&#39;s no type",
+            ),
+            (vec![("queue", "")], "queue"),
+            (
+                vec![("date", "01-01-2024 12:00:00")],
+                "The insert date &#34;01-01-2024 12:00:00&#34; isn&#39;t a date and time.",
+            ),
+        ] {
+            let response = post(&stack, &session, form(&fields)).await;
+            assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{said}");
+            let html = response.text().await.expect("text");
+            assert!(html.contains(said), "{said}: {html}");
+            assert!(html.contains("role=\"alert\""));
+        }
+        let response = post(
+            &stack,
+            &session,
+            form(&[
+                ("description", "Kept"),
+                ("type_4", "ipv4"),
+                ("value_4", "10.0.0.1"),
+                ("type_5", "file"),
+            ]),
+        )
+        .await;
+        let html = response.text().await.expect("text");
+        assert!(html.contains("value=\"Kept\""), "what was typed is kept");
+        assert!(html.contains("<tr id=\"observable-4\">") && html.contains("value=\"10.0.0.1\""));
+        assert!(html.contains("data-signals:next_row=\"6\""));
+        assert_eq!(roots(&stack).await, before, "no alert was made");
+
+        let elsewhere = stack
+            .http
+            .post(format!("{}/analyze", stack.url))
+            .header("origin", "https://elsewhere.example")
+            .header("cookie", cookie(&session))
+            .multipart(form(&[]))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(elsewhere.status(), StatusCode::FORBIDDEN);
+        assert_eq!(roots(&stack).await, before);
+    }
+}

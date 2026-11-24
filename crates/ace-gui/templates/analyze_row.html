@@ -1,0 +1,41 @@
+{#- One observable row of the Analyze page (src/analyze.rs), ace3's new_alert_observable.html. The type
+    select is bound to the row's own signal, and each value field shows for the types it is for: the file
+    for `file`, the two values for a pair type, the text, or the lines when "One per line" is ticked, for
+    the rest. Directives are picked, or typed for email_address and user, as ace3's script has them. -#}
+<tr id="observable-{{ row.index }}">
+  <td><input type="datetime-local" step="1" name="time_{{ row.index }}" value="{{ row.time }}" aria-label="Time"></td>
+  <td>
+    <select name="type_{{ row.index }}" data-bind:type_{{ row.index }} aria-label="Type">
+      {%- for kind in choices.types %}
+      <option value="{{ kind }}"{% if row.is_kind(kind) %} selected{% endif %}>{{ kind }}</option>
+      {%- endfor %}
+    </select>
+  </td>
+  <td>
+    <span data-show="$type_{{ row.index }} == 'file'">
+      <input type="file" name="file_{{ row.index }}" aria-label="File">
+    </span>
+    <span data-show="['email_conversation', 'email_delivery', 'ipv4_conversation', 'ipv4_full_conversation', 'file_location'].includes($type_{{ row.index }})">
+      <input type="text" name="a_{{ row.index }}" value="{{ row.a }}" aria-label="From"> to
+      <input type="text" name="b_{{ row.index }}" value="{{ row.b }}" aria-label="To">
+    </span>
+    <span data-show="!['file', 'email_conversation', 'email_delivery', 'ipv4_conversation', 'ipv4_full_conversation', 'file_location'].includes($type_{{ row.index }})">
+      <input type="text" name="value_{{ row.index }}" value="{{ row.value }}" aria-label="Value"
+             data-show="!$multi_{{ row.index }}">
+      <textarea name="values_{{ row.index }}" rows="4" aria-label="Values, one per line"
+                data-show="$multi_{{ row.index }}">{{ row.values }}</textarea>
+      <label class="choice"><input type="checkbox" name="multi_{{ row.index }}" value="1" data-bind:multi_{{ row.index }}{% if row.multi %} checked{% endif %}> One per line</label>
+    </span>
+  </td>
+  <td>
+    <select name="directives_{{ row.index }}" multiple aria-label="Directives"
+            data-show="!['email_address', 'user'].includes($type_{{ row.index }})">
+      {%- for directive in choices.directives %}
+      <option value="{{ directive.0 }}" title="{{ directive.1 }}"{% if row.has_directive(directive.0) %} selected{% endif %}>{{ directive.0 }}</option>
+      {%- endfor %}
+    </select>
+    <input type="text" name="directive_text_{{ row.index }}" value="{{ row.directive_text }}" aria-label="Directives, comma-separated"
+           data-show="['email_address', 'user'].includes($type_{{ row.index }})">
+  </td>
+  <td><button type="button" aria-label="Remove" data-on:click="el.closest('tr').remove()">×</button></td>
+</tr>

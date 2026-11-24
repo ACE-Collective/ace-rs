@@ -86,7 +86,7 @@ So a site's vendor connection can be held by the lookups pool (the vendor's modu
 
 `App::alert_template::<T: AlertSummary>(name)` adds a summary under a template name, such as `example/ticket.html`. The alert page's choice becomes ace3's: the submission's `extensions.alert_template` first, when a summary has that name, then the alert's type as now, then the default. A name with no summary falls through to the type, where ace3 would fail to render the page; that is logged. The open-source hunt summary is registered under ace3's own name too, `analysis/custom/hunter_splunk.html`, which two of the signatures' hunts name.
 
-The summaries live in the binary, as askama templates, as the owner's direction of 2026-11-15 has it for summaries by type ("a site/integration can register its own through `App`"). ace3's Manual Analysis list of selectable templates (`custom_alerts.selectable_templates`) has no counterpart, since ace-rs has no Manual Analysis page; when it has one, it offers the named summaries.
+The summaries live in the binary, as askama templates, as the owner's direction of 2026-11-15 has it for summaries by type ("a site/integration can register its own through `App`"). ace3's Manual Analysis list of selectable templates (`custom_alerts.selectable_templates`) is the named summaries: the Analyze page (PLAN.md 7.18) offers each one after Automatic, and takes no other name.
 
 ## What it changes
 

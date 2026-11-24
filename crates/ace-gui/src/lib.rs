@@ -33,6 +33,8 @@
 //!   observable (PLAN.md decision 31).
 //! - `list`: the alert list at `/` (5.10), ace3's manage page, with its filters, saved filters, columns,
 //!   sorts, bulk disposition and refresh, and taking and assigning ownership (7.17).
+//! - `analyze`: the Analyze page (7.18), ace3's Manual Analysis: a form of observables and uploaded
+//!   files that makes an alert, or one per observable, through `Service::submit_manual`.
 //! - `saved_filters`: the saved filters' forms and their manage page (5.10, and 5.11's saved_filters
 //!   area), ace3's `saved_filters/_modals.html`, where a saved filter is renamed and the quick filters
 //!   reordered, for the alert list and for each other screen that has quick filters.
@@ -111,6 +113,7 @@ pub mod admin;
 pub mod alert;
 pub mod alert_actions;
 pub mod analysis;
+pub mod analyze;
 mod assets;
 mod auth;
 pub mod cli;
@@ -168,6 +171,7 @@ pub struct Gui {
     refreshes: std::sync::Arc<places::Places>,
     cli_refreshes: std::sync::Arc<places::Places>,
     svs_attention: std::sync::Arc<session::NavCount>,
+    limits: analyze::SubmissionLimits,
 }
 
 impl Gui {
@@ -197,6 +201,7 @@ impl Gui {
             svs_attention: std::sync::Arc::new(session::NavCount::new(
                 session::SVS_ATTENTION_FRESH,
             )),
+            limits: analyze::SubmissionLimits::default(),
         }
     }
 
@@ -242,6 +247,13 @@ impl Gui {
         self
     }
 
+    /// The GUI holding the Analyze page's form to these limits (PLAN.md 7.18), the API's on a
+    /// submission, rather than the defaults.
+    pub fn with_submission_limits(mut self, limits: analyze::SubmissionLimits) -> Self {
+        self.limits = limits;
+        self
+    }
+
     /// The icons a pivot link may name.
     pub(crate) fn icons(&self) -> &icons::PivotIcons {
         &self.icons
@@ -265,6 +277,13 @@ impl Gui {
             .route("/", get(list::page))
             .route("/alerts/list", get(list::refresh))
             .route("/search", get(search::page))
+            .route(
+                "/analyze",
+                get(analyze::page)
+                    .post(analyze::submit)
+                    .layer(DefaultBodyLimit::max(self.limits.max_bytes)),
+            )
+            .route("/analyze/row", get(analyze::row))
             .route(
                 "/alerts/disposition",
                 post(list::bulk_disposition)

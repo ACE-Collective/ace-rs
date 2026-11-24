@@ -20,6 +20,9 @@
   {%- if let Some(username) = layout.username %}
   <nav class="menu sections" aria-label="Sections">
     <a href="/"{% if layout.section() == "alerts" %} aria-current="page"{% endif %}>Alerts</a>
+    {%- if layout.analyze %}
+    <a href="/analyze"{% if layout.section() == "analyze" %} aria-current="page"{% endif %}>Analyze</a>
+    {%- endif %}
     {%- if layout.events %}
     <a href="/events"{% if layout.section() == "events" %} aria-current="page"{% endif %}>Events</a>
     {%- endif %}
