@@ -886,6 +886,10 @@ pub struct SlowModule {
     pub runs: i64,
 }
 
+/// The shortest wait for a pass's first task that the panel names apart from the analysis: below it,
+/// the wait is a worker's usual pickup and saying so is noise.
+const WAIT_SHOWN: i64 = 10;
+
 /// A number of seconds as a person reads it: `45s`, `11m 3s`, `2h 5m`, `3d 4h`.
 pub fn span(seconds: i64) -> String {
     let s = seconds.max(0);
@@ -911,11 +915,21 @@ fn run_time(seconds: f64) -> String {
 impl WorkPanel {
     pub fn of(work: &ace_service::AlertWork) -> Self {
         let active = work.unfinished() > 0 || work.running_for_seconds.is_some();
+        // the pass's wall-clock time, with the wait for its first task said apart from the analysis
+        let waited = work.first_claim_seconds.filter(|w| *w >= WAIT_SHOWN);
+        let after = |w: i64| format!(", after waiting {} for the first task", span(w));
         let mut parts = Vec::new();
         if let Some(running) = work.running_for_seconds {
-            parts.push(format!("running for {}", span(running)));
+            parts.push(match (work.first_claim_seconds, waited) {
+                (None, _) => format!("waiting {} for the first task to start", span(running)),
+                (Some(_), Some(w)) => format!("running for {}{}", span(running - w), after(w)),
+                (Some(_), None) => format!("running for {}", span(running)),
+            });
         } else if let Some(took) = work.last_pass_seconds {
-            parts.push(format!("analyzed in {}", span(took)));
+            parts.push(match waited {
+                Some(w) => format!("analyzed in {}{}", span(took - w), after(w)),
+                None => format!("analyzed in {}", span(took)),
+            });
         }
         if let Some(first) = work.first_pass_seconds
             && (work.completed_passes > 1 || work.running_for_seconds.is_some())
@@ -970,7 +984,8 @@ impl WorkPanel {
             .map(|t| format!("{}:{}:{}", t.id, t.state, t.attempts))
             .collect();
         let key = format!(
-            "{active} {} {} {} {} {:?} {:?} {} {} {:?}",
+            "{active} {:?} {} {} {} {} {:?} {:?} {} {} {:?}",
+            work.first_claim_seconds,
             work.queued,
             work.delayed,
             work.running,

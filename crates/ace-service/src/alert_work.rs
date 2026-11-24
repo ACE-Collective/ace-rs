@@ -33,6 +33,12 @@ pub struct AlertWork {
     pub last_pass_seconds: Option<i64>,
     /// How long from its submission to its first pass's end, in seconds, once that pass has ended.
     pub first_pass_seconds: Option<i64>,
+    /// How long after the pass began a worker first claimed one of its tasks, in seconds; None while
+    /// none has been. The pass's wall-clock time includes this wait, which a pool that leases
+    /// nothing makes long. It is the earliest claim the tasks hold, and a task keeps only its latest
+    /// (`claimed_at`), so when the first task to run was claimed again later and nothing else was
+    /// claimed before that, the wait reads longer than it was.
+    pub first_claim_seconds: Option<i64>,
     /// How many passes have completed.
     pub completed_passes: i32,
     /// The modules that ran longest in the alert's current or last pass, at most `MAX_SLOWEST`, by
@@ -101,7 +107,12 @@ impl Service {
                                   END AS last_pass,
                                   (SELECT floor(extract(epoch FROM c.completed_at - r.created_at))::bigint
                                    FROM queue.root_completions c
-                                   WHERE c.root_id = r.id AND c.pass = 1) AS first_pass
+                                   WHERE c.root_id = r.id AND c.pass = 1) AS first_pass,
+                                  (SELECT floor(extract(epoch FROM min(t.claimed_at)
+                                                      - r.pass_started_at))::bigint
+                                   FROM queue.tasks t
+                                   WHERE t.root_id = r.id AND t.claimed_at >= r.pass_started_at)
+                                      AS first_claim
                            FROM analysis.roots r WHERE r.id = $1"#,
                         id,
                     )
@@ -122,6 +133,7 @@ impl Service {
                         running_for_seconds: times.running_for,
                         last_pass_seconds: times.last_pass,
                         first_pass_seconds: times.first_pass,
+                        first_claim_seconds: times.first_claim,
                         completed_passes: times.completed_pass,
                         slowest,
                         ..AlertWork::default()

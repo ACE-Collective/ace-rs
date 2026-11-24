@@ -53202,21 +53202,38 @@ mod work_tests {
         .execute(db.pool())
         .await
         .expect("completes the first");
-        for (module, seconds, runs) in [("rdap_analyzer", 12.5, 2), ("file_type", 0.25, 1)] {
+        // rdap_analyzer was claimed 25 s into the pass; file_type's claim was in the first pass, so it
+        // isn't this pass's first
+        for (module, seconds, runs, claimed_after) in [
+            ("rdap_analyzer", 12.5, 2, 25.0),
+            ("file_type", 0.25, 1, -300.0),
+        ] {
             let id = task(db, root, observable, module, "done", 1).await;
-            sqlx::query("UPDATE queue.tasks SET run_seconds = $2, runs = $3 WHERE id = $1")
-                .bind(id)
-                .bind(seconds)
-                .bind(runs)
-                .execute(db.pool())
-                .await
-                .expect("times it");
+            sqlx::query(
+                "UPDATE queue.tasks SET run_seconds = $2, runs = $3,
+                     claimed_at = (SELECT pass_started_at + make_interval(secs => $5)
+                                   FROM analysis.roots WHERE id = $4)
+                 WHERE id = $1",
+            )
+            .bind(id)
+            .bind(seconds)
+            .bind(runs)
+            .bind(root)
+            .bind(claimed_after)
+            .execute(db.pool())
+            .await
+            .expect("times it");
         }
         let work = service.alert_work(&actor, root).await.expect("reads");
         let running = work.running_for_seconds.expect("running");
         assert!((40..45).contains(&running), "{running}");
         assert_eq!(work.last_pass_seconds, None, "the pass hasn't ended");
         assert_eq!(work.first_pass_seconds, Some(100));
+        assert_eq!(
+            work.first_claim_seconds,
+            Some(25),
+            "this pass's first claim"
+        );
         assert_eq!(work.completed_passes, 1);
         assert_eq!(
             work.slowest,
@@ -53251,6 +53268,7 @@ mod work_tests {
         assert_eq!(work.running_for_seconds, None);
         assert_eq!(work.last_pass_seconds, Some(70));
         assert_eq!(work.first_pass_seconds, Some(100));
+        assert_eq!(work.first_claim_seconds, Some(25));
     }
 
     /// At most `MAX_WORK_ROWS` are listed, the oldest, and the counts cover every one; an alert that

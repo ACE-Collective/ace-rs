@@ -22891,14 +22891,34 @@ mod work_panel {
                 task(3, "splunk_api", "evil.example.com", "delayed", 120),
             ],
             running_for_seconds: Some(250),
+            first_claim_seconds: Some(130),
             ..AlertWork::default()
         };
         let panel = WorkPanel::of(&running);
         assert!(panel.shown && panel.active);
+        // the pass's wall-clock time, with the wait for its first task said apart
         assert_eq!(
             panel.headline,
-            "running for 4m 10s · 1 running · 30 queued · 1 delayed · 2 failed"
+            "running for 2m 0s, after waiting 2m 10s for the first task · 1 running · 30 queued · \
+             1 delayed · 2 failed"
         );
+        // nothing claimed yet: it's all waiting; a short wait isn't named
+        let waiting = WorkPanel::of(&AlertWork {
+            queued: 1,
+            running_for_seconds: Some(663),
+            ..AlertWork::default()
+        });
+        assert_eq!(
+            waiting.headline,
+            "waiting 11m 3s for the first task to start · 1 queued"
+        );
+        let quick = WorkPanel::of(&AlertWork {
+            running: 1,
+            running_for_seconds: Some(40),
+            first_claim_seconds: Some(9),
+            ..AlertWork::default()
+        });
+        assert_eq!(quick.headline, "running for 40s · 1 running");
         assert_eq!(panel.more, 29);
         let html = AlertWorkFragment { work: panel }.render().expect("draws");
         assert!(
@@ -22915,6 +22935,7 @@ mod work_panel {
             failed: 1,
             last_pass_seconds: Some(70),
             first_pass_seconds: Some(100),
+            first_claim_seconds: Some(5),
             completed_passes: 2,
             slowest: vec![
                 ModuleTime {
@@ -22940,6 +22961,19 @@ mod work_panel {
         assert!(
             html.contains("<details class=\"section\">"),
             "closed once it's done: {html}"
+        );
+        assert!(html.contains("<th>Run time, all runs</th>"), "{html}");
+        assert!(html.contains("runs overlap"), "{html}");
+        // the alert that waited 18 minutes for a ruleset: its 19m 21s is mostly the wait
+        let stuck = WorkPanel::of(&AlertWork {
+            last_pass_seconds: Some(1161),
+            first_claim_seconds: Some(1082),
+            completed_passes: 1,
+            ..AlertWork::default()
+        });
+        assert_eq!(
+            stuck.headline,
+            "analyzed in 1m 19s, after waiting 18m 2s for the first task"
         );
         assert!(
             html.contains("<td>rdap_analyzer</td><td class=\"nowrap\">12.5s</td><td>2</td>"),
@@ -23013,7 +23047,9 @@ mod work_panel {
             .await
             .expect("a page");
         assert!(
-            page.contains("<strong>Analysis</strong> running for 30s · 1 queued"),
+            page.contains(
+                "<strong>Analysis</strong> waiting 30s for the first task to start · 1 queued"
+            ),
             "{page}"
         );
         assert!(page.contains("<td>file_type</td><td>fqdn www.example.com</td><td>queued</td>"));
@@ -23037,7 +23073,9 @@ mod work_panel {
         assert!(moved.contains("<td>queued</td>"), "{moved}");
 
         sqlx::query(
-            "UPDATE queue.tasks SET state = 'running', claimed_at = now(), lease_owner = 'parsers/7',
+            "UPDATE queue.tasks SET state = 'running', lease_owner = 'parsers/7',
+                 claimed_at = (SELECT pass_started_at + interval '30 seconds'
+                               FROM analysis.roots WHERE id = root_id),
                  lease_expires_at = now() + interval '60 seconds' WHERE id = $1",
         )
         .bind(task)
@@ -23072,7 +23110,9 @@ mod work_panel {
             .expect("ends the pass");
         let (done, _) = read_stream(&mut stream, within, |text| text.contains("analyzed in")).await;
         assert!(
-            done.contains("<strong>Analysis</strong> analyzed in 45s"),
+            done.contains(
+                "<strong>Analysis</strong> analyzed in 15s, after waiting 30s for the first task"
+            ),
             "{done}"
         );
         assert!(

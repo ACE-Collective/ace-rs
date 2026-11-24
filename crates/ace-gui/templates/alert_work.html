@@ -19,9 +19,9 @@
   <p class="muted">{{ work.more }} more not listed.</p>
   {%- endif %}
   {%- if !work.slowest.is_empty() %}
-  <p class="muted">The modules that ran longest:</p>
+  <p class="muted">The modules that ran longest. A module's run time is its runs' times added up, and runs overlap, so the modules' times add up to more than the analysis took.</p>
   <table class="work">
-    <thead><tr><th>Module</th><th>Run time</th><th>Runs</th></tr></thead>
+    <thead><tr><th>Module</th><th>Run time, all runs</th><th>Runs</th></tr></thead>
     <tbody>
       {%- for module in work.slowest %}
       <tr><td>{{ module.module }}</td><td class="nowrap">{{ module.time }}</td><td>{{ module.runs }}</td></tr>
