@@ -29,6 +29,18 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # The check reads compose.yaml uninterpolated, and the runner's Compose (v2.33 and older)
+      # refuses a volume whose path is `${VAR:-default}` that way ("too many colons"). v2.40.3 and
+      # later read it, so this pins the version the dev machines have.
+      - name: Install Docker Compose v5.7.0
+        run: |
+          mkdir -p ~/.docker/cli-plugins
+          curl -fsSL -o ~/.docker/cli-plugins/docker-compose \
+            https://github.com/docker/compose/releases/download/v5.7.0/docker-compose-linux-x86_64
+          echo "7758048ad38e580f22559603312874fec8bb638d021a9e64182385fc17cc12a2  $HOME/.docker/cli-plugins/docker-compose" | sha256sum -c -
+          chmod +x ~/.docker/cli-plugins/docker-compose
+          docker compose version
+
       - name: Check compose.yaml
         run: bin/check-coexistence
 

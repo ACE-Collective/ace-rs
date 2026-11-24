@@ -1,5 +1,8 @@
-# Formatting, lints, tests and the layering check on every push (PLAN.md 0.3 and 0.4), and
-# the end-to-end test against the stack's images (2.30).
+# Formatting, lints, tests and the layering check on every push (PLAN.md 0.3 and 0.4).
+#
+# Two longer checks run by hand, not here: the end-to-end test (tests/e2e/run, make e2e), which needs
+# an ace3 checkout for the scanner images, and the library diff (tools/library-diff/run), which
+# compares a Python library with its Rust port when a port changes.
 name: ci
 
 on:
@@ -17,8 +20,9 @@ jobs:
 
       # ace-yara links libmagic and checks its answers against the magic database the dev
       # image pins (PLAN.md 1.7), so every step runs in the dev image.
+      # through Compose, which gives the build the vendor directory as its `vendor` context
       - name: Build the dev image
-        run: docker build -t ace-rs-dev:ci -t ace-rs-dev:latest docker/dev
+        run: docker compose build dev
 
       # ace-core's, ace-service's, ace-api's, ace-store's and ace-pool's tests need Postgres and the bucket, ace-pool's
       # telemetry test needs the telemetry profile's collector, and the sqlx check needs
@@ -28,10 +32,10 @@ jobs:
         run: docker compose --profile telemetry up -d --wait postgres bucket collector
 
       - name: cargo fmt
-        run: docker run --rm -v "$PWD:/workspace" -w /workspace ace-rs-dev:ci cargo fmt --all --check
+        run: docker run --rm -v "$PWD:/workspace" -w /workspace ace-rs-dev:latest cargo fmt --all --check
 
       - name: cargo clippy
-        run: docker run --rm -v "$PWD:/workspace" -w /workspace ace-rs-dev:ci cargo clippy --workspace --all-targets --locked -- -D warnings
+        run: docker run --rm -v "$PWD:/workspace" -w /workspace ace-rs-dev:latest cargo clippy --workspace --all-targets --locked -- -D warnings
 
       # nextest runs tests of different test programs at once; it doesn't run doctests.
       - name: cargo nextest
@@ -48,38 +52,4 @@ jobs:
 
       # Fails when ace-results, ace-api, ace-gui or ace-search depends on an ace-mod-* crate.
       - name: Layering check
-        run: docker run --rm -v "$PWD:/workspace" -w /workspace ace-rs-dev:ci cargo run --locked --quiet -p ace-layering
-
-  # PLAN.md 2.30: the end-to-end test, against the images docker/ace-rs/Dockerfile builds, under
-  # a Compose project of its own. It makes its own signatures repository and replays recorded
-  # RDAP and Splunk APIs, so it reaches nothing outside the runner.
-  e2e:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: End-to-end test
-        run: tests/e2e/run
-
-      # The test enforces docs/acceptance.md's threshold over the tracked samples, and this keeps
-      # the report; the local ones aren't in git, so a port is accepted on a run that has them
-      - name: Keep the comparison's report
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: compare-report
-          path: target/e2e/compare/
-
-  # PLAN.md 4.8: each library against itself over the tracked samples, about 5 minutes. It needs
-  # nothing up: its sides get a container each, and tests/e2e/run has only its self-test.
-  library-diff:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Each library on both sides
-        run: tools/library-diff/run --all
-        env:
-          CI: "true"
+        run: docker run --rm -v "$PWD:/workspace" -w /workspace ace-rs-dev:latest cargo run --locked --quiet -p ace-layering
