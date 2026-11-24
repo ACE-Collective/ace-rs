@@ -105,6 +105,16 @@ pub enum ToolAnswer {
 }
 
 /// Writes one frame of at most `MAX_FRAME`.
+/// The CPU time a tool run may use, in seconds: its timeout times the cores, as ace3 gives it,
+/// since `RLIMIT_CPU` counts every thread. A process can't use more CPU time than its cores over
+/// its wall time, so a tool is stopped by its timeout before this, however many threads it runs
+/// and however they wait: GNU OpenMP's threads spin while they wait, and on a busy machine that
+/// spinning alone took tesseract's CPU time to many times its work.
+pub fn cpu_seconds(timeout: Duration) -> u64 {
+    let cpus = std::thread::available_parallelism().map_or(1, |n| n.get() as u64);
+    timeout.as_secs().max(1).saturating_mul(cpus)
+}
+
 pub fn write_frame<T: Serialize>(to: &mut impl Write, message: &T) -> io::Result<()> {
     let bytes = serde_json::to_vec(message).map_err(io::Error::other)?;
     if bytes.len() > MAX_FRAME {
@@ -764,7 +774,6 @@ impl ToolHost {
         let timeout = run
             .timeout
             .min(self.deadline.saturating_duration_since(Instant::now()));
-        let cpus = std::thread::available_parallelism().map_or(1, |n| n.get() as u64);
         let env = environment(&tool.spec, run, &workdir).map_err(|e| e.to_string())?;
         let mut argv = vec![tool.spec.program.to_owned()];
         argv.extend(tool.spec.args.iter().map(|a| (*a).to_owned()));
@@ -779,8 +788,7 @@ impl ToolHost {
             reads: tool.reads.clone(),
             executes: tool.executes.clone(),
             address_space_bytes: tool.spec.memory_bytes,
-            // ace3 gives a tool its timeout times the cores: the limit counts every thread
-            cpu_seconds: timeout.as_secs().max(1).saturating_mul(cpus),
+            cpu_seconds: cpu_seconds(timeout),
             file_size_bytes: tool.spec.file_size_bytes,
             open_files: OPEN_FILES_LIMIT,
         };

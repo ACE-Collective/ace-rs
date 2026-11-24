@@ -307,7 +307,7 @@ mod runner {
     use std::path::{Path, PathBuf};
     use std::time::{Duration, Instant};
 
-    use ace_pool::tools::{Keeping, Ran, ToolExec, ToolTable, execute_keeping};
+    use ace_pool::tools::{Keeping, Ran, ToolExec, ToolTable, cpu_seconds, execute_keeping};
     use ace_sdk::tools::{
         Keep, OPEN_FILES_LIMIT, SANDBOX_TOOLS, ToolRun, ToolStatus, ToolStop, environment,
     };
@@ -372,7 +372,9 @@ mod runner {
             reads: tool.reads.clone(),
             executes: tool.executes.clone(),
             address_space_bytes: tool.spec.memory_bytes,
-            cpu_seconds: 60,
+            // the runner's budget for the longest run these tests give a tool, so a tool's threads
+            // can't run out of CPU time before its timeout, as they can't in a pool
+            cpu_seconds: cpu_seconds(LONG),
             file_size_bytes: tool.spec.file_size_bytes,
             open_files: OPEN_FILES_LIMIT,
         }
