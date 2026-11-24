@@ -54,22 +54,25 @@ e2e:
 test-all: test e2e
 
 # Built in target/llvm-cov-target, apart from the ordinary builds; the report goes to coverage/,
-# since target/ is a volume of the dev container's that the host doesn't see. That build is about
-# 45 GB on Docker's disk, so the target refuses to start with less than COVERAGE_MIN_FREE_GB free
-# there and cleans the build away when the report is written (COVERAGE_KEEP=1 keeps it, for a
-# faster next run). sccache can't cache instrumented builds, so it is off for them. The comparison
-# with ace3's trees (tests/e2e/run) runs the stack's release images, so it isn't in the report;
-# the per-module comparisons with ace3's dumps are crates' tests and are.
+# since target/ is a volume of the dev container's that the host doesn't see. The build has no debug
+# info: the report comes from the coverage mapping, and without it the build is about 6 GB smaller
+# with the same report. It peaks at about 23 GB on Docker's disk, so the target refuses to start
+# with less than COVERAGE_MIN_FREE_GB free there, and cleans the build away when the report is
+# written (COVERAGE_KEEP=1 keeps it, for a faster next run). Most of the build is test programs,
+# each linking every dependency, which is why a crate's tests/ files build as one program. sccache can't cache instrumented
+# builds, so it is off for them. The comparison with ace3's trees (tests/e2e/run) runs the stack's
+# release images, so it isn't in the report; the per-module comparisons with ace3's dumps are
+# crates' tests and are.
 #
 # Skipped: three ace-pool containment tests that check what a contained helper leaves behind or
 # prints. Under coverage the helper writes a .profraw file, or fails to inside the sandbox and says
 # so on stderr, so they can't pass there; they run in make test.
-COVERAGE_MIN_FREE_GB ?= 60
+COVERAGE_MIN_FREE_GB ?= 35
 COVERAGE_SKIP := only_plain_files_are_kept a_run_keeps_at_most_max_kept_files \
 	a_command_runs_contained_and_its_output_is_bounded
 
 coverage: up
-	$(COMPOSE) exec -T -e CI=true -e RUSTC_WRAPPER= dev sh -c '\
+	$(COMPOSE) exec -T -e CI=true -e RUSTC_WRAPPER= -e CARGO_PROFILE_DEV_DEBUG=false dev sh -c '\
 		free=$$(df -Pk target | awk "NR==2 {print int(\$$4 / 1048576)}"); \
 		if [ "$$free" -lt $(COVERAGE_MIN_FREE_GB) ]; then \
 			echo "Docker has $${free} GB free; coverage needs $(COVERAGE_MIN_FREE_GB) GB" >&2; exit 2; fi; \
