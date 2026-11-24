@@ -1771,7 +1771,7 @@ fn the_view_function_draws_a_fixture_tree() {
     );
     let page = open.render().expect("renders");
     assert!(page.contains(&format!(
-        r#"<section class="alert" data-init="@get('/alerts/{}/live?v={version}&amp;o=')">"#,
+        r#"<section class="alert" data-init="@get('/alerts/{}/live?v={version}&amp;w=&amp;o=')">"#,
         tree.alert.summary.id
     )));
     // the ownership notice's place, empty and hidden until the stream fills it
@@ -2390,9 +2390,9 @@ async fn the_alert_page_reads_the_alert_s_type_and_draws_the_tree_asked_for() {
     let version = |page: &str| {
         page.split("/live?v=")
             .nth(1)
-            .and_then(|rest| rest.split("&amp;").next())
+            .and_then(|rest| rest.split("&amp;o=").next())
             .expect("a version")
-            .to_owned()
+            .replace("&amp;", "&")
     };
     for (page, t) in [(&start, ""), (&whole, "&t=full")] {
         let mut stream = stack
@@ -2722,6 +2722,24 @@ impl Stack {
             .to_owned()
     }
 
+    /// The analysis panel's version in the alert page's stream URL (PLAN.md 7.19).
+    async fn page_work(&self, root: uuid::Uuid, session: &str) -> String {
+        let page = self
+            .get(&format!("/alerts/{root}"))
+            .header("cookie", cookie(session))
+            .send()
+            .await
+            .expect("answered")
+            .text()
+            .await
+            .expect("a page");
+        page.split("&amp;w=")
+            .nth(1)
+            .and_then(|rest| rest.split('&').next())
+            .expect("the panel's version")
+            .to_owned()
+    }
+
     /// Waits until nothing watches and no stream is open.
     async fn wait_until_closed(&self) {
         let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(10);
@@ -2752,6 +2770,7 @@ async fn a_result_that_lands_is_pushed_to_an_open_stream() {
     let (root, fqdn) = splunk_alert(&stack).await;
     let session = session_of(&stack, "alice").await;
     let version = stack.page_version(root, &session).await;
+    let work = stack.page_work(root, &session).await;
     assert_eq!(
         stack.service.watching(),
         (0, false),
@@ -2759,7 +2778,10 @@ async fn a_result_that_lands_is_pushed_to_an_open_stream() {
     );
 
     let mut stream = stack
-        .open_stream(&format!("/alerts/{root}/live?v={version}"), &session)
+        .open_stream(
+            &format!("/alerts/{root}/live?v={version}&w={work}"),
+            &session,
+        )
         .await;
     assert_eq!(stream.status(), StatusCode::OK);
     assert_eq!(
@@ -2832,7 +2854,7 @@ async fn a_result_that_lands_is_pushed_to_an_open_stream() {
         "{caught_up}"
     );
     let mut current = stack
-        .get(&format!("/alerts/{root}/live?v={version}"))
+        .get(&format!("/alerts/{root}/live?v={version}&w={work}"))
         .header("cookie", cookie(&session))
         .header("last-event-id", &pushed_version)
         .send()
@@ -3005,7 +3027,8 @@ async fn an_open_alert_page_is_told_when_its_owner_changes() {
     // the page says in its stream's URL who owned the alert when it was drawn: nobody
     let drawn = page(session.clone()).await;
     let version = stack.page_version(root, &session).await;
-    let live = format!("/alerts/{root}/live?v={version}&o=");
+    let work = stack.page_work(root, &session).await;
+    let live = format!("/alerts/{root}/live?v={version}&w={work}&o=");
     assert!(
         drawn.contains(&format!("@get('{}')", live.replace('&', "&amp;")))
             && drawn.contains(r#"<p id="owner-notice" hidden></p>"#),
@@ -3058,7 +3081,7 @@ async fn an_open_alert_page_is_told_when_its_owner_changes() {
 
     // a reload draws her as the owner, and a stream from that page is quiet
     let reloaded = page(session.clone()).await;
-    let hers = format!("/alerts/{root}/live?v={version}&o={}", jane_id.0);
+    let hers = format!("/alerts/{root}/live?v={version}&w={work}&o={}", jane_id.0);
     assert!(
         reloaded.contains(&format!("@get('{}')", hers.replace('&', "&amp;"))),
         "{reloaded}"
@@ -22819,5 +22842,249 @@ mod analyze_pages {
             .expect("answered");
         assert_eq!(elsewhere.status(), StatusCode::FORBIDDEN);
         assert_eq!(roots(&stack).await, before);
+    }
+}
+
+/// The alert page's analysis panel (PLAN.md 7.19): what's left to run and how long the analysis took.
+mod work_panel {
+    use ace_gui::alert::{AlertWorkFragment, WorkPanel, span};
+    use ace_service::{AlertWork, ModuleTime, WorkTask};
+
+    use super::*;
+
+    fn task(id: i64, module: &str, value: &str, state: &str, for_seconds: i64) -> WorkTask {
+        WorkTask {
+            id,
+            module: module.to_owned(),
+            kind: "fqdn".to_owned(),
+            value: value.to_owned(),
+            state: state.to_owned(),
+            for_seconds,
+            runs_in_seconds: (state == "delayed").then_some(90),
+            lease_owner: (state == "running").then(|| "parsers/7".to_owned()),
+            attempts: if state == "delayed" { 2 } else { 1 },
+        }
+    }
+
+    #[test]
+    fn a_span_reads_as_a_person_reads_it() {
+        assert_eq!(span(-3), "0s");
+        assert_eq!(span(45), "45s");
+        assert_eq!(span(663), "11m 3s");
+        assert_eq!(span(7500), "2h 5m");
+        assert_eq!(span(273_600), "3d 4h");
+    }
+
+    /// A running analysis: how long it has run, the counts, each task with its module, observable,
+    /// state, time in it and detail, escaped, and how many aren't listed; and a finished one: how long it
+    /// took, the first pass's time once there's been more than one, and the modules that ran longest.
+    #[test]
+    fn the_panel_draws_the_work_and_the_times() {
+        let running = AlertWork {
+            queued: 30,
+            delayed: 1,
+            running: 1,
+            failed: 2,
+            tasks: vec![
+                task(1, "rdap_analyzer", "evil.example.com", "running", 30),
+                task(2, "file_type", "<b>x</b>", "queued", 663),
+                task(3, "splunk_api", "evil.example.com", "delayed", 120),
+            ],
+            running_for_seconds: Some(250),
+            ..AlertWork::default()
+        };
+        let panel = WorkPanel::of(&running);
+        assert!(panel.shown && panel.active);
+        assert_eq!(
+            panel.headline,
+            "running for 4m 10s · 1 running · 30 queued · 1 delayed · 2 failed"
+        );
+        assert_eq!(panel.more, 29);
+        let html = AlertWorkFragment { work: panel }.render().expect("draws");
+        assert!(
+            html.starts_with(r#"<section id="alert-work" class="alert-work">"#),
+            "{html}"
+        );
+        assert!(html.contains("<details class=\"section\" open>"), "{html}");
+        assert!(html.contains("<td>rdap_analyzer</td><td>fqdn evil.example.com</td><td>running</td><td class=\"nowrap\">30s</td><td class=\"muted\">on parsers/7</td>"), "{html}");
+        assert!(html.contains("<td>fqdn &#60;b&#62;x&#60;/b&#62;</td><td>queued</td><td class=\"nowrap\">11m 3s</td>"), "{html}");
+        assert!(html.contains("runs again in 1m 30s, attempt 2"), "{html}");
+        assert!(html.contains("29 more not listed."), "{html}");
+
+        let finished = AlertWork {
+            failed: 1,
+            last_pass_seconds: Some(70),
+            first_pass_seconds: Some(100),
+            completed_passes: 2,
+            slowest: vec![
+                ModuleTime {
+                    module: "rdap_analyzer".to_owned(),
+                    seconds: 12.5,
+                    runs: 2,
+                },
+                ModuleTime {
+                    module: "yara_scanner_v3_4".to_owned(),
+                    seconds: 75.0,
+                    runs: 1,
+                },
+            ],
+            ..AlertWork::default()
+        };
+        let panel = WorkPanel::of(&finished);
+        assert!(panel.shown && !panel.active);
+        assert_eq!(
+            panel.headline,
+            "analyzed in 1m 10s · first analyzed in 1m 40s · 1 failed"
+        );
+        let html = AlertWorkFragment { work: panel }.render().expect("draws");
+        assert!(
+            html.contains("<details class=\"section\">"),
+            "closed once it's done: {html}"
+        );
+        assert!(
+            html.contains("<td>rdap_analyzer</td><td class=\"nowrap\">12.5s</td><td>2</td>"),
+            "{html}"
+        );
+        assert!(
+            html.contains("<td>yara_scanner_v3_4</td><td class=\"nowrap\">1m 15s</td><td>1</td>"),
+            "{html}"
+        );
+
+        // one pass: no first-pass time, which would say the same
+        let once = WorkPanel::of(&AlertWork {
+            last_pass_seconds: Some(70),
+            first_pass_seconds: Some(71),
+            completed_passes: 1,
+            ..AlertWork::default()
+        });
+        assert_eq!(once.headline, "analyzed in 1m 10s");
+        // nothing on record: nothing drawn, but the section is there for the stream to fill
+        let html = AlertWorkFragment {
+            work: WorkPanel::of(&AlertWork::default()),
+        }
+        .render()
+        .expect("draws");
+        assert_eq!(
+            html.trim(),
+            "<section id=\"alert-work\" class=\"alert-work\">\n</section>".trim()
+        );
+    }
+
+    /// Through the server: the page draws the panel; its stream, opened with the page's versions, is
+    /// quiet until a queued task is claimed, which no result lands for, and the next heartbeat sends the
+    /// panel with the task running; once the pass completes it sends how long it took and stops
+    /// reading the work.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn the_stream_sends_the_panel_when_a_task_is_claimed() {
+        let stack = stack_with(LiveLimits {
+            heartbeat: std::time::Duration::from_millis(200),
+            ..LiveLimits::default()
+        })
+        .await;
+        let alice = user(&stack, "alice").await;
+        grant_alert_read(&stack, &alice).await;
+        let (root, fqdn) = splunk_alert(&stack).await;
+        let db = stack.test_db.db();
+        sqlx::query(
+            "UPDATE analysis.roots SET pass = 1, completed_pass = 0,
+                 pass_started_at = now() - interval '30 seconds' WHERE id = $1",
+        )
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("a pass running");
+        let task: i64 = sqlx::query_scalar(
+            "INSERT INTO queue.tasks (root_id, observable_id, module, state, input_hashes)
+             VALUES ($1, $2, 'file_type', 'queued', '{}') RETURNING id",
+        )
+        .bind(root)
+        .bind(fqdn.0)
+        .fetch_one(db.pool())
+        .await
+        .expect("a queued task");
+        let session = session_of(&stack, "alice").await;
+        let page = stack
+            .get(&format!("/alerts/{root}"))
+            .header("cookie", cookie(&session))
+            .send()
+            .await
+            .expect("answered")
+            .text()
+            .await
+            .expect("a page");
+        assert!(
+            page.contains("<strong>Analysis</strong> running for 30s · 1 queued"),
+            "{page}"
+        );
+        assert!(page.contains("<td>file_type</td><td>fqdn www.example.com</td><td>queued</td>"));
+
+        let version = stack.page_version(root, &session).await;
+        let work = stack.page_work(root, &session).await;
+        let mut stream = stack
+            .open_stream(
+                &format!("/alerts/{root}/live?v={version}&w={work}"),
+                &session,
+            )
+            .await;
+        assert_eq!(stream.status(), StatusCode::OK);
+        let within = std::time::Duration::from_secs(10);
+        // the page's panel, and only its times move on a heartbeat while it runs
+        let (moved, _) = read_stream(&mut stream, within, |text| text.contains("alert-work")).await;
+        assert!(
+            !moved.contains("alert-tree"),
+            "the tree is the page's: {moved}"
+        );
+        assert!(moved.contains("<td>queued</td>"), "{moved}");
+
+        sqlx::query(
+            "UPDATE queue.tasks SET state = 'running', claimed_at = now(), lease_owner = 'parsers/7',
+                 lease_expires_at = now() + interval '60 seconds' WHERE id = $1",
+        )
+        .bind(task)
+        .execute(db.pool())
+        .await
+        .expect("claims it");
+        let (claimed, _) =
+            read_stream(&mut stream, within, |text| text.contains("on parsers/7")).await;
+        assert!(claimed.contains("<td>running</td>"), "{claimed}");
+        assert!(claimed.contains("1 running"), "{claimed}");
+
+        sqlx::query(
+            "UPDATE queue.tasks SET state = 'done', lease_owner = NULL, lease_expires_at = NULL,
+                 run_seconds = 0.5, runs = 1 WHERE id = $1",
+        )
+        .bind(task)
+        .execute(db.pool())
+        .await
+        .expect("ends it");
+        sqlx::query(
+            "INSERT INTO queue.root_completions (root_id, pass, completed_at)
+             SELECT id, 1, pass_started_at + interval '45 seconds' FROM analysis.roots WHERE id = $1",
+        )
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("completes the pass");
+        sqlx::query("UPDATE analysis.roots SET completed_pass = 1 WHERE id = $1")
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("ends the pass");
+        let (done, _) = read_stream(&mut stream, within, |text| text.contains("analyzed in")).await;
+        assert!(
+            done.contains("<strong>Analysis</strong> analyzed in 45s"),
+            "{done}"
+        );
+        assert!(
+            done.contains("<td>file_type</td><td class=\"nowrap\">0.5s</td><td>1</td>"),
+            "{done}"
+        );
+        // done, so the heartbeats read it no more and send only themselves
+        let (quiet, _) = read_stream(&mut stream, std::time::Duration::from_millis(800), |_| {
+            false
+        })
+        .await;
+        assert!(!quiet.contains("datastar-patch-elements"), "{quiet}");
+        assert!(quiet.contains(": heartbeat"), "{quiet}");
     }
 }

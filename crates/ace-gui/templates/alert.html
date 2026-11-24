@@ -4,13 +4,14 @@
     (src/analysis/summary.rs), the key observables by default. Everything else is a collapsed panel
     whose summary line says what it holds, each with the viewer's pin, and the analysis tree, which
     starts at the branches that carry a detection with the whole tree a link away (src/alert.rs).
-    data-init opens the live stream, whose URL holds only the alert's uuid, the tree's hex version,
+    data-init opens the live stream, whose URL holds only the alert's uuid, the tree's and the analysis
+    panel's hex versions,
     the uuid of who owned the alert when the page was drawn and which tree it drew. The stream fills
     #owner-notice when the alert has another owner, ace3's "Alert Ownership Changed!". -#}
 {% extends "base.html" %}
 {% block title %}{{ title }} · ACE{% endblock %}
 {% block content %}
-<section class="alert" data-init="@get('/alerts/{{ id }}/live?v={{ version }}&amp;o={{ owner }}{{ self.stream_tree() }}')">
+<section class="alert" data-init="@get('/alerts/{{ id }}/live?v={{ version }}&amp;w={{ work_version }}&amp;o={{ owner }}{{ self.stream_tree() }}')">
   <header class="alert-header">
   <h1>{{ title }}</h1>
   <p id="owner-notice" hidden></p>
@@ -69,6 +70,7 @@
     {%- for action in alert_actions %} <a class="alert-action" href="{{ action.href }}" target="_blank" rel="noopener noreferrer"{% if let Some(title) = action.title %} title="{{ title }}"{% endif %}>{{ action.label }}</a>{% endfor %}</p>
   </div>
   </header>
+  {%- include "alert_work.html" %}
   <div class="alert-summary">
     <section class="fired" aria-labelledby="fired-title">
       <h2 id="fired-title">What fired</h2>

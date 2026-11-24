@@ -1,0 +1,34 @@
+{#- The alert's analysis (PLAN.md 7.19, src/alert.rs's WorkPanel): what's left to run, which module on
+    what, in what state and for how long, and how long the analysis took, with the modules that ran
+    longest. The page includes it and its stream sends it again while the analysis runs. -#}
+<section id="alert-work" class="alert-work">
+{%- if work.shown %}
+<details class="section"{% if work.active %} open{% endif %}>
+  <summary><strong>Analysis</strong> {{ work.headline }}</summary>
+  {%- if !work.rows.is_empty() %}
+  <table class="work">
+    <thead><tr><th>Module</th><th>Observable</th><th>State</th><th>For</th><th></th></tr></thead>
+    <tbody>
+      {%- for row in work.rows %}
+      <tr><td>{{ row.module }}</td><td>{{ row.observable }}</td><td>{{ row.state }}</td><td class="nowrap">{{ row.since }}</td><td class="muted">{{ row.detail }}</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+  {%- if work.more > 0 %}
+  <p class="muted">{{ work.more }} more not listed.</p>
+  {%- endif %}
+  {%- if !work.slowest.is_empty() %}
+  <p class="muted">The modules that ran longest:</p>
+  <table class="work">
+    <thead><tr><th>Module</th><th>Run time</th><th>Runs</th></tr></thead>
+    <tbody>
+      {%- for module in work.slowest %}
+      <tr><td>{{ module.module }}</td><td class="nowrap">{{ module.time }}</td><td>{{ module.runs }}</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+</details>
+{%- endif %}
+</section>

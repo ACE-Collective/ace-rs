@@ -73,6 +73,17 @@
 //!   an observable's place (a key observable, a comment's way back, a result's additions) goes to
 //!   the whole tree. The stream's URL says which tree its page drew (`t=full`), and draws that one.
 //!
+//! The analysis panel (PLAN.md 7.19, `WorkPanel`, `#alert-work`), under the top: while the analysis
+//! runs, how long it has run, its tasks counted by state and the oldest of them, each with its module,
+//! its observable, how long it has been in its state and the worker holding it; once a pass completes,
+//! how long it took, how long the first pass took when there has been more than one, and the modules
+//! that ran longest. It comes from `Service::alert_work`, a read under `alert:read`; a failure to read
+//! it is logged and leaves the panel out. The stream sends it when a result lands and it changed, and on
+//! each heartbeat while the analysis runs, since a task can be claimed or keep waiting with no result
+//! landing; its URL holds the panel's version, `w`, a hash of what it shows apart from its growing
+//! times, so a stream that opens just after its page is quiet. Once the analysis is done the heartbeats
+//! stop reading it.
+//!
 //! The alert's type is its origin's `alert_type` (`AlertTree::alert_type`), what its submitter said:
 //! the hunter's is its hunt's, and a mailbox root's is `mailbox`. The service reads the origin with
 //! the tree, which is all the page needs to choose.
@@ -835,6 +846,175 @@ impl OwnerNoticeFragment {
     }
 }
 
+/// The analysis panel (PLAN.md 7.19): the alert's tasks that haven't ended, which module each is, on
+/// what, in what state and for how long, and how long the analysis took, with the modules that ran
+/// longest. It draws nothing for an alert with no pass on record and no task.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct WorkPanel {
+    /// Whether there's anything to draw.
+    pub shown: bool,
+    /// Whether the analysis is running, which opens the panel and keeps the stream redrawing it.
+    pub active: bool,
+    /// Its summary line: how long, and the counts.
+    pub headline: String,
+    pub rows: Vec<WorkRow>,
+    /// How many unfinished tasks aren't listed.
+    pub more: i64,
+    pub slowest: Vec<SlowModule>,
+    /// What the panel shows apart from the times that grow while it's open, which its version hashes:
+    /// so a stream that opens a moment after its page doesn't send the same panel again.
+    pub key: String,
+}
+
+/// An unfinished task, as the panel lists it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct WorkRow {
+    pub module: String,
+    pub observable: String,
+    pub state: &'static str,
+    /// How long it has been in its state.
+    pub since: String,
+    /// The worker holding a running task's lease, a delayed task's next run, and its attempts.
+    pub detail: String,
+}
+
+/// A module's run time on the alert.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SlowModule {
+    pub module: String,
+    pub time: String,
+    pub runs: i64,
+}
+
+/// A number of seconds as a person reads it: `45s`, `11m 3s`, `2h 5m`, `3d 4h`.
+pub fn span(seconds: i64) -> String {
+    let s = seconds.max(0);
+    match s {
+        0..60 => format!("{s}s"),
+        60..3600 => format!("{}m {}s", s / 60, s % 60),
+        3600..86400 => format!("{}h {}m", s / 3600, s % 3600 / 60),
+        _ => format!("{}d {}h", s / 86400, s % 86400 / 3600),
+    }
+}
+
+/// A run time with its fraction, for a module that ran under a minute: `0.25s`, `12.5s`.
+fn run_time(seconds: f64) -> String {
+    if seconds < 60.0 {
+        let rounded = (seconds * 100.0).round() / 100.0;
+        format!("{rounded}s")
+    } else {
+        // whole seconds past a minute; a run time is never negative
+        span(seconds as i64)
+    }
+}
+
+impl WorkPanel {
+    pub fn of(work: &ace_service::AlertWork) -> Self {
+        let active = work.unfinished() > 0 || work.running_for_seconds.is_some();
+        let mut parts = Vec::new();
+        if let Some(running) = work.running_for_seconds {
+            parts.push(format!("running for {}", span(running)));
+        } else if let Some(took) = work.last_pass_seconds {
+            parts.push(format!("analyzed in {}", span(took)));
+        }
+        if let Some(first) = work.first_pass_seconds
+            && (work.completed_passes > 1 || work.running_for_seconds.is_some())
+        {
+            parts.push(format!("first analyzed in {}", span(first)));
+        }
+        for (count, what) in [
+            (work.running, "running"),
+            (work.queued, "queued"),
+            (work.delayed, "delayed"),
+            (work.failed, "failed"),
+        ] {
+            if count > 0 {
+                parts.push(format!("{count} {what}"));
+            }
+        }
+        let rows: Vec<WorkRow> = work
+            .tasks
+            .iter()
+            .map(|task| {
+                let mut detail = Vec::new();
+                if let Some(owner) = &task.lease_owner {
+                    detail.push(format!("on {owner}"));
+                }
+                if let Some(runs_in) = task.runs_in_seconds {
+                    detail.push(if runs_in == 0 {
+                        "due now".to_owned()
+                    } else {
+                        format!("runs again in {}", span(runs_in))
+                    });
+                }
+                if task.attempts > 1 {
+                    detail.push(format!("attempt {}", task.attempts));
+                }
+                WorkRow {
+                    module: task.module.clone(),
+                    observable: format!("{} {}", task.kind, task.value),
+                    state: match task.state.as_str() {
+                        "running" => "running",
+                        "delayed" => "delayed",
+                        _ => "queued",
+                    },
+                    since: span(task.for_seconds),
+                    detail: detail.join(", "),
+                }
+            })
+            .collect();
+        let more = work.unfinished() - i64::try_from(rows.len()).unwrap_or(i64::MAX);
+        let tasks: Vec<String> = work
+            .tasks
+            .iter()
+            .map(|t| format!("{}:{}:{}", t.id, t.state, t.attempts))
+            .collect();
+        let key = format!(
+            "{active} {} {} {} {} {:?} {:?} {} {} {:?}",
+            work.queued,
+            work.delayed,
+            work.running,
+            work.failed,
+            work.last_pass_seconds,
+            work.first_pass_seconds,
+            work.completed_passes,
+            tasks.join(","),
+            work.slowest,
+        );
+        WorkPanel {
+            key,
+            shown: !parts.is_empty() || !work.slowest.is_empty(),
+            active,
+            headline: parts.join(" · "),
+            rows,
+            more: more.max(0),
+            slowest: work
+                .slowest
+                .iter()
+                .map(|m| SlowModule {
+                    module: m.module.clone(),
+                    time: run_time(m.seconds),
+                    runs: m.runs,
+                })
+                .collect(),
+        }
+    }
+}
+
+/// The analysis panel on its own: what the page includes and what the stream sends.
+#[derive(Debug, Template)]
+#[template(path = "alert_work.html")]
+pub struct AlertWorkFragment {
+    pub work: WorkPanel,
+}
+
+impl AlertWorkFragment {
+    /// The panel's version: a hash of what it shows apart from its growing times (`WorkPanel::key`).
+    pub fn version(&self) -> String {
+        hex::encode(&Sha256::digest(self.work.key.as_bytes())[..8])
+    }
+}
+
 /// The tree on its own: what the page includes and what the stream sends.
 #[derive(Debug, Template)]
 #[template(path = "alert_tree.html")]
@@ -1074,6 +1254,10 @@ pub struct AlertPage {
     /// choose, in order. The form posts to the list's `/alerts/disposition` with this one alert.
     pub dispositions: Vec<String>,
     pub remediation: Option<RemediationPanel>,
+    /// The analysis still to run and how long it took (PLAN.md 7.19), `#alert-work`.
+    pub work: WorkPanel,
+    /// The panel's version, a hash of it, which the stream starts from as it does the tree's.
+    pub work_version: String,
 }
 
 /// ace3's Take Ownership and Assign Ownership buttons of the alert page (`analysis/index.html`): forms
@@ -1407,7 +1591,16 @@ impl AlertPage {
             remediation: options
                 .remediation
                 .and_then(|timeline| RemediationPanel::of(summary.id, timeline)),
+            work: WorkPanel::default(),
+            work_version: String::new(),
         })
+    }
+
+    /// The page with its analysis panel.
+    pub fn with_work(mut self, work: WorkPanel) -> Self {
+        self.work_version = AlertWorkFragment { work: work.clone() }.version();
+        self.work = work;
+        self
     }
 
     /// The page with its ownership forms.
@@ -1588,6 +1781,15 @@ pub(crate) async fn page(
                 .find(|(key, _)| key == "tree")
                 .and_then(|(_, value)| TreeMode::named(value))
         });
+    // what's left to run and how long it took; a failure to read it leaves the panel out, since the
+    // rest of the page is still right
+    let work = match gui.service.alert_work(actor, id).await {
+        Ok(work) => WorkPanel::of(&work),
+        Err(error) => {
+            tracing::warn!(%actor, alert = %id, "reading an alert's analysis work failed: {error}");
+            WorkPanel::default()
+        }
+    };
     let bodies = email_bodies(&gui, actor, &tree).await;
     let alert_actions = alert_action_links(&gui, actor, &tree).await;
     let options = PageOptions {
@@ -1617,7 +1819,8 @@ pub(crate) async fn page(
                 .with_verdicts(verdicts)
                 .with_svs(svs)
                 .with_ownership(ownership)
-                .with_dispositions(dispositions),
+                .with_dispositions(dispositions)
+                .with_work(work),
         ),
         Err(error) => {
             tracing::error!("an alert page couldn't be drawn: {error}");
@@ -1921,8 +2124,13 @@ struct Streaming {
     /// Who the client knows the alert's owner to be: the one its page was drawn with, then the one the
     /// last notice named.
     owner: Option<Uuid>,
-    /// An event of the last read still to send: the notice, when the tree went first.
-    pending: Option<Event>,
+    /// Events of the last read still to send: the notice and the analysis panel, after the tree.
+    pending: std::collections::VecDeque<Event>,
+    /// The analysis panel's version the client has: its page's, then the last one sent.
+    work: String,
+    /// Whether the alert's analysis was running when the panel was last read, so each heartbeat
+    /// reads it again: a task can wait, or be claimed, with no result landing to wake the stream.
+    work_active: bool,
     /// Whether to read the tree before waiting: at the start, since a result may have landed between
     /// the page's read and the watch.
     dirty: bool,
@@ -1930,6 +2138,37 @@ struct Streaming {
     drawn_at: Option<tokio::time::Instant>,
     heartbeat: tokio::time::Interval,
     _admitted: Place,
+}
+
+impl Streaming {
+    /// The analysis panel as an event, when it changed since the last one sent, or on a heartbeat
+    /// (`beat`) while the analysis runs, so its times move. A read that fails is logged and sends
+    /// nothing, and the stream goes on: the tree is still right.
+    async fn work_event(&mut self, beat: bool) -> Option<Event> {
+        let root = self.watch.root();
+        let work = match self.gui.service.alert_work(&self.actor, root).await {
+            Ok(work) => WorkPanel::of(&work),
+            Err(error) => {
+                tracing::warn!(actor = %self.actor, %root, "an alert stream couldn't read the analysis work: {error}");
+                return None;
+            }
+        };
+        self.work_active = work.active;
+        let fragment = AlertWorkFragment { work };
+        let version = fragment.version();
+        if self.work == version && !(beat && fragment.work.active) {
+            return None;
+        }
+        let html = match fragment.render() {
+            Ok(html) => html,
+            Err(error) => {
+                tracing::error!("an alert's analysis panel couldn't be drawn: {error}");
+                return None;
+            }
+        };
+        self.work = version;
+        Some(patch_elements(&html, None))
+    }
 }
 
 /// What a stream does next.
@@ -1942,7 +2181,7 @@ impl Streaming {
     /// The next event, or None to end the stream.
     async fn next(mut self) -> Option<(Result<Event, Infallible>, Self)> {
         loop {
-            if let Some(event) = self.pending.take() {
+            if let Some(event) = self.pending.pop_front() {
                 return Some((Ok(event), self));
             }
             let next = if self.dirty {
@@ -1970,6 +2209,11 @@ impl Streaming {
                             tracing::warn!(actor = %self.actor, "an alert stream couldn't check its session: {error}");
                             return None;
                         }
+                    }
+                    if self.work_active
+                        && let Some(event) = self.work_event(true).await
+                    {
+                        self.pending.push_back(event);
                     }
                     return Some((Ok(Event::default().comment("heartbeat")), self));
                 }
@@ -2032,11 +2276,14 @@ impl Streaming {
                             }
                         }
                     }
+                    if let Some(event) = self.work_event(false).await {
+                        events.push(event);
+                    }
                     let mut events = events.into_iter();
                     let Some(first) = events.next() else {
                         continue;
                     };
-                    self.pending = events.next();
+                    self.pending.extend(events);
                     return Some((Ok(first), self));
                 }
             }
@@ -2129,7 +2376,9 @@ pub(crate) async fn live(
         version,
         mode,
         owner,
-        pending: None,
+        pending: std::collections::VecDeque::new(),
+        work: named("w").unwrap_or_default(),
+        work_active: true,
         dirty: true,
         drawn_at: None,
         heartbeat,

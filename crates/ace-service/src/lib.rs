@@ -111,6 +111,7 @@ mod actor;
 pub mod ai;
 mod alert_graph;
 mod alert_view;
+mod alert_work;
 mod alerts;
 mod auth;
 mod collection;
@@ -202,6 +203,7 @@ pub use alert_graph::{
     MAX_GRAPH_NODES, MAX_LABEL_CHARS, graph_of,
 };
 pub use alert_view::{Addition, AlertTree, AlertWatch, MAX_TREE_OBSERVABLES, RESULTS_CHANNEL};
+pub use alert_work::{AlertWork, MAX_SLOWEST, MAX_WORK_ROWS, ModuleTime, WorkTask};
 pub use alerts::{
     Alert, AlertDetection, AlertFile, AlertObservable, AlertPage, AlertQuery, AlertSort,
     AlertSummary, AnalysisState, FailedModule, FileDownload, FileHead, LIST_TIMEOUT,

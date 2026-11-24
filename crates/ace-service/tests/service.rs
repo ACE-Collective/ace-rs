@@ -53049,3 +53049,257 @@ mod manual_tests {
         assert_eq!(root_count(db).await, roots, "no alert was made");
     }
 }
+
+/// The analysis still to run on an alert (PLAN.md 7.19).
+mod work_tests {
+    use ace_service::{MAX_WORK_ROWS, WorkTask};
+
+    use super::*;
+
+    /// An alert with one fqdn, whose tasks are only those the test adds.
+    async fn quiet_alert(db: &Db) -> (Uuid, i64) {
+        let root = alert(db).await;
+        sqlx::query("DELETE FROM queue.tasks WHERE root_id = $1")
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("clears");
+        sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("alerts");
+        let observable =
+            sqlx::query_scalar("SELECT id FROM analysis.observables WHERE root_id = $1")
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("its observable");
+        (root, observable)
+    }
+
+    /// A task in `state`, whose times are `ago` seconds in the past, and a delayed one's run 90 s on.
+    async fn task(
+        db: &Db,
+        root: Uuid,
+        observable: i64,
+        module: &str,
+        state: &str,
+        ago: i64,
+    ) -> i64 {
+        sqlx::query_scalar(
+            "INSERT INTO queue.tasks (root_id, observable_id, module, state, attempts, input_hashes,
+                                      updated_at, claimed_at, lease_owner, lease_expires_at, run_after)
+             VALUES ($1, $2, $3, $4::queue.task_state, 1, '{}',
+                     now() - make_interval(secs => $5),
+                     CASE WHEN $4 = 'running' THEN now() - make_interval(secs => $5) END,
+                     CASE WHEN $4 = 'running' THEN 'parsers/7' END,
+                     CASE WHEN $4 = 'running' THEN now() + interval '60 seconds' END,
+                     CASE WHEN $4 = 'delayed' THEN now() + interval '90 seconds' ELSE now() END)
+             RETURNING id",
+        )
+        .bind(root)
+        .bind(observable)
+        .bind(module)
+        .bind(state)
+        .bind(ago as f64)
+        .fetch_one(db.pool())
+        .await
+        .expect("a task")
+    }
+
+    /// Each state counted, the running task first with its worker, a delayed task's next run, each
+    /// task's time in its state from the database's clock, the failed one counted and not listed, and
+    /// an ended task left out.
+    #[tokio::test]
+    async fn the_unfinished_tasks_are_counted_and_listed() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let (root, observable) = quiet_alert(db).await;
+        let service = service(db);
+        let actor = admin(db).await;
+        let none = service.alert_work(&actor, root).await.expect("reads");
+        assert_eq!(
+            (none.unfinished(), none.failed, none.tasks.len()),
+            (0, 0, 0),
+            "no tasks, no work"
+        );
+        let queued = task(db, root, observable, "file_type", "queued", 600).await;
+        let running = task(db, root, observable, "rdap_analyzer", "running", 30).await;
+        let delayed = task(db, root, observable, "splunk_api", "delayed", 120).await;
+        task(db, root, observable, "crasher", "failed", 5).await;
+        task(db, root, observable, "done_module", "done", 5).await;
+        let work = service.alert_work(&actor, root).await.expect("reads");
+        assert_eq!(
+            (work.queued, work.delayed, work.running, work.failed),
+            (1, 1, 1, 1)
+        );
+        assert_eq!(work.unfinished(), 3);
+        let fqdn =
+            |id, module: &str, state: &str, for_seconds, runs_in, owner: Option<&str>| WorkTask {
+                id,
+                module: module.to_owned(),
+                kind: "fqdn".to_owned(),
+                value: "evil.example.com".to_owned(),
+                state: state.to_owned(),
+                for_seconds,
+                runs_in_seconds: runs_in,
+                lease_owner: owner.map(str::to_owned),
+                attempts: 1,
+            };
+        // the times are the database's, read a moment after the rows were written: a slow test adds a
+        // few seconds to each time in a state and takes them from a delayed task's wait
+        let mut tasks = work.tasks.clone();
+        for (task, ago) in tasks.iter_mut().zip([30, 600, 120]) {
+            assert!((ago..ago + 5).contains(&task.for_seconds), "{task:?}");
+            task.for_seconds = ago;
+            if let Some(runs_in) = task.runs_in_seconds {
+                assert!((85..=90).contains(&runs_in), "{task:?}");
+                task.runs_in_seconds = Some(90);
+            }
+        }
+        assert_eq!(
+            tasks,
+            [
+                fqdn(
+                    running,
+                    "rdap_analyzer",
+                    "running",
+                    30,
+                    None,
+                    Some("parsers/7")
+                ),
+                fqdn(queued, "file_type", "queued", 600, None, None),
+                fqdn(delayed, "splunk_api", "delayed", 120, Some(90), None),
+            ]
+        );
+    }
+
+    /// How long the analysis took: while a pass runs, since it began; once it completes, how long it
+    /// took and how long from submission to the first pass's end; and the modules that ran longest.
+    #[tokio::test]
+    async fn the_analysis_times_are_read() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let (root, observable) = quiet_alert(db).await;
+        let service = service(db);
+        let actor = admin(db).await;
+        // the second pass, begun 40 s ago, after the first ended 100 s after the submission
+        sqlx::query(
+            "UPDATE analysis.roots SET created_at = now() - interval '600 seconds', pass = 2,
+                 completed_pass = 1, pass_started_at = now() - interval '40 seconds'
+             WHERE id = $1",
+        )
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("sets the passes");
+        sqlx::query(
+            "INSERT INTO queue.root_completions (root_id, pass, completed_at)
+             VALUES ($1, 1, now() - interval '500 seconds')",
+        )
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("completes the first");
+        for (module, seconds, runs) in [("rdap_analyzer", 12.5, 2), ("file_type", 0.25, 1)] {
+            let id = task(db, root, observable, module, "done", 1).await;
+            sqlx::query("UPDATE queue.tasks SET run_seconds = $2, runs = $3 WHERE id = $1")
+                .bind(id)
+                .bind(seconds)
+                .bind(runs)
+                .execute(db.pool())
+                .await
+                .expect("times it");
+        }
+        let work = service.alert_work(&actor, root).await.expect("reads");
+        let running = work.running_for_seconds.expect("running");
+        assert!((40..45).contains(&running), "{running}");
+        assert_eq!(work.last_pass_seconds, None, "the pass hasn't ended");
+        assert_eq!(work.first_pass_seconds, Some(100));
+        assert_eq!(work.completed_passes, 1);
+        assert_eq!(
+            work.slowest,
+            [
+                ace_service::ModuleTime {
+                    module: "rdap_analyzer".to_owned(),
+                    seconds: 12.5,
+                    runs: 2
+                },
+                ace_service::ModuleTime {
+                    module: "file_type".to_owned(),
+                    seconds: 0.25,
+                    runs: 1
+                },
+            ]
+        );
+        // the second pass ends 70 s after it began
+        sqlx::query(
+            "INSERT INTO queue.root_completions (root_id, pass, completed_at)
+             SELECT id, 2, pass_started_at + interval '70 seconds' FROM analysis.roots WHERE id = $1",
+        )
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("completes the second");
+        sqlx::query("UPDATE analysis.roots SET completed_pass = 2 WHERE id = $1")
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("ends it");
+        let work = service.alert_work(&actor, root).await.expect("reads");
+        assert_eq!(work.running_for_seconds, None);
+        assert_eq!(work.last_pass_seconds, Some(70));
+        assert_eq!(work.first_pass_seconds, Some(100));
+    }
+
+    /// At most `MAX_WORK_ROWS` are listed, the oldest, and the counts cover every one; an alert that
+    /// isn't there is `NotFound`, and an actor without `alert:read` is refused.
+    #[tokio::test]
+    async fn the_list_is_bounded_and_read_under_alert_read() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let root = quiet_alert(db).await.0;
+        let mut tx = db.begin().await.expect("begins");
+        for n in 0..MAX_WORK_ROWS + 5 {
+            tree::upsert_observable(
+                &mut tx,
+                root,
+                &NewObservable::new(ObservableKind::Fqdn, format!("host{n}.example.com")),
+            )
+            .await
+            .expect("adds");
+        }
+        tx.commit().await.expect("commits");
+        sqlx::query(
+            "INSERT INTO queue.tasks (root_id, observable_id, module, state, input_hashes, updated_at)
+             SELECT root_id, id, 'file_type', 'queued', '{}', now() - make_interval(secs => id)
+             FROM analysis.observables WHERE root_id = $1",
+        )
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("queues");
+        let service = service(db);
+        let actor = admin(db).await;
+        let work = service.alert_work(&actor, root).await.expect("reads");
+        assert_eq!(work.queued, MAX_WORK_ROWS + 6);
+        assert_eq!(work.tasks.len(), usize::try_from(MAX_WORK_ROWS).unwrap());
+        assert!(
+            work.tasks
+                .windows(2)
+                .all(|pair| pair[0].for_seconds >= pair[1].for_seconds),
+            "the oldest first"
+        );
+        assert!(matches!(
+            service.alert_work(&actor, Uuid::new_v4()).await,
+            Err(ServiceError::NotFound(_))
+        ));
+        assert!(matches!(
+            service
+                .alert_work(&user(UserId(Uuid::from_u128(0x5B))), root)
+                .await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
+    }
+}

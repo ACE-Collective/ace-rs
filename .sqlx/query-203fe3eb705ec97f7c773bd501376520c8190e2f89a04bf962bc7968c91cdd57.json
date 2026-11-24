@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT module, sum(run_seconds) AS \"seconds!\", sum(runs)::bigint AS \"runs!\"\n                           FROM queue.tasks\n                           WHERE root_id = $1 AND run_seconds IS NOT NULL\n                           GROUP BY module ORDER BY 2 DESC, module LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "module",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "seconds!",
+        "type_info": "Float8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "runs!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "203fe3eb705ec97f7c773bd501376520c8190e2f89a04bf962bc7968c91cdd57"
+}
