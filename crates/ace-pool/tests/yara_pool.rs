@@ -216,3 +216,79 @@ async fn a_switch_during_a_stream_of_scans_drops_none() {
     assert_eq!(generations.last(), Some(&2), "{generations:?}");
     assert!(stderr.contains("switched to a new ruleset"), "{stderr}");
 }
+
+/// A log writer that sends each write as a line of text, so a test waits for a line rather than for
+/// time to pass.
+#[derive(Clone)]
+struct Lines(tokio::sync::mpsc::UnboundedSender<String>);
+
+impl std::io::Write for Lines {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        // a closed receiver means the test stopped listening, which isn't the writer's to report
+        let _ignored = self.0.send(String::from_utf8_lossy(buf).into_owned());
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+/// PLAN.md 7.20: a pool waiting for the core's first ruleset logs each look at INFO until it has
+/// waited its patience, then at ERROR, saying that it leases nothing and what builds a ruleset.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn waiting_for_the_first_ruleset_becomes_an_error_after_its_patience() {
+    use ace_pool::client::LeaseClient;
+    use ace_pool::rulesets::RulesetWatcher;
+    use tracing::instrument::WithSubscriber;
+
+    let core = Core::start(
+        vec![ace_mod_yara::MANIFEST],
+        &[MODULE],
+        Duration::from_secs(30),
+    )
+    .await;
+    for (patience, level) in [
+        (Duration::from_secs(3600), "INFO"),
+        (Duration::ZERO, "ERROR"),
+    ] {
+        let (sent, mut lines) = tokio::sync::mpsc::unbounded_channel();
+        let writer = Lines(sent);
+        let subscriber = tracing_subscriber::fmt()
+            .with_writer(move || writer.clone())
+            .with_ansi(false)
+            .finish();
+        let client = LeaseClient::new(&core.url, common::TOKEN, "ruleset-patience").unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        // one look, then a wait far longer than the test, which the stop ends
+        let watcher =
+            RulesetWatcher::new(client, dir.path(), std::sync::Arc::new(|_: &Path| Ok(())))
+                .every(Duration::from_secs(3600))
+                .patience(patience);
+        let stop = tokio_util::sync::CancellationToken::new();
+        let looking = {
+            let stop = stop.clone();
+            async move { watcher.first(&stop).await }.with_subscriber(subscriber)
+        };
+        let task = tokio::spawn(looking);
+        // a guard against a hang, not a bound on how fast it looks
+        let line = tokio::time::timeout(Duration::from_secs(60), lines.recv())
+            .await
+            .expect("a look within the guard")
+            .expect("a line");
+        stop.cancel();
+        assert!(task.await.unwrap().is_none(), "no ruleset, so none loaded");
+        println!("{line}");
+        assert!(line.contains(level), "{level}: {line}");
+        if level == "ERROR" {
+            assert!(line.contains("leases no task"), "{line}");
+            assert!(line.contains("ACE_RS_SIGNATURES_REPO"), "{line}");
+            assert!(line.contains("waited_seconds=0"), "{line}");
+        } else {
+            assert!(
+                line.contains("waiting for the core's first ruleset"),
+                "{line}"
+            );
+        }
+    }
+}

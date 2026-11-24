@@ -25,6 +25,10 @@ pub type Check = Arc<dyn Fn(&Path) -> Result<(), String> + Send + Sync>;
 /// How often the watcher asks for the current ruleset by default.
 pub const DEFAULT_EVERY: Duration = Duration::from_secs(30);
 
+/// How long a pool waits for the core's first ruleset before each look says so at ERROR (PLAN.md
+/// 7.20): until there is one the pool leases nothing, so an alert's files go unanalyzed.
+pub const FIRST_RULESET_PATIENCE: Duration = Duration::from_secs(300);
+
 #[derive(Debug, thiserror::Error)]
 pub enum WatchError {
     #[error(transparent)]
@@ -45,6 +49,7 @@ pub struct RulesetWatcher {
     dir: PathBuf,
     check: Check,
     every: Duration,
+    patience: Duration,
 }
 
 impl RulesetWatcher {
@@ -54,11 +59,19 @@ impl RulesetWatcher {
             dir: dir.into(),
             check,
             every: DEFAULT_EVERY,
+            patience: FIRST_RULESET_PATIENCE,
         }
     }
 
     pub fn every(mut self, every: Duration) -> Self {
         self.every = every;
+        self
+    }
+
+    /// Waits this long for the first ruleset before saying so at ERROR, rather than
+    /// `FIRST_RULESET_PATIENCE`.
+    pub fn patience(mut self, patience: Duration) -> Self {
+        self.patience = patience;
         self
     }
 
@@ -112,11 +125,18 @@ impl RulesetWatcher {
     }
 
     /// Looks until a ruleset is current, as a pool does before it leases its first YARA task.
-    /// None when `stop` fired first.
+    /// None when `stop` fired first. Each look without one logs at INFO, and at ERROR once it has
+    /// waited `patience`, since the pool leases nothing until then.
     pub async fn first(&self, stop: &CancellationToken) -> Option<Generation> {
+        let started = tokio::time::Instant::now();
         loop {
             match self.refresh().await {
                 Ok(Some(generation)) => return Some(generation),
+                Ok(None) if started.elapsed() >= self.patience => tracing::error!(
+                    waited_seconds = started.elapsed().as_secs(),
+                    "the core has built no YARA ruleset, so this pool leases no task until it does: \
+                     the core builds one from the signatures checkout ACE_RS_SIGNATURES_REPO names"
+                ),
                 Ok(None) => tracing::info!("waiting for the core's first ruleset"),
                 Err(e) => tracing::error!("loading the current ruleset failed: {e}"),
             }
