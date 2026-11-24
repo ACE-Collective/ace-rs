@@ -95,9 +95,17 @@ fn compare<M: Parser>(
     module: &str,
     class: &str,
     view: Option<(&str, &str)>,
+    skipped: &mut Vec<String>,
 ) -> Vec<(String, Vec<Difference>)> {
     let mut compared = Vec::new();
     for dump in Dump::all(module).expect("the dumps read") {
+        // samples/local/ is git-ignored, so CI doesn't have it
+        let local = local_file(&dump);
+        if !local.exists() && dump.sample().is_some_and(|s| s.starts_with("local/")) {
+            eprintln!("skipping {}: {} isn't here", dump.name, local.display());
+            skipped.push(format!("{module}/{}", dump.short_name()));
+            continue;
+        }
         let dir = tempfile::tempdir().expect("a directory");
         let harness = Harness::<M>::new()
             .map(|h| h.with_typer(ace_mod_files::file_type::type_of))
@@ -132,27 +140,33 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/differences.md"),
     )
     .expect("differences.md reads");
+    let mut skipped = Vec::new();
     let mut compared = compare::<ZipEncryptionAnalyzer>(
         "zip_encryption_analyzer",
         "ZipEncryptionAnalysis",
         Some(("zip/aes256.zip.right", "zip_encryption_aes256")),
+        &mut skipped,
     );
     compared.extend(compare::<RarEncryptionAnalyzer>(
         "rar_encryption_analyzer",
         "RarEncryptionAnalysis",
         Some(("rar/rar5_headers.rar.right", "rar_encryption_rar5_headers")),
+        &mut skipped,
     ));
     compared.extend(compare::<PdfEncryptionAnalyzer>(
         "pdf_encryption_analyzer",
         "PDFEncryptionAnalysis",
         Some(("pdf/aes_256.pdf.right", "pdf_encryption_aes_256")),
+        &mut skipped,
     ));
+    // the dumps found, compared or skipped for a sample this checkout doesn't have
     assert!(
-        compared.len() >= 70,
-        "only {} dumps compared",
-        compared.len()
+        compared.len() + skipped.len() >= 70,
+        "only {} dumps compared and {} skipped",
+        compared.len(),
+        skipped.len()
     );
-    if let Err(report) = listed.check(&compared, &[]) {
+    if let Err(report) = listed.check(&compared, &skipped) {
         panic!("{report}");
     }
 }

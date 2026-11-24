@@ -39,7 +39,7 @@ jobs:
 
       # nextest runs tests of different test programs at once; it doesn't run doctests.
       - name: cargo nextest
-        run: docker compose run --rm -T -e CI=true dev cargo nextest run --workspace --locked
+        run: docker compose run --rm -T -e CI=true dev cargo nextest run --workspace --locked --no-fail-fast
 
       - name: doctests
         run: docker compose run --rm -T -e CI=true dev cargo test --doc --workspace --locked

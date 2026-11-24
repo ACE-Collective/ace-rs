@@ -55,9 +55,17 @@ fn compare<M: Parser>(
     module: &str,
     class: &str,
     view: Option<(&str, &str)>,
+    skipped: &mut Vec<String>,
 ) -> Vec<(String, Vec<Difference>)> {
     let mut compared = Vec::new();
     for dump in Dump::all(module).expect("the dumps read") {
+        // samples/local/ is git-ignored, so CI doesn't have it
+        let local = local_file(&dump);
+        if !local.exists() && dump.sample().is_some_and(|s| s.starts_with("local/")) {
+            eprintln!("skipping {}: {} isn't here", dump.name, local.display());
+            skipped.push(format!("{module}/{}", dump.short_name()));
+            continue;
+        }
         let mut harness = Harness::<M>::new()
             .expect("harness")
             .with_typer(ace_mod_files::file_type::type_of);
@@ -89,32 +97,39 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/differences.md"),
     )
     .expect("differences.md reads");
+    let mut skipped = Vec::new();
     let mut compared = compare::<MicrosoftScriptEncodingAnalyzer>(
         "microsoft_script_encoding_analysis",
         "MicrosoftScriptEncodingAnalysis",
         Some(("mse/invoice.vbe", "mse_invoice_vbe")),
+        &mut skipped,
     );
     compared.extend(compare::<VbScriptAnalyzer>(
         "vbscript_analyzer",
         "VBScriptAnalysis",
         Some(("vbs/many_same.vbs", "vbscript_many_same")),
+        &mut skipped,
     ));
     compared.extend(compare::<NoWhiteSpaceAnalyzer>(
         "nowhitespace_analyzer",
         "NoWhiteSpaceAnalysis",
         Some(("rtf/spaced.rtf", "nowhitespace_spaced")),
+        &mut skipped,
     ));
     compared.extend(compare::<ExtractedRtfAnalyzer>(
         "extracted_rtf_analyzer",
         "ExtractedRTFAnalysis",
         Some(("extracted/payload.exe", "extracted_rtf_payload")),
+        &mut skipped,
     ));
+    // the dumps found, compared or skipped for a sample this checkout doesn't have
     assert!(
-        compared.len() >= 75,
-        "only {} dumps compared",
-        compared.len()
+        compared.len() + skipped.len() >= 75,
+        "only {} dumps compared and {} skipped",
+        compared.len(),
+        skipped.len()
     );
-    if let Err(report) = listed.check(&compared, &[]) {
+    if let Err(report) = listed.check(&compared, &skipped) {
         panic!("{report}");
     }
 }
