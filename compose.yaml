@@ -73,6 +73,11 @@ services:
       # that isn't running.
       ACE_RS_TEST_OTLP_ENDPOINT: http://collector:4318
       ACE_RS_TEST_TRACES_URL: http://collector:16686
+      # No incremental compilation: sccache can't cache an incremental build, so with it the
+      # workspace's own crates compiled from scratch after every clean, and target/debug/incremental
+      # held several GB more. Without it they come from sccache, which is what makes the Makefile's
+      # TARGET_CAP_GB cheap.
+      CARGO_INCREMENTAL: "0"
     # The image's main process, poll-host-changes, passes saves on the macOS host to
     # inotify in the container so bacon sees them. Rancher Desktop's virtiofs mount
     # doesn't, so without it bacon only rebuilds for changes made inside the container.

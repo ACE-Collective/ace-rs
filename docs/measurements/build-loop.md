@@ -194,6 +194,28 @@ What else the 4.9 numbers include:
 - **sccache** as in 2.33: clean-cold empties the tool's own cache and includes writing to it, and clean-warm reads what it wrote. The workspace's crates aren't cached.
 - **No failures.** Every run exited 0.
 
+## Incremental compilation off (decision 68)
+
+Measured on 2026-11-25 in the dev container: Rancher Desktop's VM on Apple silicon (aarch64), 10 CPUs, mold through clang, sccache with a 10 GiB cache that was warm for crates.io's crates, Rust 1.99.1, at commit 1290f3c2. ace3's 27 containers and a site's stack were running beside it, idle. **One run of each**, so there's no range; the differences below are several times the spread 4.9's series had.
+
+Each row is `cargo build --workspace --all-targets --locked`. "Edit" appends a new comment line to the crate's `lib.rs`, so its source changes and sccache misses, as a real edit does. The incremental rows ran first, then `cargo clean --profile dev` and the rest with `CARGO_INCREMENTAL=0`.
+
+| Build | Incremental | Seconds | `target/debug` afterwards |
+|---|---|---|---|
+| full, after a clean | on | 104 | 22.3 GB, 10.1 GB of it `incremental/` |
+| edit `ace-core` | on | 23 | 25.2 GB |
+| edit `ace-mod-rdap` | on | 12 | 25.2 GB |
+| full, after a clean, the workspace's crates not yet in sccache | off | 128 | 15.2 GB |
+| full, after a clean, sccache warm | off | 58 | 15.2 GB |
+| edit `ace-core` | off | 69 | 15.2 GB |
+| edit `ace-mod-rdap` | off | 20 | 15.2 GB |
+
+Over the off rows sccache hit 3,363 compilations and missed 742, all of the misses Rust: the first full build's workspace crates and the two edits' dependants.
+
+- **Off is 10 GB smaller a build**, the `incremental/` directory, and an edit adds nothing to it, where on it grew 2.9 GB.
+- **Off rebuilds an edit more slowly**: everything that depends on the edited crate compiles from scratch, 46 s more for `ace-core`, 8 s more for a leaf.
+- **Off makes a clean cheap** once sccache holds the workspace's crates: 58 s, against 104 s on.
+
 ## CI's Linux runner
 
 Pending, as in 0.5. A `build-loop` workflow that ran the same two scripts in the dev image on GitHub's `ubuntu-24.04` runner was written and never run, and was removed with the other workflows until ace-rs is more stable. Measuring a Linux runner needs it back, or the commands below run on one by hand.

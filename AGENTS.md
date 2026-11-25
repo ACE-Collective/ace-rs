@@ -72,11 +72,15 @@ the bucket and the telemetry collector; run a command there with `docker compose
 - **The host is macOS with zsh.** Quote a glob (zsh fails a command whose glob matches nothing), and
   don't rely on an unquoted `$VAR` splitting into words: zsh doesn't split it. There is no `timeout`.
 - **Docker's disk is not the host's.** It is a VM disk of its own; `df` on the host says nothing about
-  it. Check it with `docker run --rm alpine:3.24.2 df -h /` before a heavy build. `target/debug` is
-  about 17 to 23 GB, `make coverage` peaks at about 23 GB, and an e2e image build uses about 10 GB
-  while it runs. Never run two heavy builds at once, here or in a site's workspace: a full disk stops
-  ace3's databases too. `docker builder prune -f --keep-storage 15GB` frees BuildKit's cache when
-  nothing is building.
+  it. Check it with `docker run --rm alpine:3.24.2 df -h /` before a heavy build. One build's
+  `target/debug` is about 15 GB; `make build` and `make check` empty it first when it passes
+  `TARGET_CAP_GB` (20), since Cargo keeps every old build, and the dev container builds without
+  incremental compilation so sccache makes that cheap (PLAN.md decision 68). `make coverage` peaks
+  at about 23 GB, and an e2e image build uses about 10 GB while it runs. Never run two heavy builds
+  at once, here or in a site's workspace: a full disk stops ace3's databases too. BuildKit's cache
+  needs a bound in Docker's own configuration (`builder.gc` in `daemon.json`, with
+  `defaultMaxUsedSpace`, not `defaultKeepStorage`, which Docker 29 reads as space to keep); without
+  one, `docker builder prune -f --keep-storage 15GB` frees it when nothing is building.
 - **ace3 runs beside it.** ace-rs's Compose project is `ace-rs`, its variables start with `ACE_RS_`,
   it fixes one host port (`ACE_RS_PORT_HTTPS`, 7443; the end-to-end test uses 7444), and its images are
   named `ace-rs-*`. `bin/check-coexistence` enforces this (PLAN.md, *Running beside ace3*). Never stop,

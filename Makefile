@@ -15,20 +15,32 @@
 #
 # The others: make check (the checks without the tests), make e2e, make up, make down, and make
 # hooks, which turns on the repository's git hooks for this clone.
+#
+# Cargo never deletes a build it no longer needs, and each change to a dependency or to a crate
+# many depend on leaves a full set of test programs behind, about 15 GB a set. So build and check
+# first empty target/debug when it holds more than TARGET_CAP_GB, and sccache makes the next build
+# cheap (PLAN.md decision 68).
 
 COMPOSE := docker compose
 # Instrumented test binaries are large; more parallel builds than this fill the dev container's
 # 12 GiB while they link.
 COVERAGE_JOBS ?= 4
+TARGET_CAP_GB ?= 20
 DEV     := $(COMPOSE) exec -T dev
 DEV_CI  := $(COMPOSE) exec -T -e CI=true dev
 
-.PHONY: help build images up down stack check test e2e test-all coverage hooks
+.PHONY: help build images up down stack check test e2e test-all coverage hooks target-cap
 
 help:
-	@sed -n '1,18p' Makefile | sed 's/^# \{0,1\}//'
+	@sed -n '1,22p' Makefile | sed 's/^# \{0,1\}//'
 
-build: up
+target-cap: up
+	@$(DEV) sh -c 'used=$$(du -sm target/debug 2>/dev/null | cut -f1); used=$${used:-0}; \
+		if [ "$$used" -gt $$(( $(TARGET_CAP_GB) * 1024 )) ]; then \
+			echo "target/debug holds $$(( used / 1024 )) GB, over TARGET_CAP_GB=$(TARGET_CAP_GB): emptying it"; \
+			cargo clean --profile dev; fi'
+
+build: target-cap
 	$(DEV) cargo build --workspace --all-targets --locked
 
 images:
@@ -56,7 +68,7 @@ stack:
 	else printf '%s\n' "$$out" >&2; exit $$status; fi
 	@echo "the GUI: http://127.0.0.1:$${ACE_RS_PORT_HTTPS:-7443}"
 
-check: up
+check: target-cap
 	$(DEV) cargo fmt --all --check
 	$(DEV) cargo clippy --workspace --all-targets --locked -- -D warnings
 	$(DEV) tools/sqlx-check
