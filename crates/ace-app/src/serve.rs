@@ -335,7 +335,6 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .with_email_archive(archive)
         .with_hunts(ace_api::HuntSupport {
             types: app.hunt_types().to_vec(),
-            email: ace_mod_email::py::normalize_email_address,
             valid_type: |t| t.parse::<ace_results::ObservableKind>().is_ok(),
             // with their connections' settings and none of their secrets, which only `ace hunter`
             // holds (PLAN.md 2.24)

@@ -1,5 +1,5 @@
-//! ace3's `saq/observables/network/layer2.py`: how a mac address is written. A producer adds a
-//! `mac_address` observable in this form (`ace_mod_values::observable`), and a global exclusion of one
+//! ace3's `saq/observables/network/layer2.py`: how a mac address is written. The core keeps a
+//! `mac_address` observable in this form (`crate::observable_rules`), and a global exclusion of one
 //! is compared in it (`crate::exclusions`), so the same card is the same value whichever separator
 //! wrote it.
 

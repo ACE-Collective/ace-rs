@@ -34,6 +34,7 @@ use uuid::Uuid;
 
 use crate::bucket::{ALERT_FILES, Bucket, BucketError, Hold};
 use crate::db::{DbError, Retryable, Tx};
+use crate::observable_rules::Rewrites;
 use crate::orchestrator::{Orchestrator, OrchestratorError};
 use crate::queue::TaskId;
 use crate::tree::{self, EventTime, NewRoot};
@@ -260,8 +261,31 @@ pub async fn create(
         .await
         .map_err(DbError::from)?;
     }
+    // ace3's API and hunter build each observable through its type's class, and leave out one it
+    // refuses, saying so
+    let rewrites = Rewrites::of(
+        submission
+            .observables
+            .iter()
+            .map(|o| (o.kind, o.value.as_str()))
+            .chain(
+                origin
+                    .observables
+                    .iter()
+                    .map(|o| (o.kind, o.value.as_str())),
+            ),
+        |kind, value, why| {
+            tracing::warn!(
+                root = %root.id, observable_type = %kind, observable_value = value,
+                "a submitted observable isn't added: {why}"
+            );
+        },
+    );
     for observable in &submission.observables {
-        let mut new = NewObservable::new(observable.kind, observable.value.clone());
+        let Some(value) = rewrites.kept(observable.kind, &observable.value) else {
+            continue;
+        };
+        let mut new = NewObservable::new(observable.kind, value);
         new.time = observable.time;
         new.tags = observable.tags.clone();
         new.directives = observable.directives.clone();
@@ -270,6 +294,11 @@ pub async fn create(
         tree::record_directive_sources(tx, root.id, id, &new.directives, from).await?;
     }
     for observable in &origin.observables {
+        let mut observable = observable.clone();
+        if !rewrites.observable(&mut observable) {
+            continue;
+        }
+        let observable = &observable;
         let id = tree::upsert_observable(tx, root.id, observable).await?.id;
         tree::record_directive_sources(tx, root.id, id, &observable.directives, from).await?;
         for detection in &observable.detections {

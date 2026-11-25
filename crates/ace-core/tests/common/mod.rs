@@ -229,3 +229,54 @@ pub async fn tasks_of(db: &Db, root: Uuid) -> Vec<(String, String, String)> {
     .await
     .expect("lists tasks")
 }
+
+/// The records a test's thread logs, with their fields.
+#[derive(Clone, Default)]
+pub struct Records(std::sync::Arc<std::sync::Mutex<Vec<Record>>>);
+
+#[derive(Clone, Debug)]
+pub struct Record {
+    pub level: tracing::Level,
+    pub fields: std::collections::BTreeMap<String, String>,
+}
+
+impl Records {
+    /// Sends this thread's records here until the guard drops. A test on a current-thread runtime
+    /// sees its own records and no other test's.
+    pub fn on_this_thread(&self) -> tracing::subscriber::DefaultGuard {
+        tracing::subscriber::set_default(tracing_subscriber::layer::SubscriberExt::with(
+            tracing_subscriber::registry(),
+            self.clone(),
+        ))
+    }
+
+    /// The first record whose message is `message`.
+    pub fn find(&self, message: &str) -> Option<Record> {
+        self.0
+            .lock()
+            .expect("the records")
+            .iter()
+            .find(|r| r.fields.get("message").is_some_and(|m| m == message))
+            .cloned()
+    }
+}
+
+impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for Records {
+    fn on_event(&self, event: &tracing::Event<'_>, _: tracing_subscriber::layer::Context<'_, S>) {
+        struct Fields(std::collections::BTreeMap<String, String>);
+        impl tracing::field::Visit for Fields {
+            fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+                self.0.insert(field.name().to_owned(), value.to_owned());
+            }
+            fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+                self.0.insert(field.name().to_owned(), format!("{value:?}"));
+            }
+        }
+        let mut fields = Fields(std::collections::BTreeMap::new());
+        event.record(&mut fields);
+        self.0.lock().expect("the records").push(Record {
+            level: *event.metadata().level(),
+            fields: fields.0,
+        });
+    }
+}

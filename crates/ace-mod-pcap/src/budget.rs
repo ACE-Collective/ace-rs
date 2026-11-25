@@ -495,7 +495,7 @@ fn file(
         new_file.directives.push(NO_CRAWL.to_owned());
     }
     if let Some(url) = &item.downloaded_from
-        && let Some(observable) = ace_mod_values::observable::new(ObservableKind::Url, url)
+        && let Some(observable) = ace_sdk::observable_rules::new(ObservableKind::Url, url)
     {
         new_file.relationships.push(Relationship::new(
             RelationshipKind::DownloadedFrom,
@@ -517,7 +517,7 @@ fn file(
 
 /// Any other observable, as ace3's type takes its value.
 fn observable(item: &PcapObservable, node: &mut Node) -> bool {
-    let Some(mut observable) = ace_mod_values::observable::new(item.kind, &item.value) else {
+    let Some(mut observable) = ace_sdk::observable_rules::new(item.kind, &item.value) else {
         return false;
     };
     observable.time = item.time.and_then(from_timestamp);

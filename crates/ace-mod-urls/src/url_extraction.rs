@@ -27,6 +27,7 @@ use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::url_extraction::UrlExtractionAnalysis;
 use ace_results::types::yara::YaraScanResults;
 use ace_results::{AnalysisType, NewObservable, ObservableKind, RelationshipKind, ResultEnvelope};
+use ace_sdk::observable_rules::names_a_host;
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use ace_urlfinder::{Finder, Magic};
 use schemars::JsonSchema;
@@ -176,34 +177,6 @@ pub fn order_urls_by_interest(urls: &[String]) -> (Vec<String>, Vec<(String, Vec
     }
     ordered.extend(images.into_iter().cloned());
     (ordered, groups)
-}
-
-/// ace3's `URLObservable` refuses an http, https or ftp URL with no host: a browser drops tabs and
-/// line breaks, reads `\` as `/` and skips the slashes after the scheme, and a host needs a
-/// letter or a digit. A URL `urlsplit` can't read is kept.
-pub fn names_a_host(url: &str) -> bool {
-    let Ok(split) = ace_pycompat::parse::urlsplit(url, "", true) else {
-        return true;
-    };
-    if !matches!(split.scheme.as_str(), "http" | "https" | "ftp") {
-        return true;
-    }
-    let rest: String = url
-        .split_once(':')
-        .map_or("", |(_, rest)| rest)
-        .chars()
-        .filter(|c| !matches!(c, '\t' | '\r' | '\n'))
-        .collect::<String>()
-        .replace('\\', "/");
-    let rest = rest.trim_start_matches('/');
-    match ace_pycompat::parse::urlsplit(&format!("{}://{rest}", split.scheme), "", true) {
-        Ok(split) => split
-            .hostname()
-            .unwrap_or_default()
-            .chars()
-            .any(pystr::is_alnum),
-        Err(_) => true,
-    }
 }
 
 /// `generate_summary`: the hosts, sorted, at most 20 named.

@@ -1,6 +1,7 @@
 //! How ace3 tells which thread an email belongs to (`saq/modules/email/conversation.py`), for the
 //! brocess modules and for the core, which answers their reads and lands their writes only for a
-//! thread an email in the task's root belongs to.
+//! thread an email in the task's root belongs to; and `saq/email.py`'s normalizers of an address and
+//! a Message-ID, which the core's observable rules (`crate::observable_rules`) use too.
 
 use std::sync::LazyLock;
 
@@ -44,6 +45,31 @@ pub fn normalize_message_id(message_id: &str) -> String {
         id.push('>');
     }
     id
+}
+
+/// `normalize_email_address` (`saq/email.py`): the address `parseaddr` finds, without its angle
+/// brackets, lowercased; None where it finds none.
+pub fn normalize_email_address(email_address: &str) -> Option<String> {
+    use ace_pycompat::email_utils::parseaddr;
+    let (_, mut address) = parseaddr(email_address);
+    if address.is_empty() {
+        // known cases the standard library gets wrong, like <<person@example.com>>
+        let mut fixed = email_address.to_owned();
+        while !fixed.is_empty() && fixed.contains("<<") && fixed.contains(">>") {
+            fixed = fixed.replace("<<", "<").replace(">>", ">");
+        }
+        address = parseaddr(&fixed).1;
+        if address.is_empty() {
+            return None;
+        }
+    }
+    let address = py_strip(&address)
+        .trim_start_matches('<')
+        .trim_end_matches('>');
+    if address.is_empty() {
+        return None;
+    }
+    Some(ace_pycompat::pystr::lower(address).into_owned())
 }
 
 /// `parse_message_id_list`: every `<...>` token of a header such as References, in order.
@@ -180,6 +206,23 @@ mod tests {
         assert_eq!(normalize_subject(None), "");
         assert_eq!(normalize_subject(Some("re:")), "");
         assert_eq!(normalize_subject(Some("\u{1c}Re: x\u{1f}")), "x");
+    }
+
+    #[test]
+    fn email_addresses_normalize_like_saq_email() {
+        let normal = |a| normalize_email_address(a);
+        assert_eq!(
+            normal("John <John.Davison@Company.com>").as_deref(),
+            Some("john.davison@company.com")
+        );
+        assert_eq!(
+            normal("<<person@example.com>>").as_deref(),
+            Some("person@example.com")
+        );
+        assert_eq!(normal("not an address").as_deref(), Some("not"));
+        assert_eq!(normal(" a@b.com\u{1c}").as_deref(), Some("a@b.com"));
+        assert_eq!(normal(""), None);
+        assert_eq!(normal("<>"), None);
     }
 
     #[test]

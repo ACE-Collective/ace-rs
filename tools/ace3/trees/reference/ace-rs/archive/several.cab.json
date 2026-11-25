@@ -1,0 +1,402 @@
+{
+  "form": 1,
+  "observables": {
+    "file:25628531473563c49b8c40cc86fc02cc093474a03173b47daa936628b8ec78fb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "several.cab.extracted/docs/report.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:d1cbe96f6ad916fb91c0c68a032ed0ee9fa33f09fe94184958494a699e04b0b6": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "a67f0ca46585df92c877670606d7ca75",
+            "sha1": "1c59f65b8b4453eb81460d0cf6197e9dc6552acf",
+            "sha256": "25628531473563c49b8c40cc86fc02cc093474a03173b47daa936628b8ec78fb"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/csv",
+            "type": "CSV ASCII text"
+          },
+          "summary": "File Type Analysis: CSV ASCII text (text/csv)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8d30733162be136bc3d34917c82ec0c770246b3c4623efe2c30c7805d2040b9b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "several.cab.extracted/readme.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:d1cbe96f6ad916fb91c0c68a032ed0ee9fa33f09fe94184958494a699e04b0b6": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "b75af97ccfc5dccfbf283e85c7b962a8",
+            "sha1": "d1ad3319f082caf79deabc973a9eb8b24d457257",
+            "sha256": "8d30733162be136bc3d34917c82ec0c770246b3c4623efe2c30c7805d2040b9b"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d1cbe96f6ad916fb91c0c68a032ed0ee9fa33f09fe94184958494a699e04b0b6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "several.cab": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "readme.txt",
+              "docs/report.txt"
+            ],
+            "file_count": 2
+          },
+          "summary": "Archive Analysis: extracted 2 of 2 files: (readme.txt, docs/report.txt)",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "98a73df82d36c6b72ffd985dfe20161e",
+            "sha1": "e29b3f5be88e2310349d10a27c5f6cf798f68f29",
+            "sha256": "d1cbe96f6ad916fb91c0c68a032ed0ee9fa33f09fe94184958494a699e04b0b6"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.ms-cab-compressed",
+            "type": "Microsoft Cabinet archive data, many, 264 bytes, 2 files, at 0x34 last modified Nov 25 2026 13:45:02 +A \"readme.txt\", iFolder 0x1 last modified Nov 25 2026 13:45:02 +A \"docs\\report.txt\", 2 cffolders, number 1, 1 datablock, 0 compression"
+          },
+          "summary": "File Type Analysis: Microsoft Cabinet archive data, many, 264 bytes, 2 files, at 0x34 last modified Nov 25 2026 13:45:02 +A \"readme.txt\", iFolder 0x1 last modified Nov 25 2026 13:45:02 +A \"docs\\report.txt\", 2 cffolders, number 1, 1 datablock, 0 compression (application/vnd.ms-cab-compressed)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:98a73df82d36c6b72ffd985dfe20161e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d1cbe96f6ad916fb91c0c68a032ed0ee9fa33f09fe94184958494a699e04b0b6": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:a67f0ca46585df92c877670606d7ca75": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:25628531473563c49b8c40cc86fc02cc093474a03173b47daa936628b8ec78fb": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:b75af97ccfc5dccfbf283e85c7b962a8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8d30733162be136bc3d34917c82ec0c770246b3c4623efe2c30c7805d2040b9b": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:25628531473563c49b8c40cc86fc02cc093474a03173b47daa936628b8ec78fb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:25628531473563c49b8c40cc86fc02cc093474a03173b47daa936628b8ec78fb": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:8d30733162be136bc3d34917c82ec0c770246b3c4623efe2c30c7805d2040b9b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8d30733162be136bc3d34917c82ec0c770246b3c4623efe2c30c7805d2040b9b": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:d1cbe96f6ad916fb91c0c68a032ed0ee9fa33f09fe94184958494a699e04b0b6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:d1cbe96f6ad916fb91c0c68a032ed0ee9fa33f09fe94184958494a699e04b0b6": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

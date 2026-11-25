@@ -36,7 +36,6 @@ use std::path::{Component, Path as FsPath};
 use std::sync::Arc;
 
 use ace_hunt::correlate::command::CommandTypes;
-use ace_hunt::query::observable::EmailNormalizer;
 use ace_hunt::query::{self, Context, schedule::State};
 use ace_hunt::render::Renderer;
 use ace_hunt::{HuntType, LoadOptions};
@@ -59,8 +58,6 @@ use crate::error::{ApiError, ErrorBody};
 #[derive(Clone)]
 pub struct HuntSupport {
     pub types: Vec<Arc<dyn HuntType>>,
-    /// ace3's `normalize_email_address`; `ace serve` passes the email module's.
-    pub email: EmailNormalizer,
     /// Whether an observable type is one the binary has.
     pub valid_type: fn(&str) -> bool,
     /// The binary's correlation command types (`App::command_types`).
@@ -75,7 +72,6 @@ impl Default for HuntSupport {
     fn default() -> Self {
         HuntSupport {
             types: vec![Arc::new(ace_hunt::types::Splunk::default())],
-            email: |_| None,
             valid_type: |t| t.parse::<ace_results::ObservableKind>().is_ok(),
             command_types: Arc::new(CommandTypes::new()),
             sources: Arc::new(ace_hunt::correlate::source::Sources::new()),
@@ -628,7 +624,6 @@ fn validate(
         search_link: None,
         event_time: &event_time,
         valid_type: &valid_type,
-        email: support.email,
         state: &state,
         manual: true,
         correlated: correlated.as_ref(),

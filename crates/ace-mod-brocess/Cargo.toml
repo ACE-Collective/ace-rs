@@ -8,8 +8,10 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-# Python's address parsing and ace3's header helpers, as the email module reads them.
+# ace3's header helpers, as the email module reads them.
 ace-mod-email = { path = "../ace-mod-email" }
+# Python's address parsing.
+ace-pycompat = { path = "../ace-pycompat" }
 # Python's `re` patterns, which the link module's settings are.
 ace-mod-urls = { path = "../ace-mod-urls" }
 ace-results = { path = "../ace-results" }

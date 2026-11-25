@@ -30,16 +30,13 @@ use crate::pyre::Pattern;
 use ace_pycompat::pystr;
 use ace_results::FileRole;
 use ace_results::types::ioc_extraction::IocExtractionAnalysis;
-use ace_results::{
-    AnalysisType, NewObservable, ObservableKind, Relationship, RelationshipKind, ResultEnvelope,
-};
+use ace_results::{AnalysisType, ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use ace_urlfinder::{Finder, Magic};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::pyre;
-use crate::url_extraction::names_a_host;
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<IocExtraction>();
@@ -313,50 +310,6 @@ struct Extras {
     display_type: Option<String>,
 }
 
-/// What ace3's class of the type keeps of a value, or None where it refuses it.
-fn observable_value(kind: &str, value: &str) -> Option<String> {
-    match kind {
-        "ip" => {
-            let v = pystr::strip(value);
-            ace_pycompat::ipaddress::ip_address(v)
-                .ok()
-                .map(|_| v.to_owned())
-        }
-        "email_address" => {
-            if !value.contains('@') {
-                return None;
-            }
-            Some(
-                ace_mod_email::py::normalize_email_address(value)
-                    .unwrap_or_else(|| value.to_owned()),
-            )
-        }
-        "message_id" => {
-            if !value.contains('@') {
-                return None;
-            }
-            Some(ace_sdk::email_threads::normalize_message_id(value))
-        }
-        "url" => names_a_host(value).then(|| value.to_owned()),
-        "md5" => hash_value(value, "d41d8cd98f00b204e9800998ecf8427e"),
-        "sha1" => hash_value(value, "da39a3ee5e6b4b0d3255bfef95601890afd80709"),
-        "sha256" => hash_value(
-            value,
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        ),
-        _ => Some(value.to_owned()),
-    }
-}
-
-/// `validate_hash_value`: not all zeros and not the hash of empty content.
-fn hash_value(value: &str, empty: &str) -> Option<String> {
-    let v = pystr::strip(value);
-    if v.chars().all(|c| c == '0') || pystr::lower(v) == empty {
-        return None;
-    }
-    Some(v.to_owned())
-}
-
 impl Parser for IocExtraction {
     fn analyze(
         &self,
@@ -470,10 +423,11 @@ impl Parser for IocExtraction {
                 tracing::warn!("ioc type {kind:?} isn't an observable type ace-rs knows");
                 continue;
             };
-            let Some(value) = observable_value(kind, value) else {
+            // what ace3's class of the type refuses isn't added
+            let Some(mut observable) = ace_sdk::observable_rules::new(observable_kind, value)
+            else {
                 continue;
             };
-            let mut observable = NewObservable::new(observable_kind, value);
             observable.relationships.push(Relationship::new(
                 RelationshipKind::ExtractedFrom,
                 file_ref(file),

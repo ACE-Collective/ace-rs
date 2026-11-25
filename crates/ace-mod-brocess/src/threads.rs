@@ -3,8 +3,9 @@
 //! subject as threads match it, its date, and who took part.
 
 use ace_mod_email::headers::{is_subdomain, parse_date};
-use ace_mod_email::py::{normalize_email_address, parseaddr};
+use ace_pycompat::email_utils::parseaddr;
 use ace_results::types::email::EmailDetails;
+use ace_sdk::email_threads::normalize_email_address;
 use ace_sdk::email_threads::{self, header_value, normalize_message_id};
 use ace_sdk::writes::{ThreadParticipant, ThreadRecord};
 

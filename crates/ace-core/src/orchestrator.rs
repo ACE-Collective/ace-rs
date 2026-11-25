@@ -1618,6 +1618,9 @@ impl Orchestrator {
         complete: bool,
     ) -> Result<Landed, OrchestratorError> {
         let mode = locked.mode.clone();
+        // what ace3's observable classes refuse or change, before anything is written; a task's
+        // end has had them applied already (`Api::land`), a kept result may not have
+        let result = &*crate::observable_rules::apply_to_result(root, module, result);
         // a task's end was refused for these (`check_relationship_targets`); a cache hit in another
         // root, or a result landed without that check, drops them
         let unlandable = unlandable_targets(tx.conn(), root, result).await?;

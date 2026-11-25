@@ -1634,6 +1634,12 @@ impl Api {
         let raw = result;
         let mut result = <ResultEnvelope<Value> as serde::Deserialize>::deserialize(&raw)
             .map_err(|e| Failure::BadRequest(format!("the result doesn't read: {e}")))?;
+        // ace3's observable classes' rules before the relationships are checked, so a relationship
+        // to an observable they change finds it (`apply_result` applies them to a cache hit)
+        let ruled = crate::observable_rules::apply_to_result(task.root, &task.module, &result);
+        if let std::borrow::Cow::Owned(ruled) = ruled {
+            result = ruled;
+        }
         if let Err(rejected) = orchestrator
             .check_relationship_targets(self.inner.db.pool(), task.root, &result)
             .await?

@@ -544,7 +544,8 @@ impl Lookup for UserAnalyzer {
             ) {
                 return Ok(Outcome::Skipped("an external email address".to_owned()));
             }
-            let Some(email) = ace_mod_email::py::normalize_email_address(&observable.value) else {
+            let Some(email) = ace_sdk::email_threads::normalize_email_address(&observable.value)
+            else {
                 return Ok(Outcome::Skipped("not an email address".to_owned()));
             };
             format!("(proxyAddresses=smtp:{})", escape(&email))
@@ -578,7 +579,7 @@ impl Lookup for UserAnalyzer {
         } else {
             ldap.get("mail")
                 .and_then(Value::as_str)
-                .and_then(ace_mod_email::py::normalize_email_address)
+                .and_then(ace_sdk::email_threads::normalize_email_address)
                 .map(|mail| (ObservableKind::EmailAddress, mail))
         };
         if let Some((kind, value)) = counterpart {

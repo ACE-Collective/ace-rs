@@ -26,6 +26,9 @@ pub enum Format {
     Rar,
     /// A gzip stream through `7z`: one file.
     Gzip,
+    /// A Microsoft cabinet through `7z`: files only, with their directories. The cab crate reads
+    /// stored, MSZIP and LZX folders; a Quantum folder, which 7z reads, fails its members.
+    Cab,
 }
 
 /// One entry of an archive.
@@ -117,6 +120,17 @@ pub fn list(format: Format, path: &Path, password: &str) -> Result<Vec<Entry>, A
             }
             Ok(entries)
         }
+        Format::Cab => Ok(
+            cab_names(&cab::Cabinet::new(BufReader::new(File::open(path)?))?)
+                .into_iter()
+                .enumerate()
+                .map(|(index, name)| Entry {
+                    index,
+                    name,
+                    is_dir: false,
+                })
+                .collect(),
+        ),
         Format::Gzip => {
             let mut decoder = MultiGzDecoder::new(BufReader::new(File::open(path)?));
             // reading a little parses the header, which holds the original name; an empty
@@ -180,6 +194,14 @@ fn gzip_member_name(path: &Path) -> String {
         }
     }
     name
+}
+
+/// A cabinet's file names in archive order, folder by folder, as 7z lists them.
+fn cab_names<R: Read + io::Seek>(cabinet: &cab::Cabinet<R>) -> Vec<String> {
+    cabinet
+        .folder_entries()
+        .flat_map(|folder| folder.file_entries().map(|file| file.name().to_owned()))
+        .collect()
 }
 
 fn seven_zip_reader(
@@ -304,6 +326,23 @@ pub fn extract(
                     header.skip()?
                 };
                 index += 1;
+            }
+            Ok(())
+        }
+        Format::Cab => {
+            let mut cabinet = cab::Cabinet::new(BufReader::new(File::open(path)?))?;
+            let names = cab_names(&cabinet);
+            for &index in wanted {
+                let Some(name) = names.get(index) else {
+                    continue;
+                };
+                let result = cabinet
+                    .read_file(name)
+                    .map_err(|e| e.to_string())
+                    .and_then(|mut reader| sink(index, &mut reader).map_err(|e| e.to_string()));
+                if let Err(e) = result {
+                    failed(index, e);
+                }
             }
             Ok(())
         }

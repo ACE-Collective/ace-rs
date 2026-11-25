@@ -47,6 +47,7 @@ pub mod lists;
 pub mod manifest;
 pub mod module;
 pub mod nrd;
+pub mod observable_rules;
 pub mod overlay;
 pub mod reads;
 pub mod scanners;

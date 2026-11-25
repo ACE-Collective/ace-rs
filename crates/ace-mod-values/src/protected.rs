@@ -39,8 +39,8 @@ use ace_urlfinder::{Finder, Magic};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::observable;
 use crate::py::{decode_base64, urlencode, urlencode_doseq};
+use ace_sdk::observable_rules as observable;
 
 /// The two modules' manifests.
 pub const MANIFEST: Manifest = Manifest::parser::<ProtectedUrlAnalyzer>();

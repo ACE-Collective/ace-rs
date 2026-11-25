@@ -1,0 +1,101 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "ebad554d",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ArchiveAnalysis",
+      "details": {
+        "extracted_files": [
+          "notes.txt"
+        ],
+        "file_count": 1
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.archive:ArchiveAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "sandbox"
+          ],
+          "excluded_analysis": [],
+          "file_path": "single.cab.extracted/notes.txt",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "8f1718591847441a80cb846631904a994ba8fd570f17c4088ec124efcd3b7bd8"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 72,
+          "tags": [],
+          "type": "file",
+          "value": "1e73ab530c393430f99c60efae1ca56762c2df4c3a9f501f31d44e0f62d25596",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Archive Analysis: extracted 1 of 1 files: (notes.txt)",
+      "tags": [
+        "single_file_zip"
+      ]
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/vnd.ms-cab-compressed",
+        "type": "Microsoft Cabinet archive data, Windows 2000/XP setup, 144 bytes, 1 file, at 0x2c last modified Nov 25 2026 13:45:02 +A \"notes.txt\", number 1, 1 datablock, 0x1 compression"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Microsoft Cabinet archive data, Windows 2000/XP setup, 144 bytes, 1 file, at 0x2c last modified Nov 25 2026 13:45:02 +A \"notes.txt\", number 1, 1 datablock, 0x1 compression (application/vnd.ms-cab-compressed)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/archive/single.cab",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "single.cab",
+      "size": 144,
+      "type": "file",
+      "value": "8f1718591847441a80cb846631904a994ba8fd570f17c4088ec124efcd3b7bd8"
+    }
+  },
+  "module": "archive",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "single.cab",
+    "relationships": [],
+    "size": 144,
+    "tags": [],
+    "type": "file",
+    "value": "8f1718591847441a80cb846631904a994ba8fd570f17c4088ec124efcd3b7bd8",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

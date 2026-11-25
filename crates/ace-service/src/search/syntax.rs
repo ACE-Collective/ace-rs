@@ -27,8 +27,9 @@
 //! id, so the observable type of that name is written `observable:uuid:<value>`.
 //!
 //! What differs: a value is checked by `filters::check`, the one gate for a filter, so what a term
-//! refuses is what the alert list refuses. ace3 normalizes an observable's value through its
-//! observable class; ace-rs's types take any value but a file's, which is its sha256.
+//! refuses is what the alert list refuses. ace3 normalizes a term's value through its
+//! observable class; here a term takes any value but a file's, which is its sha256, and the class's
+//! rules apply only where an observable is added (`ace_sdk::observable_rules`).
 
 use std::sync::LazyLock;
 

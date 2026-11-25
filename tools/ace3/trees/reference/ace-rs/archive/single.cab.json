@@ -1,0 +1,284 @@
+{
+  "form": 1,
+  "observables": {
+    "file:1e73ab530c393430f99c60efae1ca56762c2df4c3a9f501f31d44e0f62d25596": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "single.cab.extracted/notes.txt": {}
+      },
+      "relationships": {
+        "extracted_from file:8f1718591847441a80cb846631904a994ba8fd570f17c4088ec124efcd3b7bd8": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "70b6a9e2173a27541e20105aa3a9dcfb",
+            "sha1": "71c2ff3a8c3a3310af4129a1afbbfc524a78d4e4",
+            "sha256": "1e73ab530c393430f99c60efae1ca56762c2df4c3a9f501f31d44e0f62d25596"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8f1718591847441a80cb846631904a994ba8fd570f17c4088ec124efcd3b7bd8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "single.cab": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "archive": {
+          "details": {
+            "extracted_files": [
+              "notes.txt"
+            ],
+            "file_count": 1
+          },
+          "summary": "Archive Analysis: extracted 1 of 1 files: (notes.txt)",
+          "tags": {
+            "single_file_zip": true
+          }
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "3edd76b20c83bfbcec3c6958e0442a3e",
+            "sha1": "484a9a1286b7207fade3e53db0fbc9f8f10528fc",
+            "sha256": "8f1718591847441a80cb846631904a994ba8fd570f17c4088ec124efcd3b7bd8"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/vnd.ms-cab-compressed",
+            "type": "Microsoft Cabinet archive data, Windows 2000/XP setup, 144 bytes, 1 file, at 0x2c last modified Nov 25 2026 13:45:02 +A \"notes.txt\", number 1, 1 datablock, 0x1 compression"
+          },
+          "summary": "File Type Analysis: Microsoft Cabinet archive data, Windows 2000/XP setup, 144 bytes, 1 file, at 0x2c last modified Nov 25 2026 13:45:02 +A \"notes.txt\", number 1, 1 datablock, 0x1 compression (application/vnd.ms-cab-compressed)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:3edd76b20c83bfbcec3c6958e0442a3e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8f1718591847441a80cb846631904a994ba8fd570f17c4088ec124efcd3b7bd8": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:70b6a9e2173a27541e20105aa3a9dcfb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1e73ab530c393430f99c60efae1ca56762c2df4c3a9f501f31d44e0f62d25596": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:1e73ab530c393430f99c60efae1ca56762c2df4c3a9f501f31d44e0f62d25596": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:1e73ab530c393430f99c60efae1ca56762c2df4c3a9f501f31d44e0f62d25596": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:8f1718591847441a80cb846631904a994ba8fd570f17c4088ec124efcd3b7bd8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:8f1718591847441a80cb846631904a994ba8fd570f17c4088ec124efcd3b7bd8": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

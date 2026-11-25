@@ -1708,6 +1708,7 @@ fn a_site_s_parser_is_built_alone_in_its_task_process() {
             yara_meta: Some(&[]),
         }),
         results: Box::leak(Box::default()),
+        origins: None,
     };
     assert_eq!(
         takes.check(&facts("dir/a.BIN")),

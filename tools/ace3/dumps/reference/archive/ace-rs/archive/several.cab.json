@@ -1,0 +1,118 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "ebad554d",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ArchiveAnalysis",
+      "details": {
+        "extracted_files": [
+          "readme.txt",
+          "docs/report.txt"
+        ],
+        "file_count": 2
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.archive:ArchiveAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "several.cab.extracted/readme.txt",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "d1cbe96f6ad916fb91c0c68a032ed0ee9fa33f09fe94184958494a699e04b0b6"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 60,
+          "tags": [],
+          "type": "file",
+          "value": "8d30733162be136bc3d34917c82ec0c770246b3c4623efe2c30c7805d2040b9b",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "several.cab.extracted/docs/report.txt",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "d1cbe96f6ad916fb91c0c68a032ed0ee9fa33f09fe94184958494a699e04b0b6"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 136,
+          "tags": [],
+          "type": "file",
+          "value": "25628531473563c49b8c40cc86fc02cc093474a03173b47daa936628b8ec78fb",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Archive Analysis: extracted 2 of 2 files: (readme.txt, docs/report.txt)",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/vnd.ms-cab-compressed",
+        "type": "Microsoft Cabinet archive data, many, 264 bytes, 2 files, at 0x34 last modified Nov 25 2026 13:45:02 +A \"readme.txt\", iFolder 0x1 last modified Nov 25 2026 13:45:02 +A \"docs\\report.txt\", 2 cffolders, number 1, 1 datablock, 0 compression"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Microsoft Cabinet archive data, many, 264 bytes, 2 files, at 0x34 last modified Nov 25 2026 13:45:02 +A \"readme.txt\", iFolder 0x1 last modified Nov 25 2026 13:45:02 +A \"docs\\report.txt\", 2 cffolders, number 1, 1 datablock, 0 compression (application/vnd.ms-cab-compressed)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace-rs/archive/several.cab",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "several.cab",
+      "size": 264,
+      "type": "file",
+      "value": "d1cbe96f6ad916fb91c0c68a032ed0ee9fa33f09fe94184958494a699e04b0b6"
+    }
+  },
+  "module": "archive",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "several.cab",
+    "relationships": [],
+    "size": 264,
+    "tags": [],
+    "type": "file",
+    "value": "d1cbe96f6ad916fb91c0c68a032ed0ee9fa33f09fe94184958494a699e04b0b6",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

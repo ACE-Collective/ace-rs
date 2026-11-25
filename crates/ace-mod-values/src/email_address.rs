@@ -8,7 +8,7 @@ use ace_results::types::values::EmailAddressFqdnAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 
-use crate::observable;
+use ace_sdk::observable_rules as observable;
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<EmailAddressFqdnAnalyzer>();

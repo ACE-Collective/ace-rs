@@ -1,7 +1,7 @@
 [package]
 name = "ace-pycompat"
 version = "0.1.0"
-description = "Python 3.14 behaviour that ported code needs: str, unicodedata, urllib.parse, html, base64, ipaddress, json, csv, the idna codec, and the idna, validators and tld packages"
+description = "Python 3.14 behaviour that ported code needs: str, unicodedata, urllib.parse, email.utils's address parsing, html, base64, ipaddress, json, csv, the idna codec, and the idna, validators and tld packages"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true

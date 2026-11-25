@@ -542,6 +542,8 @@ impl<S> TaskContext<S> {
                 (None, None) => None,
             },
             results,
+            // the tree isn't in the lease: a condition on it is unknown here, and holds
+            origins: None,
         }
     }
 

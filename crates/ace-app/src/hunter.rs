@@ -702,7 +702,6 @@ impl Hunter {
             search_link: ran.link.clone(),
             event_time: &event_time,
             valid_type: &valid_type,
-            email: ace_mod_email::py::normalize_email_address,
             state,
             manual: false,
             correlated: correlated.as_ref(),

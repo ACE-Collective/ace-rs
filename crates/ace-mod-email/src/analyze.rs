@@ -4,18 +4,20 @@
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
+use ace_pycompat::email_utils::parseaddr;
 use ace_results::types::email::{Delivery, DeliveryReason, EmailAnalysis, EmailDetails, LogEntry};
 use ace_results::{
     NewObservable, ObservableAdditions, ObservableKind, ObservableRef, Relationship,
     RelationshipKind, ResultEnvelope,
 };
 use ace_sdk::InputFile;
+use ace_sdk::email_threads::{normalize_email_address, normalize_message_id};
 use chrono::{DateTime, Utc};
 use regex::Regex;
 
 use crate::headers::{self, FirstHop};
 use crate::mime::Node;
-use crate::py::{self, decode_rfc2822, normalize_email_address, py_strip};
+use crate::py::{self, decode_rfc2822, py_strip};
 use crate::settings::EmailAnalyzerSettings;
 
 pub const TAG_OUTBOUND_EMAIL: &str = "outbound_email";
@@ -217,7 +219,7 @@ pub fn analyze_headers<'a, 'm>(
     if target.is_office365
         && let Some(value) = headers.get("X-MS-Exchange-Organization-OriginalEnvelopeRecipients")
     {
-        let (_, address) = py::parseaddr(&decode_rfc2822(&value));
+        let (_, address) = parseaddr(&decode_rfc2822(&value));
         if !address.is_empty() {
             env_rcpt_to = vec![address];
         }
@@ -229,12 +231,12 @@ pub fn analyze_headers<'a, 'm>(
             env_rcpt_to = meta
                 .recipients
                 .iter()
-                .map(|r| py::parseaddr(r.split(',').next().unwrap_or_default()).1)
+                .map(|r| parseaddr(r.split(',').next().unwrap_or_default()).1)
                 .filter(|a| !a.is_empty())
                 .collect();
         }
         if !meta.sender.is_empty() {
-            env_mail_from = Some(py::parseaddr(&meta.sender).1);
+            env_mail_from = Some(parseaddr(&meta.sender).1);
         }
     }
 
@@ -337,10 +339,8 @@ pub fn analyze_headers<'a, 'm>(
     let bcc = headers.address_list("bcc");
 
     if let Some(message_id) = headers.decoded("message-id") {
-        let mut observable = NewObservable::new(
-            ObservableKind::MessageId,
-            py::normalize_message_id(&message_id),
-        );
+        let mut observable =
+            NewObservable::new(ObservableKind::MessageId, normalize_message_id(&message_id));
         observable.time = received_time;
         observable
             .exclude_modules

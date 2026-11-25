@@ -13,7 +13,7 @@ use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use ace_urlfinder::url::Url;
 
-use crate::observable;
+use ace_sdk::observable_rules as observable;
 
 /// The two modules' manifests.
 pub const PARSE_URL_MANIFEST: Manifest = Manifest::parser::<ParseUrlAnalyzer>();

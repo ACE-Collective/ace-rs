@@ -45,6 +45,14 @@
 //! read them, contained, before any other task on the file was queued, and a check the type doesn't
 //! state stays in `analyze`.
 //!
+//! **A fact only the core holds.** How the files a hash names came into the root, up the tree
+//! (`Condition::HashesOnlyFilesFrom`, `FileOrigins`, PLAN.md decision 69), is the one fact a
+//! lease doesn't carry: it is the walk over the tree that would keep a module that made it in
+//! `analyze` out of the cache (`Module::READS_TREE`). The core loads it where a declaration reads
+//! it (`Reads::file_origins`) and declines on it; on the leased task it is unknown
+//! (`Facts::origins` is None), so the condition holds there, as a type condition does on a file
+//! whose type is unknown.
+//!
 //! **A file whose type is unknown.** A file's type step can fail (a crash, its deadline), and the
 //! file's other tasks are queued anyway. A condition on its type is then unknown, and a rule whose
 //! condition is unknown holds (`Condition::value`): the module runs on the file, as it did when the
@@ -100,7 +108,7 @@
 //! logged at ERROR under `ace_takes` as it ends and listed by `ace_core::takes::audit_report`;
 //! `tests/e2e/run` fails on one. An empty report over enough traffic is what lets the setting go.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use ace_pycompat::fnmatch::fnmatch;
@@ -205,6 +213,90 @@ pub enum Condition {
         field: String,
         test: Field,
     },
+    /// The observable names at least one file through its `is_hash_of` relationships, and every
+    /// file it names came only from `module`'s results (PLAN.md decision 69), as a site's
+    /// hash lookup skips hashes of content its crawler module fetched. A file came only from
+    /// `module` when every result that added it ([`Origin`]) is
+    ///
+    /// - a result of `module` that added it at a path (`analysis.result_additions.path`) none of
+    ///   `except` matches, or
+    /// - a result of another module on a file that itself came only from `module`, and so on up
+    ///   the tree.
+    ///
+    /// A file that came with the root's submission, that no result added, that a result added
+    /// with no path, or that the walk reaches a second time (a cycle, or two ways up to one
+    /// file) didn't: each errs toward the module running. The walk starts afresh for each file
+    /// the observable names.
+    ///
+    /// Its value needs the root's tree, which only the core reads (`Facts::origins`), so it is
+    /// unknown on a leased task and holds there: only the core declines on it. Under the core's
+    /// audit setting the pool therefore runs a task the core marked on it, and the audit reports
+    /// that task if it stores a result.
+    ///
+    /// `except` is usually `Match::Glob`s, Python's `fnmatch`, whose `*` crosses `/`: a pattern
+    /// such as `crawl/*/script.js` also matches a `script.js` deeper down, which then counts as
+    /// not from `module`, so the error is again toward running.
+    HashesOnlyFilesFrom {
+        module: String,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        except: Vec<Text>,
+    },
+}
+
+/// How the files a declaration's observable names came into its root, for
+/// `Condition::HashesOnlyFilesFrom`: each file by its sha256, with every way it came in. The core
+/// loads it for the files the observables it decides on name through `is_hash_of`, and for every
+/// file a result that added one of those is on, up the tree (`ace_core::takes::held`). A leased
+/// task doesn't carry it.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct FileOrigins {
+    pub files: BTreeMap<String, Vec<Origin>>,
+}
+
+/// One way a file came into its root.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Origin {
+    /// With the root's submission (`Condition::AtRoot`).
+    Submission,
+    /// A result of `module` added it, at `path`. `on_file` is the sha256 of the file the result
+    /// is on, or None when the result is on an observable that isn't a file.
+    Result {
+        module: String,
+        path: Option<String>,
+        on_file: Option<String>,
+    },
+}
+
+impl FileOrigins {
+    /// Whether `file` came only from `module`'s results, at paths none of `except` matches
+    /// (`Condition::HashesOnlyFilesFrom`). `seen` holds the files this walk has reached.
+    fn only_from(
+        &self,
+        file: &str,
+        module: &str,
+        except: &[Text],
+        seen: &mut BTreeSet<String>,
+    ) -> bool {
+        // a second visit is a cycle or a second way up: it errs toward running
+        if !seen.insert(file.to_owned()) {
+            return false;
+        }
+        let origins = self.files.get(file).map(Vec::as_slice).unwrap_or_default();
+        !origins.is_empty()
+            && origins.iter().all(|origin| match origin {
+                Origin::Submission => false,
+                Origin::Result {
+                    module: adder,
+                    path,
+                    ..
+                } if adder == module => path
+                    .as_deref()
+                    .is_some_and(|path| !except.iter().any(|text| text.matches(path))),
+                Origin::Result { on_file, .. } => on_file
+                    .as_deref()
+                    .is_some_and(|parent| self.only_from(parent, module, except, seen)),
+            })
+    }
 }
 
 /// A fact of a file's type, as `TypeFacts` holds it or as ace3's `file_type` computed it from the
@@ -367,6 +459,10 @@ pub struct Facts<'a> {
     pub file: Option<FileFacts<'a>>,
     /// The details of the observable's results from the modules the module depends on, by module.
     pub results: &'a BTreeMap<String, Value>,
+    /// How the files it names through `is_hash_of` came into the root; read only by
+    /// `Condition::HashesOnlyFilesFrom`. None where it isn't known, as on a leased task, which
+    /// makes that condition unknown.
+    pub origins: Option<&'a FileOrigins>,
 }
 
 /// A file observable's facts.
@@ -401,6 +497,9 @@ pub struct Reads {
     pub file_type: bool,
     /// The modules whose results it reads.
     pub results: Vec<String>,
+    /// How the files it names came into the root (`Condition::HashesOnlyFilesFrom`), which only
+    /// the core reads.
+    pub file_origins: bool,
 }
 
 impl Takes {
@@ -532,7 +631,8 @@ impl Condition {
         self.value(facts) != Some(false)
     }
 
-    /// Its value for these facts, or None when it reads a file's type and that is unknown. `All`,
+    /// Its value for these facts, or None when it reads a file's type and that is unknown, or how
+    /// files came into the root where that isn't known (`Facts::origins`). `All`,
     /// `Any` and `Not` follow: all known and true, one true, or the negation, with an unknown part
     /// unknown unless the rest decides it.
     pub fn value(&self, facts: &Facts<'_>) -> Option<bool> {
@@ -562,6 +662,26 @@ impl Condition {
             Condition::Not(inner) => inner.value(facts).map(|v| !v),
             Condition::Mime(text) => type_value(facts, |t, _| text.matches(&t.mime)),
             Condition::Type(fact) => type_value(facts, |t, path| fact.of(t, path)),
+            Condition::HashesOnlyFilesFrom { module, except } => {
+                let files: Vec<&str> = facts
+                    .relationships
+                    .iter()
+                    .filter(|r| {
+                        r.kind == RelationshipKind::IsHashOf
+                            && r.target.kind == ObservableKind::File
+                    })
+                    .map(|r| r.target.value.as_str())
+                    .collect();
+                if files.is_empty() {
+                    return Some(false);
+                }
+                let origins = facts.origins?;
+                Some(
+                    files
+                        .iter()
+                        .all(|file| origins.only_from(file, module, except, &mut BTreeSet::new())),
+                )
+            }
             other => Some(other.known(facts)),
         }
     }
@@ -619,7 +739,8 @@ impl Condition {
             | Condition::Any(_)
             | Condition::Not(_)
             | Condition::Mime(_)
-            | Condition::Type(_) => self.value(facts) == Some(true),
+            | Condition::Type(_)
+            | Condition::HashesOnlyFilesFrom { .. } => self.value(facts) == Some(true),
         }
     }
 
@@ -643,6 +764,7 @@ impl Condition {
             Condition::HasResult(module) | Condition::Result { module, .. } => {
                 reads.results.push(module.clone());
             }
+            Condition::HashesOnlyFilesFrom { .. } => reads.file_origins = true,
             _ => {}
         }
     }
@@ -769,6 +891,7 @@ mod tests {
                 yara_meta: Some(yara_meta),
             }),
             results,
+            origins: None,
         }
     }
 
@@ -844,6 +967,7 @@ mod tests {
             mode: None,
             file: None,
             results: &none,
+            origins: None,
         };
         for condition in [
             Condition::not_empty(),
@@ -978,6 +1102,7 @@ mod tests {
             mode: None,
             file: None,
             results: &none,
+            origins: None,
         };
         let others = Condition::added_by_other_than(&["device_lookup"]);
         assert!(!Condition::AtRoot.holds(&facts));
@@ -1023,6 +1148,7 @@ mod tests {
             mode: None,
             file: None,
             results: &none,
+            origins: None,
         };
         let analyst = Condition::directive_from("upload_to_scanner", &[DirectiveSource::Analyst]);
         assert!(Condition::directive("upload_to_scanner").holds(&facts));
@@ -1060,6 +1186,184 @@ mod tests {
         );
     }
 
+    /// A hash whose files came only from the crawler, at paths it doesn't except, directly or as
+    /// something extracted from such a file; unknown without the origins, as on a lease.
+    #[test]
+    fn hashes_only_files_from_walks_up_the_files_origins() {
+        let none = BTreeMap::new();
+        let crawled = Condition::HashesOnlyFilesFrom {
+            module: "crawler".to_owned(),
+            except: vec![
+                Text::exact(Match::Glob {
+                    pattern: "crawl/*/downloads/*".to_owned(),
+                    prefix: String::new(),
+                }),
+                Text::exact(Match::Glob {
+                    pattern: "crawl/*/script.js".to_owned(),
+                    prefix: String::new(),
+                }),
+            ],
+        };
+        let by = |module: &str, path: Option<&str>, on_file: Option<&str>| Origin::Result {
+            module: module.to_owned(),
+            path: path.map(str::to_owned),
+            on_file: on_file.map(str::to_owned),
+        };
+        let origins = FileOrigins {
+            files: BTreeMap::from([
+                (
+                    "page".to_owned(),
+                    vec![by("crawler", Some("crawl/j/dom.html"), None)],
+                ),
+                (
+                    "payload".to_owned(),
+                    vec![by("crawler", Some("crawl/j/downloads/x.zip"), None)],
+                ),
+                (
+                    "script".to_owned(),
+                    vec![by("crawler", Some("crawl/j/script.js"), None)],
+                ),
+                // fnmatch's * crosses /, so a deeper script.js is a payload too
+                (
+                    "deep".to_owned(),
+                    vec![by("crawler", Some("crawl/j/a/script.js"), None)],
+                ),
+                ("pathless".to_owned(), vec![by("crawler", None, None)]),
+                (
+                    "inner".to_owned(),
+                    vec![by("unpacker", Some("dom.html.extracted/i"), Some("page"))],
+                ),
+                (
+                    "unpacked".to_owned(),
+                    vec![by("unpacker", Some("x.zip.extracted/i"), Some("payload"))],
+                ),
+                (
+                    "both".to_owned(),
+                    vec![
+                        by("crawler", Some("crawl/j/b.html"), None),
+                        by("mailer", Some("attachment"), Some("email")),
+                    ],
+                ),
+                ("email".to_owned(), vec![Origin::Submission]),
+                (
+                    "submitted".to_owned(),
+                    vec![
+                        by("crawler", Some("crawl/j/s.html"), None),
+                        Origin::Submission,
+                    ],
+                ),
+                (
+                    "from_url".to_owned(),
+                    vec![by("downloader", Some("d/x.html"), None)],
+                ),
+                // a cycle: each was added by a result on the other, and one by the crawler too
+                (
+                    "loop_a".to_owned(),
+                    vec![
+                        by("crawler", Some("crawl/j/l.html"), None),
+                        by("unpacker", Some("b/a"), Some("loop_b")),
+                    ],
+                ),
+                (
+                    "loop_b".to_owned(),
+                    vec![by("unpacker", Some("a/b"), Some("loop_a"))],
+                ),
+            ]),
+        };
+        let hash_of = |files: &[&str]| -> Vec<Relationship> {
+            files
+                .iter()
+                .map(|f| {
+                    Relationship::new(
+                        RelationshipKind::IsHashOf,
+                        ace_results::ObservableRef::new(ObservableKind::File, *f),
+                    )
+                })
+                .collect()
+        };
+        let value = |files: &[&str], origins: Option<&FileOrigins>| {
+            let relationships = hash_of(files);
+            let facts = Facts {
+                kind: ObservableKind::Sha256,
+                directives: &[],
+                directive_sources: &[],
+                relationships: &relationships,
+                redirected: false,
+                added_by: &[],
+                at_root: false,
+                mode: None,
+                file: None,
+                results: &none,
+                origins,
+            };
+            crawled.value(&facts)
+        };
+        let known = Some(&origins);
+        assert_eq!(value(&["page"], known), Some(true));
+        assert_eq!(value(&["inner"], known), Some(true));
+        assert_eq!(value(&["page", "inner"], known), Some(true));
+        for not in [
+            &["payload"][..],
+            &["script"],
+            &["deep"],
+            &["pathless"],
+            &["unpacked"],
+            &["both"],
+            &["email"],
+            &["submitted"],
+            &["from_url"],
+            &["loop_a"],
+            &["loop_b"],
+            &["unknown_file"],
+            &["page", "payload"],
+            &[],
+        ] {
+            assert_eq!(value(not, known), Some(false), "{not:?}");
+        }
+        // unknown on a lease, so it holds negated or not; a hash naming no file is still known
+        assert_eq!(value(&["page"], None), None);
+        assert_eq!(value(&[], None), Some(false));
+        let relationships = hash_of(&["page"]);
+        let lease = Facts {
+            kind: ObservableKind::Sha256,
+            directives: &[],
+            directive_sources: &[],
+            relationships: &relationships,
+            redirected: false,
+            added_by: &[],
+            at_root: false,
+            mode: None,
+            file: None,
+            results: &none,
+            origins: None,
+        };
+        assert!(crawled.holds(&lease) && crawled.clone().negated().holds(&lease));
+        // a relationship of another kind, or to something that isn't a file, names no file
+        let other = vec![
+            Relationship::new(
+                RelationshipKind::ExtractedFrom,
+                ace_results::ObservableRef::new(ObservableKind::File, "page"),
+            ),
+            Relationship::new(
+                RelationshipKind::IsHashOf,
+                ace_results::ObservableRef::new(ObservableKind::Url, "page"),
+            ),
+        ];
+        let facts = Facts {
+            relationships: &other,
+            origins: known,
+            ..lease
+        };
+        assert_eq!(crawled.value(&facts), Some(false));
+        let reads = Takes::everything()
+            .and(crawled.clone().negated(), "crawled")
+            .reads();
+        assert!(reads.file_origins && !reads.added_by && !reads.file_record);
+        let back: Condition =
+            serde_json::from_value(serde_json::to_value(&crawled).expect("writes")).expect("reads");
+        assert_eq!(back, crawled);
+    }
+
     #[test]
     fn the_extension_is_python_s() {
         assert_eq!(splitext("a.tar.gz"), ("a.tar", ".gz"));
@@ -1093,6 +1397,7 @@ mod tests {
                 file_record: false,
                 file_type: false,
                 results: vec!["file_type".to_owned()],
+                file_origins: false,
             }
         );
         let back: Takes =

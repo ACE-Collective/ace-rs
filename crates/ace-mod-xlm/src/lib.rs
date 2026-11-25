@@ -23,6 +23,7 @@ use ace_results::types::xlm::XlmDeobfuscatorAnalysis;
 use ace_results::{
     AnalysisType, Detection, NewFile, NewObservable, ObservableKind, ObservableRef, ResultEnvelope,
 };
+use ace_sdk::observable_rules::names_a_host;
 use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
 use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use regex::Regex;
@@ -143,106 +144,6 @@ fn urls_in(stdout: &str, urls: &mut Vec<String>) {
         {
             urls.extend(URL.find_iter(&params[1]).map(|m| m.as_str().to_owned()));
         }
-    }
-}
-
-/// ace3's URLObservable refuses a URL with no host, which is text an attacker wrote, and keeps one
-/// `urlsplit` can't read. The core doesn't check them.
-pub fn names_a_host(url: &str) -> bool {
-    let Ok((scheme, _)) = urlsplit(url) else {
-        return true;
-    };
-    if !matches!(scheme.as_str(), "http" | "https" | "ftp") {
-        return true;
-    }
-    let rest: String = url
-        .split_once(':')
-        .map_or("", |(_, rest)| rest)
-        .chars()
-        .filter(|c| !matches!(c, '\t' | '\r' | '\n'))
-        .collect();
-    let rest = rest.replace('\\', "/");
-    let rest = rest.trim_start_matches('/');
-    match urlsplit(&format!("{scheme}://{rest}")) {
-        Ok((_, netloc)) => hostname(&netloc).chars().any(char::is_alphanumeric),
-        Err(()) => true,
-    }
-}
-
-/// `urlsplit`'s scheme and netloc, or Err for its ValueError. The check for a netloc that NFKC turns into
-/// a delimiter isn't here: such a host still has what the module asks of it.
-fn urlsplit(url: &str) -> Result<(String, String), ()> {
-    let url = url.trim_start_matches(|c: char| c <= ' ');
-    let url: String = url
-        .chars()
-        .filter(|c| !matches!(c, '\t' | '\r' | '\n'))
-        .collect();
-    let mut rest = url.as_str();
-    let mut scheme = String::new();
-    if let Some(at) = rest.find(':')
-        && at > 0
-        && rest.as_bytes()[0].is_ascii_alphabetic()
-        && rest[..at]
-            .bytes()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'+' | b'-' | b'.'))
-    {
-        scheme = rest[..at].to_ascii_lowercase();
-        rest = &rest[at + 1..];
-    }
-    let mut netloc = String::new();
-    if let Some(after) = rest.strip_prefix("//") {
-        let end = after.find(['/', '?', '#']).unwrap_or(after.len());
-        netloc = after[..end].to_owned();
-        let (open, close) = (netloc.contains('['), netloc.contains(']'));
-        if open != close {
-            return Err(());
-        }
-        if open {
-            check_bracketed(&netloc)?;
-        }
-    }
-    Ok((scheme, netloc))
-}
-
-fn check_bracketed(netloc: &str) -> Result<(), ()> {
-    let host_port = netloc.rsplit_once('@').map_or(netloc, |(_, host)| host);
-    let host = if let Some((before, bracketed)) = host_port.split_once('[') {
-        if !before.is_empty() {
-            return Err(());
-        }
-        let (host, port) = bracketed.split_once(']').unwrap_or((bracketed, ""));
-        if !port.is_empty() && !port.starts_with(':') {
-            return Err(());
-        }
-        host
-    } else {
-        host_port
-            .split_once(':')
-            .map_or(host_port, |(host, _)| host)
-    };
-    if let Some(version) = host.strip_prefix('v') {
-        let (hex, tail) = version.split_once('.').ok_or(())?;
-        if hex.is_empty() || !hex.bytes().all(|c| c.is_ascii_hexdigit()) || tail.is_empty() {
-            return Err(());
-        }
-        return Ok(());
-    }
-    host.parse::<std::net::Ipv6Addr>().map(drop).map_err(drop)
-}
-
-/// `SplitResult.hostname`.
-fn hostname(netloc: &str) -> String {
-    let after = netloc.rsplit_once('@').map_or(netloc, |(_, host)| host);
-    let host = if let Some((_, bracketed)) = after.split_once('[') {
-        bracketed
-            .split_once(']')
-            .map_or(bracketed, |(host, _)| host)
-    } else {
-        after.split_once(':').map_or(after, |(host, _)| host)
-    };
-    match host.split_once('%') {
-        Some((name, zone)) => format!("{}%{zone}", name.to_lowercase()),
-        None => host.to_lowercase(),
     }
 }
 
@@ -604,16 +505,6 @@ mod tests {
     }
 
     #[test]
-    fn a_url_with_no_host_is_no_observable_but_still_a_detection() {
-        assert!(names_a_host("https://example.com/a"));
-        assert!(names_a_host("HTTP://Upper.example.com/a b"));
-        assert!(names_a_host("http://[x/"));
-        assert!(names_a_host("https:\\\\evil.example.com"));
-        assert!(!names_a_host("http://%"));
-        assert!(!names_a_host("https://.."));
-    }
-
-    #[test]
     fn the_wrappers_filter_keeps_a_modules_indented_lines() {
         let text = "Processing file: a\n\tbefore\nModule streams:\na - 1 bytes\nLine #0:\n\tLitStr 0x0001 \"x\"\n y\u{2003}\n\u{2003}yes\n\u{a0}no\n";
         assert_eq!(
@@ -677,6 +568,7 @@ mod tests {
                     yara_meta: Some(&[]),
                 }),
                 results: &results,
+                origins: None,
             };
             takes.check(&facts).is_ok()
         };

@@ -1,5 +1,5 @@
 //! The archive module, a port of ace3's `ArchiveAnalyzer`
-//! (`saq/modules/file_analysis/archive.py:152`) onto the zip, sevenz-rust2, flate2 and unrar
+//! (`saq/modules/file_analysis/archive.py:152`) onto the zip, sevenz-rust2, flate2, unrar and cab
 //! crates. ace3 runs `unzip`, `7z` and `unrar` and Python's `zipfile`; here the archive is read in
 //! the task's own process.
 //!
@@ -124,15 +124,6 @@ impl Module for ArchiveAnalyzer {
     }
 }
 
-/// `KNOWN_OFFICE_EXTENSIONS` in ace3's `is_file_type.py`.
-const OFFICE_EXTENSIONS: &[&str] = &[
-    "doc", "docb", "dochtml", "docm", "docx", "docxml", "dot", "dothtml", "dotm", "dotx", "odt",
-    "rtf", "wbk", "wiz", "csv", "dqy", "iqy", "odc", "ods", "slk", "xla", "xlam", "xlk", "xll",
-    "xlm", "xls", "xlsb", "xlshtml", "xlsm", "xlsx", "xlt", "xlthtml", "xltm", "xltx", "xlw",
-    "odp", "pot", "pothtml", "potm", "potx", "ppa", "ppam", "pps", "ppsm", "ppsx", "ppt",
-    "ppthtml", "pptm", "pptx", "pptxml", "pwz", "sldm", "sldx", "thmx", "mso", "pub",
-];
-
 /// Names inside a zip that show it is an Office document even when nothing else says so.
 const OFFICE_MEMBERS: &[&str] = &[
     "ppt/slides/_rels",
@@ -254,6 +245,10 @@ fn format_of(file: &InputFile, head: &[u8], entries_hint: &dyn Fn() -> bool) -> 
     if head.starts_with(b"\x1f\x8b") || mime == "application/gzip" {
         return Some(Format::Gzip);
     }
+    // ace3's `is_cab_file`: libmagic's mime type, or the cabinet's own signature
+    if head.starts_with(b"MSCF\0\0\0\0") || mime.contains("ms-cab") {
+        return Some(Format::Cab);
+    }
     None
 }
 
@@ -267,18 +262,15 @@ fn is_ace(file: &InputFile, head: &[u8], file_type: Option<&FileTypeAnalysis>) -
     by_type || file.path.as_str().to_lowercase().ends_with(".ace")
 }
 
-/// `is_office_file`: an Office file name or mime type.
+/// ace3's `is_office_file`: the name's extension is an Office one (`is_office_ext`, as it is, case
+/// and all), or the type's description names Word, Excel, PowerPoint, OOXML or OpenDocument. A
+/// mime type doesn't count: `application/vnd.ms-` alone would make a cabinet
+/// (`application/vnd.ms-cab-compressed`) an Office document, whose members redirect to it.
 fn is_office_file(file: &InputFile) -> bool {
-    let name = file.name().to_lowercase();
-    let by_name = name
-        .rsplit_once('.')
-        .is_some_and(|(_, ext)| OFFICE_EXTENSIONS.contains(&ext));
-    let mime = file.mime_type.as_deref().unwrap_or_default();
-    by_name
-        || mime.starts_with("application/vnd.openxmlformats-officedocument")
-        || mime.starts_with("application/vnd.oasis.opendocument")
-        || mime.starts_with("application/vnd.ms-")
-        || mime == "application/msword"
+    ace_results::types::file_type::is_office_ext(file.name())
+        || file.facts.as_ref().is_some_and(|facts| {
+            facts.names_office_format() || facts.description.to_lowercase().contains("opendocument")
+        })
 }
 
 impl Parser for ArchiveAnalyzer {
@@ -315,7 +307,7 @@ impl Parser for ArchiveAnalyzer {
         };
         let count = match format {
             Format::Jar | Format::Xlsx | Format::Rar => entries.len(),
-            Format::Zip | Format::SevenZip | Format::Gzip => {
+            Format::Zip | Format::SevenZip | Format::Gzip | Format::Cab => {
                 entries.iter().filter(|e| !e.is_dir).count()
             }
         } as u64;

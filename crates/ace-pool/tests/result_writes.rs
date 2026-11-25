@@ -480,7 +480,8 @@ async fn a_nul_from_a_hostile_file_doesnt_stop_a_task_ending() {
         "details": {"file_count": 1, "extracted_files": ["a\0b"]},
         "summary": "sum\0mary",
         "tags": ["ta\0g"],
-        "observables": [{"type": "fqdn", "value": "evil\0.example.com"}],
+        // a hostname: an fqdn with a replacement character is no domain, which the core refuses
+        "observables": [{"type": "hostname", "value": "evil\0.example.com"}],
     });
     client
         .end(

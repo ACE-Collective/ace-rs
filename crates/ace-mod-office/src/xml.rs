@@ -33,13 +33,13 @@ use std::collections::BTreeSet;
 
 use ace_lxml::target::{Target, XmlSyntaxError, parse};
 use ace_mod_email::naming::clean_file_name;
-use ace_mod_urls::url_extraction::names_a_host;
 use ace_results::types::office::{
     OfficeXmlRelationshipAnalysis, XmlBinaryDataAnalysis, XmlPlainTextAnalysis,
 };
 use ace_results::{
     AnalysisType, Detection, NewObservable, ObservableKind, RelationshipKind, ResultEnvelope,
 };
+use ace_sdk::observable_rules::names_a_host;
 use ace_sdk::takes::{Case, Condition, Takes, Text, TypeFact};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;

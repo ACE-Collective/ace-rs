@@ -225,7 +225,7 @@ impl Lookup for EmailLogger {
 
 /// `export_to_brocess`: the sender with each envelope recipient, normalized; none without a sender.
 pub fn smtplog_rows(entry: &LogEntry) -> Option<SmtpLogRows> {
-    let normalize = |address: &str| ace_mod_email::py::normalize_email_address(address);
+    let normalize = |address: &str| ace_sdk::email_threads::normalize_email_address(address);
     let source = entry.mail_from.as_deref().and_then(normalize)?;
     let rows: Vec<SmtpLogRow> = entry
         .env_rcpt_to

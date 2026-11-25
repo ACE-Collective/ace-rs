@@ -8,6 +8,7 @@
 //! - [`unicodedata`] is `category`, `bidirectional`, `combining` and `normalize`, for Unicode 16.0
 //!   and for `ucd_3_2_0`.
 //! - [`parse`] is `urllib.parse`.
+//! - [`email_utils`] is `email.utils.parseaddr` and `getaddresses`.
 //! - [`html`] is `html.escape` and `html.unescape`, with `html.entities`.
 //! - [`base64`] is `b64decode` and `urlsafe_b64decode`.
 //! - [`ipaddress`] is `ip_address`, `IPv4Address` and `IPv6Address`.
@@ -35,6 +36,7 @@
 pub mod base64;
 pub mod codecs_idna;
 pub mod csv;
+pub mod email_utils;
 pub mod escape;
 pub mod fnmatch;
 pub mod html;

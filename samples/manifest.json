@@ -6806,6 +6806,34 @@
       "meta_tags": [
         "type=email.attachment"
       ]
+    },
+    {
+      "path": "ace-rs/archive/single.cab",
+      "sha256": "8f1718591847441a80cb846631904a994ba8fd570f17c4088ec124efcd3b7bd8",
+      "size": 144,
+      "kinds": [
+        "archive/cab"
+      ],
+      "source": "made by tools/samples/make-cab-files: the cab crate 0.6.0's writer, one MSZIP-compressed text file",
+      "in_git": true,
+      "alert_path": "single.cab",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace-rs/archive/several.cab",
+      "sha256": "d1cbe96f6ad916fb91c0c68a032ed0ee9fa33f09fe94184958494a699e04b0b6",
+      "size": 264,
+      "kinds": [
+        "archive/cab"
+      ],
+      "source": "made by tools/samples/make-cab-files: the cab crate 0.6.0's writer, two text files, one stored and one MSZIP-compressed in a directory",
+      "in_git": true,
+      "alert_path": "several.cab",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
     }
   ]
 }

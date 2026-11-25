@@ -20,6 +20,14 @@
 //! - ace3's manager reads the container's output as UTF-8 and fails on bytes that aren't; here they
 //!   read as U+FFFD.
 //! - ace3 adds its files as volatile observables, which ace-rs doesn't have.
+//! - A file file_type tags `script.javascript` runs, as one another module tagged does. ace3 runs
+//!   this module before file_type, so it never sees file_type's tag and runs only on a `.js` name
+//!   or another module's tag. ace-rs keeps one observable for a file's bytes, under one of its
+//!   paths (PLAN.md decision 15), where ace3 keeps one a path: a script a sandbox's report archive holds as
+//!   `web_requests/<…>.js` and `extracted_scripts/<sha1>.bin` was deobfuscated in ace3 as the
+//!   `.js` and skipped here as the `.bin`. Reading the bytes' own tag runs it whichever path is
+//!   kept, and runs a script under any name that file_type's check (a JavaScript mime type or
+//!   extension, and node parsing it) calls JavaScript, which ace3 leaves alone.
 
 use std::time::Duration;
 
@@ -121,8 +129,9 @@ impl Parser for JavaScriptDeobfuscationAnalyzer {
         let file = ctx.input_file()?;
         let has_js_tag = tagged_before_file_type(ctx)?;
         let name = file.name();
-        // `takes` declined a file with no tag and no .js name; this is a tag file_type gave
-        if !has_js_tag && !name.ends_with(".js") {
+        // file_type's tag counts too: it's the bytes' own, and the file may be a script under a
+        // name that isn't .js, the same bytes as a .js file elsewhere in the root (see the docs)
+        if !has_js_tag && !tagged_javascript(file) && !name.ends_with(".js") {
             return Ok(Outcome::Skipped("not JavaScript".to_owned()));
         }
         if name.starts_with(DEOBFUSCATED_PREFIX) {
@@ -138,7 +147,15 @@ impl Parser for JavaScriptDeobfuscationAnalyzer {
     }
 }
 
-/// Whether the script carries `type=script.javascript` from a module other than file_type.
+/// Whether the file carries `type=script.javascript`, from any module, file_type's included.
+fn tagged_javascript(file: &ace_sdk::InputFile) -> bool {
+    file.yara_meta
+        .iter()
+        .any(|m| m.name() == "type" && m.value() == JAVASCRIPT)
+}
+
+/// Whether the script carries `type=script.javascript` from a module other than file_type, which
+/// decides whether a clean run adds the tag, as ace3's does.
 ///
 /// ace3 runs its modules on a file in its configuration's order, in which `javascript_deobfuscation`
 /// comes before `file_type`, so the tag it reads is the one the file came with, from the module that

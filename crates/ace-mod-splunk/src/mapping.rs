@@ -10,7 +10,6 @@
 //! [`parse_timespec`], and the named time ranges ([`TimeRange`], [`time_spec`]).
 
 use std::collections::BTreeMap;
-use std::net::IpAddr;
 use std::sync::LazyLock;
 use std::time::Duration;
 
@@ -274,12 +273,6 @@ fn values(value: &Value) -> Vec<String> {
     }
 }
 
-/// Whether ace3 would make an observable of this type from the value. Only IP addresses are
-/// checked.
-fn valid_value(kind: ObservableKind, value: &str) -> bool {
-    !kind.is_subtype_of(ObservableKind::Ip) || value.trim().parse::<IpAddr>().is_ok()
-}
-
 /// The observables a row's mapped fields give, added to `out` in mapping order, as ace3's
 /// `extract_result_observables`: a mapping with `time: true` gives its observables `time`, the
 /// row's event time as its source reads it (Splunk's `_time` through [`event_time`], LogScale's
@@ -304,13 +297,17 @@ pub fn add_observables(
             {
                 continue;
             }
-            if !valid_value(spec.kind, &value) {
-                tracing::warn!(
-                    "unable to create observable {} with value {value}",
-                    spec.kind
-                );
-                continue;
-            }
+            // `create_observable`: what the type's class keeps of the value, or nothing
+            let value = match ace_sdk::observable_rules::class_value(spec.kind, &value) {
+                Ok(kept) => kept.into_owned(),
+                Err(why) => {
+                    tracing::warn!(
+                        "unable to create observable {} with value {value}: {why}",
+                        spec.kind
+                    );
+                    continue;
+                }
+            };
             let time = spec.time.then_some(time);
             let index = match out
                 .iter()

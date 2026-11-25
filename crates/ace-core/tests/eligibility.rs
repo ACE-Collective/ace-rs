@@ -2715,6 +2715,106 @@ async fn the_rules_file_is_read_again_when_it_changes() {
     assert_eq!(names(&hooks), ["inline", "two"]);
 }
 
+/// A value ace3's observable class refuses isn't added, as ace3's `add_observable_by_spec` returns
+/// None for it: a certificate's common name a module adds as an fqdn lands nowhere, nor do the
+/// relationships to it, no module runs on it, and the rest of the result lands.
+#[tokio::test]
+async fn a_value_its_type_refuses_isnt_added_and_nothing_refers_to_it() {
+    let records = common::Records::default();
+    // this thread's alone: the test runs on a current-thread runtime
+    let _logging = records.on_this_thread();
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = orchestrator();
+    let (root, ids) = root_with(
+        db,
+        "correlation",
+        &[(ObservableKind::Fqdn, "evil.example.com")],
+    )
+    .await;
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+    let rdap = worker(
+        &test_db,
+        "rdap",
+        &["rdap_analyzer"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = rdap.claim().await.expect("claims").expect("a task");
+    let refused = json!({"type": "fqdn", "value": "GTS Root R1"});
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .land_result(
+            &mut tx,
+            &rdap,
+            &task,
+            &result(json!({
+                "analysis_type": "test_stub",
+                "schema_version": 1,
+                "details": {"note": "x"},
+                "analyzed": {"relationships": [{"type": "related_to", "target": refused}]},
+                "observables": [
+                    refused,
+                    {"type": "fqdn", "value": "c2.example.com",
+                     "relationships": [{"type": "related_to", "target": refused}]},
+                    {"type": "hostname", "value": " HOST "},
+                ],
+            })),
+        )
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+
+    let stored: BTreeSet<(String, String)> = tree::observables(db.pool(), root)
+        .await
+        .expect("reads")
+        .into_iter()
+        .map(|o| (o.kind.to_string(), o.value))
+        .collect();
+    let pair = |k: &str, v: &str| (k.to_owned(), v.to_owned());
+    assert_eq!(
+        stored,
+        BTreeSet::from([
+            pair("fqdn", "c2.example.com"),
+            pair("fqdn", "evil.example.com"),
+            pair("hostname", "HOST"),
+        ]),
+        "the refused fqdn isn't there and the hostname is stripped"
+    );
+    let relationships: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM analysis.relationships WHERE root_id = $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("counts");
+    assert_eq!(relationships, 0);
+    assert!(
+        !tasks_of(db, root)
+            .await
+            .iter()
+            .any(|(_, value, _)| value == "GTS Root R1")
+    );
+    assert!(
+        tree::relationships(db.pool(), root, ids[0])
+            .await
+            .expect("reads")
+            .is_empty()
+    );
+    let logged = records.find("the observable isn't added: not a valid fqdn");
+    let logged = logged.expect("the refusal is logged");
+    assert_eq!(logged.level, tracing::Level::DEBUG);
+    for (field, value) in [
+        ("root", root.to_string()),
+        ("module", "rdap_analyzer".to_owned()),
+        ("observable_type", "fqdn".to_owned()),
+        ("observable_value", "GTS Root R1".to_owned()),
+    ] {
+        assert_eq!(logged.fields.get(field), Some(&value), "{field}");
+    }
+}
+
 /// The messages of the ERROR records a test's thread logs.
 #[derive(Clone, Default)]
 struct Errors(std::sync::Arc<std::sync::Mutex<Vec<String>>>);
@@ -5606,4 +5706,304 @@ fn a_replaced_catalog_is_every_clone_s() {
         "the original sees it"
     );
     assert_eq!(before.keys().len(), all, "a snapshot keeps its own");
+}
+
+/// A crawler, an unpacker, a hasher and a hash lookup that skips hashes of what the crawler
+/// fetched, for `Condition::HashesOnlyFilesFrom` (PLAN.md decision 69).
+mod crawled {
+    use ace_results::ObservableKind;
+    use ace_sdk::takes::{Condition, Match, Takes, Text};
+    use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
+
+    use crate::common::stubs::StubOutput;
+
+    macro_rules! stub {
+        ($ty:ident, $name:literal, $input:ident, $takes:expr) => {
+            pub struct $ty;
+
+            impl Module for $ty {
+                const NAME: &'static str = $name;
+                const INPUTS: &'static [ObservableKind] = &[ObservableKind::$input];
+                type Output = StubOutput;
+                type Settings = ();
+
+                fn init(_: &()) -> Result<Self, ModuleError> {
+                    Ok($ty)
+                }
+
+                fn takes(_: &()) -> Takes {
+                    $takes
+                }
+            }
+
+            impl Lookup for $ty {
+                const TCP_PORTS: &'static [u16] = &[];
+
+                async fn analyze(
+                    &self,
+                    _: &TaskContext<()>,
+                ) -> Result<Outcome<StubOutput>, ModuleError> {
+                    Ok(Outcome::Skipped("a stub".to_owned()))
+                }
+            }
+        };
+    }
+
+    stub!(Crawler, "test_crawler", Url, Takes::everything());
+    stub!(Unpacker, "test_unpacker", File, Takes::everything());
+    stub!(Hasher, "test_hasher", File, Takes::everything());
+    stub!(
+        HashLookup,
+        "test_hash_lookup",
+        Sha256,
+        Takes::everything().and(
+            Condition::HashesOnlyFilesFrom {
+                module: "test_crawler".to_owned(),
+                except: ["crawl/*/downloads/*", "crawl/*/script.js"]
+                    .map(|pattern| Text::exact(Match::Glob {
+                        pattern: pattern.to_owned(),
+                        prefix: String::new(),
+                    }))
+                    .to_vec(),
+            }
+            .negated(),
+            "a hash of what the crawler fetched"
+        )
+    );
+
+    pub fn manifests() -> Vec<Manifest> {
+        vec![
+            Manifest::lookup::<Crawler>(),
+            Manifest::lookup::<Unpacker>(),
+            Manifest::lookup::<Hasher>(),
+            Manifest::lookup::<HashLookup>(),
+        ]
+    }
+}
+
+/// Lands a result of `module` on each of its tasks until none is left, the tasks its results
+/// queue among them, each built by `envelope` from the task's observable's value.
+async fn land_every(
+    test_db: &TestDb,
+    orchestrator: &Orchestrator,
+    module: &str,
+    envelope: impl Fn(&str) -> serde_json::Value,
+) {
+    let db = test_db.db();
+    let worker = worker(test_db, module, &[module], Duration::from_secs(60)).await;
+    while let Some(task) = worker.claim().await.expect("claims") {
+        let mut tx = db.begin().await.expect("begins");
+        orchestrator
+            .land_result(
+                &mut tx,
+                &worker,
+                &task,
+                &result(envelope(&task.observable.value)),
+            )
+            .await
+            .expect("lands");
+        tx.commit().await.expect("commits");
+    }
+}
+
+/// PLAN.md decision 69: the core declines a hash lookup on a hash whose files all came from the
+/// crawler at paths it doesn't except, directly or extracted from such a file, and takes every
+/// other: a payload under an except glob, something extracted from one, a file that is also an
+/// attachment, one that came with the submission, a hash that also names one of those, a file the
+/// walk reaches twice, and a hash that names no file.
+#[tokio::test]
+async fn a_hash_of_only_what_the_crawler_fetched_is_declined() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let mode = AnalysisMode {
+        name: "crawl".to_owned(),
+        module_groups: Vec::new(),
+        enabled_modules: crawled::manifests()
+            .iter()
+            .map(|m| m.name.to_owned())
+            .collect(),
+        disabled_modules: Vec::new(),
+    };
+    let orchestrator = Orchestrator::new(
+        Catalog::new(crawled::manifests()),
+        Modes::ace3().with_mode(mode),
+    );
+    let file = |n: u8| format!("{n:02x}").repeat(32);
+    let (page, inner, payload, script, both, email, looped, looped_too, deep, from_payload) = (
+        file(0xa1),
+        file(0xa2),
+        file(0xa3),
+        file(0xa4),
+        file(0xa5),
+        file(0xa6),
+        file(0xa7),
+        file(0xa8),
+        file(0xa9),
+        file(0xaa),
+    );
+    let (two, no_file) = (file(0xc0), file(0xd0));
+    let (root, ids) = root_with(
+        db,
+        "crawl",
+        &[
+            (ObservableKind::Url, "https://crawled.example/"),
+            (ObservableKind::File, email.as_str()),
+            (ObservableKind::Sha256, no_file.as_str()),
+        ],
+    )
+    .await;
+    let mut tx = db.begin().await.expect("begins");
+    tree::add_file(&mut tx, root, ids[1], "e.eml", &[])
+        .await
+        .expect("adds");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+
+    let files = |files: &[(&str, &str)]| {
+        let files: Vec<_> = files
+            .iter()
+            .map(|(path, sha256)| json!({"path": path, "sha256": sha256, "size": 1}))
+            .collect();
+        json!({"analysis_type": "test_stub", "schema_version": 1, "details": {"note": ""},
+               "files": files})
+    };
+    land_every(&test_db, &orchestrator, "test_crawler", |_| {
+        files(&[
+            ("crawl/j/dom.html", &page),
+            ("crawl/j/downloads/x.zip", &payload),
+            ("crawl/j/script.js", &script),
+            ("crawl/j/b.html", &both),
+            ("crawl/j/l.html", &looped),
+            ("crawl/j/a/script.js", &deep),
+        ])
+    })
+    .await;
+    // every unpacking ends before any hash is added, as each file's own additions come before
+    // the result on it that adds its hash
+    land_every(&test_db, &orchestrator, "test_unpacker", |on| {
+        if on == page {
+            files(&[("dom.html.extracted/i", &inner)])
+        } else if on == payload {
+            files(&[("x.zip.extracted/i", &from_payload)])
+        } else if on == email {
+            files(&[("e.eml.parts/b.html", &both)])
+        } else if on == looped {
+            files(&[("l.html.extracted/m", &looped_too)])
+        } else if on == looped_too {
+            files(&[("m.extracted/l.html", &looped)])
+        } else {
+            files(&[])
+        }
+    })
+    .await;
+    let hash_of = |hash: &str, files: &[&str]| {
+        let relationships: Vec<_> = files
+            .iter()
+            .map(|f| json!({"type": "is_hash_of", "target": {"type": "file", "value": f}}))
+            .collect();
+        json!({"type": "sha256", "value": hash, "relationships": relationships})
+    };
+    let hash = |file: &str| file.chars().rev().collect::<String>();
+    land_every(&test_db, &orchestrator, "test_hasher", |on| {
+        let mut observables = vec![hash_of(&hash(on), &[on])];
+        if on == page {
+            observables.push(hash_of(&two, &[&page, &email]));
+        }
+        json!({"analysis_type": "test_stub", "schema_version": 1, "details": {"note": ""},
+               "observables": observables})
+    })
+    .await;
+
+    let looked_up: BTreeSet<String> = tasks_of(db, root)
+        .await
+        .into_iter()
+        .filter(|(module, _, _)| module == "test_hash_lookup")
+        .map(|(_, value, _)| value)
+        .collect();
+    let expected: BTreeSet<String> = [
+        hash(&payload),
+        hash(&from_payload),
+        hash(&script),
+        hash(&deep),
+        hash(&both),
+        hash(&email),
+        hash(&looped),
+        hash(&looped_too),
+        two.clone(),
+        no_file.clone(),
+    ]
+    .into_iter()
+    .collect();
+    assert_eq!(looked_up, expected);
+    // every hash was added, so the two declined are the crawled page and what it held
+    let hashes: Vec<String> = sqlx::query_scalar(
+        "SELECT value FROM analysis.observables WHERE root_id = $1 AND type = 'sha256'",
+    )
+    .bind(root)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    let hashes: BTreeSet<String> = hashes.into_iter().collect();
+    let declined: BTreeSet<String> = hashes.difference(&looked_up).cloned().collect();
+    assert_eq!(declined, [hash(&page), hash(&inner)].into_iter().collect());
+
+    // the facts the core decides on: one query loads the origins of every file the batch's hashes
+    // name, and of each file up the tree from them
+    let named: Vec<ace_core::tree::ObservableId> = sqlx::query_scalar(
+        "SELECT id FROM analysis.observables WHERE root_id = $1 AND type = 'sha256'",
+    )
+    .bind(root)
+    .fetch_all(db.pool())
+    .await
+    .map(|ids: Vec<i64>| ids.into_iter().map(ace_core::tree::ObservableId).collect())
+    .expect("reads");
+    let needs = ace_core::takes::Needs {
+        file_origins: true,
+        ..Default::default()
+    };
+    let mut tx = db.begin().await.expect("begins");
+    let held = ace_core::takes::held(&mut tx, root, &named, &needs)
+        .await
+        .expect("reads");
+    let origins = held
+        .values()
+        .next()
+        .and_then(|h| h.origins.clone())
+        .expect("origins");
+    assert!(
+        held.values().all(|h| h
+            .origins
+            .as_ref()
+            .is_some_and(|o| std::sync::Arc::ptr_eq(o, &origins))),
+        "one load, shared by the batch"
+    );
+    assert_eq!(origins.files[&email], [ace_sdk::takes::Origin::Submission]);
+    assert_eq!(
+        origins.files[&inner],
+        [ace_sdk::takes::Origin::Result {
+            module: "test_unpacker".to_owned(),
+            path: Some("dom.html.extracted/i".to_owned()),
+            on_file: Some(page.clone()),
+        }]
+    );
+    assert_eq!(origins.files[&looped].len(), 2);
+    // without the fact, as on a lease, the declaration takes the crawled page's hash
+    let lookup = Catalog::new(crawled::manifests());
+    let lookup = lookup.component("test_hash_lookup").expect("a component");
+    let page_hash = held
+        .values()
+        .find(|h| {
+            h.relationships
+                .iter()
+                .any(|r| r.target.value == page && h.relationships.len() == 1)
+        })
+        .expect("the page's hash");
+    let facts = page_hash.facts(ObservableKind::Sha256, &[], "crawl");
+    assert!(lookup.takes.check(&facts).is_err());
+    let unknown = ace_sdk::takes::Facts {
+        origins: None,
+        ..facts
+    };
+    assert!(lookup.takes.check(&unknown).is_ok());
+    tx.rollback().await.expect("rolls back");
 }

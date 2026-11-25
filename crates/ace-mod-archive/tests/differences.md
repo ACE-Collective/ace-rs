@@ -38,7 +38,7 @@ These follow ace3 on purpose, so they aren't differences, but they're easy to ge
 
 These depart from ace3:
 
-- Formats: zip (and JAR and the Office formats built on it), 7z, RAR and gzip are read. ACE archives go to unace in the sandbox runner, as ace3 runs it (7.5 batch 10). ace3's `7z` also opens cab, tar, ISO, MSI, bzip2, xz, arj, lzh and others; those are skipped until a port needs them.
+- Formats: zip (and JAR and the Office formats built on it), 7z, RAR, gzip and Microsoft cabinets (stored, MSZIP and LZX; not Quantum, which 7z reads) are read. ACE archives go to unace in the sandbox runner, as ace3 runs it (7.5 batch 10). ace3's `7z` also opens tar, ISO, MSI, bzip2, xz, arj, lzh and others, and finds an archive that starts partway into a file, such as a gzip stream inside a captured HTTP response; those are skipped until a port needs them.
 - A RAR's members are tried with the password `infected` too. ace3 passes `unrar` no password, so it extracts nothing from an encrypted RAR.
 - An entry that fails to extract, other than a password's, is logged and the others are still extracted. ace3's JAR extraction stops at the first entry that fails, and its other tools carry on.
 - When two entries extract to the same path, the later one wins, as 7z's `-y` and unrar's `-o+` overwrite. Each extracted file is its own result file, even when two have the same bytes.

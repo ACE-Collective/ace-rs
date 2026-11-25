@@ -26,11 +26,11 @@ use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::observable;
 use crate::py::{
     decode_base64, find_nt_paths_in_text, is_base64, is_nt_path, ntpath_basename,
     shlex_split_nonposix,
 };
+use ace_sdk::observable_rules as observable;
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<CommandLineAnalyzer>();

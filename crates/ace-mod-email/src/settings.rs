@@ -42,7 +42,7 @@ impl EmailAnalyzerSettings {
     pub fn outbound_exception_list(&self) -> Vec<String> {
         self.outbound_exceptions
             .iter()
-            .filter_map(|address| crate::py::normalize_email_address(address))
+            .filter_map(|address| ace_sdk::email_threads::normalize_email_address(address))
             .collect()
     }
 }

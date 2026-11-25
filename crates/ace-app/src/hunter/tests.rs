@@ -541,14 +541,10 @@ fn a_hunt_submission_becomes_the_core_s() {
                 signature_family: "hunt".to_owned(),
             }],
             observables: vec![
-                ace_hunt::query::observable::Observable::create("signature_id", "u", false, |v| {
-                    Some(v.to_owned())
-                })
-                .expect("made"),
-                ace_hunt::query::observable::Observable::create("no_such_type", "x", false, |v| {
-                    Some(v.to_owned())
-                })
-                .expect("made"),
+                ace_hunt::query::observable::Observable::create("signature_id", "u", false)
+                    .expect("made"),
+                ace_hunt::query::observable::Observable::create("no_such_type", "x", false)
+                    .expect("made"),
             ],
             files: vec![],
             rows: vec![],

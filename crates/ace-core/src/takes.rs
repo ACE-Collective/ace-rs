@@ -12,6 +12,15 @@
 //! one on that path, its size the store's for its bytes and its type what the type step found in
 //! them (`crate::type_step`), which is known before any task but the type step is queued.
 //!
+//! **How a hash's files came into the root** (`Condition::HashesOnlyFilesFrom`, PLAN.md decision
+//! 69) is the one fact here that a lease doesn't carry, so only the core declines on it. `held`
+//! loads it for a batch in one query: from the files the batch's observables name through
+//! `is_hash_of`, up through each result that added a file to the file that result is on, with
+//! every addition's module and path on the way. A hash is added by a result on its file, which
+//! the file's own additions came before, and so did those of every file up the tree, so the
+//! facts are complete when the hash's tasks are decided. A later result that adds one of those
+//! files again isn't a change to the hash and doesn't queue its task again.
+//!
 //! **The audit setting**, `ACE_RS_TAKES_AUDIT=1` for `ace serve` and the hunter: the core queues
 //! every task as it did before declarations, and marks the ones a declaration would have declined
 //! with the reason (`queue.tasks.declined`). A mark is cleared when eligibility reruns and the
@@ -24,12 +33,13 @@
 //! before the setting is turned off for a module's declaration, a site's among them.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use ace_results::types::file_type::TypeFacts;
-use ace_results::{FileRole, ObservableKind, Relationship, YaraMeta};
+use ace_results::{FileRole, ObservableKind, Relationship, RelationshipKind, YaraMeta};
 use ace_sdk::Component;
 use ace_sdk::directives::SourcedDirective;
-use ace_sdk::takes::{Facts, FileFacts};
+use ace_sdk::takes::{Facts, FileFacts, FileOrigins, Origin};
 use serde_json::Value;
 use uuid::Uuid;
 
@@ -71,6 +81,9 @@ pub struct Held {
     pub at_root: bool,
     pub file: Option<HeldFile>,
     pub results: BTreeMap<String, Value>,
+    /// How the files its batch names through `is_hash_of` came into the root, shared by the
+    /// batch, when a declaration reads it; None leaves `Condition::HashesOnlyFilesFrom` unknown.
+    pub origins: Option<Arc<FileOrigins>>,
 }
 
 #[derive(Debug, Clone)]
@@ -108,6 +121,7 @@ impl Held {
                 yara_meta: Some(&file.yara_meta),
             }),
             results: &self.results,
+            origins: self.origins.as_deref(),
         }
     }
 }
@@ -117,6 +131,8 @@ impl Held {
 pub struct Needs {
     pub added_by: bool,
     pub directive_sources: bool,
+    /// How files came into the root (`Condition::HashesOnlyFilesFrom`).
+    pub file_origins: bool,
     pub results: Vec<String>,
 }
 
@@ -128,6 +144,7 @@ impl Needs {
             let reads = component.takes.reads();
             needs.added_by |= reads.added_by;
             needs.directive_sources |= reads.directive_sources;
+            needs.file_origins |= reads.file_origins;
             results.extend(reads.results);
         }
         needs.results = results.into_iter().collect();
@@ -216,6 +233,20 @@ pub async fn held(
                 ace_results::ObservableRef::new(target, row.target_value),
             ));
     }
+    if needs.file_origins {
+        let named: BTreeSet<String> = held
+            .values()
+            .flat_map(|entry| &entry.relationships)
+            .filter(|r| {
+                r.kind == RelationshipKind::IsHashOf && r.target.kind == ObservableKind::File
+            })
+            .map(|r| r.target.value.clone())
+            .collect();
+        let origins = Arc::new(origins(tx, root, &named.into_iter().collect::<Vec<_>>()).await?);
+        for entry in held.values_mut() {
+            entry.origins = Some(Arc::clone(&origins));
+        }
+    }
     if needs.added_by {
         for row in sqlx::query!(
             r#"SELECT a.observable_id AS "id: ObservableId", r.module AS "module!"
@@ -286,6 +317,63 @@ pub async fn held(
         }
     }
     Ok(held)
+}
+
+/// How `files` (by sha256) came into `root`, and every file up the tree from them: each file's
+/// additions with the module and path of the result that made each and the file that result is
+/// on, and whether the file came with the submission (as `tree::at_root` reads it). One query,
+/// whose recursion follows results on files only, since nothing above a result on another
+/// observable is read; `UNION` ends a cycle.
+pub async fn origins(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    files: &[String],
+) -> Result<FileOrigins, DbError> {
+    let mut origins = FileOrigins::default();
+    if files.is_empty() {
+        return Ok(origins);
+    }
+    let rows = sqlx::query!(
+        r#"WITH RECURSIVE up(id) AS (
+               SELECT id FROM analysis.observables
+               WHERE root_id = $1 AND type = 'file' AND value = ANY($2)
+             UNION
+               SELECT p.id
+               FROM up
+               JOIN analysis.result_additions a ON a.root_id = $1 AND a.observable_id = up.id
+               JOIN analysis.results r ON r.id = a.result_id
+               JOIN analysis.observables p ON p.root_id = $1 AND p.id = r.observable_id
+                    AND p.type = 'file'
+           )
+           SELECT o.value AS "file!", (o.depth = 0) AS "at_root!", r.module AS "module?",
+                  a.path AS "path?", p.type AS "on_type?", p.value AS "on_value?"
+           FROM up
+           JOIN analysis.observables o ON o.root_id = $1 AND o.id = up.id
+           LEFT JOIN analysis.result_additions a ON a.root_id = $1 AND a.observable_id = up.id
+           LEFT JOIN analysis.results r ON r.id = a.result_id
+           LEFT JOIN analysis.observables p ON p.root_id = $1 AND p.id = r.observable_id
+           ORDER BY o.value, a.id"#,
+        root,
+        files,
+    )
+    .fetch_all(tx.conn())
+    .await?;
+    for row in rows {
+        let entry = origins.files.entry(row.file).or_default();
+        if row.at_root && !entry.contains(&Origin::Submission) {
+            entry.push(Origin::Submission);
+        }
+        if let Some(module) = row.module {
+            entry.push(Origin::Result {
+                module,
+                path: row.path,
+                on_file: row
+                    .on_value
+                    .filter(|_| row.on_type.as_deref() == Some(ObservableKind::File.as_str())),
+            });
+        }
+    }
+    Ok(origins)
 }
 
 /// Marks a task as one a declaration declines, with the reason, or clears the mark.

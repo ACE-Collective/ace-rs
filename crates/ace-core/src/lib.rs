@@ -33,6 +33,7 @@ pub mod modes;
 pub mod monitoring;
 pub mod normal;
 pub mod nrd;
+pub mod observable_rules;
 pub mod orchestrator;
 pub mod queue;
 pub mod reads;

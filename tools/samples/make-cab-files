@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+"""Makes the cabinet (.cab) samples the archive module is compared on with ace3, which opens a
+cabinet with 7z.
+
+    tools/samples/make-cab-files    writes samples/ace-rs/archive/{single,several}.cab and their
+                                    manifest entries
+
+single.cab holds one text file, MSZIP-compressed: the lone-file case, as a cabinet a sandboxed
+browser fetched from Windows Update (a certificate trust list) is. several.cab holds two, an
+uncompressed folder and an MSZIP one, the second file in a directory. The text is made up.
+
+No Debian package writes a cabinet, so the cab crate's writer (CabinetBuilder) makes them, in a
+throwaway crate built in the dev container (`docker compose exec dev`, from the checkout). The
+cabinet's file times are the time it was written, so the bytes differ each run; the files are in
+git, and the manifest holds the samples' hashes.
+"""
+
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[2]
+OUT = REPO / "samples" / "ace-rs" / "archive"
+MANIFEST = REPO / "samples" / "manifest.json"
+CAB_VERSION = "0.6.0"
+
+PROGRAM = r'''
+use std::io::Write;
+
+type Folder<'a> = (cab::CompressionType, &'a [(&'a str, &'a [u8])]);
+
+fn write(path: &str, folders: &[Folder]) {
+    let mut builder = cab::CabinetBuilder::new();
+    for (kind, files) in folders {
+        let folder = builder.add_folder(*kind);
+        for (name, _) in files.iter() {
+            folder.add_file(*name);
+        }
+    }
+    let mut writer = builder.build(std::fs::File::create(path).unwrap()).unwrap();
+    let mut data = folders.iter().flat_map(|(_, files)| files.iter().map(|(_, d)| *d));
+    while let Some(mut file) = writer.next_file().unwrap() {
+        file.write_all(data.next().unwrap()).unwrap();
+    }
+    writer.finish().unwrap();
+}
+
+fn main() {
+    let dir = std::env::args().nth(1).unwrap();
+    write(&format!("{dir}/single.cab"), &[(cab::CompressionType::MsZip, &[
+        ("notes.txt", b"ace-rs sample: a cabinet holding one text file, for the archive module.\n"),
+    ])]);
+    write(&format!("{dir}/several.cab"), &[
+        (cab::CompressionType::None, &[
+            ("readme.txt", b"ace-rs sample: the first of two files, stored uncompressed.\n"),
+        ]),
+        (cab::CompressionType::MsZip, &[
+            ("docs\\report.txt", b"ace-rs sample: the second file, in a folder, compressed with MSZIP.\nace-rs sample: the second file, in a folder, compressed with MSZIP.\n"),
+        ]),
+    ]);
+}
+'''
+
+SAMPLES = {
+    "single.cab": "one MSZIP-compressed text file",
+    "several.cab": "two text files, one stored and one MSZIP-compressed in a directory",
+}
+
+
+def main():
+    script = f"""set -e
+rm -rf /tmp/make-cab-files && cargo new -q --vcs none /tmp/make-cab-files
+cd /tmp/make-cab-files
+echo 'cab = "={CAB_VERSION}"' >> Cargo.toml
+cat > src/main.rs
+cargo run -q --release -- /workspace/samples/ace-rs/archive
+rm -rf /tmp/make-cab-files
+"""
+    subprocess.run(["docker", "compose", "exec", "-T", "dev", "sh", "-c", script],
+                   input=PROGRAM.encode(), cwd=REPO, check=True)
+    manifest = json.loads(MANIFEST.read_text())
+    samples = [s for s in manifest["samples"]
+               if s["path"] not in {f"ace-rs/archive/{name}" for name in SAMPLES}]
+    for name, what in SAMPLES.items():
+        data = (OUT / name).read_bytes()
+        samples.append({
+            "path": f"ace-rs/archive/{name}",
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "size": len(data),
+            "kinds": ["archive/cab"],
+            "source": f"made by tools/samples/make-cab-files: the cab crate {CAB_VERSION}'s writer, {what}",
+            "in_git": True,
+            "alert_path": name,
+            "meta_tags": ["type=email.attachment"],
+        })
+    manifest["samples"] = samples
+    MANIFEST.write_text(json.dumps(manifest, indent=2) + "\n")
+
+
+if __name__ == "__main__":
+    main()

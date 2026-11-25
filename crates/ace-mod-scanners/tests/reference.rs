@@ -687,3 +687,46 @@ fn a_page_the_proxy_loaded_says_so_and_none_is_none() {
         assert_eq!(status["fallback_triggered"], false);
     }
 }
+
+/// A script whose only `script.javascript` tag is file_type's runs, whatever its name: a sandbox's
+/// report archive holds an inline script as both `web_requests/<…>.js` and `extracted_scripts/<sha1>.bin`,
+/// one observable in ace-rs, which may be analyzed as the `.bin`. ace3 deobfuscated the `.js`.
+#[test]
+fn a_script_only_file_type_tags_is_deobfuscated_under_any_name() {
+    let script: &[u8] =
+        b"(function(){ var u = 'https://evil.example.com/x'; window.location = u; })();\n";
+    let harness = Harness::<JavaScriptDeobfuscationAnalyzer>::new()
+        .expect("harness")
+        .dependency_result(
+            "file_type",
+            ace_testkit::file_type_details(
+                "JavaScript source, ASCII text",
+                "application/javascript",
+            ),
+        );
+    let path = "sandbox/1/extracted_scripts/0123456789abcdef0123456789abcdef01234567.bin";
+    let observable = harness
+        .file_bytes(path, script, &["type=script.javascript"])
+        .expect("the script");
+    let first = harness.run_parser(observable).expect("runs");
+    assert!(
+        matches!(first, Outcome::Delay(_)),
+        "it asks for a scan of the script: {first:?}"
+    );
+
+    // a file no module tagged and that isn't named .js is still left alone
+    let harness = Harness::<JavaScriptDeobfuscationAnalyzer>::new()
+        .expect("harness")
+        .dependency_result(
+            "file_type",
+            ace_testkit::file_type_details("data", "application/octet-stream"),
+        );
+    let observable = harness
+        .file_bytes("sandbox/1/web_requests/blob.bin", script, &[])
+        .expect("the file");
+    let skipped = harness.run_parser(observable).expect("runs");
+    assert!(
+        matches!(&skipped, Outcome::Skipped(why) if why == "not JavaScript"),
+        "{skipped:?}"
+    );
+}

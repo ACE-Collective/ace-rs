@@ -30,7 +30,7 @@ use serde_json::{Map as JsonMap, Value as Json, json};
 use crate::correlate::engine::Correlated;
 use crate::model::HuntConfig;
 use crate::query::extract::{Extractor, FileContent, Row, lookup, py_str, whole_value_patterns};
-use crate::query::observable::{EmailNormalizer, Observable};
+use crate::query::observable::Observable;
 use crate::query::schedule::{State, group_suppressed, timedelta_str};
 use crate::render::{Rendered, Renderer};
 
@@ -118,7 +118,6 @@ pub struct Context<'a> {
     pub event_time: &'a EventTimeFn<'a>,
     /// Whether a type is one ace knows, for a templated observable type.
     pub valid_type: &'a dyn Fn(&str) -> bool,
-    pub email: EmailNormalizer,
     /// The hunt's state, for its groups' suppression.
     pub state: &'a State,
     /// A validation run, which ignores suppression, as ace3's `manual_hunt`.
@@ -209,7 +208,6 @@ pub fn process(
         renderer,
         global_ignored: &global_ignored,
         valid_type: ctx.valid_type,
-        email: ctx.email,
     };
     let loaded: Vec<Row<'_>> = rows.iter().map(Row::new).collect();
     let mut submissions: Vec<Submission> = Vec::new();
@@ -253,9 +251,7 @@ pub fn process(
             }
         }
         per_event.push(observables.clone());
-        if let Some(mut signature) =
-            Observable::create("signature_id", &hunt.uuid, false, ctx.email)
-        {
+        if let Some(mut signature) = Observable::create("signature_id", &hunt.uuid, false) {
             signature.display_value = Some(renderer.name(&hunt.name, &row.loaded));
             observables.push(signature);
         }

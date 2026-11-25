@@ -1,19 +1,12 @@
 //! An observable a hunt makes, and what ace3's observable classes do to a value when one is made
-//! (`saq.observables.generator.create_observable` and the classes `etc/saq.default.yaml` maps
-//! types to): some refuse a value, which drops the observable, and some change it.
-//!
-//! Ported are the classes of the types the signatures' Splunk hunts map to and the hash types:
-//! `ip`, `ipv4`, `email_address`, `message_id`, `fqdn`, `url`, `hostname`, `asset`, `user`,
-//! `user_agent`, `uri_path`, `file_location`, `md5`, `sha1` and `sha256`. Any other type takes its
-//! value as it is, as ace3's `DefaultObservable` and the classes that only store it do. ace3's
-//! `fqdn` encodes a non-ASCII name with Python's IDNA 2003 codec before checking it; here a
-//! non-ASCII name is refused.
+//! (`saq.observables.generator.create_observable`): some refuse a value, which drops the
+//! observable, and some change it. The rules are `ace_sdk::observable_rules`', which the core
+//! applies to every observable too.
 
-use std::net::{IpAddr, Ipv4Addr};
-use std::sync::LazyLock;
+use std::borrow::Cow;
 
+use ace_results::ObservableKind;
 use chrono::{DateTime, Utc};
-use regex::Regex;
 use serde::Serialize;
 
 /// An observable as a hunt submits it, the fields of ace3's `Observable` that a hunt sets.
@@ -55,15 +48,10 @@ pub struct Target {
 
 impl Observable {
     /// `create_observable`: None when the type's class refuses the value.
-    pub fn create(
-        kind: &str,
-        value: &str,
-        volatile: bool,
-        email: EmailNormalizer,
-    ) -> Option<Observable> {
+    pub fn create(kind: &str, value: &str, volatile: bool) -> Option<Observable> {
         Some(Observable {
             kind: kind.to_owned(),
-            value: normalize(kind, value, email)?,
+            value: normalize(kind, value)?,
             time: None,
             tags: Vec::new(),
             directives: Vec::new(),
@@ -112,170 +100,20 @@ pub fn same_value(kind: &str, a: &str, b: &str) -> bool {
     }
 }
 
-/// Python's `str.strip()`: whitespace by Unicode's definition.
-fn strip(value: &str) -> &str {
-    value.trim_matches(char::is_whitespace)
-}
-
-const EMPTY_MD5: &str = "d41d8cd98f00b204e9800998ecf8427e";
-const EMPTY_SHA1: &str = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
-const EMPTY_SHA256: &str = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-
-/// ace3's `normalize_email_address` (`saq/email.py`), which parses the address as Python's
-/// `email.utils.parseaddr` does. The hunter passes the email module's port of it.
-pub type EmailNormalizer = fn(&str) -> Option<String>;
-
-/// What the type's class keeps of `value`, or None when it refuses it.
-pub fn normalize(kind: &str, value: &str, email: EmailNormalizer) -> Option<String> {
-    match kind {
-        "ip" => {
-            let v = strip(value);
-            ip_address(v).map(|_| v.to_owned())
-        }
-        // IPv4Address is checked on the value as given, which a space fails
-        "ipv4" => ipv4_address(value).map(|_| strip(value).to_owned()),
-        "email_address" => {
-            if !value.contains('@') {
-                return None;
-            }
-            Some(email(value).unwrap_or_else(|| value.to_owned()))
-        }
-        "message_id" => {
-            if !value.contains('@') {
-                return None;
-            }
-            let mut id = strip(value).to_owned();
-            if !id.starts_with('<') {
-                id.insert(0, '<');
-            }
-            if !id.ends_with('>') {
-                id.push('>');
-            }
-            Some(id)
-        }
-        "fqdn" => domain(value).then(|| strip(value).to_owned()),
-        "url" => (!url_missing_host(value)).then(|| value.to_owned()),
-        "hostname" | "asset" | "user_agent" | "uri_path" => Some(strip(value).to_owned()),
-        "user" => {
-            let v = strip(value);
-            Some(v.rsplit('\\').next().unwrap_or(v).to_owned())
-        }
-        "file_location" => {
-            let (host, path) = value.split_once('@')?;
-            (!strip(host).is_empty() && !strip(path).is_empty()).then(|| value.to_owned())
-        }
-        "md5" => hash(value, EMPTY_MD5),
-        "sha1" => hash(value, EMPTY_SHA1),
-        "sha256" => hash(value, EMPTY_SHA256),
-        _ => Some(value.to_owned()),
+/// What the type's class keeps of `value`, or None when it refuses it. A type ace-rs doesn't know
+/// has no class, so its value is kept as it is.
+pub fn normalize(kind: &str, value: &str) -> Option<String> {
+    match kind.parse::<ObservableKind>() {
+        Ok(kind) => ace_sdk::observable_rules::class_value(kind, value)
+            .ok()
+            .map(Cow::into_owned),
+        Err(_) => Some(value.to_owned()),
     }
-}
-
-/// `validate_hash_value`: not all zeros, and not the hash of empty content.
-fn hash(value: &str, empty: &str) -> Option<String> {
-    let v = strip(value);
-    if v.chars().all(|c| c == '0') || v.to_lowercase() == empty {
-        return None;
-    }
-    Some(v.to_owned())
-}
-
-/// Python's `ipaddress.ip_address` on text: dotted IPv4 with no leading zeros, or IPv6 with an
-/// optional scope.
-fn ip_address(value: &str) -> Option<IpAddr> {
-    if let Some(v4) = ipv4_address(value) {
-        return Some(IpAddr::V4(v4));
-    }
-    let (address, scope) = match value.split_once('%') {
-        Some((a, s)) if !s.is_empty() && !s.contains('%') => (a, Some(s)),
-        Some(_) => return None,
-        None => (value, None),
-    };
-    let _ = scope;
-    address.parse::<std::net::Ipv6Addr>().ok().map(IpAddr::V6)
-}
-
-/// `ipaddress.IPv4Address`: four decimal octets of at most three digits, no leading zero.
-fn ipv4_address(value: &str) -> Option<Ipv4Addr> {
-    let parts: Vec<&str> = value.split('.').collect();
-    if parts.len() != 4 {
-        return None;
-    }
-    let mut octets = [0u8; 4];
-    for (octet, part) in octets.iter_mut().zip(&parts) {
-        if part.is_empty() || part.len() > 3 || !part.bytes().all(|b| b.is_ascii_digit()) {
-            return None;
-        }
-        if part.len() > 1 && part.starts_with('0') {
-            return None;
-        }
-        *octet = part.parse().ok()?;
-    }
-    Some(Ipv4Addr::from(octets))
-}
-
-/// validators 0.36's `domain`, as `FQDNObservable` calls it.
-fn domain(value: &str) -> bool {
-    static DOMAIN: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"(?i)^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z]$")
-            .expect("a valid pattern")
-    });
-    static SPACE_OR_UNDERSCORES: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"\s|__+").expect("a valid pattern"));
-    if value.is_empty() || !value.is_ascii() {
-        return false;
-    }
-    if value.trim_end_matches('.').len() > 253 {
-        return false;
-    }
-    !SPACE_OR_UNDERSCORES.is_match(value) && DOMAIN.is_match(value)
-}
-
-/// `URLObservable`'s check: an http, https or ftp URL whose host, as a browser reads it, has no
-/// letter or digit.
-fn url_missing_host(value: &str) -> bool {
-    let Some((scheme, rest)) = value.split_once(':') else {
-        return false;
-    };
-    let scheme_ok = !scheme.is_empty()
-        && scheme
-            .chars()
-            .next()
-            .is_some_and(|c| c.is_ascii_alphabetic())
-        && scheme
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || "+-.".contains(c));
-    if !scheme_ok {
-        return false;
-    }
-    let scheme = scheme.to_ascii_lowercase();
-    if !matches!(scheme.as_str(), "http" | "https" | "ftp") {
-        return false;
-    }
-    let rest: String = rest
-        .chars()
-        .filter(|c| !matches!(c, '\t' | '\r' | '\n'))
-        .collect::<String>()
-        .replace('\\', "/");
-    let rest = rest.trim_start_matches('/');
-    // urlsplit's netloc ends at the first /, ? or #; its hostname drops the userinfo and port
-    let netloc = rest.split(['/', '?', '#']).next().unwrap_or_default();
-    let host = netloc.rsplit('@').next().unwrap_or_default();
-    let host = if let Some(bracketed) = host.strip_prefix('[') {
-        bracketed.split(']').next().unwrap_or_default()
-    } else {
-        host.split(':').next().unwrap_or_default()
-    };
-    !host.chars().any(char::is_alphanumeric)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn normalize(kind: &str, value: &str) -> Option<String> {
-        super::normalize(kind, value, |v| Some(v.to_lowercase()))
-    }
 
     #[test]
     fn values_are_kept_or_refused_as_ace3_s_classes_do() {
@@ -299,7 +137,13 @@ mod tests {
         );
         assert_eq!(normalize("url", "https:/\\.."), None);
         assert_eq!(normalize("url", "mailto:x"), Some("mailto:x".to_owned()));
-        assert_eq!(normalize("sha256", EMPTY_SHA256), None);
+        assert_eq!(
+            normalize(
+                "sha256",
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ),
+            None
+        );
         assert_eq!(normalize("md5", "0000"), None);
         assert_eq!(normalize("sha1", " abc ").as_deref(), Some("abc"));
         assert_eq!(normalize("file_location", "host@"), None);

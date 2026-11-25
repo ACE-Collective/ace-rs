@@ -12,8 +12,6 @@ publish.workspace = true
 ace-pycompat = { path = "../ace-pycompat" }
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
-# what ace3's observable classes do to a value (FQDN, IP, URL, MAC address)
-ace-mod-values = { path = "../ace-mod-values" }
 # cryptography's certificate names, for a handshake's certificates
 ace-x509 = { path = "../ace-x509" }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }

@@ -9,6 +9,9 @@ publish.workspace = true
 
 [dependencies]
 ace-pycompat = { path = "../ace-pycompat" }
+# ace3's observable classes' rules, which the core applies too
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
 # Query hunts' windows and the Splunk times they search, in an instance's timezone (6.4).
 chrono = { version = "0.4.45", default-features = false, features = ["std", "serde"] }
 chrono-tz = "0.10.4"

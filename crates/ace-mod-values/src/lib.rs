@@ -10,7 +10,6 @@ pub mod command_line;
 pub mod email_address;
 pub mod file_path;
 pub mod network;
-pub mod observable;
 pub mod protected;
 pub mod py;
 pub mod urls;

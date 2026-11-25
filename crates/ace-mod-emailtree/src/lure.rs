@@ -1675,7 +1675,7 @@ fn sender_domains(email: &EmailAnalysis) -> BTreeSet<String> {
         .into_iter()
         .flatten()
     {
-        let Some(address) = ace_mod_email::py::normalize_email_address(value) else {
+        let Some(address) = ace_sdk::email_threads::normalize_email_address(value) else {
             continue;
         };
         let Some((_, domain)) = address.split_once('@') else {

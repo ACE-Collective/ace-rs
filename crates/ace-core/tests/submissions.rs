@@ -538,3 +538,96 @@ async fn a_correlation_root_or_a_submitted_detection_is_an_alert_and_tags_are_th
         "a detection in a mode that isn't detectable makes no alert, as in ace3"
     );
 }
+
+/// ace3's API and hunter build a submission's observables through their types' classes and leave
+/// out, with a warning, one a class refuses: so does a submission here, with the relationships to
+/// it, and a value a class changes is stored changed.
+#[tokio::test]
+async fn a_submitted_value_its_type_refuses_is_left_out() {
+    let records = crate::common::Records::default();
+    let _logging = records.on_this_thread();
+    let stack = stack().await;
+    let submission: Submission = serde_json::from_value(json!({
+        "description": "refusals",
+        "observables": [
+            {"type": "fqdn", "value": "GTS Root R1"},
+            {"type": "hostname", "value": " HOST "},
+        ],
+    }))
+    .expect("a submission");
+    let mut related =
+        ace_results::NewObservable::new(ace_results::ObservableKind::Fqdn, "c2.example.com");
+    let target = |kind, value: &str| ace_results::ObservableRef::new(kind, value);
+    related.relationships = vec![
+        ace_results::Relationship::new(
+            ace_results::RelationshipKind::RelatedTo,
+            target(ace_results::ObservableKind::Fqdn, "GTS Root R1"),
+        ),
+        ace_results::Relationship::new(
+            ace_results::RelationshipKind::RelatedTo,
+            target(ace_results::ObservableKind::Hostname, " HOST "),
+        ),
+    ];
+    let origin = submit::Origin {
+        observables: vec![
+            related,
+            ace_results::NewObservable::new(ace_results::ObservableKind::Ipv4, " 10.0.0.1"),
+        ],
+        ..submit::Origin::default()
+    };
+    let root = submit::prepare(&stack.orchestrator, &submission, &origin, &[]).expect("prepares");
+    let mut tx = stack.test_db.db().begin().await.expect("begins");
+    submit::create(
+        &mut tx,
+        &stack.bucket,
+        &stack.orchestrator,
+        &root,
+        &submission,
+        &origin,
+        &[],
+        ace_core::tree::DirectivesFrom::hunt("a test"),
+    )
+    .await
+    .expect("creates");
+    tx.commit().await.expect("commits");
+
+    let db = stack.test_db.db();
+    let stored: Vec<(String, String)> = sqlx::query_as(
+        "SELECT type, value FROM analysis.observables WHERE root_id = $1 ORDER BY type, value",
+    )
+    .bind(root.id)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    let pair = |k: &str, v: &str| (k.to_owned(), v.to_owned());
+    assert_eq!(
+        stored,
+        [pair("fqdn", "c2.example.com"), pair("hostname", "HOST")]
+    );
+    let targets: Vec<(String, String)> = sqlx::query_as(
+        "SELECT target_type, target_value FROM analysis.relationships WHERE root_id = $1",
+    )
+    .bind(root.id)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(targets, [pair("hostname", "HOST")]);
+    let warned = records
+        .find("a submitted observable isn't added: not a valid fqdn")
+        .expect("the refusal is logged");
+    assert_eq!(warned.level, tracing::Level::WARN);
+    assert_eq!(
+        warned.fields.get("observable_value").map(String::as_str),
+        Some("GTS Root R1")
+    );
+    assert_eq!(
+        warned.fields.get("root").map(String::as_str),
+        Some(root.id.to_string().as_str())
+    );
+    assert!(
+        records
+            .find("a submitted observable isn't added: not a valid ipv4 address")
+            .is_some(),
+        "ipv4 parses the value as given, which a space fails"
+    );
+}

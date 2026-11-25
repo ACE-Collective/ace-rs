@@ -7,7 +7,7 @@ use regex::Regex;
 use serde_json::{Map as JsonMap, Value as Json};
 
 use crate::model::{ObservableMapping, RelationshipMapping};
-use crate::query::observable::{EmailNormalizer, Observable};
+use crate::query::observable::Observable;
 use crate::render::{Rendered, Renderer};
 use crate::value::{Map as Loaded, py_float_repr, py_repr};
 
@@ -187,7 +187,6 @@ pub struct Extractor<'a> {
     pub global_ignored: &'a [Regex],
     /// Whether a type is one ace knows, for a templated type.
     pub valid_type: &'a dyn Fn(&str) -> bool,
-    pub email: EmailNormalizer,
 }
 
 static FILE: &str = "file";
@@ -334,9 +333,7 @@ impl Extractor<'_> {
                 }
                 continue;
             }
-            let Some(mut observable) =
-                Observable::create(&kind, &value, mapping.volatile, self.email)
-            else {
+            let Some(mut observable) = Observable::create(&kind, &value, mapping.volatile) else {
                 continue;
             };
             if mapping.time {

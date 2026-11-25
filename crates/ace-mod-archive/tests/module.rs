@@ -225,3 +225,44 @@ fn unknown_settings_keys_fail() {
         .expect("an unknown key fails");
     assert!(matches!(err, HarnessError::Settings(_)), "{err}");
 }
+
+/// A cabinet cut off inside its data lists its member and fails it, and one cut off inside its
+/// header doesn't list: neither stops the task or adds a partial file.
+#[test]
+fn a_damaged_cabinet_fails_its_member_or_doesnt_list() {
+    let harness = Harness::<ArchiveAnalyzer>::new()
+        .expect("harness")
+        .with_typer(ace_mod_files::file_type::type_of);
+    let whole = std::fs::read(ace_testkit::samples_dir().join("ace-rs/archive/single.cab"))
+        .expect("the sample");
+
+    // the header and the file's entry are there, the MSZIP block is cut short
+    let cut = harness
+        .file_bytes(
+            "cut.cab",
+            &whole[..whole.len() - 20],
+            &["type=email.attachment"],
+        )
+        .expect("the file");
+    match harness.run_parser(cut).expect("runs") {
+        Outcome::Done(result) => assert!(
+            result
+                .files
+                .iter()
+                .all(|f| f.name() != "notes.txt" || f.size < 72),
+            "no whole member from a cut block: {:?}",
+            result.files
+        ),
+        Outcome::Skipped(_) => {}
+        other => panic!("{other:?}"),
+    }
+
+    let header = harness
+        .file_bytes("header.cab", &whole[..20], &["type=email.attachment"])
+        .expect("the file");
+    let outcome = harness.run_parser(header).expect("runs");
+    assert!(
+        matches!(&outcome, Outcome::Skipped(why) if why.starts_with("the archive doesn't list")),
+        "{outcome:?}"
+    );
+}

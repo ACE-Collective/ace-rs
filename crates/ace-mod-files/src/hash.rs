@@ -211,6 +211,7 @@ mod tests {
                     yara_meta: Some(&[]),
                 }),
                 results: &results,
+                origins: None,
             };
             takes.check(&facts).err().map(str::to_owned)
         };
