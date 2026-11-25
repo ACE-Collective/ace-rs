@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How ace3 and ace-rs analyze a root</title>
+<style>
+:root {
+  --bg: #fbfaf7; --surface: #ffffff; --text: #1f2328; --muted: #5d6470; --line: #d9dce1;
+  --a: #2f6fdf; --b: #d9792b; --c: #2f9e6a; --wait: #9aa3ae; --idle: #eceef1; --accent: #7b4fd6;
+  --a-soft: #dfe9fb; --b-soft: #f9e6d6; --c-soft: #daf0e5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171a; --surface: #1d2024; --text: #e7e9ec; --muted: #a0a7b1; --line: #343940;
+    --a: #6b9cf0; --b: #eb9a58; --c: #5cc394; --wait: #6c747e; --idle: #2a2e34; --accent: #a585ec;
+    --a-soft: #22324d; --b-soft: #43301f; --c-soft: #1f3a2d;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171a; --surface: #1d2024; --text: #e7e9ec; --muted: #a0a7b1; --line: #343940;
+  --a: #6b9cf0; --b: #eb9a58; --c: #5cc394; --wait: #6c747e; --idle: #2a2e34; --accent: #a585ec;
+  --a-soft: #22324d; --b-soft: #43301f; --c-soft: #1f3a2d;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 1.9rem; line-height: 1.25; margin: 0 0 8px; }
+h2 { font-size: 1.35rem; margin: 48px 0 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 24px 0 4px; }
+p, li { color: var(--text); }
+.lede { font-size: 1.1rem; color: var(--muted); margin-top: 0; }
+.answer { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+  border-radius: 8px; padding: 16px 20px; margin: 24px 0; }
+.answer p { margin: 0 0 8px; } .answer p:last-child { margin: 0; }
+figure { margin: 24px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+figcaption { font-size: 0.9rem; color: var(--muted); margin-top: 10px; }
+.scroll { overflow-x: auto; }
+.scroll svg { min-width: 580px; width: 100%; height: auto; display: block; }
+svg text { fill: var(--text); font-family: inherit; }
+svg .muted { fill: var(--muted); }
+svg .ra { fill: var(--a); } svg .rb { fill: var(--b); } svg .rc { fill: var(--c); }
+svg .wait-a { fill: url(#hatch-a); } svg .wait-b { fill: url(#hatch-b); } svg .wait-c { fill: url(#hatch-c); }
+svg .idle { fill: var(--idle); }
+svg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+svg .stroke { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .accent { stroke: var(--accent); stroke-width: 2; fill: none; }
+svg .accent-text { fill: var(--accent); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.85rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.sw.a { background: var(--a); } .sw.b { background: var(--b); } .sw.c { background: var(--c); }
+.sw.wait { background: repeating-linear-gradient(45deg, var(--a) 0 3px, var(--a-soft) 3px 6px); }
+.sw.idle { background: var(--idle); border: 1px solid var(--line); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.card h3 { margin-top: 0; }
+.card ul { padding-left: 18px; margin: 6px 0 0; }
+.bars { display: grid; gap: 10px; }
+.bar-row { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: center; font-size: 0.9rem; }
+@media (max-width: 520px) { .bar-row { grid-template-columns: 1fr; gap: 2px; } }
+.bar-track { position: relative; height: 26px; }
+.bar { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 8px; color: #fff; font-weight: 600; font-size: 0.85rem; min-width: 64px; }
+.bar.one { background: var(--a); } .bar.eight { background: var(--b); }
+.chart-title { font-weight: 600; margin: 4px 0 8px; }
+.steps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.85rem; }
+.step { border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 4px 9px; }
+.step.cost { border-color: var(--b); background: var(--b-soft); }
+.arrow { color: var(--muted); }
+.lane-label { font-size: 0.85rem; color: var(--muted); margin: 14px 0 6px; font-weight: 600; }
+.queue { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+.q { width: 14px; height: 14px; border-radius: 2px; }
+.q.b { background: var(--b); } .q.a { background: var(--a); }
+.q.new { outline: 2px solid var(--accent); outline-offset: 1px; }
+.qnote { font-size: 0.85rem; color: var(--muted); margin-top: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em;
+  background: var(--idle); padding: 1px 5px; border-radius: 4px; }
+.note { font-size: 0.88rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+
+<!-- Shared SVG patterns: network waits drawn as hatching in the root's colour. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="hatch-a" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="var(--a-soft)"/><rect width="3" height="6" fill="var(--a)"/>
+    </pattern>
+    <pattern id="hatch-b" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="var(--b-soft)"/><rect width="3" height="6" fill="var(--b)"/>
+    </pattern>
+    <pattern id="hatch-c" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="var(--c-soft)"/><rect width="3" height="6" fill="var(--c)"/>
+    </pattern>
+    <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+    </marker>
+  </defs>
+</svg>
+
+<h1>How ace3 and ace-rs analyze a root</h1>
+<p class="lede">ace3 locks a root to one worker, which runs its modules one after another. ace-rs turns every module run into a task in one shared queue. What follows covers how that changes per-root time, total throughput, and where each design pays. The last section asks which model would suit AWS Lambda.</p>
+
+<div class="answer">
+  <p><strong>In short:</strong> ace-rs doesn't reserve CPUs for a root, so it doesn't give up throughput to make roots faster. A root owns tasks, not workers. When the stack is quiet, one root's tasks take every free slot and the root finishes sooner. When it's busy, every root's tasks share the same slots, and per-root time grows as it does in ace3.</p>
+  <p>Under load, both designs are limited by capacity divided by the work per root. ace-rs gets more done with the same machines because waiting on the network doesn't hold a worker. In return it pays a cost for every module run, puts more load on Postgres, and keeps roots less isolated from each other.</p>
+</div>
+
+<h2>1. ace3: one root, one worker, one module at a time</h2>
+<p>A worker takes the lock on a root and keeps it until the root's analysis finishes. It runs each eligible module in turn, in its own process. When a module waits on Splunk, RDAP or a vendor API, the whole worker waits with it, holding the lock and the 400 MB to 1 GB of memory that a Python engine worker holds in production.</p>
+
+<figure>
+  <div class="scroll">
+  <svg viewBox="0 0 760 210" role="img" aria-label="ace3 timeline: three workers. Worker 1 holds root A for the whole timeline, running modules serially with network waits between them. Workers 2 and 3 finish roots B and C early and then sit idle.">
+    <text x="100" y="16" class="muted" font-size="12">time →</text>
+    <!-- Worker 1: root A, serial -->
+    <text x="0" y="62" font-size="13" font-weight="600">Worker 1</text>
+    <line x1="100" y1="36" x2="640" y2="36" class="accent"/>
+    <line x1="100" y1="31" x2="100" y2="41" class="accent"/><line x1="640" y1="31" x2="640" y2="41" class="accent"/>
+    <text x="370" y="30" text-anchor="middle" font-size="12" class="accent-text">root A locked for its whole analysis</text>
+    <rect x="100" y="44" width="50" height="28" rx="3" class="ra"/>
+    <rect x="150" y="44" width="90" height="28" rx="3" class="wait-a"/>
+    <rect x="240" y="44" width="40" height="28" rx="3" class="ra"/>
+    <rect x="280" y="44" width="110" height="28" rx="3" class="ra"/>
+    <rect x="390" y="44" width="80" height="28" rx="3" class="wait-a"/>
+    <rect x="470" y="44" width="60" height="28" rx="3" class="ra"/>
+    <rect x="530" y="44" width="60" height="28" rx="3" class="wait-a"/>
+    <rect x="590" y="44" width="50" height="28" rx="3" class="ra"/>
+    <text x="195" y="88" text-anchor="middle" font-size="11" class="muted">Splunk query</text>
+    <text x="335" y="88" text-anchor="middle" font-size="11" class="muted">archive parse</text>
+    <text x="430" y="88" text-anchor="middle" font-size="11" class="muted">RDAP</text>
+    <!-- Worker 2: root B then idle -->
+    <text x="0" y="122" font-size="13" font-weight="600">Worker 2</text>
+    <rect x="100" y="104" width="40" height="28" rx="3" class="rb"/>
+    <rect x="140" y="104" width="70" height="28" rx="3" class="wait-b"/>
+    <rect x="210" y="104" width="50" height="28" rx="3" class="rb"/>
+    <rect x="260" y="104" width="380" height="28" rx="3" class="idle"/>
+    <text x="450" y="123" text-anchor="middle" font-size="12" class="muted">idle: root A's remaining modules can't move here</text>
+    <!-- Worker 3: root C then idle -->
+    <text x="0" y="172" font-size="13" font-weight="600">Worker 3</text>
+    <rect x="100" y="154" width="60" height="28" rx="3" class="rc"/>
+    <rect x="160" y="154" width="50" height="28" rx="3" class="wait-c"/>
+    <rect x="210" y="154" width="30" height="28" rx="3" class="rc"/>
+    <rect x="240" y="154" width="400" height="28" rx="3" class="idle"/>
+    <text x="440" y="173" text-anchor="middle" font-size="12" class="muted">idle</text>
+    <line x1="640" y1="44" x2="640" y2="200" stroke="var(--a)" stroke-dasharray="4 3"/>
+    <text x="646" y="200" font-size="12" fill="var(--a)">A done</text>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><i class="sw a"></i>a module using CPU</span>
+    <span><i class="sw wait"></i>a module waiting on the network (worker held)</span>
+    <span><i class="sw idle"></i>worker idle</span>
+  </div>
+  <figcaption>Illustrative, not measured. A big root sets the pace for its own worker, while other workers can run out of work.</figcaption>
+</figure>
+
+<h2>2. ace-rs: every module run is a task in one queue</h2>
+<p>The tree is rows in Postgres. When a result lands, the core works out which (observable, module) pairs it has just made eligible and queues a task for each one. Pools of workers lease tasks from that queue through the core's API, oldest due task first, from any root. Each module writes its own rows, so no root lock is needed. A root is complete when none of its tasks is queued or running.</p>
+
+<figure>
+  <div class="scroll">
+  <svg viewBox="0 0 760 300" role="img" aria-label="ace-rs architecture: roots A, B and C feed tasks into one Postgres queue. Three pools lease from it: parsers, sandbox and lookups. Pools report results to the core, which writes them and queues newly eligible tasks.">
+    <!-- Roots -->
+    <rect x="10" y="40" width="120" height="44" rx="6" class="box"/><rect x="10" y="40" width="6" height="44" class="ra"/>
+    <text x="72" y="67" text-anchor="middle" font-size="13">root A</text>
+    <rect x="10" y="100" width="120" height="44" rx="6" class="box"/><rect x="10" y="100" width="6" height="44" class="rb"/>
+    <text x="72" y="127" text-anchor="middle" font-size="13">root B</text>
+    <rect x="10" y="160" width="120" height="44" rx="6" class="box"/><rect x="10" y="160" width="6" height="44" class="rc"/>
+    <text x="72" y="187" text-anchor="middle" font-size="13">root C</text>
+    <path d="M130 62 L188 110" class="stroke" marker-end="url(#arrowhead)"/>
+    <path d="M130 122 L188 122" class="stroke" marker-end="url(#arrowhead)"/>
+    <path d="M130 182 L188 134" class="stroke" marker-end="url(#arrowhead)"/>
+    <!-- Queue -->
+    <rect x="190" y="80" width="250" height="84" rx="8" class="box"/>
+    <text x="315" y="100" text-anchor="middle" font-size="13" font-weight="600">queue.tasks (Postgres)</text>
+    <g>
+      <rect x="204" y="112" width="14" height="14" rx="2" class="ra"/><rect x="221" y="112" width="14" height="14" rx="2" class="rb"/>
+      <rect x="238" y="112" width="14" height="14" rx="2" class="ra"/><rect x="255" y="112" width="14" height="14" rx="2" class="rc"/>
+      <rect x="272" y="112" width="14" height="14" rx="2" class="ra"/><rect x="289" y="112" width="14" height="14" rx="2" class="ra"/>
+      <rect x="306" y="112" width="14" height="14" rx="2" class="rb"/><rect x="323" y="112" width="14" height="14" rx="2" class="ra"/>
+      <rect x="340" y="112" width="14" height="14" rx="2" class="rc"/><rect x="357" y="112" width="14" height="14" rx="2" class="ra"/>
+      <rect x="374" y="112" width="14" height="14" rx="2" class="rb"/><rect x="391" y="112" width="14" height="14" rx="2" class="ra"/>
+      <rect x="408" y="112" width="14" height="14" rx="2" class="ra"/>
+    </g>
+    <text x="315" y="150" text-anchor="middle" font-size="11" class="muted">one task per observable × module</text>
+    <!-- Pools -->
+    <rect x="510" y="20" width="240" height="64" rx="8" class="box"/>
+    <text x="522" y="42" font-size="13" font-weight="600">parsers pool</text>
+    <text x="522" y="60" font-size="11" class="muted">N slots, one contained process per task</text>
+    <g><rect x="522" y="66" width="40" height="10" rx="2" class="ra"/><rect x="566" y="66" width="40" height="10" rx="2" class="ra"/><rect x="610" y="66" width="40" height="10" rx="2" class="rb"/><rect x="654" y="66" width="40" height="10" rx="2" class="ra"/></g>
+    <rect x="510" y="100" width="240" height="64" rx="8" class="box"/>
+    <text x="522" y="122" font-size="13" font-weight="600">sandbox pool</text>
+    <text x="522" y="140" font-size="11" class="muted">N slots, external tools</text>
+    <g><rect x="522" y="146" width="40" height="10" rx="2" class="rc"/><rect x="566" y="146" width="40" height="10" rx="2" class="ra"/><rect x="610" y="146" width="40" height="10" rx="2" class="idle"/><rect x="654" y="146" width="40" height="10" rx="2" class="idle"/></g>
+    <rect x="510" y="180" width="240" height="64" rx="8" class="box"/>
+    <text x="522" y="202" font-size="13" font-weight="600">lookups pool</text>
+    <text x="522" y="220" font-size="11" class="muted">one process, many async network calls</text>
+    <g><rect x="522" y="226" width="14" height="10" rx="2" class="wait-a"/><rect x="539" y="226" width="14" height="10" rx="2" class="wait-b"/><rect x="556" y="226" width="14" height="10" rx="2" class="wait-a"/><rect x="573" y="226" width="14" height="10" rx="2" class="wait-c"/><rect x="590" y="226" width="14" height="10" rx="2" class="wait-a"/><rect x="607" y="226" width="14" height="10" rx="2" class="wait-b"/></g>
+    <path d="M440 110 L508 56" class="stroke" marker-end="url(#arrowhead)"/>
+    <path d="M440 122 L508 130" class="stroke" marker-end="url(#arrowhead)"/>
+    <path d="M440 140 L508 206" class="stroke" marker-end="url(#arrowhead)"/>
+    <text x="474" y="76" font-size="11" class="muted" text-anchor="middle">lease</text>
+    <!-- Core -->
+    <rect x="190" y="220" width="250" height="64" rx="8" class="box"/>
+    <text x="315" y="244" text-anchor="middle" font-size="13" font-weight="600">core</text>
+    <text x="315" y="262" text-anchor="middle" font-size="11" class="muted">write result → eligibility →</text>
+    <text x="315" y="276" text-anchor="middle" font-size="11" class="muted">queue newly eligible tasks</text>
+    <path d="M510 262 L442 262" class="stroke" marker-end="url(#arrowhead)"/>
+    <text x="476" y="256" font-size="11" class="muted" text-anchor="middle">result</text>
+    <path d="M315 220 L315 166" class="stroke" marker-end="url(#arrowhead)"/>
+    <text x="322" y="198" font-size="11" class="muted">new tasks</text>
+  </svg>
+  </div>
+  <figcaption>No pool belongs to a root. A slot takes whichever root's task is oldest and due. Pool sizes are per kind of work: the dev stack ships with 4 parser, 4 sandbox and 16 lookup slots.</figcaption>
+</figure>
+
+<h3>The same three roots in ace-rs</h3>
+<figure>
+  <div class="scroll">
+  <svg viewBox="0 0 760 250" role="img" aria-label="ace-rs timeline for the same three roots: root A's tasks spread over three parser slots, and its network lookups overlap in the lookups pool. Root A finishes much earlier than in ace3.">
+    <text x="100" y="16" class="muted" font-size="12">time →  (same scale as the ace3 diagram)</text>
+    <text x="0" y="48" font-size="13" font-weight="600">parser 1</text>
+    <rect x="100" y="30" width="50" height="26" rx="3" class="ra"/>
+    <rect x="152" y="30" width="110" height="26" rx="3" class="ra"/>
+    <rect x="264" y="30" width="50" height="26" rx="3" class="ra"/>
+    <text x="0" y="86" font-size="13" font-weight="600">parser 2</text>
+    <rect x="100" y="68" width="40" height="26" rx="3" class="rb"/>
+    <rect x="142" y="68" width="40" height="26" rx="3" class="ra"/>
+    <rect x="184" y="68" width="50" height="26" rx="3" class="rb"/>
+    <rect x="236" y="68" width="60" height="26" rx="3" class="ra"/>
+    <text x="0" y="124" font-size="13" font-weight="600">parser 3</text>
+    <rect x="100" y="106" width="60" height="26" rx="3" class="rc"/>
+    <rect x="162" y="106" width="30" height="26" rx="3" class="rc"/>
+    <rect x="194" y="106" width="60" height="26" rx="3" class="ra"/>
+    <text x="0" y="162" font-size="13" font-weight="600">parser 4</text>
+    <rect x="100" y="144" width="214" height="26" rx="3" class="idle"/>
+    <text x="207" y="162" text-anchor="middle" font-size="11" class="muted">free for another root</text>
+    <text x="0" y="206" font-size="13" font-weight="600">lookups</text>
+    <rect x="152" y="182" width="90" height="12" rx="2" class="wait-a"/>
+    <rect x="140" y="196" width="70" height="12" rx="2" class="wait-b"/>
+    <rect x="160" y="210" width="50" height="12" rx="2" class="wait-c"/>
+    <rect x="186" y="224" width="80" height="12" rx="2" class="wait-a"/>
+    <rect x="236" y="182" width="60" height="12" rx="2" class="wait-a"/>
+    <line x1="314" y1="26" x2="314" y2="244" stroke="var(--a)" stroke-dasharray="4 3"/>
+    <text x="320" y="244" font-size="12" fill="var(--a)">A done</text>
+    <line x1="640" y1="26" x2="640" y2="244" stroke="var(--muted)" stroke-dasharray="2 4"/>
+    <text x="646" y="244" font-size="12" class="muted">A done in ace3</text>
+  </svg>
+  </div>
+  <div class="legend">
+    <span><i class="sw a"></i>root A</span><span><i class="sw b"></i>root B</span><span><i class="sw c"></i>root C</span>
+    <span><i class="sw wait"></i>network lookup: holds no parser slot</span>
+  </div>
+  <figcaption>Illustrative. Independent modules of one root run side by side, and network waits overlap in the lookups pool. Modules that depend on another's result still wait for it, so a root's critical path sets its minimum time.</figcaption>
+</figure>
+
+<h2>3. Load decides whether a root gets faster</h2>
+<p>The speedup above relies on there being free slots. Once several roots are in the stack, their tasks compete for the same slots and each root waits its turn, as ace3's roots wait for a free worker. In this measurement, total throughput went up and per-root time went up much more.</p>
+
+<figure>
+  <div class="grid2">
+    <div>
+      <div class="chart-title">Whole sample set (472 samples), seconds</div>
+      <div class="bars">
+        <div class="bar-row"><span>1 root at a time</span><div class="bar-track"><div class="bar one" style="width:100%">1,759 s</div></div></div>
+        <div class="bar-row"><span>8 roots at a time</span><div class="bar-track"><div class="bar eight" style="width:68.6%">1,207 s</div></div></div>
+      </div>
+      <p class="note">31% less time for the set: higher throughput.</p>
+    </div>
+    <div>
+      <div class="chart-title">One sample, median seconds</div>
+      <div class="bars">
+        <div class="bar-row"><span>1 root at a time</span><div class="bar-track"><div class="bar one" style="width:15.4%">2.3 s</div></div></div>
+        <div class="bar-row"><span>8 roots at a time</span><div class="bar-track"><div class="bar eight" style="width:100%">14.9 s</div></div></div>
+      </div>
+      <p class="note">About 6× slower per root: 75% of a root's time went on waiting for a slot.</p>
+    </div>
+  </div>
+  <figcaption>Source: ace-rs <code>docs/measurements/compare-speed.md</code>, runs S1 and P3, with 8 parser and 8 sandbox slots both times. One run of each, on one 10-CPU machine, with the end-to-end stack's one-rule ruleset. These show direction, not production numbers.</figcaption>
+</figure>
+
+<div class="grid2">
+  <div class="card">
+    <h3>Light load</h3>
+    <p>ace-rs: one root takes every free slot, so its time is close to its critical path.</p>
+    <p>ace3: the root runs in series on one worker however many workers are idle.</p>
+    <p><strong>ace-rs wins clearly.</strong></p>
+  </div>
+  <div class="card">
+    <h3>Heavy load</h3>
+    <p>Both designs are limited by capacity. Roots queue in both.</p>
+    <p>The difference is how much useful work the same hardware does, and how latency is shared between roots. The next two sections cover each.</p>
+  </div>
+</div>
+
+<h2>4. Where ace-rs does more with the same hardware</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>What happens</th><th>ace3</th><th>ace-rs</th></tr></thead>
+  <tbody>
+    <tr><td>A module waits on the network</td><td>The worker, its lock and its 400 MB to 1 GB process sit idle until the call returns.</td><td>The call is an async task in the lookups process, one of many in flight, and holds no parser slot.</td></tr>
+    <tr><td>Sizing concurrency</td><td>One worker count has to suit CPU-bound parsing and slow lookups at once. Memory per worker usually decides it.</td><td>Each pool has its own slot count: parsers by CPU, lookups by how many calls the vendors allow.</td></tr>
+    <tr><td>One very large root</td><td>Takes one worker for its whole run, while other workers may have nothing to do.</td><td>Spreads over whatever slots are free.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>5. What ace-rs pays for it</h2>
+
+<h3>A cost for every module run</h3>
+<p>In ace3, a module that turns a file down costs one function call. In ace-rs, every module run goes through the whole task lifecycle:</p>
+<figure>
+  <div class="lane-label">ace3: module declines a file</div>
+  <div class="steps"><span class="step">call <code>execute_analysis</code></span><span class="arrow">→</span><span class="step">return False</span></div>
+  <div class="lane-label">ace-rs: a parser task, whatever its result</div>
+  <div class="steps">
+    <span class="step">eligibility check</span><span class="arrow">→</span>
+    <span class="step cost">insert task row</span><span class="arrow">→</span>
+    <span class="step cost">NOTIFY, lease through the API</span><span class="arrow">→</span>
+    <span class="step cost">start a contained process</span><span class="arrow">→</span>
+    <span class="step">run the module</span><span class="arrow">→</span>
+    <span class="step cost">end the task, write the result</span><span class="arrow">→</span>
+    <span class="step">eligibility for what it added</span>
+  </div>
+  <figcaption>When it was measured, 85% of 232,927 tasks stored nothing, and starting tasks used about 4,240 of roughly 8,000 core-seconds. Since then each module declares which files it takes (ace-rs PLAN.md decision 23), and the core no longer queues most of those tasks. Per-task cost is still the main thing to watch for throughput.</figcaption>
+</figure>
+
+<h3>Postgres coordinates everything</h3>
+<p>Every task is several writes, a lease and a notification, and each new result triggers an eligibility check. ace3 handles all of this in memory inside one worker. At production scale, the first limit ace-rs reaches is more likely Postgres's write rate than CPU.</p>
+
+<h3>Modules that run last have to wait</h3>
+<p>Six modules run only once the rest of their root is finished. Because no worker owns the whole root, each of them has to ask whether the others are done and wait if they aren't. Before the core started waking them, this waiting was 30% of a root's time. Some of it remains where files are nested inside other files.</p>
+
+<h3>Roots are less isolated from each other</h3>
+<p>This is the real tradeoff behind the intuition that ace3 handles more roots in parallel. The ace-rs queue leases the oldest due tasks, with no per-root fairness or priority. A large root that queues thousands of tasks at once gets ahead of a small alert that arrives just after it:</p>
+<figure>
+  <div class="lane-label">queue order: the slots take tasks from the left</div>
+  <div class="queue" id="hol"></div>
+  <div class="qnote"><span class="sw b" style="vertical-align:middle"></span> one large archive root's burst of tasks &nbsp; <span class="sw a" style="vertical-align:middle;outline:2px solid var(--accent);outline-offset:1px"></span> a small alert submitted just afterwards</div>
+  <figcaption>In ace3, the large root would hold one worker, and the small alert would go to the next free worker. In ace-rs, how long the small alert waits depends on what was queued before it. One <code>test.jar</code> sample produced about 3,600 tasks.</figcaption>
+</figure>
+
+<h2>6. Summary</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th></th><th>ace3</th><th>ace-rs</th></tr></thead>
+  <tbody>
+    <tr><td>Unit of work</td><td>a root, locked to one worker</td><td>a task (observable × module), leased by any slot</td></tr>
+    <tr><td>Per-root time, light load</td><td>sum of its modules, network waits included</td><td>about its critical path</td></tr>
+    <tr><td>Per-root time, heavy load</td><td>waits for a free worker</td><td>waits for free slots; depends on queue order</td></tr>
+    <tr><td>Throughput limit</td><td>worker count, usually limited by memory; network waits hold workers</td><td>slot count per pool, task overhead, Postgres write rate</td></tr>
+    <tr><td>Cost of a declined module</td><td>a function call</td><td>a task lifecycle, unless the module's declaration stops it being queued</td></tr>
+    <tr><td>Isolation between roots</td><td>strong: a big root holds one worker</td><td>weak: a big root's tasks get ahead in the shared queue</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><strong>Still unknown:</strong> whether ace-rs's per-task cost and Postgres throughput stay below the limit that ace3's memory per worker sets in production. Every number here comes from one laptop and a one-rule ruleset. Nothing measured so far settles it.</p>
+
+<h2>7. Which model suits AWS Lambda?</h2>
+<p>Lambda runs one function per invocation, for at most 15 minutes. It bills every millisecond of wall-clock time at the configured memory size, and it may freeze an environment between invocations or discard it.</p>
+
+<div class="answer">
+  <p><strong>ace-rs fits much better, but only for some of its work.</strong> Run the parser pool on Lambda, and the sandbox pool for short tools. Keep the core, Postgres and the lookups pool on long-running compute such as ECS or Fargate. ace3's model doesn't fit Lambda.</p>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h3>ace3: doesn't fit</h3>
+    <ul>
+      <li>A worker holds a root for its whole analysis, which can take many minutes. A root that runs past 15 minutes is killed partway through.</li>
+      <li>Network waits are billed at the full memory size.</li>
+      <li>A cold start has to load about 230 MB of Python imports before any work starts.</li>
+      <li>The lock's heartbeat stops while Lambda has the environment frozen, so the lock can expire with the work half done.</li>
+    </ul>
+    <p class="note">To run on Lambda, a root's analysis would have to be split into resumable pieces, which is what ace-rs already does.</p>
+  </div>
+  <div class="card">
+    <h3>ace-rs: mostly fits</h3>
+    <ul>
+      <li>The unit of work is a short, stateless task, and file bytes are already in an S3-compatible bucket.</li>
+      <li>If an invocation dies, its lease expires and the reaper queues the task again.</li>
+      <li>Pools lease through the core's API and never connect to Postgres, so a thousand Lambdas don't mean a thousand connections.</li>
+      <li><code>ace-parsers task</code> already runs one task and exits, so a Lambda handler could wrap it.</li>
+      <li>Parsing comes in bursts, and Lambda scales up for a burst and back to zero afterwards.</li>
+    </ul>
+  </div>
+</div>
+
+<h3>Where ace-rs still fits badly</h3>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Issue</th><th>Why it matters on Lambda</th></tr></thead>
+  <tbody>
+    <tr><td>The lookups pool</td><td>It saves money by running many network calls concurrently in one process. On Lambda, every call would wait in an invocation of its own that's billed by the millisecond. Keep it on a container.</td></tr>
+    <tr><td>Per-task overhead</td><td>Each task would add an invocation, and sometimes a cold start, to what it already costs. That makes the module "takes" declarations, which stop declining tasks from being queued, essential rather than optional.</td></tr>
+    <tr><td>Pull versus push</td><td>ace-rs pools pull tasks: they wake on NOTIFY and lease as many as they have free slots. Lambda is pushed to. That means writing a dispatcher that leases tasks and invokes functions, directly or through SQS. The dispatcher is also where fairness between roots and back-pressure would go.</td></tr>
+    <tr><td>Containment</td><td>Firecracker keeps functions apart, but a warm environment runs later invocations of the same function. A hostile file could leave something behind for the next task, so each task still needs containment of its own. Whether Lambda allows Landlock and a custom seccomp filter hasn't been checked.</td></tr>
+    <tr><td>Cost at steady load</td><td>Lambda costs more per unit of compute than containers kept busy. It's cheaper only when load is bursty or low on average.</td></tr>
+    <tr><td>Long tasks</td><td>A sandbox tool that can run close to 15 minutes needs a container.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<figure>
+  <div class="scroll">
+  <svg viewBox="0 0 760 270" role="img" aria-label="A hybrid layout. Long-running containers run the core, API and GUI, and the lookups pool, beside RDS Postgres and S3. A dispatcher leases parser and sandbox tasks from the core and invokes Lambda functions, which report results to the core and read file bytes from S3.">
+    <rect x="10" y="10" width="420" height="250" rx="10" fill="none" stroke="var(--line)" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="24" y="32" font-size="12" class="muted">long-running: ECS / Fargate and managed services</text>
+    <rect x="30" y="50" width="170" height="60" rx="8" class="box"/>
+    <text x="115" y="76" text-anchor="middle" font-size="13" font-weight="600">core, API, GUI</text>
+    <text x="115" y="94" text-anchor="middle" font-size="11" class="muted">queue, eligibility, leases</text>
+    <rect x="240" y="50" width="170" height="60" rx="8" class="box"/>
+    <text x="325" y="76" text-anchor="middle" font-size="13" font-weight="600">Postgres (RDS)</text>
+    <text x="325" y="94" text-anchor="middle" font-size="11" class="muted">tree and queue</text>
+    <path d="M200 80 L238 80" class="stroke" marker-end="url(#arrowhead)"/>
+    <rect x="30" y="140" width="170" height="60" rx="8" class="box"/>
+    <text x="115" y="166" text-anchor="middle" font-size="13" font-weight="600">lookups pool</text>
+    <text x="115" y="184" text-anchor="middle" font-size="11" class="muted">many async calls, one process</text>
+    <path d="M115 140 L115 112" class="stroke" marker-end="url(#arrowhead)"/>
+    <rect x="240" y="140" width="170" height="60" rx="8" class="box"/>
+    <text x="325" y="166" text-anchor="middle" font-size="13" font-weight="600">dispatcher</text>
+    <text x="325" y="184" text-anchor="middle" font-size="11" class="muted">leases tasks, invokes Lambda</text>
+    <path d="M280 140 L190 112" class="stroke" marker-end="url(#arrowhead)"/>
+    <text x="258" y="120" font-size="11" class="muted" text-anchor="middle">lease</text>
+    <rect x="30" y="220" width="380" height="30" rx="6" class="box"/>
+    <text x="220" y="240" text-anchor="middle" font-size="12" font-weight="600">S3: file bytes</text>
+    <!-- Lambda side -->
+    <rect x="480" y="10" width="270" height="250" rx="10" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="494" y="32" font-size="12" class="accent-text">AWS Lambda: scales with bursts, to zero</text>
+    <rect x="500" y="50" width="230" height="60" rx="8" class="box"/>
+    <text x="615" y="76" text-anchor="middle" font-size="13" font-weight="600">parser function</text>
+    <text x="615" y="94" text-anchor="middle" font-size="11" class="muted">wraps ace-parsers task, contained</text>
+    <rect x="500" y="140" width="230" height="60" rx="8" class="box"/>
+    <text x="615" y="166" text-anchor="middle" font-size="13" font-weight="600">sandbox function</text>
+    <text x="615" y="184" text-anchor="middle" font-size="11" class="muted">short tools only; long ones on a container</text>
+    <path d="M410 165 L498 90" class="stroke" marker-end="url(#arrowhead)"/>
+    <path d="M410 172 L498 170" class="stroke" marker-end="url(#arrowhead)"/>
+    <text x="452" y="150" font-size="11" class="muted" text-anchor="middle">invoke</text>
+    <path d="M560 200 L410 232" class="stroke" marker-end="url(#arrowhead)"/>
+    <text x="520" y="236" font-size="11" class="muted">read bytes</text>
+    <path d="M500 62 C 380 20, 260 20, 180 48" class="stroke" marker-end="url(#arrowhead)"/>
+    <text x="350" y="22" font-size="11" class="muted" text-anchor="middle">results via core's API</text>
+  </svg>
+  </div>
+  <figcaption>A hybrid layout. The dispatcher doesn't exist in ace-rs today: pools currently pull work in a long-running lease loop.</figcaption>
+</figure>
+
+<p><strong>Still unknown:</strong> whether this costs less than containers with autoscaling. That depends on how bursty the production load is and how many tasks a root needs now that modules declare which files they take. Neither has been measured on production traffic. Measure the production task rate and its peak-to-average ratio before building the dispatcher.</p>
+
+<p class="note">Sources: ace-rs <code>DESIGN.md</code> (<em>One durable queue, where every module run is a task</em>; <em>Modules and pools</em>), <code>docs/measurements/compare-speed.md</code>, <code>docs/measurements/task-start.md</code>, <code>compose.yaml</code> (pool concurrency defaults). The timeline diagrams illustrate the mechanism and are not measurements.</p>
+
+</main>
+<script>
+  // Draw the head-of-line queue: 48 tasks of the large root, then 4 of the small alert.
+  (function () {
+    var el = document.getElementById('hol');
+    if (!el) return;
+    var html = '';
+    for (var i = 0; i < 48; i++) html += '<i class="q b"></i>';
+    for (var j = 0; j < 4; j++) html += '<i class="q a new"></i>';
+    el.innerHTML = html;
+  })();
+</script>
+</body>
+</html>

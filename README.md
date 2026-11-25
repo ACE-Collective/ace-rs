@@ -18,6 +18,8 @@ For now ace-rs is a proof of concept:
   the decisions made along the way.
 - [docs/decisions/](docs/decisions/) holds the larger decisions, and
   [docs/measurements/](docs/measurements/) the numbers behind them.
+- [docs/root-analysis.html](docs/root-analysis.html) explains, with diagrams, how ace3's worker per
+  root differs from ace-rs's task queue: per-root time, throughput, costs, and AWS Lambda.
 
 ## Quick setup
 
