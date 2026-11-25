@@ -9,8 +9,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use ace_results::ObservableKind;
-use ace_sdk::hooks::{ModifierRule, ModifierSection, Phase, Scope};
-use regex::{Regex, RegexBuilder, RegexSetBuilder};
+use ace_sdk::hooks::{ModifierRule, Phase, Scope};
 use serde_json::{Map, Value, json};
 
 /// The most rules the overlay may hold, as many as one analyst-edited list (PLAN.md 5.14).
@@ -19,12 +18,14 @@ pub const MAX_RULES: usize = 1000;
 pub const MAX_PATTERNS: usize = 1024;
 /// The longest pattern, in bytes, as a list's (5.14).
 pub const MAX_PATTERN_BYTES: usize = 1024;
-/// What one pattern may compile to, as a list's: `regex`'s `size_limit`.
+/// What the parts of one pattern that `fancy-regex` hands to the `regex` crate may compile to, as a
+/// list's `size_limit`.
 pub const REGEX_SIZE_LIMIT: usize = 1 << 20;
-/// What one pattern's lazy DFA may cache.
+/// What those parts' lazy DFA may cache.
 pub const REGEX_DFA_LIMIT: usize = 128 << 10;
-/// What all the patterns together may compile to, checked by compiling them as one set.
-pub const ALL_PATTERNS_LIMIT: usize = 16 << 20;
+/// The most backtracking steps one test of one pattern may take, `fancy-regex`'s default. Past it the
+/// test gives up and counts as not matching (`Pattern::test`).
+pub const BACKTRACK_LIMIT: usize = 1_000_000;
 /// The most segments a `details_match` path may have.
 pub const MAX_PATH_SEGMENTS: usize = 32;
 /// The steps one evaluation over one tree may take: a result or an observable visited in a walk, a
@@ -39,12 +40,49 @@ pub const SIGNATURE_FAMILY: &str = "observable_modifier";
 /// has no commit.
 pub const SIGNATURE_VERSION: &str = "unknown";
 
-/// A rule set that doesn't compile, with where.
+/// A rule that doesn't compile, with where, which the rules skip.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[error("hooks.observable_modifier.{path}: {message}")]
+#[error("{path}: {message}")]
 pub struct RuleError {
+    /// Where the rule is (`hooks.observable_modifier.rules[2]`, or the file and its index) and the key
+    /// at fault.
     pub path: String,
+    /// The rule's name and uuid, as far as they read.
+    pub rule: String,
     pub message: String,
+}
+
+/// A pattern as Python's `re` writes it, compiled by `fancy-regex`, which hands the parts that need no
+/// backtracking to the `regex` crate and backtracks only for look-around and backreferences.
+#[derive(Debug, Clone)]
+pub struct Pattern {
+    regex: fancy_regex::Regex,
+}
+
+impl Pattern {
+    /// Whether the pattern matches anywhere in `text`. A test past `BACKTRACK_LIMIT` counts as not
+    /// matching, logged, where ace3's `re` would run on.
+    fn test(&self, text: &str) -> bool {
+        match self.regex.is_match(text) {
+            Ok(matched) => matched,
+            Err(e) => {
+                tracing::warn!(
+                    pattern = self.regex.as_str(),
+                    "an observable modifier pattern gave up, so it counts as not matching: {e}"
+                );
+                false
+            }
+        }
+    }
+}
+
+/// An error at `path`; `Rules::and` names the rule.
+fn error(path: String, message: String) -> RuleError {
+    RuleError {
+        path,
+        rule: String::new(),
+        message,
+    }
 }
 
 /// An evaluation spent its whole budget.
@@ -79,6 +117,8 @@ pub struct Rules {
     rules: Vec<Rule>,
     /// The modules whose details a `details_match` reads, so a snapshot loads only those.
     details_of: BTreeSet<String>,
+    /// Every pattern's text, for `MAX_PATTERNS` across the overlay's rules and a file's.
+    sources: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -100,10 +140,10 @@ struct Conditions {
     alert_type: Option<String>,
     queue: Option<String>,
     observable_types: Vec<ObservableKind>,
-    value_pattern: Option<Regex>,
-    file_name_pattern: Option<Regex>,
-    display_type_pattern: Option<Regex>,
-    display_value_pattern: Option<Regex>,
+    value_pattern: Option<Pattern>,
+    file_name_pattern: Option<Pattern>,
+    display_type_pattern: Option<Pattern>,
+    display_value_pattern: Option<Pattern>,
     has_tags: Vec<String>,
     has_directives: Vec<String>,
     has_yara_meta_tags: Vec<String>,
@@ -111,7 +151,7 @@ struct Conditions {
 }
 
 /// An observable's attribute a tree condition's `observable_match` reads, as ace3 reads it with
-/// `getattr`.
+/// `getattr` and tests `str()` of it: those of ace3's `Observable` an ace-rs observable has.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Attribute {
     Type,
@@ -119,15 +159,49 @@ enum Attribute {
     FileName,
     DisplayType,
     DisplayValue,
+    /// A list, as Python's `str()` writes one: `['a', 'b']`.
+    Tags,
+    Directives,
+    /// `True` or `False`.
+    Ignored,
+    /// `limited_analysis` and `excluded_analysis`: the modules' keys, as a list.
+    LimitedAnalysis,
+    ExcludedAnalysis,
+    /// Python's `str()` of the observable's time, `2026-11-24 14:28:25+00:00`. An observable with no
+    /// time matches nothing, as ace3's `getattr` gives None.
+    Time,
+}
+
+impl Attribute {
+    const NAMES: &[(&str, Attribute)] = &[
+        ("type", Attribute::Type),
+        ("value", Attribute::Value),
+        ("file_name", Attribute::FileName),
+        ("display_type", Attribute::DisplayType),
+        ("display_value", Attribute::DisplayValue),
+        ("tags", Attribute::Tags),
+        ("directives", Attribute::Directives),
+        ("ignored", Attribute::Ignored),
+        ("limited_analysis", Attribute::LimitedAnalysis),
+        ("excluded_analysis", Attribute::ExcludedAnalysis),
+        ("time", Attribute::Time),
+    ];
+
+    fn named(name: &str) -> Option<Attribute> {
+        Attribute::NAMES
+            .iter()
+            .find(|(n, _)| *n == name)
+            .map(|&(_, a)| a)
+    }
 }
 
 #[derive(Debug, Clone)]
 struct TreeCondition {
     analysis_type: String,
     scope: Scope,
-    details_match: Vec<(Vec<String>, Regex)>,
-    observable_match: Vec<(Attribute, Regex)>,
-    produces: Option<(ObservableKind, Option<Regex>)>,
+    details_match: Vec<(Vec<String>, Pattern)>,
+    observable_match: Vec<(Attribute, Pattern)>,
+    produces: Option<(ObservableKind, Option<Pattern>)>,
     negate: bool,
     match_count: Option<u32>,
 }
@@ -137,32 +211,34 @@ struct Compiler {
 }
 
 impl Compiler {
-    fn pattern(&mut self, path: String, source: &str) -> Result<Regex, RuleError> {
+    fn pattern(&mut self, path: String, source: &str) -> Result<Pattern, RuleError> {
         if self.sources.len() >= MAX_PATTERNS {
-            return Err(RuleError {
+            return Err(error(
                 path,
-                message: format!("the rules hold more than {MAX_PATTERNS} patterns"),
-            });
+                format!("the rules hold more than {MAX_PATTERNS} patterns"),
+            ));
         }
         if source.len() > MAX_PATTERN_BYTES {
-            return Err(RuleError {
+            return Err(error(
                 path,
-                message: format!("a pattern is at most {MAX_PATTERN_BYTES} bytes"),
-            });
+                format!("a pattern is at most {MAX_PATTERN_BYTES} bytes"),
+            ));
         }
-        let regex = RegexBuilder::new(source)
-            .size_limit(REGEX_SIZE_LIMIT)
-            .dfa_size_limit(REGEX_DFA_LIMIT)
+        let regex = fancy_regex::RegexBuilder::new(source)
+            .backtrack_limit(BACKTRACK_LIMIT)
+            .delegate_size_limit(REGEX_SIZE_LIMIT)
+            .delegate_dfa_size_limit(REGEX_DFA_LIMIT)
             .build()
-            .map_err(|e| RuleError {
-                path,
-                message: format!("the pattern doesn't compile: {e}"),
-            })?;
+            .map_err(|e| error(path, format!("the pattern doesn't compile: {e}")))?;
         self.sources.push(source.to_owned());
-        Ok(regex)
+        Ok(Pattern { regex })
     }
 
-    fn optional(&mut self, path: String, source: Option<&str>) -> Result<Option<Regex>, RuleError> {
+    fn optional(
+        &mut self,
+        path: String,
+        source: Option<&str>,
+    ) -> Result<Option<Pattern>, RuleError> {
         // ace3 skips an empty pattern, as it skips one that isn't there
         match source.filter(|s| !s.is_empty()) {
             Some(source) => self.pattern(path, source).map(Some),
@@ -172,64 +248,91 @@ impl Compiler {
 }
 
 fn kind(path: String, name: &str) -> Result<ObservableKind, RuleError> {
-    name.parse().map_err(|_| RuleError {
-        path,
-        message: format!("{name:?} isn't an observable type"),
-    })
+    name.parse()
+        .map_err(|_| error(path, format!("{name:?} isn't an observable type")))
 }
 
 impl Rules {
-    /// Compiles the overlay's rules. Anything ace3 would log and skip refuses the whole set here, since
-    /// the overlay is checked when the core starts.
-    pub fn compile(section: &ModifierSection) -> Result<Rules, RuleError> {
-        if section.rules.len() > MAX_RULES {
-            return Err(RuleError {
-                path: "rules".to_owned(),
-                message: format!("at most {MAX_RULES} rules"),
-            });
-        }
+    /// Compiles rules, each as `ModifierSection::parsed` read it, from `source` (where they are, for the
+    /// errors' paths). A rule that doesn't read or compile is skipped with why, as ace3 logs and skips
+    /// it, and so is a rule whose uuid another has, and every rule past `MAX_RULES`.
+    pub fn compile(
+        source: &str,
+        parsed: &[Result<ModifierRule, String>],
+    ) -> (Rules, Vec<RuleError>) {
+        Rules::default().and(source, parsed)
+    }
+
+    /// These rules followed by `parsed`'s, compiled as `compile` compiles them: a uuid one of these
+    /// has is taken there too, and the bounds count both.
+    pub fn and(
+        mut self,
+        source: &str,
+        parsed: &[Result<ModifierRule, String>],
+    ) -> (Rules, Vec<RuleError>) {
         let mut compiler = Compiler {
-            sources: Vec::new(),
+            sources: std::mem::take(&mut self.sources),
         };
-        let mut rules = Vec::new();
-        let mut details_of = BTreeSet::new();
-        let mut uuids = BTreeSet::new();
-        for (i, rule) in section.rules.iter().enumerate() {
-            let at = |field: &str| format!("rules[{i}].{field}");
+        let mut uuids: BTreeSet<String> = self.rules.iter().map(|r| r.uuid.clone()).collect();
+        let mut refused = Vec::new();
+        for (i, rule) in parsed.iter().enumerate() {
+            let at = |field: &str| {
+                if field.is_empty() {
+                    format!("{source}[{i}]")
+                } else {
+                    format!("{source}[{i}].{field}")
+                }
+            };
+            let rule = match rule {
+                Ok(rule) => rule,
+                Err(why) => {
+                    refused.push(error(at(""), why.clone()));
+                    continue;
+                }
+            };
+            let named = |mut e: RuleError| {
+                e.rule = format!("{:?} ({})", rule.name, rule.uuid);
+                e
+            };
+            if self.rules.len() >= MAX_RULES {
+                refused.push(named(error(
+                    at(""),
+                    format!("past the first {MAX_RULES} rules"),
+                )));
+                continue;
+            }
             if rule.uuid.trim().is_empty() {
-                return Err(RuleError {
-                    path: at("uuid"),
-                    message: "a rule needs a uuid".to_owned(),
-                });
+                refused.push(named(error(at("uuid"), "a rule needs a uuid".to_owned())));
+                continue;
             }
-            if !uuids.insert(rule.uuid.clone()) {
-                return Err(RuleError {
-                    path: at("uuid"),
-                    message: format!("two rules have the uuid {}", rule.uuid),
-                });
+            if uuids.contains(&rule.uuid) {
+                refused.push(named(error(
+                    at("uuid"),
+                    format!("another rule has the uuid {}", rule.uuid),
+                )));
+                continue;
             }
-            let compiled = compile_rule(rule, &mut compiler, &at)?;
-            for tc in &compiled.conditions.tree_conditions {
-                if !tc.details_match.is_empty() && !tc.analysis_type.is_empty() {
-                    details_of.insert(tc.analysis_type.clone());
+            // a rule's patterns count toward the bound only when the whole rule compiles
+            let before = compiler.sources.len();
+            match compile_rule(rule, &mut compiler, &at) {
+                Ok(compiled) => {
+                    uuids.insert(rule.uuid.clone());
+                    for tc in &compiled.conditions.tree_conditions {
+                        if !tc.details_match.is_empty() {
+                            // an empty name is any module's details, so the snapshot loads them all
+                            self.details_of.insert(tc.analysis_type.clone());
+                        }
+                    }
+                    self.rules.push(compiled);
                 }
-                if !tc.details_match.is_empty() && tc.analysis_type.is_empty() {
-                    // any module's details: the snapshot loads them all
-                    details_of.insert(String::new());
+                Err(e) => {
+                    compiler.sources.truncate(before);
+                    refused.push(named(e));
                 }
             }
-            rules.push(compiled);
         }
-        // every pattern together, so the rule set's compiled size has a bound as a list's has
-        RegexSetBuilder::new(&compiler.sources)
-            .size_limit(ALL_PATTERNS_LIMIT)
-            .dfa_size_limit(ALL_PATTERNS_LIMIT)
-            .build()
-            .map_err(|e| RuleError {
-                path: "rules".to_owned(),
-                message: format!("the rules' patterns together are too large: {e}"),
-            })?;
-        Ok(Rules { rules, details_of })
+        self.sources = compiler.sources;
+        (self, refused)
     }
 
     pub fn rules(&self) -> &[Rule] {
@@ -270,10 +373,10 @@ fn compile_rule(
         for (path, pattern) in &tc.details_match {
             let segments: Vec<String> = path.split('.').map(str::to_owned).collect();
             if segments.len() > MAX_PATH_SEGMENTS {
-                return Err(RuleError {
-                    path: at("details_match"),
-                    message: format!("a path has at most {MAX_PATH_SEGMENTS} segments"),
-                });
+                return Err(error(
+                    at("details_match"),
+                    format!("a path has at most {MAX_PATH_SEGMENTS} segments"),
+                ));
             }
             details_match.push((
                 segments,
@@ -282,20 +385,14 @@ fn compile_rule(
         }
         let mut observable_match = Vec::new();
         for (name, pattern) in &tc.observable_match {
-            let attribute = match name.as_str() {
-                "type" => Attribute::Type,
-                "value" => Attribute::Value,
-                "file_name" => Attribute::FileName,
-                "display_type" => Attribute::DisplayType,
-                "display_value" => Attribute::DisplayValue,
-                _ => {
-                    return Err(RuleError {
-                        path: at(&format!("observable_match.{name}")),
-                        message: "an observable_match reads type, value, file_name, display_type \
-                                  or display_value"
-                            .to_owned(),
-                    });
-                }
+            // ace3's `getattr` of an attribute its observable lacks gives None, which matches nothing;
+            // such a rule can never match, so it's skipped, and the log says why
+            let Some(attribute) = Attribute::named(name) else {
+                let names: Vec<&str> = Attribute::NAMES.iter().map(|&(n, _)| n).collect();
+                return Err(error(
+                    at(&format!("observable_match.{name}")),
+                    format!("an observable_match reads {}", names.join(", ")),
+                ));
             };
             observable_match.push((
                 attribute,
@@ -390,6 +487,12 @@ pub struct Node {
     pub paths: Vec<String>,
     pub display_type: Option<String>,
     pub display_value: Option<String>,
+    /// Its time as Python's `str()` writes it (`py_time`), when it has one.
+    pub time: Option<String>,
+    /// The modules it's limited to and excluded from, ace3's `limited_analysis` and
+    /// `excluded_analysis`.
+    pub limit_modules: Vec<String>,
+    pub exclude_modules: Vec<String>,
     /// The modules whose task on it ended with no result, ace3's "no analysis" sentinel.
     pub no_analysis: Vec<String>,
     /// The results on it.
@@ -565,12 +668,18 @@ fn apply(actions: &ace_sdk::hooks::RuleActions, node: &mut Node) -> Map<String, 
         );
     }
     if !actions.exclude_analysis.is_empty() {
+        for m in &actions.exclude_analysis {
+            add_unique(&mut node.exclude_modules, m);
+        }
         applied.insert(
             "exclude_analysis".to_owned(),
             json!(actions.exclude_analysis),
         );
     }
     if !actions.limit_analysis.is_empty() {
+        for m in &actions.limit_analysis {
+            add_unique(&mut node.limit_modules, m);
+        }
         applied.insert("limit_analysis".to_owned(), json!(actions.limit_analysis));
     }
     if let Some(display_type) = &actions.set_display_type {
@@ -664,7 +773,7 @@ impl Conditions {
         }
         if let Some(pattern) = &self.value_pattern {
             budget.spend(1)?;
-            if !pattern.is_match(&n.value) {
+            if !pattern.test(&n.value) {
                 return Ok(false);
             }
         }
@@ -672,7 +781,7 @@ impl Conditions {
             let mut any = false;
             for name in n.file_names() {
                 budget.spend(1)?;
-                if pattern.is_match(name) {
+                if pattern.test(name) {
                     any = true;
                     break;
                 }
@@ -683,13 +792,13 @@ impl Conditions {
         }
         if let Some(pattern) = &self.display_type_pattern {
             budget.spend(1)?;
-            if !pattern.is_match(&n.display_type_text()) {
+            if !pattern.test(&n.display_type_text()) {
                 return Ok(false);
             }
         }
         if let Some(pattern) = &self.display_value_pattern {
             budget.spend(1)?;
-            if !pattern.is_match(&n.display_value_text()) {
+            if !pattern.test(&n.display_value_text()) {
                 return Ok(false);
             }
         }
@@ -773,7 +882,7 @@ impl TreeCondition {
                         continue;
                     }
                     if let Some(value) = value
-                        && !value.is_match(&a.value)
+                        && !value.test(&a.value)
                     {
                         continue;
                     }
@@ -808,11 +917,17 @@ impl TreeCondition {
                 Attribute::FileName => n.file_names().map(str::to_owned).collect(),
                 Attribute::DisplayType => vec![n.display_type_text()],
                 Attribute::DisplayValue => vec![n.display_value_text()],
+                Attribute::Tags => vec![py_list(&n.tags)],
+                Attribute::Directives => vec![py_list(&n.directives)],
+                Attribute::Ignored => vec![if n.ignored { "True" } else { "False" }.to_owned()],
+                Attribute::LimitedAnalysis => vec![py_list(&n.limit_modules)],
+                Attribute::ExcludedAnalysis => vec![py_list(&n.exclude_modules)],
+                Attribute::Time => n.time.iter().cloned().collect(),
             };
             let mut any = false;
             for value in &values {
                 budget.spend(1)?;
-                if pattern.is_match(value) {
+                if pattern.test(value) {
                     any = true;
                     break;
                 }
@@ -841,7 +956,7 @@ impl TreeCondition {
             let mut any = false;
             for value in values {
                 budget.spend(1)?;
-                if pattern.is_match(&py_str(value)) {
+                if pattern.test(&py_str(value)) {
                     any = true;
                     break;
                 }
@@ -913,6 +1028,23 @@ fn nested_values<'v>(
         return Ok(Some(items.iter().collect()));
     }
     Ok(Some(candidates))
+}
+
+/// Python's `str()` of a list of strings: `['a', 'b']`.
+fn py_list(items: &[String]) -> String {
+    let parts: Vec<String> = items.iter().map(|i| ace_pycompat::repr::repr(i)).collect();
+    format!("[{}]", parts.join(", "))
+}
+
+/// Python's `str()` of a timezone-aware `datetime`: `2026-11-24 14:28:25+00:00`, with the microseconds
+/// when there are any.
+pub fn py_time(time: chrono::DateTime<chrono::Utc>) -> String {
+    use chrono::Timelike;
+    if time.nanosecond() / 1000 == 0 {
+        time.format("%Y-%m-%d %H:%M:%S+00:00").to_string()
+    } else {
+        time.format("%Y-%m-%d %H:%M:%S%.6f+00:00").to_string()
+    }
 }
 
 /// Python's `str()` of a JSON value: a string as itself, `True`, an int's digits, a float's repr, and a
@@ -1108,9 +1240,11 @@ mod tests {
     use super::*;
 
     fn rules(yaml: &str) -> Rules {
-        let section: ModifierSection =
+        let section: ace_sdk::hooks::ModifierSection =
             serde_json::from_value(serde_yaml_like(yaml)).expect("a rules section");
-        Rules::compile(&section).expect("compiles")
+        let (rules, refused) = Rules::compile("rules", &section.parsed());
+        assert!(refused.is_empty(), "{refused:?}");
+        rules
     }
 
     fn serde_yaml_like(yaml: &str) -> Value {
@@ -1137,6 +1271,9 @@ mod tests {
             paths: Vec::new(),
             display_type: None,
             display_value: None,
+            time: None,
+            limit_modules: Vec::new(),
+            exclude_modules: Vec::new(),
             no_analysis: Vec::new(),
             results: Vec::new(),
             parents: Vec::new(),
@@ -1374,5 +1511,134 @@ rules:
             }
         }
         assert!(over, "a quadratic walk spends the budget and stops");
+    }
+
+    /// Python's `re` patterns compile as ace3's do: look-around and backreferences included (the
+    /// owner's decision of 2026-11-24, `fancy-regex`).
+    #[test]
+    fn look_around_and_backreferences_compile_and_match_as_python_s() {
+        let rules = rules(
+            r#"
+rules:
+  - {name: ahead, uuid: l1, conditions: {value_pattern: '\.example/(?=[a-z]{1}$)(?=[a-z]*[a-z])[a-z]{1}(?=[/?#]|$)'}}
+  - {name: not google, uuid: l2, conditions: {value_pattern: '(?i)^(?!https?://accounts\.google\.com/).*x\.example'}}
+  - {name: twice, uuid: l3, conditions: {value_pattern: '(\w)\1'}}
+"#,
+        );
+        let mut t = tree();
+        // `tt` in http is a letter twice
+        assert_eq!(matches(&rules, &mut t, 1), ["ahead", "not google", "twice"]);
+        let mut t = tree();
+        t.nodes[1].value = "https://accounts.google.com/x.example/aa".to_owned();
+        assert_eq!(matches(&rules, &mut t, 1), ["twice"]);
+    }
+
+    /// ace3 tests `str()` of whatever `getattr` gives: a list as Python writes one, a bool as `True`,
+    /// a time as a `datetime`'s.
+    #[test]
+    fn observable_match_reads_what_ace3_s_getattr_reads() {
+        let rules = rules(
+            r#"
+rules:
+  - {name: tags, uuid: o1, conditions: {tree_conditions: [{scope: global, observable_match: {type: url, tags: new_sender}}]}}
+  - {name: directives, uuid: o2, conditions: {tree_conditions: [{scope: global, observable_match: {directives: "^\\['crawl'\\]$"}}]}}
+  - {name: ignored, uuid: o3, conditions: {tree_conditions: [{scope: global, observable_match: {type: url, ignored: '^False$'}}]}}
+  - {name: limited, uuid: o4, conditions: {tree_conditions: [{scope: global, observable_match: {limited_analysis: "'crawl'"}}]}}
+  - {name: excluded, uuid: o5, conditions: {tree_conditions: [{scope: global, observable_match: {excluded_analysis: '^\[\]$'}}]}}
+  - {name: time, uuid: o6, conditions: {tree_conditions: [{scope: global, observable_match: {time: '^2026-11-24 14:28:25\+00:00$'}}]}}
+  - {name: no time, uuid: o7, conditions: {tree_conditions: [{scope: global, observable_match: {type: file, time: '.*'}}]}}
+"#,
+        );
+        let mut t = tree();
+        let url = &mut t.nodes[1];
+        url.tags = vec!["x".to_owned(), "new_sender".to_owned()];
+        url.directives = vec!["crawl".to_owned()];
+        url.limit_modules = vec!["crawl".to_owned()];
+        url.time = Some(py_time("2026-11-24T14:28:25Z".parse().expect("a time")));
+        // the email file's results, global: the url is the one observable a result is on with these
+        assert_eq!(
+            matches(&rules, &mut t, 0),
+            [
+                "tags",
+                "directives",
+                "ignored",
+                "limited",
+                "excluded",
+                "time"
+            ]
+        );
+        assert_eq!(
+            py_time("2026-11-24T14:28:25.5Z".parse().expect("a time")),
+            "2026-11-24 14:28:25.500000+00:00"
+        );
+    }
+
+    /// A test past the backtracking bound gives up and counts as not matching, where Python's `re`
+    /// would run on, and the rest of the rules still run.
+    #[test]
+    fn a_pattern_past_its_backtracking_bound_counts_as_not_matching() {
+        let rules = rules(
+            r#"
+rules:
+  - {name: explodes, uuid: b1, conditions: {value_pattern: '^(a|b|ab)*(?>c)'}}
+  - {name: after it, uuid: b2, conditions: {observable_types: [url]}}
+"#,
+        );
+        let mut t = tree();
+        // the alternatives split the run every way before the `d` refuses each, past the bound
+        let text = format!("{}dc", "ab".repeat(28));
+        t.nodes[1].value = text.clone();
+        assert_eq!(matches(&rules, &mut t, 1), ["after it"]);
+        // it gave up, rather than finding no match
+        let mut compiler = Compiler {
+            sources: Vec::new(),
+        };
+        let pattern = compiler
+            .pattern("p".to_owned(), r"^(a|b|ab)*(?>c)")
+            .expect("compiles");
+        assert!(pattern.regex.is_match(&text).is_err(), "past the bound");
+        assert!(!pattern.test(&text));
+    }
+
+    /// A rule ace3 would log and skip is skipped with why, and the rules around it compile (the
+    /// owner's decision of 2026-11-24).
+    #[test]
+    fn a_rule_that_doesn_t_compile_is_skipped_and_the_others_kept() {
+        let section: ace_sdk::hooks::ModifierSection = serde_json::from_value(serde_yaml_like(
+            r#"
+rules:
+  - {name: first, uuid: k1}
+  - {name: no uuid}
+  - {name: bad pattern, uuid: k2, conditions: {value_pattern: '('}}
+  - {name: unknown type, uuid: k3, conditions: {observable_types: [nope]}}
+  - {name: unknown key, uuid: k4, actions: {explode: true}}
+  - {name: again, uuid: k1}
+  - {name: last, uuid: k5, conditions: {value_pattern: '(?=x)'}}
+"#,
+        ))
+        .expect("a section: each rule is read on its own");
+        let (rules, refused) = Rules::compile("rules", &section.parsed());
+        let kept: Vec<&str> = rules.rules().iter().map(|r| r.name.as_str()).collect();
+        assert_eq!(kept, ["first", "last"]);
+        let why: Vec<String> = refused
+            .iter()
+            .map(|e| format!("{e} [{}]", e.rule))
+            .collect();
+        assert_eq!(why.len(), 5, "{why:#?}");
+        assert!(
+            why[0].starts_with("rules[1]: missing field `uuid`"),
+            "{why:#?}"
+        );
+        assert!(
+            why[1].starts_with("rules[2].conditions.value_pattern: the pattern doesn't compile")
+        );
+        assert!(why[1].ends_with("[\"bad pattern\" (k2)]"));
+        assert!(why[2].contains("\"nope\" isn't an observable type"));
+        assert!(why[3].contains("explode"));
+        assert!(why[4].starts_with("rules[5].uuid: another rule has the uuid k1"));
+        // the overlay's rules come first, and a file's uuid can't take one of theirs
+        let (both, refused) = rules.and("file.yaml", &section.parsed()[..1]);
+        assert_eq!(both.rules().len(), 2);
+        assert_eq!(refused[0].path, "file.yaml[0].uuid");
     }
 }

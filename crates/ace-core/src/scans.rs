@@ -72,8 +72,8 @@ pub async fn queue(
     let inputs = serde_json::to_value(&request.inputs)
         .map_err(|e| DbError::Decode(format!("a scan's inputs: {e}")))?;
     Ok(sqlx::query_scalar!(
-        "INSERT INTO queue.scans (task_id, root_id, scanner, args, inputs, timeout_seconds)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        "INSERT INTO queue.scans (task_id, root_id, scanner, args, inputs, timeout_seconds, proxy)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id",
         task as TaskId,
         root,
@@ -81,6 +81,7 @@ pub async fn queue(
         &request.args,
         inputs,
         i32::try_from(request.timeout_seconds).unwrap_or(i32::MAX),
+        request.proxy,
     )
     .fetch_one(tx.conn())
     .await?)
@@ -95,13 +96,15 @@ pub struct TaskScan {
     pub exit_code: Option<i32>,
     pub error: Option<String>,
     pub output: Option<(Sha256, u64)>,
+    /// The proxy it went through, without credentials.
+    pub proxied: Option<String>,
 }
 
 /// The task's latest scan, if its module ever asked for one.
 pub async fn latest_for_task(db: &Db, task: TaskId) -> Result<Option<TaskScan>, DbError> {
     let row = sqlx::query!(
         r#"SELECT id, scanner, state AS "state: ScanRowState", exit_code, error, output_sha256,
-                  output_size
+                  output_size, proxied
            FROM queue.scans WHERE task_id = $1 ORDER BY id DESC LIMIT 1"#,
         task as TaskId,
     )
@@ -126,6 +129,7 @@ pub async fn latest_for_task(db: &Db, task: TaskId) -> Result<Option<TaskScan>, 
         exit_code: row.exit_code,
         error: row.error,
         output,
+        proxied: row.proxied,
     }))
 }
 
@@ -198,6 +202,8 @@ pub struct ClaimedScan {
     pub deadline_at: DateTime<Utc>,
     /// From the claim's moment to the deadline, by the database's clock.
     pub deadline_in: Duration,
+    /// Go through the pool's proxy, when it has one.
+    pub proxy: bool,
 }
 
 /// How a pool ended a scan.
@@ -209,6 +215,8 @@ pub struct EndedScan<'a> {
     pub output: Option<(Sha256, u64)>,
     /// The id of the image its container ran (`ScanEnd::image_id`).
     pub image_id: Option<&'a str>,
+    /// The proxy it went through, without credentials (`ScanEnd::proxied`).
+    pub proxied: Option<&'a str>,
 }
 
 /// One scanner pool process's identity on the scans' queue.
@@ -243,7 +251,7 @@ impl ScanWorker {
                WHERE s.id = (SELECT id FROM queue.scans WHERE state = 'queued' AND scanner = ANY($3)
                              ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1)
                RETURNING s.id, s.task_id AS "task_id: TaskId", s.root_id, s.scanner, s.args, s.inputs,
-                         s.timeout_seconds, s.deadline_at AS "deadline_at!",
+                         s.timeout_seconds, s.deadline_at AS "deadline_at!", s.proxy,
                          extract(epoch FROM s.deadline_at - now())::float8 AS "deadline_in!""#,
             self.name,
             self.lease.as_secs_f64(),
@@ -266,6 +274,7 @@ impl ScanWorker {
             timeout_seconds: u32::try_from(row.timeout_seconds).unwrap_or_default(),
             deadline_at: row.deadline_at,
             deadline_in: Duration::try_from_secs_f64(row.deadline_in).unwrap_or_default(),
+            proxy: row.proxy,
         }))
     }
 
@@ -322,7 +331,8 @@ impl ScanWorker {
                                              timeout_seconds))
                      WHEN 'cancelled'::queue.scan_state THEN coalesce($5, 'cancelled while it ran')
                      ELSE $5 END,
-                 output_sha256 = $6, output_size = $7, image_id = $8, finished_at = now(),
+                 output_sha256 = $6, output_size = $7, image_id = $8, proxied = $9,
+                 finished_at = now(),
                  lease_owner = NULL, lease_expires_at = NULL
              WHERE id = $1 AND lease_owner = $2 AND state = 'running'
              RETURNING task_id",
@@ -334,6 +344,9 @@ impl ScanWorker {
             sha256,
             size,
             ended.image_id,
+            ended
+                .proxied
+                .map(|p| p.chars().take(512).collect::<String>()),
         )
         .fetch_optional(tx.conn())
         .await?

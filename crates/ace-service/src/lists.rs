@@ -385,7 +385,8 @@ impl Service {
         name: &str,
         entry: &NewListEntry,
     ) -> Result<ListEntry, ServiceError> {
-        let catalog = self.orchestrator.catalog();
+        let components = self.orchestrator.catalog();
+        let catalog = &*components;
         self.gate
             .write(actor, "add_list_entry", &LIST_WRITE, &|tx| {
                 Box::pin(async move {
@@ -406,7 +407,8 @@ impl Service {
         id: i64,
         entry: &NewListEntry,
     ) -> Result<ListEntry, ServiceError> {
-        let catalog = self.orchestrator.catalog();
+        let components = self.orchestrator.catalog();
+        let catalog = &*components;
         self.gate
             .write(actor, "edit_list_entry", &LIST_WRITE, &|tx| {
                 Box::pin(async move {
@@ -429,7 +431,8 @@ impl Service {
         name: &str,
         id: i64,
     ) -> Result<(), ServiceError> {
-        let catalog = self.orchestrator.catalog();
+        let components = self.orchestrator.catalog();
+        let catalog = &*components;
         self.gate
             .write(actor, "delete_list_entry", &LIST_WRITE, &|tx| {
                 Box::pin(async move {

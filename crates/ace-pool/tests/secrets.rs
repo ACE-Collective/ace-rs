@@ -171,7 +171,7 @@ secrets:
     let root = root_with_tasks(&core, &["www.example.com".to_owned()], "example_resolver").await;
     let definition = PoolDefinition {
         name: "resolvers".to_owned(),
-        modules: Arc::new(resolvers.modules),
+        modules: Arc::new(resolvers.modules).into(),
         concurrency: 1,
         sandbox: Default::default(),
     };

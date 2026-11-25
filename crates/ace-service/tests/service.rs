@@ -42406,9 +42406,7 @@ mod svs_attribution_tests {
             "hooks:\n  configuration_defined_tagging:\n    tags: {x: alert}\n",
         )
         .expect("an overlay");
-        let hooks = Hooks::from_section(&overlay.hooks)
-            .expect("compiles")
-            .with_svs(HookConfig::default());
+        let hooks = Hooks::from_section(&overlay.hooks).with_svs(HookConfig::default());
         let f = fixture_with(db, hooks).await;
         f.host("win10-01", None, &[]).await;
         let root = hunt_alert(&f, "win10-01", now() - minutes(10), json!({})).await;
@@ -48760,7 +48758,7 @@ mod search_tests {
             vec![pair("ipv4", "10.20.30.40")]
         );
         // test_signature_id_shorthand: any type this binary has is a prefix
-        for kind in ObservableKind::all() {
+        for kind in ObservableKind::all().iter() {
             if *kind == ObservableKind::File {
                 continue;
             }

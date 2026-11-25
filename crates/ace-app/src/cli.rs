@@ -291,11 +291,11 @@ pub(crate) fn submitting_service(
         .context("the overlay's svs.runs section")?;
     // a submitted root runs the pre rules as it's submitted; `ace serve` runs the rest, and the hooks a
     // pass ends with are marked due here as there, so the two have the same hooks
-    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks)
-        .context("the overlay's hooks section")?
-        .with_svs(ace_core::svs::attribution::HookConfig {
+    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks).with_svs(
+        ace_core::svs::attribution::HookConfig {
             attribution_extra: runs.windows.attribution_extra,
-        });
+        },
+    );
     // as `ace serve` applies or audits the modules' declarations
     let takes = ace_core::takes::TakesMode::from_env().map_err(anyhow::Error::msg)?;
     // a submitted root looks results up and keeps them as `ace serve`'s roots do

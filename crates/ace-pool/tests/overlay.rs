@@ -147,7 +147,7 @@ async fn two_splunk_instances_run_different_queries_on_one_observable() {
         .expect("the pool's modules");
     let definition = PoolDefinition {
         name: "lookups".to_owned(),
-        modules: Arc::new(modules),
+        modules: Arc::new(modules).into(),
         concurrency: 4,
         sandbox: Default::default(),
     };

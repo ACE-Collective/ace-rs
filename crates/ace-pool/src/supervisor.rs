@@ -41,7 +41,7 @@ use tokio_util::sync::CancellationToken;
 use crate::client::{ClientError, LeaseClient};
 use crate::commands::{CommandConfig, run_commands};
 use crate::containment::SandboxProfile;
-use crate::modules::Modules;
+use crate::modules::{Modules, ModulesHandle};
 use crate::pool::{PoolStats, Runner, SHUTDOWN_GRACE, lease_loop};
 use crate::run::{
     LeaseKeeper, TaskDir, fetch_email_parts, fetch_input, fetch_scan_output, fetch_tree_files,
@@ -148,7 +148,7 @@ fn unsafe_zeroed_passwd() -> libc::passwd {
 /// A parser pool's supervisor.
 pub struct Supervisor {
     client: LeaseClient,
-    modules: Arc<Modules>,
+    modules: ModulesHandle,
     config: SupervisorConfig,
     commands: Option<CommandConfig>,
     lease_wait: Duration,
@@ -156,7 +156,7 @@ pub struct Supervisor {
 }
 
 impl Supervisor {
-    pub fn new(client: LeaseClient, modules: Arc<Modules>, config: SupervisorConfig) -> Self {
+    pub fn new(client: LeaseClient, modules: ModulesHandle, config: SupervisorConfig) -> Self {
         Supervisor {
             client,
             modules,
@@ -210,7 +210,8 @@ impl Supervisor {
             self.config.clone(),
         );
         let run: Runner = Arc::new(move |task, shutdown| {
-            let (client, modules, config) = (client.clone(), modules.clone(), config.clone());
+            // the modules as they are when the task starts
+            let (client, modules, config) = (client.clone(), modules.now(), config.clone());
             Box::pin(async move {
                 let id = task.id;
                 match run_task_process(&client, &modules, &config, task, &shutdown).await {

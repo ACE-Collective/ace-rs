@@ -45,7 +45,7 @@ async fn shut_down_with_a_hung_upstream(blocking: bool) {
             .expect("the test modules");
     let definition = PoolDefinition {
         name: "test".to_owned(),
-        modules: Arc::new(modules),
+        modules: Arc::new(modules).into(),
         concurrency: 4,
         sandbox: Default::default(),
     };

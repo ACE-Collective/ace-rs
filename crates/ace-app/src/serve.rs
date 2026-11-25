@@ -52,6 +52,9 @@ use crate::App;
 /// How long `ace serve` waits at shutdown for open requests: a little over the longest a lease
 /// request waits.
 const SHUTDOWN_DEADLINE: Duration = Duration::from_secs(25);
+/// How often the observable modifier's rules file is read again, to take an analyst's change. ace3
+/// looks at its file's mtime each time the module runs.
+const RULES_FILE_POLL: Duration = Duration::from_secs(10);
 
 pub fn run(app: &App, telemetry: &mut ace_pool::telemetry::Telemetry) -> Result<ExitCode> {
     telemetry.start_export().context("starting span export")?;
@@ -107,8 +110,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
         modes = ?modes.cleanup_modes(),
         "finished roots that never became alerts are deleted in these modes"
     );
-    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks)
-        .context("the overlay's hooks section")?;
+    // a rule that doesn't compile is logged and skipped, as ace3 does
+    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks);
     // the YARA export of the detections (PLAN.md 7.16), checked even when no repository is built
     let yara_export = ace_core::rulesets::export_config(&overlay.yara_export)
         .map_err(anyhow::Error::msg)
@@ -207,6 +210,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
     for unknown in app.unknown_limits(&components, &hooks) {
         tracing::warn!("{unknown}: what it limits is analyzed by nothing");
     }
+    // the same rules the orchestrator holds: a reload is seen by both
+    let rules_file = hooks.modifier().filter(|m| m.has_file()).cloned();
     let orchestrator = Orchestrator::new(Catalog::of(components), modes)
         .with_hooks(hooks)
         .with_takes(takes)
@@ -220,7 +225,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .map_err(anyhow::Error::msg)
         .context("the action handlers")?;
     let config = ApiConfig::from_env(&app.pool_list())
-        .with_instances(orchestrator.catalog())
+        .with_instances(&orchestrator.catalog())
         .archive(archive_config.clone())
         .actions(actions.clone())
         // what SVS's capture reads as graded (PLAN.md 7.10)
@@ -369,6 +374,42 @@ async fn serve(app: &App) -> Result<ExitCode> {
         Duration::from_secs(5),
         stop.clone(),
     ));
+    // the observable modifier's rules file, read again when it changes, as ace3 watches it
+    let rules_watcher = rules_file.map(|rules| {
+        tokio::spawn(ace_core::hooks::watch_rules(
+            rules,
+            RULES_FILE_POLL,
+            stop.clone(),
+        ))
+    });
+    // the modules' settings files, read again when they change, so the core's declarations and
+    // cache periods follow what the pools now run (PLAN.md decision 65)
+    let settings_watcher = {
+        let orchestrator = hooks_orchestrator.clone();
+        let manifests = app.registry().manifests();
+        let overlay = overlay.clone();
+        let files = ace_sdk::overlay::settings_files(&overlay);
+        let stop = stop.clone();
+        tokio::spawn(async move {
+            crate::pools::on_settings_change(files, stop, &|files| match overlay
+                .components(&manifests)
+            {
+                Ok(components) => {
+                    orchestrator.replace_catalog(Catalog::of(components));
+                    tracing::info!(
+                        ?files,
+                        "a settings file changed; the core's catalog is made again with it"
+                    );
+                }
+                Err(e) => tracing::error!(
+                    ?files,
+                    "a settings file changed and the overlay's components don't load, so the \
+                         catalog running stays: {e}"
+                ),
+            })
+            .await
+        })
+    };
     let hook_runner = tokio::spawn(ace_core::hooks::run_worker(
         hooks_orchestrator,
         ace_core::hooks::hooks_worker(db.clone()),
@@ -444,6 +485,19 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .is_err()
     {
         tracing::warn!("the QA recorder didn't stop within 5 seconds");
+    }
+    if let Some(watcher) = rules_watcher
+        && tokio::time::timeout(Duration::from_secs(5), watcher)
+            .await
+            .is_err()
+    {
+        tracing::warn!("the rules file's watcher didn't stop within 5 seconds");
+    }
+    if tokio::time::timeout(Duration::from_secs(5), settings_watcher)
+        .await
+        .is_err()
+    {
+        tracing::warn!("the settings files' watcher didn't stop within 5 seconds");
     }
     if tokio::time::timeout(Duration::from_secs(5), hook_runner)
         .await

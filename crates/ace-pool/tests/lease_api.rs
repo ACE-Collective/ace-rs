@@ -3464,6 +3464,8 @@ async fn a_scan_runs_between_a_tasks_two_runs() {
     assert_eq!(scan.scanner, "js-deobfuscator");
     assert_eq!(scan.timeout_seconds, 30);
     assert!(scan.deadline_seconds > 29.0 && scan.deadline_seconds <= 30.0);
+    // the module asked for no proxy (PLAN.md decision 64)
+    assert!(!scan.proxy);
     let [input] = &scan.inputs[..] else {
         panic!("one input: {:?}", scan.inputs);
     };
@@ -3536,6 +3538,7 @@ async fn a_scan_runs_between_a_tasks_two_runs() {
                     size: archive.len() as u64,
                 }),
                 image_id: None,
+                proxied: Some("http://proxy.example.com:3128".to_owned()),
             },
         )
         .await
@@ -3557,13 +3560,21 @@ async fn a_scan_runs_between_a_tasks_two_runs() {
     );
     assert_eq!(result.analyzed.tags, ["js"]);
     let db = core.test_db.db();
-    let stored: (String, i64) =
-        sqlx::query_as("SELECT state::text, output_size FROM queue.scans WHERE id = $1")
+    let stored: (String, i64, Option<String>) =
+        sqlx::query_as("SELECT state::text, output_size, proxied FROM queue.scans WHERE id = $1")
             .bind(scan.id)
             .fetch_one(db.pool())
             .await
             .expect("the scan");
-    assert_eq!(stored, ("completed".to_owned(), archive.len() as i64));
+    assert_eq!(
+        stored,
+        (
+            "completed".to_owned(),
+            archive.len() as i64,
+            // the route the pool reported, which the module's next run reads (`Scan::proxied`)
+            Some("http://proxy.example.com:3128".to_owned())
+        )
+    );
     // the archive is the root's, held as its files are
     let holds: Vec<(String, String)> = sqlx::query_as(
         "SELECT holder_kind, holder_id FROM store.holds WHERE pool = $1 AND sha256 = $2",
@@ -3619,6 +3630,7 @@ async fn a_scan_ends_at_a_cancellation_and_at_a_lost_lease() {
                 outcome: ace_sdk::scanners::ScanOutcome::Cancelled,
                 output: None,
                 image_id: None,
+                proxied: None,
             },
         )
         .await
@@ -3667,6 +3679,7 @@ async fn a_scan_ends_at_a_cancellation_and_at_a_lost_lease() {
                 outcome: ace_sdk::scanners::ScanOutcome::Completed { exit_code: 0 },
                 output: None,
                 image_id: None,
+                proxied: None,
             },
         )
         .await;

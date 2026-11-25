@@ -109,8 +109,15 @@ impl Retryable for QueueError {
     }
 }
 
-/// How many times a task may be claimed without finishing before it fails.
+/// How many times a task may be claimed without finishing, or end with its peer unavailable
+/// (`Worker::retry_later`), before it fails.
 pub const DEFAULT_MAX_ATTEMPTS: i32 = 3;
+
+/// How long a task whose peer was unavailable waits before its next attempt (`Worker::retry_later`),
+/// doubled for each attempt it has had.
+pub const RETRY_AFTER_UNAVAILABLE: Duration = Duration::from_secs(30);
+/// The longest such a wait gets.
+pub const RETRY_AFTER_UNAVAILABLE_MAX: Duration = Duration::from_secs(600);
 
 /// Queues a task unless the root already has one for this observable and module. Returns its
 /// id when it was queued. A file's sha256 is recorded as the task's input.
@@ -1000,6 +1007,80 @@ impl Worker {
     /// Ends a task the worker owns: the module failed. A failed task isn't claimed again.
     pub async fn fail(&self, task: TaskId, error: &str) -> Result<(), QueueError> {
         self.finish(task, TaskState::Failed, Some(error)).await
+    }
+
+    /// Ends a task the worker owns whose module's peer was unavailable (`ModuleError::Unavailable`):
+    /// while it has attempts left (`max_attempts`), it goes back to the queue after
+    /// `RETRY_AFTER_UNAVAILABLE`, doubled for each attempt it has had, at most
+    /// `RETRY_AFTER_UNAVAILABLE_MAX`, with `error` as its last; on its last attempt it fails, as
+    /// `fail` does. A delayed task keeps its delay's state, so its next run takes up the same step.
+    /// Returns when it runs again, or None when it failed.
+    pub async fn retry_later(
+        &self,
+        task: TaskId,
+        error: &str,
+    ) -> Result<Option<DateTime<Utc>>, QueueError> {
+        let requeued = self
+            .db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    let (root, pass) = self.lock_task_root_in_pass(tx, task).await?;
+                    // the run ends here, as at a task's end (`finish_in`)
+                    let row = sqlx::query!(
+                        r#"UPDATE queue.tasks
+                               SET state = CASE WHEN cancel_requested
+                                                THEN 'cancelled'::queue.task_state
+                                                ELSE 'queued'::queue.task_state END,
+                                   run_after = now() + make_interval(secs => LEAST(
+                                       $4 * power(2, GREATEST(attempts - 1, 0)), $5)),
+                                   error = $3, lease_owner = NULL, lease_expires_at = NULL,
+                                   updated_at = now(),
+                                   run_seconds = CASE WHEN run_pass = $6 THEN run_seconds ELSE 0 END
+                                       + GREATEST(COALESCE(
+                                           EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),
+                                   runs = CASE WHEN run_pass = $6 THEN runs ELSE 0 END + 1,
+                                   run_pass = $6
+                               WHERE id = $1 AND lease_owner = $2 AND state = 'running'
+                                 AND attempts < max_attempts
+                               RETURNING run_after, state AS "state: TaskState", module, attempts"#,
+                        task as TaskId,
+                        self.name,
+                        error,
+                        RETRY_AFTER_UNAVAILABLE.as_secs_f64(),
+                        RETRY_AFTER_UNAVAILABLE_MAX.as_secs_f64(),
+                        pass,
+                    )
+                    .fetch_optional(tx.conn())
+                    .await?;
+                    // a task whose root was cancelled while it ran ends cancelled, as a delay's does
+                    if row
+                        .as_ref()
+                        .is_some_and(|r| r.state == TaskState::Cancelled)
+                    {
+                        check_completion(tx, root).await?;
+                    }
+                    Ok::<_, QueueError>(row)
+                })
+            })
+            .await?;
+        match requeued {
+            Some(row) if row.state == TaskState::Queued => {
+                tracing::info!(
+                    task = task.0,
+                    module = %row.module,
+                    attempt = row.attempts,
+                    run_after = %row.run_after,
+                    "a task whose peer was unavailable goes back to the queue: {error}"
+                );
+                Ok(Some(row.run_after))
+            }
+            Some(_) => Ok(None),
+            // its last attempt, or a lease it lost, which `fail` reports
+            None => {
+                self.fail(task, error).await?;
+                Ok(None)
+            }
+        }
     }
 
     /// Ends a task the worker owns: the module stopped because the task was cancelled.

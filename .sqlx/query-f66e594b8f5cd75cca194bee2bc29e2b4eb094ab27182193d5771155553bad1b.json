@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, scanner, state AS \"state: ScanRowState\", exit_code, error, output_sha256,\n                  output_size\n           FROM queue.scans WHERE task_id = $1 ORDER BY id DESC LIMIT 1",
+  "query": "SELECT id, scanner, state AS \"state: ScanRowState\", exit_code, error, output_sha256,\n                  output_size, proxied\n           FROM queue.scans WHERE task_id = $1 ORDER BY id DESC LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -94,6 +94,17 @@
             "name": "output_size"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "proxied",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "proxied"
+          }
+        }
       }
     ],
     "parameters": {
@@ -108,8 +119,9 @@
       true,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "50ee4630478cd0503e9b4169c89ea66430c602eef506c58b2fd21fb0db46d398"
+  "hash": "f66e594b8f5cd75cca194bee2bc29e2b4eb094ab27182193d5771155553bad1b"
 }

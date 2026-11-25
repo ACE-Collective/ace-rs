@@ -10,6 +10,10 @@
 //!   # ace3's etc/observable_modifier_rules.yaml, in its own schema. ace3 ships it enabled with no rules,
 //!   # which does nothing, as no section does here.
 //!   observable_modifier:
+//!     # ace3's `rules_config_path`: a file of rules, `rules:` at its top, which the core reads when it
+//!     # starts and again whenever its contents change, as ace3 watches its file
+//!     rules_file: /signatures/analyst_data/observable_modifier_rules.yaml
+//!     # rules written here, which come before the file's
 //!     rules:
 //!       - name: suspicious html
 //!         uuid: 7d8ba9a0-0b6e-4d47-9e4a-2f0d6d5a3c11
@@ -17,11 +21,12 @@
 //!         actions: {add_tags: [html], add_detection_points: ["an html file"]}
 //! ```
 //!
-//! Each level refuses keys it doesn't know, as the rest of the overlay does. The core compiles and checks
-//! the rules when it starts (`ace_core::hooks::Hooks::from_section`), so a rule ace3 would log and skip, one
-//! with no uuid, an unknown phase or scope, or a pattern that doesn't compile, stops startup here. A module
-//! is named as ace-rs names it, by its key (`archive`, `email_analyzer`), where ace3's rules name a Python
-//! path (`saq.modules.archive:ArchiveAnalyzer`).
+//! Each level refuses keys it doesn't know, as the rest of the overlay does, except a rule's: each rule
+//! is read on its own (`ModifierSection::parsed`), and the core compiles them
+//! (`ace_core::hooks::rules::Rules::compile`), so one ace3 would log and skip (no uuid, an unknown phase,
+//! key or scope, a pattern that doesn't compile) is logged at ERROR and skipped, and the others run, as
+//! in ace3. A module is named as ace-rs names it, by its key (`archive`, `email_analyzer`), where ace3's
+//! rules name a Python path (`saq.modules.archive:ArchiveAnalyzer`).
 
 use std::collections::BTreeMap;
 
@@ -43,11 +48,49 @@ pub struct TaggingSection {
     pub tags: BTreeMap<String, String>,
 }
 
-/// ace3's observable modifier rules file.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+/// ace3's observable modifier rules: written here, or in a file, or both.
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct ModifierSection {
-    pub rules: Vec<ModifierRule>,
+    /// Each rule as it's written, read into a `ModifierRule` on its own (`parsed`), so one that doesn't
+    /// read is skipped rather than refusing the overlay.
+    pub rules: Vec<serde_norway::Value>,
+    /// ace3's `rules_config_path`: a YAML file whose `rules:` follow these.
+    pub rules_file: Option<String>,
+}
+
+impl ModifierSection {
+    /// Each rule read as a `ModifierRule`, or why it doesn't read, with the path of the key at fault.
+    pub fn parsed(&self) -> Vec<Result<ModifierRule, String>> {
+        self.rules.iter().map(parse_rule).collect()
+    }
+}
+
+/// The most bytes a rules file may hold.
+pub const MAX_RULES_FILE_BYTES: u64 = 4 << 20;
+
+/// One rule as it's written, read as a `ModifierRule`, or why not.
+pub fn parse_rule(value: &serde_norway::Value) -> Result<ModifierRule, String> {
+    serde_path_to_error::deserialize(value.clone()).map_err(|e| {
+        let at = e.path().to_string();
+        if at.is_empty() || at == "." {
+            e.inner().to_string()
+        } else {
+            format!("{at}: {}", e.inner())
+        }
+    })
+}
+
+/// A rules file's text as its rules, each as it's written: what is under `rules:` at its top. Other
+/// top-level keys are ignored, as ace3 reads only `rules`; a file with none has no rules.
+pub fn rules_of_file(text: &str) -> Result<Vec<serde_norway::Value>, String> {
+    let doc: serde_norway::Value =
+        serde_norway::from_str(text).map_err(|e| format!("not YAML: {e}"))?;
+    match doc.get("rules") {
+        None | Some(serde_norway::Value::Null) => Ok(Vec::new()),
+        Some(serde_norway::Value::Sequence(rules)) => Ok(rules.clone()),
+        Some(_) => Err("`rules` isn't a list".to_owned()),
+    }
 }
 
 /// When a rule runs: `pre` as each observable joins the tree, before anything analyzes it; `post` once

@@ -62,6 +62,7 @@ pub mod serve_ai;
 mod signatures;
 mod svs;
 mod task;
+mod types_file;
 mod user;
 mod yara;
 
@@ -1092,6 +1093,7 @@ impl App {
         if let Err(code) = self.install_types() {
             return code;
         }
+        types_file::watch();
         if let Err(wrong) = self.check_modes() {
             eprintln!("the binary's list: {wrong}");
             return ExitCode::from(2);
@@ -1108,6 +1110,15 @@ impl App {
     pub fn pool_main(self, pool: &str) -> ExitCode {
         if let Err(code) = self.install_types() {
             return code;
+        }
+        // a lookup pool contains itself, and a parser pool's task and command processes are
+        // contained: they watch the types file after, or not at all
+        let contained = self.lookup_pools.iter().any(|p| p.name == pool)
+            || std::env::args()
+                .nth(1)
+                .is_some_and(|a| a == "task" || a == "command");
+        if !contained {
+            types_file::watch();
         }
         if let Some(parsers) = self.parser_pools.iter().find(|p| p.name == pool) {
             return pools::parser_main(parsers);
@@ -1129,6 +1140,9 @@ impl App {
             eprintln!("the binary's observable types: {e}");
             ExitCode::from(2)
         })?;
+        // a site's types file over the binary's (PLAN.md decision 66), read before anything else;
+        // a process that contains itself reads it again only once it's contained (`types_file`)
+        types_file::start();
         ace_results::install_roles(&self.file_roles).map_err(|e| {
             eprintln!("the binary's file roles: {e}");
             ExitCode::from(2)
@@ -1529,7 +1543,7 @@ impl App {
             }
         }
         if let Some(rules) = hooks.rules() {
-            for (rule, names) in ace_core::hooks::rules::limited_to(rules) {
+            for (rule, names) in ace_core::hooks::rules::limited_to(&rules) {
                 for name in names.into_iter().filter(|n| !known(n)) {
                     unknown.push(format!(
                         "the overlay's hooks.observable_modifier rule {rule:?} limits analysis to {name}, which this binary hasn't"
@@ -1858,8 +1872,7 @@ mod tests {
         let components = overlay
             .components(&app.registry().manifests())
             .expect("components");
-        let hooks =
-            ace_core::hooks::Hooks::from_section(&overlay.hooks).expect("the rules compile");
+        let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks);
         assert_eq!(
             app.unknown_limits(&components, &hooks),
             [

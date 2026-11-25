@@ -11,10 +11,14 @@
 //! gave it. The next run reads the output.
 //!
 //! What differs from ace3:
-//! - Proxies aren't carried over: ace3's `proxy` setting names a proxy configuration with its
-//!   credentials, which ace-rs doesn't have yet, and its manager parses the scanner's `requests.json` to
-//!   decide whether to try again without the proxy, which here would be this module's next run. With no
-//!   proxy, ace3's manager runs the scanner once and writes `proxy.json` as this module makes it.
+//! - The proxy (PLAN.md decision 64): ace3's `proxy` names a proxy configuration its manager holds;
+//!   here `proxy: true` asks for the scanner pool's, `ACE_RS_PHISHKIT_PROXY`, which the pool adds as
+//!   the scanner's `--proxy`, so its credentials never reach the module or a row. ace3's manager
+//!   reads the scanner's `requests.json` to decide whether to try again without the proxy; the pool
+//!   reads nothing a scanner writes, so here this module decides on its next run, with ace3's rule
+//!   (`fallback_reason`) and `phishkit_config.yaml`'s `proxy_fallback`, which are its settings, and
+//!   asks for a direct scan of the same job. `proxy_status` is what ace3's `proxy.json` says, and
+//!   the stdout holds both attempts, as ace3's does.
 //! - The manager's `--config` is a copy of `etc/phishkit_config.yaml`; here the scanner reads the copy
 //!   its image was built with, `/opt/app/phishkit_config.yaml`, which is the same file. An analyst's edit
 //!   to it reaches the scanner when the image is built again. `deny_crawl_url_patterns`, the one part
@@ -104,8 +108,20 @@ pub struct PhishkitSettings {
     pub valid_mime_types: Vec<String>,
     /// How long the scanner may run, in seconds.
     pub scanner_timeout: u32,
-    /// `proxy_fallback_to_direct`, which `proxy_status` reports.
+    /// ace3's `proxy`: scan through the scanner pool's proxy (`ACE_RS_PHISHKIT_PROXY`), when the
+    /// pool has one. ace3 ships none.
+    pub proxy: bool,
+    /// `proxy_fallback_to_direct`: retry a proxied scan direct when the proxy kept the page from
+    /// loading.
     pub proxy_fallback_to_direct: bool,
+    /// `phishkit_config.yaml`'s `proxy_fallback.error_patterns`: Chrome's errors that mean the
+    /// proxy refused the page itself.
+    pub proxy_error_patterns: Vec<String>,
+    /// `proxy_fallback.proxy_status_codes`: the main page's status codes that mean the proxy refused
+    /// it.
+    pub proxy_status_codes: Vec<i64>,
+    /// `proxy_fallback.retry_on_timeout`: a proxied scan that timed out is retried direct.
+    pub proxy_retry_on_timeout: bool,
     /// URLs it won't load: any that contains one of these, ignoring case, as
     /// `etc/phishkit_config.yaml`'s `deny_crawl_url_patterns`.
     pub deny_crawl_url_patterns: Vec<String>,
@@ -118,7 +134,18 @@ impl Default for PhishkitSettings {
             valid_file_extensions: vec![".html".to_owned(), ".htm".to_owned(), ".pdf".to_owned()],
             valid_mime_types: vec!["text/html".to_owned(), "application/pdf".to_owned()],
             scanner_timeout: 30,
+            proxy: false,
             proxy_fallback_to_direct: true,
+            proxy_error_patterns: [
+                "ERR_TUNNEL_CONNECTION_FAILED",
+                "ERR_PROXY_CONNECTION_FAILED",
+                "ERR_PROXY_AUTH_FAILED",
+                "ERR_PROXY_CERTIFICATE_INVALID",
+            ]
+            .map(str::to_owned)
+            .to_vec(),
+            proxy_status_codes: vec![400, 403, 407, 500, 502, 504, 522],
+            proxy_retry_on_timeout: true,
             deny_crawl_url_patterns: Vec::new(),
         }
     }
@@ -129,7 +156,25 @@ impl Default for PhishkitSettings {
 struct Waiting {
     job: String,
     scan_type: String,
+    /// Set on the direct scan that retries a proxied one.
+    #[serde(default)]
+    fallback: Option<Fallback>,
 }
+
+/// Why a proxied scan was retried direct, and what it said, for `proxy_status` and the stdout.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Fallback {
+    reason: String,
+    details: Value,
+    /// The proxy, without its credentials, as the pool reported it.
+    proxy: String,
+    timed_out: bool,
+    /// The proxied attempt's stdout, at most `MAX_PROXY_STDOUT` bytes.
+    stdout: String,
+}
+
+/// The most of a proxied attempt's stdout kept beside the direct one's.
+const MAX_PROXY_STDOUT: usize = 64 * 1024;
 
 /// The phishkit_analyzer module.
 pub struct PhishkitAnalyzer {
@@ -213,7 +258,7 @@ impl Parser for PhishkitAnalyzer {
         }
         match (ctx.scan(), ctx.delay_state::<Waiting>()?) {
             (Some(_), Some(waiting)) => self.finish(ctx, &waiting),
-            _ => start(ctx),
+            _ => start(ctx, ctx.settings().proxy, None),
         }
     }
 }
@@ -300,8 +345,13 @@ fn py_str(observable: &Observable) -> String {
     }
 }
 
-/// The first run: the scan, as the manager's `scan_url` and `scan_file` run the scanner.
-fn start(ctx: &TaskContext<PhishkitSettings>) -> Result<Outcome<PhishkitAnalysis>, ModuleError> {
+/// The first run: the scan, as the manager's `scan_url` and `scan_file` run the scanner, through the
+/// pool's proxy when `proxied`. A direct retry of a proxied scan (`fallback`) scans the same job again.
+fn start(
+    ctx: &TaskContext<PhishkitSettings>,
+    proxied: bool,
+    fallback: Option<Fallback>,
+) -> Result<Outcome<PhishkitAnalysis>, ModuleError> {
     let observable = ctx.observable();
     let settings = ctx.settings();
     let job = crate::job_id(ctx, PhishkitAnalysis::MODULE);
@@ -333,12 +383,16 @@ fn start(ctx: &TaskContext<PhishkitSettings>) -> Result<Outcome<PhishkitAnalysis
     request = request
         .arg("--output-dir")
         .arg(format!("{}/{job}", PHISHKIT.output_dir));
+    if proxied {
+        request = request.through_proxy();
+    }
     // `delay_analysis(timeout_seconds=max(scanner_timeout, 60) * 2 + 30)`
     let wait = Duration::from_secs(u64::from(settings.scanner_timeout.max(60)) * 2 + 30);
     let delay = Delay::new(wait, wait + Duration::from_secs(1))
         .with_state(&Waiting {
             job,
             scan_type: scan_type.to_owned(),
+            fallback,
         })?
         .with_scan(request);
     Ok(Outcome::Delay(delay))
@@ -421,6 +475,53 @@ impl PhishkitAnalyzer {
             });
         let stdout = text(&output.stdout);
         let stderr = text(&output.stderr);
+        // ace3's manager retries a proxied scan direct when the proxy kept the page from loading
+        let settings = ctx.settings();
+        if waiting.fallback.is_none()
+            && settings.proxy_fallback_to_direct
+            && let Some(proxy) = &scan.proxied
+            && let Some((reason, details)) =
+                fallback_reason(settings, scan.state, &output, &stdout, &stderr)
+        {
+            tracing::warn!(
+                job = %waiting.job,
+                %reason,
+                failed_url = ?details.get("failed_url"),
+                "the proxied phishkit scan failed through the proxy; scanning it again direct"
+            );
+            let mut kept = stdout.clone();
+            if kept.len() > MAX_PROXY_STDOUT {
+                let mut at = MAX_PROXY_STDOUT;
+                while !kept.is_char_boundary(at) {
+                    at -= 1;
+                }
+                kept.truncate(at);
+            }
+            return start(
+                ctx,
+                false,
+                Some(Fallback {
+                    reason,
+                    details,
+                    proxy: proxy.clone(),
+                    timed_out: scan.state == ScanState::TimedOut,
+                    stdout: kept,
+                }),
+            );
+        }
+        // ace3's std.out after a retry: both attempts
+        let stdout = match &waiting.fallback {
+            Some(fallback) => format!(
+                "--- PROXY ATTEMPT ({}, retried direct) ---\n{}\n--- DIRECT ATTEMPT ---\n{stdout}",
+                if fallback.timed_out {
+                    "timed out"
+                } else {
+                    "failed"
+                },
+                fallback.stdout
+            ),
+            None => stdout,
+        };
         let exit_code = scan.exit_code.map(i64::from);
         // scan_url raises when the scanner failed and left nothing to harvest
         if waiting.scan_type == SCAN_TYPE_URL
@@ -453,15 +554,24 @@ impl PhishkitAnalyzer {
         details.exit_code = exit_code;
         details.stdout = Some(stdout);
         details.stderr = Some(stderr);
-        // what the manager writes to proxy.json with no proxy
+        // what the manager writes to proxy.json: the proxy is configured when the pool had one for
+        // the first attempt
+        let fallback = waiting.fallback.as_ref();
+        let proxy = fallback
+            .map(|f| f.proxy.clone())
+            .or_else(|| ctx.scan().and_then(|s| s.proxied.clone()));
         details.proxy_status = Some(json!({
-            "configured": false,
-            "host": null,
+            "configured": proxy.is_some(),
+            "host": proxy,
             "fallback_enabled": ctx.settings().proxy_fallback_to_direct,
-            "fallback_triggered": false,
-            "fallback_reason": null,
-            "fallback_details": {},
-            "final_route": "none",
+            "fallback_triggered": fallback.is_some(),
+            "fallback_reason": fallback.map(|f| f.reason.clone()),
+            "fallback_details": fallback.map_or_else(|| json!({}), |f| f.details.clone()),
+            "final_route": match (fallback, &proxy) {
+                (Some(_), _) => "direct",
+                (None, Some(_)) => "proxy",
+                (None, None) => "none",
+            },
         }));
         let skip_screenshot_ocr = top_level_content_type(output)
             .is_some_and(|t| OCR_SKIP_CONTENT_TYPES.contains(&t.as_str()));
@@ -631,6 +741,131 @@ fn requests(output: &ScanOutput) -> Option<Value> {
     crate::json_loads(&text)
 }
 
+/// ace3's manager's reasons to retry a proxied scan direct, in its order: a timeout, when
+/// `proxy_retry_on_timeout`; else a main-frame navigation that failed with one of the proxy's errors
+/// (`_proxy_navigation_failure`); else a main page answered with one of the proxy's status codes
+/// (`_matched_proxy_status_code`). The reason and its details, or None.
+fn fallback_reason(
+    settings: &PhishkitSettings,
+    state: ScanState,
+    output: &ScanOutput,
+    stdout: &str,
+    stderr: &str,
+) -> Option<(String, Value)> {
+    if state == ScanState::TimedOut {
+        return settings
+            .proxy_retry_on_timeout
+            .then(|| ("timeout".to_owned(), json!({})));
+    }
+    let requests = requests(output);
+    if let Some(details) = navigation_failure(
+        requests.as_ref(),
+        stdout,
+        stderr,
+        &settings.proxy_error_patterns,
+    ) {
+        return Some(("error_pattern".to_owned(), details));
+    }
+    let code = main_status(requests.as_ref(), &settings.proxy_status_codes)?;
+    Some((
+        "status_code".to_owned(),
+        json!({ "matched_status_code": code }),
+    ))
+}
+
+/// `_proxy_navigation_failure`: the failed navigation of the main frame, the frame of the first
+/// Document request, whose error is one of `patterns`, with the patterns it matched and its URL.
+/// Without a `requests.json` that records resource types, stdout and stderr are matched instead.
+fn navigation_failure(
+    requests: Option<&Value>,
+    stdout: &str,
+    stderr: &str,
+    patterns: &[String],
+) -> Option<Value> {
+    if patterns.is_empty() {
+        return None;
+    }
+    let entries = requests.and_then(Value::as_array).filter(|entries| {
+        entries.iter().any(|e| {
+            e.get("type").and_then(Value::as_str) == Some("request")
+                && e.get("resource_type").is_some()
+        })
+    });
+    let Some(entries) = entries else {
+        let combined = format!("{stdout}{stderr}");
+        let matched: Vec<&String> = patterns
+            .iter()
+            .filter(|p| combined.contains(p.as_str()))
+            .collect();
+        return (!matched.is_empty()).then(|| json!({ "matched_error_patterns": matched }));
+    };
+    let mut main_frame: Option<&Value> = None;
+    let mut navigations: Vec<(&Value, &Value)> = Vec::new();
+    for e in entries {
+        if e.get("type").and_then(Value::as_str) == Some("request")
+            && e.get("resource_type").and_then(Value::as_str) == Some("Document")
+        {
+            let frame = e.get("frame_id").unwrap_or(&Value::Null);
+            if main_frame.is_none() {
+                main_frame = Some(frame);
+            }
+            let id = e.get("requestId").unwrap_or(&Value::Null);
+            // a later request with the same id replaces the first, as ace3's dict does
+            navigations.retain(|(known, _)| *known != id);
+            navigations.push((id, e));
+        }
+    }
+    for e in entries {
+        if e.get("type").and_then(Value::as_str) != Some("error") {
+            continue;
+        }
+        let error_text = e.get("error_text").and_then(Value::as_str).unwrap_or("");
+        let matched: Vec<&String> = patterns
+            .iter()
+            .filter(|p| error_text.contains(p.as_str()))
+            .collect();
+        if matched.is_empty() {
+            continue;
+        }
+        let id = e.get("requestId").unwrap_or(&Value::Null);
+        let Some((_, navigation)) = navigations.iter().find(|(known, _)| *known == id) else {
+            continue;
+        };
+        if Some(navigation.get("frame_id").unwrap_or(&Value::Null)) != main_frame {
+            continue;
+        }
+        let failed_url = e
+            .get("url")
+            .filter(|u| truthy(u))
+            .or_else(|| navigation.get("url"))
+            .cloned()
+            .unwrap_or(Value::Null);
+        return Some(json!({ "matched_error_patterns": matched, "failed_url": failed_url }));
+    }
+    None
+}
+
+/// `_matched_proxy_status_code`: the first response's status code, when it's one of `codes`.
+fn main_status(requests: Option<&Value>, codes: &[i64]) -> Option<i64> {
+    if codes.is_empty() {
+        return None;
+    }
+    let first = requests?
+        .as_array()?
+        .iter()
+        .find(|e| e.get("type").and_then(Value::as_str) == Some("response"))?;
+    let code = first.get("status_code").and_then(Value::as_i64)?;
+    codes.contains(&code).then_some(code)
+}
+
+/// Python's `urlparse(url).netloc`: what follows `//` up to the path, query or fragment, or None
+/// when it's empty.
+fn netloc(url: &str) -> Option<&str> {
+    let rest = url.split_once("//")?.1;
+    let end = rest.find(['/', '?', '#']).unwrap_or(rest.len());
+    Some(&rest[..end]).filter(|n| !n.is_empty())
+}
+
 /// The MARKER URL lines of the bodies corpus.
 fn marker_urls(output: &ScanOutput, scanned: Option<&str>, urls: &mut Urls) {
     let Some(bodies) = output.at(RESPONSE_BODIES_NAME) else {
@@ -790,7 +1025,6 @@ pub fn summary(details: &PhishkitAnalysis, error: Option<&str>) -> String {
             bytes / (1024.0 * 1024.0)
         ));
     }
-    // ace3 also names the page a proxy refused; with no proxy, nothing here is reached
     if let Some(status) = details
         .proxy_status
         .as_ref()
@@ -800,11 +1034,21 @@ pub fn summary(details: &PhishkitAnalysis, error: Option<&str>) -> String {
         match status.get("final_route").and_then(Value::as_str) {
             Some("proxy") => summary.push_str(" - fetched via proxy"),
             Some("direct") if status.get("configured").is_some_and(truthy) => {
-                let reason = status
+                let mut reason = status
                     .get("fallback_reason")
                     .filter(|r| truthy(r))
                     .and_then(Value::as_str)
-                    .unwrap_or("unknown");
+                    .unwrap_or("unknown")
+                    .to_owned();
+                // the page the proxy refused, when it's known
+                if let Some(failed) = status
+                    .get("fallback_details")
+                    .and_then(|d| d.get("failed_url"))
+                    .and_then(Value::as_str)
+                    .filter(|u| !u.is_empty())
+                {
+                    reason = format!("{reason}: {}", netloc(failed).unwrap_or(failed));
+                }
                 summary.push_str(&format!(" - proxy failed ({reason}), fetched direct"));
             }
             _ => {}
@@ -816,6 +1060,51 @@ pub fn summary(details: &PhishkitAnalysis, error: Option<&str>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// ace3's other two reasons, and the fallback to the logs without a `requests.json` that
+    /// records resource types (`_matched_proxy_status_code`, `_proxy_navigation_failure`).
+    #[test]
+    fn a_proxied_scan_is_retried_as_ace3_s_manager_decides() {
+        let settings = PhishkitSettings::default();
+        let refused = json!([
+            {"type": "response", "requestId": "1", "status_code": 407},
+            {"type": "response", "requestId": "2", "status_code": 200},
+        ]);
+        assert_eq!(
+            main_status(Some(&refused), &settings.proxy_status_codes),
+            Some(407)
+        );
+        let loaded = json!([{"type": "response", "status_code": 200}]);
+        assert_eq!(
+            main_status(Some(&loaded), &settings.proxy_status_codes),
+            None
+        );
+        // no resource types: the logs say it
+        let untyped = json!([{"type": "request", "requestId": "1"}]);
+        assert_eq!(
+            navigation_failure(
+                Some(&untyped),
+                "net::ERR_PROXY_AUTH_FAILED",
+                "",
+                &settings.proxy_error_patterns
+            ),
+            Some(json!({"matched_error_patterns": ["ERR_PROXY_AUTH_FAILED"]}))
+        );
+        assert_eq!(
+            navigation_failure(None, "fine", "", &settings.proxy_error_patterns),
+            None
+        );
+        assert_eq!(
+            navigation_failure(None, "net::ERR_PROXY_AUTH_FAILED", "", &[]),
+            None,
+            "no patterns, no retry"
+        );
+        assert_eq!(
+            netloc("https://a.example:8443/x?y#z"),
+            Some("a.example:8443")
+        );
+        assert_eq!(netloc("not a url"), None);
+    }
 
     #[test]
     fn names_take_their_types_extension() {

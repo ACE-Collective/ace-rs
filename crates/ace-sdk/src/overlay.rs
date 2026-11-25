@@ -124,7 +124,9 @@
 //! A module with `instances` runs once per instance and not as itself, as each of ace3's
 //! `analysis_module_*` sections is one run of its class. An instance's name is its key: the
 //! name its tasks and results carry in the queue and the tree, and the name modes and groups
-//! list. It may narrow the module's inputs, and join module groups with `groups`.
+//! list. It may narrow the module's inputs, and join module groups with `groups`. With
+//! `exact_inputs: true` it takes only its inputs' own types, not the types that extend them, as
+//! ace3's `valid_observable_subtypes: false` does.
 
 use std::collections::BTreeMap;
 
@@ -1083,6 +1085,10 @@ impl std::fmt::Display for SecretSource {
 pub struct ModuleSection {
     /// The module's settings block, when it runs as itself.
     pub settings: Option<Value>,
+    /// A YAML file of settings whose top-level keys go over `settings`' (`with_settings_file`),
+    /// such as an analyst's file in a signatures checkout, which the core and the pools read again
+    /// when it changes, as ace3 watches its modules' config files (PLAN.md decision 65).
+    pub settings_file: Option<String>,
     /// Named instances, each a run of the module with its own inputs and settings.
     pub instances: BTreeMap<String, InstanceSection>,
     /// How long, in seconds, the module's results are kept in the analysis cache (ace3's
@@ -1109,7 +1115,13 @@ pub struct InstanceSection {
     /// The observable types the instance takes, each one the module takes. None takes the
     /// module's own.
     pub inputs: Option<Vec<ObservableKind>>,
+    /// True takes only the types `inputs` names, not a type that extends one, as ace3's
+    /// `valid_observable_subtypes: false` keeps an `fqdn` (which extends `hostname` in a site's
+    /// types file) from a module that searches by host name.
+    pub exact_inputs: bool,
     pub settings: Option<Value>,
+    /// The instance's settings file, as `ModuleSection::settings_file`.
+    pub settings_file: Option<String>,
     /// The module groups the instance joins, as a site's config adds a section to ace3's
     /// `module_group_*` lists, so the analysis modes that run a group run it. An instance named as
     /// one of ace3's modules is in that module's groups already.
@@ -1171,6 +1183,9 @@ pub struct Component {
     pub manifest: Manifest,
     /// The observable types it takes: the manifest's, or the instance's narrower list.
     pub inputs: Vec<ObservableKind>,
+    /// It takes only `inputs`' own types, not the types that extend them
+    /// (`InstanceSection::exact_inputs`).
+    pub exact_inputs: bool,
     /// Its settings block. None runs on the settings type's defaults.
     pub settings: Option<Value>,
     /// The module groups an instance joins (`InstanceSection::groups`).
@@ -1197,6 +1212,7 @@ impl Component {
             key: manifest.name.to_owned(),
             manifest,
             inputs: manifest.input_kinds(),
+            exact_inputs: false,
             settings: None,
             groups: Vec::new(),
             takes: manifest.declaration(None).unwrap_or_default(),
@@ -1223,6 +1239,7 @@ impl Component {
             key,
             manifest,
             inputs: manifest.input_kinds(),
+            exact_inputs: false,
             settings,
             groups: Vec::new(),
             takes,
@@ -1276,8 +1293,12 @@ impl Component {
         self
     }
 
-    /// True when it takes observables of `kind`, directly or through a parent type.
+    /// True when it takes observables of `kind`, directly or, unless `exact_inputs`, through a
+    /// parent type.
     pub fn accepts(&self, kind: ObservableKind) -> bool {
+        if self.exact_inputs {
+            return self.inputs.contains(&kind);
+        }
         self.inputs.iter().any(|&input| kind.is_subtype_of(input))
     }
 
@@ -1752,13 +1773,17 @@ impl Overlay {
                     manifest.connections,
                     &section.connections,
                 )?;
-                let settings = with_connections(
+                let settings = with_settings_file(
                     &path,
                     section.settings.clone(),
-                    manifest.connections,
-                    &bindings,
+                    section.settings_file.as_deref(),
+                    &|block| {
+                        let settings =
+                            with_connections(&path, block, manifest.connections, &bindings)?;
+                        check(path.clone(), settings.as_ref())?;
+                        Ok(settings)
+                    },
                 )?;
-                check(path.clone(), settings.as_ref())?;
                 components.push(
                     Component {
                         connections: bindings,
@@ -1807,13 +1832,17 @@ impl Overlay {
                     manifest.connections,
                     &uses,
                 )?;
-                let settings = with_connections(
+                let settings = with_settings_file(
                     &path,
                     instance.settings.clone(),
-                    manifest.connections,
-                    &bindings,
+                    instance.settings_file.as_deref(),
+                    &|block| {
+                        let settings =
+                            with_connections(&path, block, manifest.connections, &bindings)?;
+                        check(path.clone(), settings.as_ref())?;
+                        Ok(settings)
+                    },
                 )?;
-                check(path.clone(), settings.as_ref())?;
                 let inputs = match &instance.inputs {
                     None => manifest.input_kinds(),
                     Some(inputs) => {
@@ -1830,6 +1859,7 @@ impl Overlay {
                 components.push(
                     Component {
                         inputs,
+                        exact_inputs: instance.exact_inputs,
                         groups: instance.groups.clone(),
                         connections: bindings,
                         ..Component::with_settings(manifest, name.clone(), settings, path)?
@@ -1857,6 +1887,105 @@ impl Overlay {
         }
         Ok(components)
     }
+}
+
+/// The most bytes a settings file may hold.
+pub const MAX_SETTINGS_FILE_BYTES: u64 = 4 << 20;
+
+/// A settings file's text as a block: a YAML mapping, or why not.
+pub fn read_settings_file(path: &str) -> Result<serde_json::Map<String, Value>, String> {
+    use std::io::Read;
+    let file = std::fs::File::open(path).map_err(|e| format!("can't be read: {e}"))?;
+    let mut text = String::new();
+    file.take(MAX_SETTINGS_FILE_BYTES + 1)
+        .read_to_string(&mut text)
+        .map_err(|e| format!("can't be read: {e}"))?;
+    if text.len() as u64 > MAX_SETTINGS_FILE_BYTES {
+        return Err(format!("is over {MAX_SETTINGS_FILE_BYTES} bytes"));
+    }
+    match serde_norway::from_str::<Value>(&text) {
+        Ok(Value::Object(block)) => Ok(block),
+        Ok(Value::Null) => Ok(serde_json::Map::new()),
+        Ok(_) => Err("isn't a mapping of settings".to_owned()),
+        Err(e) => Err(format!("isn't YAML: {e}")),
+    }
+}
+
+/// A section's settings with its settings file's top-level keys over its own, made into the
+/// component's by `make` (its connections, its check). A file that can't be read, isn't a mapping,
+/// or whose settings `make` refuses is logged at ERROR and the section's own settings are used, as
+/// ace3 keeps running on a config file it can't load; only the section's own settings can stop the
+/// overlay.
+fn with_settings_file(
+    path: &str,
+    inline: Option<Value>,
+    file: Option<&str>,
+    make: &dyn Fn(Option<Value>) -> Result<Option<Value>, OverlayError>,
+) -> Result<Option<Value>, OverlayError> {
+    let Some(file) = file else {
+        return make(inline);
+    };
+    let merged = read_settings_file(file).and_then(|from_file| {
+        let mut block = match &inline {
+            Some(Value::Object(own)) => own.clone(),
+            Some(_) => return Err("the section's own settings aren't a mapping".to_owned()),
+            None => serde_json::Map::new(),
+        };
+        block.extend(from_file);
+        make(Some(Value::Object(block))).map_err(|e| format!("gives settings that don't load: {e}"))
+    });
+    match merged {
+        Ok(settings) => Ok(settings),
+        Err(why) => {
+            tracing::error!(
+                path,
+                file,
+                "a settings file {why}; the section's own settings are used"
+            );
+            make(inline)
+        }
+    }
+}
+
+/// ace3's `observable_types.yaml` as its `types:` entries, an empty entry as one with no fields
+/// (PLAN.md decision 66); other top-level keys are left alone.
+pub fn parse_types_file(text: &str) -> Result<BTreeMap<String, ace_results::FileType>, String> {
+    #[derive(Default, Deserialize)]
+    struct TypesFile {
+        #[serde(default)]
+        types: BTreeMap<String, Option<ace_results::FileType>>,
+    }
+    let file: TypesFile =
+        serde_norway::from_str(text).map_err(|e| format!("doesn't parse: {e}"))?;
+    Ok(file
+        .types
+        .into_iter()
+        .map(|(name, entry)| (name, entry.unwrap_or_default()))
+        .collect())
+}
+
+/// Every settings file the overlay's modules and instances name, for a process to read again when
+/// one changes (`Overlay::components`).
+pub fn settings_files(overlay: &Overlay) -> Vec<String> {
+    let mut files: Vec<String> = overlay
+        .modules
+        .values()
+        .flat_map(|section| {
+            section
+                .settings_file
+                .iter()
+                .chain(
+                    section
+                        .instances
+                        .values()
+                        .filter_map(|i| i.settings_file.as_ref()),
+                )
+                .cloned()
+        })
+        .collect();
+    files.sort();
+    files.dedup();
+    files
 }
 
 /// A module's own settings block with each binding's settings under its slot's key. Its own block
@@ -2385,6 +2514,17 @@ mod tests {
         assert_eq!(dkim.settings, Some(serde_json::json!({"delays": 1})));
         assert!(components[1].accepts(ObservableKind::Fqdn));
 
+        // ace3's valid_observable_subtypes: false; email_dkim_signing_domain extends fqdn
+        let exacts = super::tests::components(
+            "modules:\n  example_resolver:\n    instances:\n      exact:\n        inputs: [fqdn]\n        exact_inputs: true\n      any: {inputs: [fqdn]}\n",
+        )
+        .expect("loads");
+        let (any, exact) = (&exacts[1], &exacts[2]);
+        assert_eq!((any.key.as_str(), exact.key.as_str()), ("any", "exact"));
+        assert!(exact.accepts(ObservableKind::Fqdn));
+        assert!(!exact.accepts(ObservableKind::EmailDkimSigningDomain));
+        assert!(any.accepts(ObservableKind::EmailDkimSigningDomain));
+
         // an instance can't take what its module doesn't, or reuse a key
         let err = super::tests::components(
             "modules: {example_resolver: {instances: {a: {inputs: [file]}}}}",
@@ -2773,5 +2913,91 @@ mod tests {
         ) -> Result<crate::Outcome<Self::Output>, crate::ModuleError> {
             Ok(crate::Outcome::Skipped("a test".to_owned()))
         }
+    }
+
+    /// PLAN.md decision 65: a settings file's keys go over the section's own; a file that can't be
+    /// read, isn't a mapping, or whose settings the module refuses leaves the section's own, logged,
+    /// rather than stopping the overlay; an instance takes one too, and the overlay lists them all.
+    #[test]
+    fn a_settings_file_goes_over_the_section_s_own_settings() {
+        let dir = tempfile::tempdir().expect("a directory");
+        let file = dir.path().join("counter.yaml");
+        let max = |yaml: &str| -> Option<Value> {
+            let components = components(yaml).expect("components");
+            let counter = components
+                .iter()
+                .find(|c| c.key == "example_line_counter")
+                .expect("the counter");
+            counter
+                .settings
+                .as_ref()
+                .and_then(|s| s.get("max_bytes"))
+                .cloned()
+        };
+        let yaml = format!(
+            "modules: {{example_line_counter: {{settings: {{max_bytes: 3}}, settings_file: {}}}}}",
+            file.display()
+        );
+        assert_eq!(
+            max(&yaml),
+            Some(serde_json::json!(3)),
+            "no file yet: its own"
+        );
+        std::fs::write(&file, "max_bytes: 7\n").expect("written");
+        assert_eq!(max(&yaml), Some(serde_json::json!(7)), "the file's");
+        std::fs::write(&file, "max_byte: 7\n").expect("written");
+        assert_eq!(
+            max(&yaml),
+            Some(serde_json::json!(3)),
+            "refused by the module: its own"
+        );
+        std::fs::write(&file, "- not a mapping\n").expect("written");
+        assert_eq!(max(&yaml), Some(serde_json::json!(3)));
+        std::fs::write(&file, "max_bytes: [nope\n").expect("written");
+        assert_eq!(max(&yaml), Some(serde_json::json!(3)), "not YAML: its own");
+        // an instance's file
+        let instance_file = dir.path().join("resolver.yaml");
+        std::fs::write(&instance_file, "delays: 2\n").expect("written");
+        let yaml = format!(
+            "modules: {{example_resolver: {{instances: {{a: {{settings: {{delays: 1}}, settings_file: {}}}}}}}}}",
+            instance_file.display()
+        );
+        let components = components(&yaml).expect("components");
+        let a = components
+            .iter()
+            .find(|c| c.key == "a")
+            .expect("the instance");
+        assert_eq!(
+            a.settings.as_ref().and_then(|s| s.get("delays")),
+            Some(&serde_json::json!(2))
+        );
+        let overlay = Overlay::from_yaml(&yaml).expect("an overlay");
+        assert_eq!(
+            settings_files(&overlay),
+            [instance_file.display().to_string()]
+        );
+    }
+
+    /// ace3's `observable_types.yaml` reads as its `types:`, an empty entry as one with no fields,
+    /// and other keys are left alone (PLAN.md decision 66).
+    #[test]
+    fn ace3_s_types_file_reads_as_its_types() {
+        let types = parse_types_file(
+            "# ace3's own comments\nversion: 2\ntypes:\n  authentication_detail:\n    default_display_type: Auth Detail\n    description: an auth detail\n  email_from:\n    extends: email_address\n  bare:\n",
+        )
+        .expect("parses");
+        assert_eq!(types.len(), 3);
+        assert_eq!(
+            types["authentication_detail"]
+                .default_display_type
+                .as_deref(),
+            Some("Auth Detail")
+        );
+        assert_eq!(
+            types["email_from"].extends.as_deref(),
+            Some("email_address")
+        );
+        assert_eq!(types["bare"], ace_results::FileType::default());
+        assert!(parse_types_file("types: [nope").is_err());
     }
 }

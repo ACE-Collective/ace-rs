@@ -455,6 +455,9 @@ services:
       ACE_RS_PHISHKIT_IMAGE: ${ACE_RS_PHISHKIT_IMAGE:-ace-rs-phishkit:latest}
       ACE_RS_JS_DEOBFUSCATOR_IMAGE: ${ACE_RS_JS_DEOBFUSCATOR_IMAGE:-ace-rs-js-deobfuscator:latest}
       ACE_RS_PHISHKIT_NETWORK: ${ACE_RS_PHISHKIT_NETWORK:-}
+      # the proxy phishkit_analyzer's `proxy: true` sends scans through, as the scanner's --proxy
+      # (host:port, user:pass@host:port or a scheme's URL; PLAN.md decision 64); none when unset
+      ACE_RS_PHISHKIT_PROXY: ${ACE_RS_PHISHKIT_PROXY:-}
       ACE_RS_LOG: ${ACE_RS_LOG:-info}
       NO_PROXY: localhost,127.0.0.1,ace,bucket,collector
       no_proxy: localhost,127.0.0.1,ace,bucket,collector

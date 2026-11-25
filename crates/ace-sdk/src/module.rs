@@ -374,7 +374,9 @@ pub enum ModuleError {
     /// The task was cancelled.
     #[error("cancelled")]
     Cancelled,
-    /// A peer the module depends on couldn't be reached. The task can be tried again later.
+    /// A peer the module depends on couldn't be reached, or refused for now (throttling, 5xx). The
+    /// core runs the task again after a wait that doubles with each attempt, until its
+    /// `max_attempts`, and fails it after the last (`ace_core::queue::Worker::retry_later`).
     #[error("peer unavailable: {0}")]
     Unavailable(#[source] BoxError),
     #[error("secret {0:?} isn't declared in the module's SECRETS")]

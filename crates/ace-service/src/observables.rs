@@ -91,7 +91,7 @@ impl Service {
     pub async fn observable_types(
         &self,
         actor: &crate::Actor,
-    ) -> Result<&'static [ObservableKind], ServiceError> {
+    ) -> Result<std::sync::Arc<Vec<ObservableKind>>, ServiceError> {
         self.gate
             .read(actor, "observable_types", &OBSERVABLE_READ, &|_tx| {
                 Box::pin(async { Ok(ObservableKind::all()) })

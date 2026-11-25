@@ -76,6 +76,9 @@ pub struct ScannerPoolConfig {
     /// Each spec's image and network, by spec, after the environment's say.
     pub images: Vec<(String, String)>,
     pub networks: Vec<(String, String)>,
+    /// Each spec's proxy URL, credentials and all, for the specs that take one and whose variable
+    /// is set (`ScannerSpec::proxy`). It goes to the scanner as its argument and nowhere else.
+    pub proxies: Vec<(String, String)>,
 }
 
 impl ScannerPoolConfig {
@@ -108,6 +111,13 @@ impl ScannerPoolConfig {
                 (s.name.to_owned(), network)
             })
             .collect();
+        let proxies = specs
+            .iter()
+            .filter_map(|s| {
+                let url = env(s.proxy?.variable).filter(|v| !v.trim().is_empty())?;
+                Some((s.name.to_owned(), url.trim().to_owned()))
+            })
+            .collect();
         ScannerPoolConfig {
             stack: stack.to_owned(),
             host: host.to_owned(),
@@ -116,7 +126,25 @@ impl ScannerPoolConfig {
             concurrency: 4,
             images,
             networks,
+            proxies,
         }
+    }
+
+    /// The proxy a scan of `spec` goes through when it asks for one: its argument and URL.
+    fn proxy(&self, spec: &ScannerSpec) -> Option<(&'static str, &str)> {
+        let arg = spec.proxy?.arg;
+        self.proxies
+            .iter()
+            .find(|(name, _)| name == spec.name)
+            .map(|(_, url)| (arg, url.as_str()))
+    }
+
+    /// The proxy a scan goes through, without credentials, or None for direct.
+    fn proxied(&self, spec: &ScannerSpec, scan: &LeasedScan) -> Option<String> {
+        scan.proxy
+            .then(|| self.proxy(spec))
+            .flatten()
+            .map(|(_, url)| ace_sdk::scanners::proxy_for_display(url))
     }
 
     fn spec(&self, name: &str) -> Option<&ScannerSpec> {
@@ -440,6 +468,8 @@ fn failed(error: impl std::fmt::Display) -> ScanEnd {
         },
         output: None,
         image_id: None,
+        // a scan that failed before its container ran went nowhere
+        proxied: None,
     }
 }
 
@@ -525,6 +555,7 @@ async fn run_container(
                 outcome: ScanOutcome::Cancelled,
                 output: None,
                 image_id,
+                proxied: config.proxied(spec, scan),
             });
         }
         Stopped::Shutdown => {
@@ -573,6 +604,7 @@ async fn run_container(
         outcome,
         output: Some(record),
         image_id,
+        proxied: config.proxied(spec, scan),
     })
 }
 
@@ -596,6 +628,13 @@ fn create_body(
 ) -> serde_json::Value {
     let mut cmd: Vec<&str> = spec.command.to_vec();
     cmd.extend(scan.args.iter().map(String::as_str));
+    // the pool's proxy, which the request asked for and the core never saw: ace3's manager adds
+    // `--proxy` the same way
+    if scan.proxy
+        && let Some((arg, url)) = config.proxy(spec)
+    {
+        cmd.extend([arg, url]);
+    }
     let mut host = json!({
         "NetworkMode": config.network(spec.name),
         "Init": spec.init,
@@ -738,7 +777,50 @@ mod tests {
             timeout_seconds: 30,
             deadline_seconds: 30.0,
             lease_seconds: 60.0,
+            proxy: false,
         }
+    }
+
+    /// PLAN.md decision 64: the pool adds its proxy as phishkit's `--proxy` only for a scan that asks
+    /// for it, and reports it without its credentials; a scanner with no proxy setting never gets one.
+    #[test]
+    fn a_scan_that_asks_goes_through_the_pool_s_proxy() {
+        let config = ScannerPoolConfig::new(
+            "s",
+            "h",
+            ace_sdk::scanners::SCANNERS,
+            &env(&[(
+                "ACE_RS_PHISHKIT_PROXY",
+                "http://user:secret@proxy.example.com:3128",
+            )]),
+        );
+        let phishkit = config.spec("phishkit").expect("a spec");
+        let cmd = |scan: &LeasedScan| -> Vec<String> {
+            serde_json::from_value(create_body(&config, phishkit, scan, 0)["Cmd"].clone())
+                .expect("a command")
+        };
+        let mut asked = scan("phishkit", &["https://lure.example.net/"]);
+        asked.proxy = true;
+        let with = cmd(&asked);
+        assert_eq!(
+            with[with.len() - 2..],
+            ["--proxy", "http://user:secret@proxy.example.com:3128"]
+        );
+        assert_eq!(
+            config.proxied(phishkit, &asked).as_deref(),
+            Some("http://proxy.example.com:3128"),
+            "no credentials in what it reports"
+        );
+        let direct = scan("phishkit", &["https://lure.example.net/"]);
+        assert!(!cmd(&direct).iter().any(|a| a == "--proxy"));
+        assert_eq!(config.proxied(phishkit, &direct), None);
+        let js = config.spec("js-deobfuscator").expect("a spec");
+        let mut js_scan = scan("js-deobfuscator", &[]);
+        js_scan.proxy = true;
+        assert_eq!(config.proxied(js, &js_scan), None, "it takes no proxy");
+        // a pool without the variable sends it direct
+        let none = ScannerPoolConfig::new("s", "h", ace_sdk::scanners::SCANNERS, &env(&[]));
+        assert_eq!(none.proxied(phishkit, &asked), None);
     }
 
     /// PLAN.md 7.7: js-deobfuscator's container has no network, phishkit's has the memory and CPU

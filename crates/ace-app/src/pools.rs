@@ -57,7 +57,7 @@ use std::time::Duration;
 
 use ace_pool::client::LeaseClient;
 use ace_pool::commands::{CommandConfig, DEFAULT_CONCURRENCY};
-use ace_pool::modules::{Modules, Registry, StartError};
+use ace_pool::modules::{Modules, ModulesHandle, Registry, StartError};
 use ace_pool::pool::{AsyncPool, POOL_ADDRESS_SPACE, PoolDefinition};
 use ace_pool::rulesets::RulesetWatcher;
 use ace_pool::supervisor::{EXIT_SETUP, Supervisor, SupervisorConfig};
@@ -158,6 +158,90 @@ fn worker_name() -> String {
 
 /// How often the heartbeat is written. The healthcheck allows a few missed beats.
 const HEARTBEAT: Duration = Duration::from_secs(5);
+/// How often a pool reads its modules' settings files again (PLAN.md decision 65), as ace3 checks
+/// its watched files every few seconds.
+pub(crate) const SETTINGS_POLL: Duration = Duration::from_secs(10);
+
+/// The variable that lists, `:`-separated, the paths a lookup pool's sandbox may also read.
+pub const POOL_READ_PATHS: &str = "ACE_RS_POOL_READ_PATHS";
+
+/// `POOL_READ_PATHS`' paths: each absolute one, in order; a relative one is ignored, logged.
+fn read_paths(value: Option<&str>) -> Vec<PathBuf> {
+    value
+        .unwrap_or_default()
+        .split(':')
+        .filter(|p| !p.is_empty())
+        .filter_map(|p| {
+            let path = PathBuf::from(p);
+            if path.is_absolute() {
+                Some(path)
+            } else {
+                tracing::error!(
+                    path = p,
+                    "{POOL_READ_PATHS} names a relative path, which the pool won't read"
+                );
+                None
+            }
+        })
+        .collect()
+}
+
+/// What the overlay's settings files hold now: each file's bytes, or None when it can't be read. Each
+/// is a local file of at most `ace_sdk::overlay::MAX_SETTINGS_FILE_BYTES`, read in one call.
+fn settings_contents(files: &[String]) -> Vec<Option<Vec<u8>>> {
+    files.iter().map(|f| std::fs::read(f).ok()).collect()
+}
+
+/// Every `SETTINGS_POLL` until `stop`, reads the overlay's settings files and calls `changed` when
+/// their contents changed (PLAN.md decision 65): a pool builds its modules again, the core its
+/// catalog.
+pub(crate) async fn on_settings_change(
+    files: Vec<String>,
+    stop: CancellationToken,
+    changed: &(dyn Fn(&[String]) + Sync),
+) {
+    if files.is_empty() {
+        return;
+    }
+    tracing::info!(
+        ?files,
+        "reading these settings files again when they change"
+    );
+    let mut seen = settings_contents(&files);
+    loop {
+        tokio::select! {
+            () = stop.cancelled() => return,
+            () = tokio::time::sleep(SETTINGS_POLL) => {}
+        }
+        let now = settings_contents(&files);
+        if now != seen {
+            seen = now;
+            changed(&files);
+        }
+    }
+}
+
+/// `on_settings_change` for a pool: builds its modules again with `build`, which reads the files,
+/// and swaps them in for the tasks that start from then on. A build that fails keeps the modules
+/// running, logged at ERROR.
+async fn reload_settings(
+    handle: &ModulesHandle,
+    files: Vec<String>,
+    build: &(dyn Fn() -> Result<Modules, String> + Sync),
+    stop: CancellationToken,
+) {
+    on_settings_change(files, stop, &|files| match build() {
+        Ok(modules) => {
+            handle.replace(modules);
+            tracing::info!(?files, "a settings file changed; the pool's modules are built again with it");
+        }
+        Err(e) => tracing::error!(
+            ?files,
+            "a settings file changed and the pool's modules don't build with it, so the ones running stay: {e}"
+        ),
+    })
+    .await;
+}
 
 /// Writes the time to `path` every `HEARTBEAT` until `stop` fires, so a healthcheck can tell
 /// that the pool's runtime still runs.
@@ -333,14 +417,22 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
         None => None,
     };
     let with_rulesets = rulesets.as_ref().map(|(r, dir)| (*r, dir.as_path()));
-    let modules = match overlay(overlay_at.as_deref()).and_then(|overlay| {
+    let loaded = match overlay(overlay_at.as_deref()) {
+        Ok(overlay) => overlay,
+        Err(e) => {
+            eprintln!("setup failed: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let build = || {
         parser_modules(
             pool,
-            &overlay,
+            &loaded,
             with_rulesets,
             &ace_pool::secrets::process_env,
         )
-    }) {
+    };
+    let modules = match build() {
         Ok(modules) => modules,
         Err(e) => {
             eprintln!("setup failed: {e}");
@@ -355,7 +447,9 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    let modules = Arc::new(modules);
+    let handle = ModulesHandle::new(modules);
+    let modules = handle.now();
+    let settings_files = ace_sdk::overlay::settings_files(&loaded);
     let user_name = var("ACE_RS_TASK_USER", "ace-rs-task");
     let Some(user) = ace_pool::supervisor::user_ids(&user_name) else {
         eprintln!("no user {user_name} for task processes");
@@ -396,10 +490,10 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
         cache_probes,
     };
     let poll = Duration::from_secs(number("ACE_RS_RULESET_POLL_SECONDS", 30) as u64);
-    let watcher = rulesets.map(|(rulesets, dir)| {
+    let watcher = rulesets.clone().map(|(rulesets, dir)| {
         RulesetWatcher::new(client.clone(), dir, Arc::new(rulesets.check)).every(poll)
     });
-    let mut supervisor = Supervisor::new(client, modules, config);
+    let mut supervisor = Supervisor::new(client, handle.clone(), config);
     if pool.commands {
         let mut commands = CommandConfig::new(program, vec!["command".to_owned()], Some(user));
         commands.concurrency = number("ACE_RS_COMMAND_CONCURRENCY", DEFAULT_CONCURRENCY);
@@ -423,7 +517,11 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
                 tokio::spawn(async move { watcher.run(stopping).await }),
             ));
         }
-        let stats = supervisor.run(stop).await;
+        // the settings files are read again beside the tasks, in this task, until the stop
+        let (stats, ()) = tokio::join!(
+            supervisor.run(stop.clone()),
+            reload_settings(&handle, settings_files, &build, stop),
+        );
         tracing::info!(tasks = stats.tasks, errors = stats.errors, "stopped");
         join_all(handles).await;
         ExitCode::SUCCESS
@@ -519,20 +617,30 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
     // the modules, their secrets and the client before any thread starts, so containment can
     // follow
     let built = overlay(overlay_path().as_deref()).and_then(|overlay| {
-        let modules = modules(
+        let components = components(&pool.registry, &overlay, None).map_err(|e| e.to_string())?;
+        // resolved once, before containment: a rebuild after a settings file changed reuses them
+        let secrets = ace_pool::secrets::resolve_components(
             &pool.name,
-            &pool.registry,
+            &components,
             &overlay,
-            None,
             &ace_pool::secrets::process_env,
-        )
-        .map_err(|e| e.to_string())?;
+        );
+        let modules = pool
+            .registry
+            .build(&components, &secrets)
+            .map_err(|e| e.to_string())?;
         let handlers = handlers(pool, &overlay, &ace_pool::secrets::process_env)?;
         let ports = connection_ports(pool, &overlay)?;
-        Ok((modules, handlers, ports))
+        Ok((modules, handlers, ports, overlay, secrets))
     });
-    let (modules, handlers, connection_ports) = match built {
-        Ok((modules, handlers, ports)) => (Arc::new(modules), Arc::new(handlers), ports),
+    let (modules, handlers, connection_ports, loaded, secrets) = match built {
+        Ok((modules, handlers, ports, overlay, secrets)) => (
+            Arc::new(modules),
+            Arc::new(handlers),
+            ports,
+            overlay,
+            secrets,
+        ),
         Err(e) => {
             eprintln!("setup failed: {e}");
             return ExitCode::from(2);
@@ -569,11 +677,28 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
             profile = profile.allow_port(port);
         }
     }
+    // each settings file's directory, which the pool reads again when a file changes: a directory,
+    // since Landlock holds to a file's inode and a checkout replaces a file it updates
+    let settings_files = ace_sdk::overlay::settings_files(&loaded);
+    for file in &settings_files {
+        if let Some(dir) = Path::new(file).parent() {
+            profile = profile.allow_read_if_exists(dir);
+        }
+    }
+    // read-only paths the deployment lets the pool read, such as a checkout a module's own setting
+    // points into (the clicker modules' `config_path`, which they read again when it changes)
+    for path in read_paths(std::env::var(POOL_READ_PATHS).ok().as_deref()) {
+        profile = profile.allow_read_if_exists(path);
+    }
     match ace_pool::contain_pool(&profile) {
-        Ok(contained) => eprintln!(
-            "contained: {contained:?}, TCP ports {:?}",
-            profile.tcp_ports
-        ),
+        Ok(contained) => {
+            eprintln!(
+                "contained: {contained:?}, TCP ports {:?}",
+                profile.tcp_ports
+            );
+            // its first thread of its own, once it's contained
+            crate::types_file::watch();
+        }
         Err(e) => {
             eprintln!("containment failed: {e}");
             return ExitCode::from(3);
@@ -582,9 +707,16 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
     if let Err(e) = telemetry.start_export() {
         eprintln!("no span export: {e}");
     }
+    let handle = ModulesHandle::from(modules);
+    let build = || -> Result<Modules, String> {
+        let components = components(&pool.registry, &loaded, None).map_err(|e| e.to_string())?;
+        pool.registry
+            .build(&components, &secrets)
+            .map_err(|e| e.to_string())
+    };
     let definition = PoolDefinition {
         name: pool.name.clone(),
-        modules,
+        modules: handle.clone(),
         concurrency: number("ACE_RS_CONCURRENCY", 16),
         sandbox: profile,
     };
@@ -615,7 +747,12 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
                 }),
             ));
         }
-        let stats = AsyncPool::new(client, &definition).run(stop).await;
+        // the settings files are read again beside the tasks, in this task, until the stop
+        let pool = AsyncPool::new(client, &definition);
+        let (stats, ()) = tokio::join!(
+            pool.run(stop.clone()),
+            reload_settings(&handle, settings_files, &build, stop),
+        );
         tracing::info!(tasks = stats.tasks, errors = stats.errors, "stopped");
         join_all(handles).await;
         ExitCode::SUCCESS
@@ -659,6 +796,54 @@ pub fn scanner_main(pool: &ScannerPool) -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_pool_reads_the_absolute_paths_it_s_given() {
+        assert_eq!(
+            read_paths(Some("/signatures::relative/dir:/etc/extra")),
+            [PathBuf::from("/signatures"), PathBuf::from("/etc/extra")]
+        );
+        assert!(read_paths(None).is_empty());
+    }
+
+    /// PLAN.md decision 65: a change to a settings file's contents is seen once at the next read,
+    /// one that appears, one that goes and one back are each a change, and an unchanged file is none.
+    #[tokio::test(start_paused = true)]
+    async fn a_settings_file_s_change_is_seen_at_the_next_read() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let dir = tempfile::tempdir().expect("a directory");
+        let file = dir.path().join("settings.yaml");
+        std::fs::write(&file, "a: 1\n").expect("written");
+        let changes = Arc::new(AtomicUsize::new(0));
+        let stop = CancellationToken::new();
+        let watching = {
+            let (changes, stop) = (changes.clone(), stop.clone());
+            let files = vec![file.display().to_string()];
+            tokio::spawn(async move {
+                on_settings_change(files, stop, &|_| {
+                    changes.fetch_add(1, Ordering::SeqCst);
+                })
+                .await;
+            })
+        };
+        let read = || async {
+            tokio::time::sleep(SETTINGS_POLL + Duration::from_millis(1)).await;
+        };
+        read().await;
+        assert_eq!(changes.load(Ordering::SeqCst), 0, "unchanged");
+        std::fs::write(&file, "a: 2\n").expect("written");
+        read().await;
+        assert_eq!(changes.load(Ordering::SeqCst), 1);
+        read().await;
+        assert_eq!(changes.load(Ordering::SeqCst), 1, "seen once");
+        std::fs::remove_file(&file).expect("removed");
+        read().await;
+        std::fs::write(&file, "a: 2\n").expect("written");
+        read().await;
+        assert_eq!(changes.load(Ordering::SeqCst), 3, "gone, then back");
+        stop.cancel();
+        watching.await.expect("stops");
+    }
 
     /// A remediator off by default (PLAN.md decision 28), which writes to nothing.
     struct OffRemediator;

@@ -254,7 +254,8 @@ async fn a_dispositioned_alert_runs_only_alert_added_to_event() {
     lookups.cancelled(rdap.id).await.expect("ends the lookup");
 
     // a worker that runs every module finds only alert_added_to_event's tasks
-    let all: Vec<&str> = orchestrator.catalog().keys().into_iter().collect();
+    let catalog = orchestrator.catalog();
+    let all: Vec<&str> = catalog.keys().into_iter().collect();
     let everything = worker(&test_db, "everything", &all, Duration::from_secs(30)).await;
     let mut ran: BTreeMap<String, u32> = BTreeMap::new();
     while let Some(task) = everything.claim().await.expect("claims") {

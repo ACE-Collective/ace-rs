@@ -405,6 +405,9 @@ pub enum TaskEnd {
     },
     /// The module or its setup failed.
     Failed { error: String },
+    /// A peer the module depends on couldn't be reached (`ModuleError::Unavailable`): the core runs
+    /// the task again later while it has attempts left, and fails it after its last.
+    Unavailable { error: String },
     /// The module stopped because the task was cancelled.
     Cancelled,
 }

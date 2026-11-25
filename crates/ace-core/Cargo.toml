@@ -40,6 +40,9 @@ opentelemetry = "0.33.1"
 opentelemetry_sdk = { version = "0.33.1", default-features = false, features = ["trace"] }
 # The snort rules' sid and rev, for the snort-signature read (reads.rs).
 regex = "1.13.1"
+# the observable modifier's patterns, which are Python `re`'s: look-around and backreferences, with a
+# backtracking bound (hooks/rules.rs)
+fancy-regex = "0.19.2"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 sha2 = "0.11.1"

@@ -118,7 +118,7 @@ pub fn main(registry: &Registry, secrets: TaskSecrets<'_>) -> ExitCode {
         return exit(EXIT_SETUP);
     }
     match end {
-        TaskEnd::Failed { .. } => exit(EXIT_MODULE),
+        TaskEnd::Failed { .. } | TaskEnd::Unavailable { .. } => exit(EXIT_MODULE),
         _ => ExitCode::SUCCESS,
     }
 }

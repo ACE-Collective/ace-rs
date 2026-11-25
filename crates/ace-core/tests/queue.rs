@@ -150,6 +150,75 @@ async fn a_worker_claims_only_its_own_modules_and_only_while_it_owns_a_task_can_
     assert!(owner.complete(task).await.is_err());
 }
 
+/// A task whose peer was unavailable runs again later, after a wait that doubles with each attempt,
+/// and fails on its last attempt, as `ModuleError::Unavailable` says it can be tried again (the
+/// owner's decision of 2026-11-24); until then the root's pass doesn't end.
+#[tokio::test]
+async fn a_task_whose_peer_was_unavailable_runs_again_until_its_last_attempt() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, ids) = root_with(db, "analysis", &[(ObservableKind::Fqdn, "example.com")]).await;
+    let mut tx = db.begin().await.expect("begins");
+    let task = queue::enqueue(&mut tx, root, ids[0], "rdap_analyzer")
+        .await
+        .expect("queues")
+        .expect("new");
+    tx.commit().await.expect("commits");
+    let owner = worker(
+        &test_db,
+        "owner",
+        &["rdap_analyzer"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let due_now = || async {
+        sqlx::query("UPDATE queue.tasks SET run_after = now() WHERE id = $1")
+            .bind(task.0)
+            .execute(db.pool())
+            .await
+            .expect("updates");
+    };
+    let mut seen = Vec::new();
+    for attempt in 1..queue::DEFAULT_MAX_ATTEMPTS {
+        let claimed = owner.claim().await.expect("claims").expect("a task");
+        assert_eq!(claimed.id, task);
+        let next = owner
+            .retry_later(task, "peer unavailable: 429")
+            .await
+            .expect("ends")
+            .expect("runs again");
+        let (state, error, wait): (String, Option<String>, f64) = sqlx::query_as(
+            "SELECT state::text, error, EXTRACT(EPOCH FROM run_after - updated_at)::float8
+             FROM queue.tasks WHERE id = $1",
+        )
+        .bind(task.0)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+        assert_eq!(state, "queued", "attempt {attempt}");
+        assert_eq!(error.as_deref(), Some("peer unavailable: 429"));
+        seen.push(wait.round() as i64);
+        assert!(next > chrono::Utc::now(), "not due yet");
+        // not claimable before its wait is over
+        assert!(owner.claim().await.expect("claims").is_none());
+        due_now().await;
+    }
+    assert_eq!(seen, [30, 60], "the wait doubles");
+    // its last attempt fails it, and the pass can end
+    owner.claim().await.expect("claims").expect("a task");
+    assert!(
+        owner
+            .retry_later(task, "peer unavailable: 429")
+            .await
+            .expect("ends")
+            .is_none()
+    );
+    assert_eq!(
+        queue::state(db, task).await.expect("reads"),
+        Some(TaskState::Failed)
+    );
+}
+
 /// A claim of several tasks takes what that many claims of one would: the oldest that are due, by
 /// when each became due and then by id, whichever root they belong to, each with its own lease and
 /// its attempt counted. So a pool that asks for its free slots at once takes the tasks in the order

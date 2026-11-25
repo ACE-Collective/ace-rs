@@ -62,6 +62,31 @@ pub struct ScannerSpec {
     pub max_timeout: Duration,
     /// The most a scan's output archive may hold; past it the scan fails.
     pub max_output_bytes: u64,
+    /// The proxy a request may ask its scan to go through (`ScanRequest::through_proxy`), which the
+    /// pool holds, as ace3's scanner manager holds its proxy configuration: the module never sees
+    /// its credentials, and no row holds them.
+    pub proxy: Option<ScannerProxy>,
+}
+
+/// Where a scanner pool finds a scanner's proxy and how it passes it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScannerProxy {
+    /// The pool's variable that holds the proxy's URL, credentials and all; unset or empty for none.
+    pub variable: &'static str,
+    /// The scanner's argument the URL follows.
+    pub arg: &'static str,
+}
+
+/// A proxy's URL without its credentials, as a scan's record and a result show it: ace3's
+/// `_sanitize_proxy_for_display`.
+pub fn proxy_for_display(url: &str) -> String {
+    let Some((before, after)) = url.rsplit_once('@') else {
+        return url.to_owned();
+    };
+    match before.split_once("://") {
+        Some((scheme, _)) => format!("{scheme}://{after}"),
+        None => after.to_owned(),
+    }
 }
 
 /// ace3's js-deobfuscator (`js_deobfuscator/js_deobfuscator.py`): node 26 with webcrack, running
@@ -81,6 +106,7 @@ pub const JS_DEOBFUSCATOR: ScannerSpec = ScannerSpec {
     stop_grace: Duration::from_secs(10),
     max_timeout: Duration::from_secs(600),
     max_output_bytes: 256 << 20,
+    proxy: None,
 };
 
 /// ace3's phishkit scanner (`phishkit/phishkit.py`'s `_run_scanner`): Chrome under SeleniumBase,
@@ -102,6 +128,11 @@ pub const PHISHKIT: ScannerSpec = ScannerSpec {
     stop_grace: Duration::from_secs(5),
     max_timeout: Duration::from_secs(1800),
     max_output_bytes: 256 << 20,
+    // ace3's `--proxy`, in SeleniumBase's form (`host:port`, `user:pass@host:port` or a scheme's URL)
+    proxy: Some(ScannerProxy {
+        variable: "ACE_RS_PHISHKIT_PROXY",
+        arg: "--proxy",
+    }),
 };
 
 /// The scanners ace-rs builds images for (`docker/scanners/build`).
@@ -146,6 +177,9 @@ pub struct ScanRequest {
     pub inputs: Vec<ScanInput>,
     /// How long the scanner may run before it's stopped, at most its spec's `max_timeout`.
     pub timeout_seconds: u32,
+    /// Go through the pool's proxy for the scanner, when it has one (`ScannerSpec::proxy`).
+    #[serde(default)]
+    pub proxy: bool,
 }
 
 impl ScanRequest {
@@ -155,7 +189,15 @@ impl ScanRequest {
             args: Vec::new(),
             inputs: Vec::new(),
             timeout_seconds: u32::try_from(timeout.as_secs()).unwrap_or(u32::MAX).max(1),
+            proxy: false,
         }
+    }
+
+    /// The scan goes through the pool's proxy, when the pool has one; the scan's record says
+    /// whether it did (`Scan::proxied`).
+    pub fn through_proxy(mut self) -> Self {
+        self.proxy = true;
+        self
     }
 
     pub fn arg(mut self, arg: impl Into<String>) -> Self {
@@ -261,6 +303,9 @@ pub struct WireScan {
     /// The output archive, for a scan that brought one back.
     #[serde(default)]
     pub output: Option<WireScanOutput>,
+    /// The proxy it went through, without credentials (`proxy_for_display`), or None for direct.
+    #[serde(default)]
+    pub proxied: Option<String>,
 }
 
 /// A scan's output archive in the bucket, and where to download it.
@@ -282,6 +327,8 @@ pub struct Scan {
     pub error: Option<String>,
     /// The output archive on this machine: a tar holding `OUTPUT_ARCHIVE`, `STDOUT` and `STDERR`.
     pub output: Option<PathBuf>,
+    /// The proxy it went through, without credentials, or None for direct.
+    pub proxied: Option<String>,
 }
 
 /// In a scan's output archive: Docker's tar of the scanner's output directory, as the daemon made
@@ -306,6 +353,9 @@ pub struct LeasedScan {
     pub deadline_seconds: f64,
     /// How long each renewal extends the lease.
     pub lease_seconds: f64,
+    /// Go through the pool's proxy for the scanner, when it has one.
+    #[serde(default)]
+    pub proxy: bool,
 }
 
 /// An input of a leased scan, and where to download it.
@@ -372,6 +422,10 @@ pub struct ScanEnd {
     /// phishkit's on its running scanner image's id (`crate::cache::Cache::scanners`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub image_id: Option<String>,
+    /// The proxy the scanner went through, without credentials (`proxy_for_display`); None for
+    /// direct.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proxied: Option<String>,
 }
 
 /// A scanner pool asking where to upload a scan's output archive.
@@ -442,6 +496,7 @@ mod tests {
             },
             output: None,
             image_id: None,
+            proxied: None,
         };
         let json = serde_json::to_value(&end).expect("serializes");
         assert_eq!(

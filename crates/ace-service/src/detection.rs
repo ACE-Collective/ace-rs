@@ -418,7 +418,8 @@ impl Service {
     /// ruleset was built is in neither until the next build, a minute away at most. It needs
     /// `detection:read`.
     pub async fn detection_export(&self, actor: &Actor) -> Result<DetectionExport, ServiceError> {
-        let catalog = self.orchestrator.catalog();
+        let components = self.orchestrator.catalog();
+        let catalog = &*components;
         self.gate
             .read(actor, "detection_export", &DETECTION_READ, &|tx| {
                 Box::pin(async move {
@@ -477,7 +478,8 @@ impl Service {
         actor: &Actor,
         filter: &DetectionFilter,
     ) -> Result<DetectionPage, ServiceError> {
-        let catalog = self.orchestrator.catalog();
+        let components = self.orchestrator.catalog();
+        let catalog = &*components;
         self.gate
             .read(actor, "detections", &DETECTION_READ, &|tx| {
                 Box::pin(async move {
@@ -554,7 +556,8 @@ impl Service {
     /// The types that have a detection, and every type a new one can be of. It needs
     /// `detection:read`.
     pub async fn detection_types(&self, actor: &Actor) -> Result<DetectionTypes, ServiceError> {
-        let catalog = self.orchestrator.catalog();
+        let components = self.orchestrator.catalog();
+        let catalog = &*components;
         self.gate
             .read(actor, "detection_types", &DETECTION_READ, &|tx| {
                 Box::pin(async move {
@@ -586,7 +589,8 @@ impl Service {
         actor: &Actor,
         detection: &NewDetection,
     ) -> Result<Detection, ServiceError> {
-        let catalog = self.orchestrator.catalog();
+        let components = self.orchestrator.catalog();
+        let catalog = &*components;
         self.gate
             .write(actor, "create_detection", &DETECTION_WRITE, &|tx| {
                 Box::pin(async move {
@@ -637,7 +641,8 @@ impl Service {
         actor: &Actor,
         id: i64,
     ) -> Result<Detection, ServiceError> {
-        let catalog = self.orchestrator.catalog();
+        let components = self.orchestrator.catalog();
+        let catalog = &*components;
         self.gate
             .write(actor, "delete_detection", &DETECTION_WRITE, &|tx| {
                 Box::pin(async move {
@@ -664,7 +669,8 @@ impl Service {
         id: i64,
         expires_at: Option<DateTime<Utc>>,
     ) -> Result<Detection, ServiceError> {
-        let catalog = self.orchestrator.catalog();
+        let components = self.orchestrator.catalog();
+        let catalog = &*components;
         self.gate
             .write(actor, "set_detection_expiration", &DETECTION_WRITE, &|tx| {
                 Box::pin(async move {
@@ -695,7 +701,8 @@ impl Service {
     /// One detection, with its comments, for a page that shows it after a write. It needs
     /// `detection:read`.
     pub async fn detection(&self, actor: &Actor, id: i64) -> Result<Detection, ServiceError> {
-        let catalog = self.orchestrator.catalog();
+        let components = self.orchestrator.catalog();
+        let catalog = &*components;
         self.gate
             .read(actor, "detection", &DETECTION_READ, &|tx| {
                 Box::pin(async move {

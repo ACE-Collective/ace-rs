@@ -14,10 +14,12 @@
 
 use std::borrow::Cow;
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
-use std::sync::OnceLock;
+use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
+use std::sync::{Arc, OnceLock, RwLock};
 
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -332,15 +334,177 @@ impl ObservableKind {
         self == other || self.ancestors().any(|kind| kind == other)
     }
 
-    /// This binary's kinds in name order: the list `install_types` installed, or `BUILTIN`.
-    pub fn all() -> &'static [ObservableKind] {
-        INSTALLED
-            .get()
-            .map_or(ObservableKind::BUILTIN, Vec::as_slice)
+    /// This process's kinds in name order: the list `install_types` installed, or `BUILTIN`, with
+    /// what a types file added (`merge_file_types`), as they are now.
+    pub fn all() -> Arc<Vec<ObservableKind>> {
+        let current = CURRENT
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        current.unwrap_or_else(|| builtin().clone())
+    }
+
+    /// How many times this process's kinds changed since it started, for what is made of them (a
+    /// result's schema) to be made again when they do.
+    pub fn generation() -> u64 {
+        GENERATION.load(AtomicOrdering::Acquire)
     }
 }
 
+/// The list `install_types` installed: the binary's own, which a types file never changes.
 static INSTALLED: OnceLock<Vec<ObservableKind>> = OnceLock::new();
+/// The binary's list and a types file's, as they are now; None until either is set.
+static CURRENT: RwLock<Option<Arc<Vec<ObservableKind>>>> = RwLock::new(None);
+static GENERATION: AtomicU64 = AtomicU64::new(0);
+
+fn builtin() -> &'static Arc<Vec<ObservableKind>> {
+    static BUILTIN_LIST: OnceLock<Arc<Vec<ObservableKind>>> = OnceLock::new();
+    BUILTIN_LIST.get_or_init(|| Arc::new(ObservableKind::BUILTIN.to_vec()))
+}
+
+fn set_current(list: Vec<ObservableKind>) {
+    *CURRENT
+        .write()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(Arc::new(list));
+    GENERATION.fetch_add(1, AtomicOrdering::AcqRel);
+}
+
+/// One type as ace3's `observable_types.yaml` writes it under `types:`.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(default)]
+pub struct FileType {
+    pub extends: Option<String>,
+    pub default_display_type: Option<String>,
+    pub description: Option<String>,
+    pub deprecated: bool,
+}
+
+/// What `merge_file_types` did.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct FileTypesMerged {
+    /// Types the file added.
+    pub added: Vec<String>,
+    /// Types the file had added before whose entry changed.
+    pub changed: Vec<String>,
+    /// Entries left out, with why: a bad name, or a parent that isn't a type.
+    pub refused: Vec<(String, String)>,
+}
+
+/// A types file's entries, as ace3's type hierarchy reads them, merged into this process's kinds:
+/// each type the binary lacks is added, with its parent, display type, description and deprecated
+/// flag, and a type the file added before takes its entry's new values. A type the binary has is the
+/// binary's: the file can't change it. A type the file no longer lists stays, since rows may hold it,
+/// until the process restarts. An entry whose name isn't lowercase letters, digits and `_`, or whose
+/// parent is neither a type nor another entry, is left out. Each new or changed definition lives for
+/// the process (they are few, and change rarely).
+pub fn merge_file_types(entries: &BTreeMap<String, FileType>) -> FileTypesMerged {
+    let base: Vec<ObservableKind> = INSTALLED
+        .get()
+        .cloned()
+        .unwrap_or_else(|| ObservableKind::BUILTIN.to_vec());
+    let current = ObservableKind::all();
+    let mut list: Vec<ObservableKind> = current.as_ref().clone();
+    let mut merged = FileTypesMerged::default();
+    let valid = |name: &str| {
+        name.starts_with(|c: char| c.is_ascii_lowercase())
+            && name
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+    };
+    let mut pending: Vec<(&String, &FileType)> = Vec::new();
+    for (name, entry) in entries {
+        if base.iter().any(|k| k.as_str() == name) {
+            continue;
+        }
+        if !valid(name) {
+            merged.refused.push((
+                name.clone(),
+                "isn't lowercase letters, digits and _".to_owned(),
+            ));
+            continue;
+        }
+        pending.push((name, entry));
+    }
+    // a parent first: each round places the entries whose parent is placed, until none is left or
+    // a round places nothing (an unknown parent, or a cycle)
+    loop {
+        let before = pending.len();
+        pending.retain(|&(name, entry)| {
+            let parent = match &entry.extends {
+                None => None,
+                // a parent that is the type itself, or has it among its ancestors, would make a
+                // cycle that `ancestors` never leaves
+                Some(parent) => match list.iter().find(|k| k.as_str() == parent) {
+                    Some(&kind)
+                        if kind.as_str() != name.as_str()
+                            && !kind
+                                .ancestors()
+                                .take(64)
+                                .any(|a| a.as_str() == name.as_str()) =>
+                    {
+                        Some(kind)
+                    }
+                    _ => return true,
+                },
+            };
+            let wanted = ObservableType {
+                name: "",
+                parent,
+                deprecated: entry.deprecated,
+                default_display_type: None,
+                description: None,
+            };
+            let known = list.iter().position(|k| k.as_str() == name.as_str());
+            let same = known.is_some_and(|i| {
+                let k = list[i];
+                k.parent() == wanted.parent
+                    && k.is_deprecated() == wanted.deprecated
+                    && k.default_display_type() == entry.default_display_type.as_deref()
+                    && k.description() == entry.description.as_deref()
+            });
+            if !same {
+                let leak = |text: &Option<String>| -> Option<&'static str> {
+                    text.clone().map(|t| &*Box::leak(t.into_boxed_str()))
+                };
+                let kind = ObservableKind::define(Box::leak(Box::new(ObservableType {
+                    name: Box::leak(name.clone().into_boxed_str()),
+                    parent,
+                    deprecated: entry.deprecated,
+                    default_display_type: leak(&entry.default_display_type),
+                    description: leak(&entry.description),
+                })));
+                match known {
+                    Some(i) => {
+                        list[i] = kind;
+                        merged.changed.push(name.clone());
+                    }
+                    None => {
+                        list.push(kind);
+                        merged.added.push(name.clone());
+                    }
+                }
+            }
+            false
+        });
+        if pending.is_empty() || pending.len() == before {
+            break;
+        }
+    }
+    for (name, entry) in pending {
+        merged.refused.push((
+            name.clone(),
+            format!(
+                "extends {}, which is neither a type nor another of the file's (or a cycle)",
+                entry.extends.as_deref().unwrap_or("?")
+            ),
+        ));
+    }
+    if !merged.added.is_empty() || !merged.changed.is_empty() {
+        list.sort();
+        set_current(list);
+    }
+    merged
+}
 
 /// Why a binary's list of kinds is refused.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -394,7 +558,15 @@ pub fn type_list(extra: &[ObservableKind]) -> Result<Vec<ObservableKind>, TypeLi
 /// thing in `main`; calling it again with the same list does nothing, and with another fails.
 pub fn install_types(extra: &[ObservableKind]) -> Result<(), TypeListError> {
     let list = type_list(extra)?;
-    let installed = INSTALLED.get_or_init(|| list.clone());
+    let mut fresh = false;
+    let installed = INSTALLED.get_or_init(|| {
+        fresh = true;
+        list.clone()
+    });
+    if fresh {
+        set_current(list);
+        return Ok(());
+    }
     if *installed == list {
         Ok(())
     } else {
@@ -497,6 +669,90 @@ impl std::error::Error for UnknownObservableKind {}
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn file_type(extends: Option<&str>, display: Option<&str>) -> FileType {
+        FileType {
+            extends: extends.map(str::to_owned),
+            default_display_type: display.map(str::to_owned),
+            description: None,
+            deprecated: false,
+        }
+    }
+
+    /// PLAN.md decision 66: a types file adds the types the binary lacks, a parent before its
+    /// child, takes a changed entry, leaves the binary's own as they are and refuses what can't be
+    /// a type, a cycle included; each change moves the generation.
+    #[test]
+    fn a_types_file_adds_and_changes_its_own_types() {
+        let before = ObservableKind::generation();
+        let entries: BTreeMap<String, FileType> = [
+            (
+                "zz_file_child".to_owned(),
+                file_type(Some("zz_file_parent"), None),
+            ),
+            (
+                "zz_file_parent".to_owned(),
+                file_type(Some("fqdn"), Some("Parent")),
+            ),
+            ("fqdn".to_owned(), file_type(None, Some("not the binary's"))),
+            ("Bad-Name".to_owned(), file_type(None, None)),
+            (
+                "zz_file_orphan".to_owned(),
+                file_type(Some("zz_no_such_type"), None),
+            ),
+            (
+                "zz_file_loop_a".to_owned(),
+                file_type(Some("zz_file_loop_b"), None),
+            ),
+            (
+                "zz_file_loop_b".to_owned(),
+                file_type(Some("zz_file_loop_a"), None),
+            ),
+        ]
+        .into_iter()
+        .collect();
+        let merged = merge_file_types(&entries);
+        assert_eq!(merged.added, ["zz_file_parent", "zz_file_child"]);
+        let refused: Vec<&str> = merged.refused.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(
+            refused,
+            [
+                "Bad-Name",
+                "zz_file_loop_a",
+                "zz_file_loop_b",
+                "zz_file_orphan"
+            ]
+        );
+        assert!(ObservableKind::generation() > before);
+        let child: ObservableKind = "zz_file_child".parse().expect("a type now");
+        assert!(
+            child.is_subtype_of(ObservableKind::Fqdn),
+            "through its parent"
+        );
+        assert_eq!(
+            ObservableKind::Fqdn.default_display_type(),
+            ObservableKind::BUILTIN
+                .iter()
+                .find(|k| k.as_str() == "fqdn")
+                .and_then(|k| k.default_display_type()),
+            "the binary's own type is the binary's"
+        );
+        // the same file again changes nothing; a changed entry is taken
+        let again = merge_file_types(&entries);
+        assert!(again.added.is_empty() && again.changed.is_empty());
+        let mut changed = entries.clone();
+        changed.insert(
+            "zz_file_parent".to_owned(),
+            file_type(Some("fqdn"), Some("Renamed")),
+        );
+        assert_eq!(merge_file_types(&changed).changed, ["zz_file_parent"]);
+        let parent: ObservableKind = "zz_file_parent".parse().expect("a type");
+        assert_eq!(parent.default_display_type(), Some("Renamed"));
+        // a type the file no longer lists stays, since rows may hold it
+        let none = merge_file_types(&BTreeMap::new());
+        assert!(none.added.is_empty() && none.changed.is_empty());
+        assert!("zz_file_child".parse::<ObservableKind>().is_ok());
+    }
     use serde::Deserialize;
 
     #[derive(Deserialize)]

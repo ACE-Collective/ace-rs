@@ -77,25 +77,27 @@
 //!
 //! # Bounds
 //!
-//! The rules are an analyst's, compiled when the core starts (`rules::Rules::compile`): at most
-//! `rules::MAX_RULES`, with `rules::MAX_PATTERNS` patterns, each at most `rules::MAX_PATTERN_BYTES` long
-//! and compiled by the `regex` crate, which doesn't backtrack, within `rules::REGEX_SIZE_LIMIT` alone and
-//! `rules::ALL_PATTERNS_LIMIT` together. What they read is hostile: a root's tree is read up to
+//! The rules are an analyst's, compiled when the core starts and again when their file changes
+//! (`rules::Rules::compile`, PLAN.md decision 62): at most `rules::MAX_RULES`, with
+//! `rules::MAX_PATTERNS` patterns, each at most `rules::MAX_PATTERN_BYTES` long, compiled by
+//! `fancy-regex`, which hands what needs no backtracking to the `regex` crate within
+//! `rules::REGEX_SIZE_LIMIT`, and stops a test that backtracks past `rules::BACKTRACK_LIMIT` steps, which
+//! then counts as not matching. The file is read up to `ace_sdk::hooks::MAX_RULES_FILE_BYTES`. What they read is hostile: a root's tree is read up to
 //! `ace_sdk::tree`'s `MAX_TREE_OBSERVABLES` observables and `MAX_TREE_RESULTS` results, the details only of
 //! the modules a `details_match` names, and one evaluation stops after `rules::STEP_BUDGET` steps. A `pre`
 //! evaluation over its budget changes nothing and logs why; a hooks run over it fails its task.
 //!
 //! # What differs from ace3
 //!
-//! - The rules are the overlay's `hooks:` section (`ace_sdk::hooks`), read when the core starts. ace3
-//!   watches its rules file and reloads it live; here a change takes a restart. A rule ace3 logs and
-//!   skips (no uuid, an unknown phase or scope, a pattern that doesn't compile) stops startup, as the
-//!   rest of the overlay does, and so does an unknown observable type or `observable_match` attribute,
-//!   which ace3 would let match nothing.
+//! - The rules are the overlay's `hooks:` section (`ace_sdk::hooks`) and its `rules_file`, which
+//!   `ace serve` reads again every 10 seconds and takes when its contents changed, where ace3 looks at
+//!   its file's mtime each time the module runs. A rule that doesn't compile is skipped and logged, as
+//!   ace3 does, and so is one with an unknown observable type or `observable_match` attribute, which
+//!   ace3 lets match nothing.
 //! - A module is named by its key (`rdap_analyzer`) where ace3 names a Python path, a tree condition's
 //!   `analysis_type` and `reset_analysis` an Analysis class's, `exclude_analysis` an analyzer's.
-//! - Patterns are the `regex` crate's, so one that needs backtracking, such as a look-around or a
-//!   backreference, doesn't compile.
+//! - A pattern test that backtracks past `rules::BACKTRACK_LIMIT` steps counts as not matching, logged,
+//!   where Python's `re` runs on.
 //! - A details value a `details_match` tests is a string as itself and anything else as Python's
 //!   `str()` writes it (`rules::py_str`), from the stored JSON, so a value ace3 held as a Python object
 //!   other than JSON's reads as its JSON form would.
@@ -154,10 +156,190 @@ const PRE_ROUNDS: usize = 3;
 /// ace3's SVS tagger's module name: the SVS hook runs in the modes that list it.
 pub const SVS_ALERT_TAGGER: &str = crate::svs::attribution::SVS_ALERT_TAGGER;
 
+/// The observable modifier's rules, which `ace serve` replaces when their file changes
+/// (`ModifierRules::reload`): each use takes the rules as they are then, and keeps them while it runs.
+#[derive(Debug, Clone)]
+pub struct ModifierRules {
+    current: Arc<std::sync::RwLock<Arc<Rules>>>,
+    /// The overlay's own rules, compiled, which come before the file's.
+    inline: Arc<Rules>,
+    file: Option<std::path::PathBuf>,
+    /// The file's contents the current rules came from, so an unchanged file isn't compiled again.
+    read: Arc<std::sync::Mutex<Option<Vec<u8>>>>,
+}
+
+/// How long one read of the rules file may take.
+const RULES_FILE_READ_LIMIT: Duration = Duration::from_secs(10);
+
+impl ModifierRules {
+    fn new(section: &ace_sdk::hooks::ModifierSection) -> ModifierRules {
+        let (inline, refused) =
+            Rules::compile("hooks.observable_modifier.rules", &section.parsed());
+        log_refused(&refused);
+        let rules = ModifierRules {
+            current: Arc::new(std::sync::RwLock::new(Arc::new(inline.clone()))),
+            inline: Arc::new(inline),
+            file: section.rules_file.as_ref().map(std::path::PathBuf::from),
+            read: Arc::new(std::sync::Mutex::new(None)),
+        };
+        if let Some(file) = &rules.file {
+            match std::fs::read(file) {
+                Ok(text) => {
+                    rules.take(text);
+                }
+                // ace3 logs a rules file it can't read and runs with no rules
+                Err(e) => tracing::error!(
+                    path = %file.display(),
+                    "the observable modifier's rules file can't be read, so its rules don't run: {e}"
+                ),
+            }
+        }
+        rules
+    }
+
+    /// The rules as they are now.
+    pub fn now(&self) -> Arc<Rules> {
+        // a poisoned lock still holds rules that compiled: a panic while swapping one Arc for another
+        // leaves either
+        self.current
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    /// Compiles the file's text after the overlay's rules and makes them current, unless it's the text
+    /// they came from. Returns whether the rules changed.
+    fn take(&self, text: Vec<u8>) -> bool {
+        let file = self
+            .file
+            .as_ref()
+            .map(|f| f.display().to_string())
+            .unwrap_or_default();
+        {
+            let read = self
+                .read
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            if read.as_deref() == Some(text.as_slice()) {
+                return false;
+            }
+        }
+        let parsed = match std::str::from_utf8(&text)
+            .map_err(|e| format!("not UTF-8: {e}"))
+            .and_then(ace_sdk::hooks::rules_of_file)
+        {
+            // each rule read on its own, as the overlay's are
+            Ok(rules) => rules
+                .iter()
+                .map(ace_sdk::hooks::parse_rule)
+                .collect::<Vec<_>>(),
+            Err(e) => {
+                // ace3 keeps no rules from a file it can't load; the ones running stay, as its
+                // observable types file's do
+                tracing::error!(
+                    path = %file,
+                    "the observable modifier's rules file doesn't read, so the rules running stay: {e}"
+                );
+                return false;
+            }
+        };
+        let (rules, refused) = (*self.inline).clone().and(&file, &parsed);
+        log_refused(&refused);
+        tracing::info!(
+            path = %file,
+            rules = rules.rules().len(),
+            skipped = refused.len(),
+            "the observable modifier's rules are read"
+        );
+        *self
+            .current
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Arc::new(rules);
+        *self
+            .read
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(text);
+        true
+    }
+
+    /// Reads the rules file again and takes its rules when its contents changed, as ace3 reloads a
+    /// watched file. A file that can't be read keeps the rules running, logged. Returns whether the
+    /// rules changed.
+    pub async fn reload(&self) -> bool {
+        let Some(file) = &self.file else {
+            return false;
+        };
+        let read = async {
+            use tokio::io::AsyncReadExt;
+            let f = tokio::fs::File::open(file).await?;
+            let mut text = Vec::new();
+            f.take(ace_sdk::hooks::MAX_RULES_FILE_BYTES + 1)
+                .read_to_end(&mut text)
+                .await?;
+            Ok::<_, std::io::Error>(text)
+        };
+        match tokio::time::timeout(RULES_FILE_READ_LIMIT, read).await {
+            Ok(Ok(text)) if text.len() as u64 > ace_sdk::hooks::MAX_RULES_FILE_BYTES => {
+                tracing::error!(
+                    path = %file.display(),
+                    "the observable modifier's rules file is over {} bytes, so the rules running stay",
+                    ace_sdk::hooks::MAX_RULES_FILE_BYTES
+                );
+                false
+            }
+            Ok(Ok(text)) => self.take(text),
+            Ok(Err(e)) => {
+                tracing::error!(
+                    path = %file.display(),
+                    "the observable modifier's rules file can't be read, so the rules running stay: {e}"
+                );
+                false
+            }
+            Err(_) => {
+                tracing::error!(
+                    path = %file.display(),
+                    "reading the observable modifier's rules file took over {RULES_FILE_READ_LIMIT:?}, \
+                     so the rules running stay"
+                );
+                false
+            }
+        }
+    }
+
+    /// Whether there is a file to read again.
+    pub fn has_file(&self) -> bool {
+        self.file.is_some()
+    }
+}
+
+/// Logs each rule the rules skip at ERROR, as ace3 logs each rule it refuses: a skipped rule's
+/// detections are never raised.
+fn log_refused(refused: &[rules::RuleError]) {
+    for e in refused {
+        tracing::error!(
+            rule = %e.rule,
+            path = %e.path,
+            "an observable modifier rule doesn't compile, so it is skipped: {}",
+            e.message
+        );
+    }
+}
+
+/// Reads the rules file again every `every` until `stop`, as ace3 watches it (`ace serve`).
+pub async fn watch_rules(rules: ModifierRules, every: Duration, stop: CancellationToken) {
+    loop {
+        tokio::select! {
+            () = stop.cancelled() => return,
+            () = tokio::time::sleep(every) => {}
+        }
+        rules.reload().await;
+    }
+}
+
 /// The hooks the overlay turns on, compiled.
 #[derive(Debug, Clone, Default)]
 pub struct Hooks {
-    modifier: Option<Arc<Rules>>,
+    modifier: Option<ModifierRules>,
     /// The tags whose level makes a detection, when `configuration_defined_tagging` is on.
     alertable: Option<Arc<BTreeSet<String>>>,
     /// The SVS hook, when the binary runs it (`with_svs`).
@@ -170,13 +352,15 @@ impl Hooks {
         Hooks::default()
     }
 
-    /// The hooks the overlay's section turns on: the modifier when it has an enabled rule, and the
-    /// tagging when it has a section, as ace3 ships it disabled.
-    pub fn from_section(section: &HooksSection) -> Result<Hooks, rules::RuleError> {
-        let modifier = match &section.observable_modifier {
-            Some(s) => Some(Rules::compile(s)?).filter(|r| !r.is_empty()),
-            None => None,
-        };
+    /// The hooks the overlay's section turns on: the modifier when it has a rules file or an enabled
+    /// rule, and the tagging when it has a section, as ace3 ships it disabled. A rule that doesn't
+    /// compile, or a rules file that can't be read, is logged and left out, as ace3 does.
+    pub fn from_section(section: &HooksSection) -> Hooks {
+        let modifier = section
+            .observable_modifier
+            .as_ref()
+            .map(ModifierRules::new)
+            .filter(|m| m.has_file() || !m.now().is_empty());
         let alertable = section.configuration_defined_tagging.as_ref().map(|s| {
             s.tags
                 .iter()
@@ -184,11 +368,11 @@ impl Hooks {
                 .map(|(tag, _)| tag.clone())
                 .collect::<BTreeSet<_>>()
         });
-        Ok(Hooks {
-            modifier: modifier.map(Arc::new),
+        Hooks {
+            modifier,
             alertable: alertable.map(Arc::new),
             svs: None,
-        })
+        }
     }
 
     /// These hooks with the SVS hook, `svs_alert_tagger` (the module docs), which `ace serve` runs.
@@ -212,14 +396,21 @@ impl Hooks {
         names
     }
 
-    pub fn rules(&self) -> Option<&Rules> {
-        self.modifier.as_deref()
+    /// The modifier's rules as they are now.
+    pub fn rules(&self) -> Option<Arc<Rules>> {
+        self.modifier.as_ref().map(ModifierRules::now)
     }
 
-    fn modifier_in(&self, modes: &Modes, mode: &str) -> Option<&Rules> {
+    /// The modifier's rules, which `ace serve` reads again when their file changes (`watch_rules`).
+    pub fn modifier(&self) -> Option<&ModifierRules> {
+        self.modifier.as_ref()
+    }
+
+    fn modifier_in(&self, modes: &Modes, mode: &str) -> Option<Arc<Rules>> {
         self.modifier
-            .as_deref()
+            .as_ref()
             .filter(|_| modes.modules_in(mode).contains(OBSERVABLE_MODIFIER))
+            .map(ModifierRules::now)
     }
 
     fn tagging_in(&self, modes: &Modes, mode: &str) -> Option<&BTreeSet<String>> {
@@ -318,6 +509,8 @@ pub(crate) async fn pre(
     else {
         return Ok(Effects::default());
     };
+    // the rules as they are now, for the whole landing, whatever a reload does meanwhile
+    let rules: &Rules = &rules;
     let mut effects = Effects::default();
     let mut next: Vec<ObservableId> = observables.to_vec();
     for _ in 0..PRE_ROUNDS {
@@ -395,7 +588,7 @@ async fn load(tx: &mut Tx<'_>, root: Uuid, rules: &Rules) -> Result<Tree, DbErro
     let limit = MAX_TREE_OBSERVABLES as i64 + 1;
     let rows = sqlx::query!(
         r#"SELECT id AS "id: ObservableId", type AS kind, value, tags, directives, display_type,
-                  display_value, ignored
+                  display_value, ignored, time, limit_modules, exclude_modules
            FROM analysis.observables WHERE root_id = $1 ORDER BY id LIMIT $2"#,
         root,
         limit,
@@ -422,6 +615,9 @@ async fn load(tx: &mut Tx<'_>, root: Uuid, rules: &Rules) -> Result<Tree, DbErro
             paths: Vec::new(),
             display_type: row.display_type,
             display_value: row.display_value,
+            time: row.time.map(rules::py_time),
+            limit_modules: row.limit_modules,
+            exclude_modules: row.exclude_modules,
             no_analysis: Vec::new(),
             results: Vec::new(),
             parents: Vec::new(),
@@ -796,6 +992,7 @@ impl Orchestrator {
         }
         let mode = state.analysis_mode;
         if let Some(rules) = self.hooks().modifier_in(self.modes(), &mode) {
+            let rules: &Rules = &rules;
             let mut tree = load(tx, root, rules).await?;
             let mut budget = Budget::new(rules::STEP_BUDGET);
             let mut matches = Vec::new();

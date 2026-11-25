@@ -161,10 +161,13 @@ Each process reads the site overlay, a YAML file (`ACE_RS_OVERLAY`; the dev stac
 startup with its path.
 
 - A module's block holds its settings, its `connections:` and, for a module that runs as several
-  instances, `instances:`.
+  instances, `instances:`. `settings_file:` names a YAML file whose keys go over `settings:`, read again
+  when it changes (PLAN.md decision 65).
 - `connections:` are shared credentials by type, named once and bound to a component's slots.
 - `secrets:` are `env:<VARIABLE>` or `file:<path>`. A process resolves only the secrets of the
   connections its own components bind.
+- `ACE_RS_OBSERVABLE_TYPES` names a site's types file, in ace3's `observable_types.yaml` format, which
+  every process reads and a long-running one reads again (PLAN.md decision 66).
 - The stack's variables all start with `ACE_RS_`; `compose.yaml` says what each is for.
 
 ## Architecture

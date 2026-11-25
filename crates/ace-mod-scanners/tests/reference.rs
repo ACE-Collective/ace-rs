@@ -108,6 +108,7 @@ fn scan_of(dir: &Path, under: &str, state: ScanState, work: &Path) -> Scan {
         exit_code,
         error: None,
         output: Some(path),
+        proxied: None,
     }
 }
 
@@ -274,6 +275,7 @@ fn javascript_deobfuscation_matches_the_reference_dumps_or_lists_each_difference
                 exit_code: None,
                 error: None,
                 output: None,
+                proxied: None,
             },
         };
         let harness = harness.scan(scan);
@@ -528,5 +530,160 @@ fn phishkit_analyzer_matches_the_reference_dumps_or_lists_each_difference() {
     }
     if let Err(report) = listed("phishkit_differences.md").check(&compared, &[]) {
         panic!("{report}");
+    }
+}
+
+/// A phishkit scan's output directory, as `scan_of` takes one: `requests.json`, its stdout and its
+/// exit code.
+fn phishkit_output(dir: &Path, requests: &Value, stdout: &str) {
+    std::fs::create_dir_all(dir).expect("a directory");
+    std::fs::write(dir.join("requests.json"), requests.to_string()).expect("written");
+    std::fs::write(dir.join("std.out"), stdout).expect("written");
+    std::fs::write(dir.join("exit.code"), "0").expect("written");
+}
+
+/// PLAN.md decision 64: `proxy: true` asks for the scanner pool's proxy; a scan whose main page the
+/// proxy refused is scanned again direct, as ace3's manager retries it, and the result says both, in
+/// its `proxy_status`, its summary and its stdout. The pool, not the module, holds the proxy: the
+/// module sees it only as the pool reported it, without credentials.
+#[test]
+fn a_page_the_proxy_refused_is_scanned_again_direct() {
+    let work = tempfile::tempdir().expect("a directory");
+    let harness =
+        Harness::<PhishkitAnalyzer>::with_settings(json!({ "proxy": true })).expect("harness");
+    let url = "https://lure.example.net/start";
+    let observable = harness
+        .observable(ObservableKind::Url, url)
+        .with_directive("crawl");
+    let first = harness.run_parser(observable.clone()).expect("an outcome");
+    let Outcome::Delay(delay) = &first else {
+        panic!("{first:?}");
+    };
+    let scan = delay.scan.as_ref().expect("a scan");
+    assert!(scan.proxy, "the first scan asks for the pool's proxy");
+    assert!(
+        !scan.args.iter().any(|a| a == "--proxy"),
+        "the module never names it"
+    );
+    let job: String = serde_json::from_value(delay.state["job"].clone()).expect("a job");
+
+    // the proxy refused the main frame's navigation; a refused image elsewhere doesn't count
+    let refused = json!([
+        {"type": "request", "requestId": "1", "frame_id": "main", "resource_type": "Document", "url": url},
+        {"type": "request", "requestId": "2", "frame_id": "ad", "resource_type": "Document", "url": "https://ads.example.org/"},
+        {"type": "error", "requestId": "2", "error_text": "net::ERR_TUNNEL_CONNECTION_FAILED", "url": "https://ads.example.org/"},
+        {"type": "error", "requestId": "1", "error_text": "net::ERR_TUNNEL_CONNECTION_FAILED", "url": url},
+    ]);
+    let proxied_dir = work.path().join("proxied");
+    phishkit_output(&proxied_dir, &refused, "loaded through the proxy\n");
+    let mut proxied = scan_of(&proxied_dir, &job, ScanState::Completed, work.path());
+    proxied.proxied = Some("http://proxy.example.com:3128".to_owned());
+    let harness = harness.scan(proxied);
+    let second = harness
+        .rerun_parser(
+            observable.clone(),
+            harness.after_delay(delay, 1, Duration::from_secs(5)),
+        )
+        .expect("an outcome");
+    let Outcome::Delay(retry) = &second else {
+        panic!("expected a direct scan, got {second:?}");
+    };
+    let direct_request = retry.scan.as_ref().expect("a scan");
+    assert!(!direct_request.proxy, "the retry is direct");
+    assert_eq!(retry.state["job"], json!(job), "the same job");
+    assert_eq!(retry.state["fallback"]["reason"], "error_pattern");
+
+    let direct_dir = work.path().join("direct");
+    let loaded = json!([
+        {"type": "request", "requestId": "1", "frame_id": "main", "resource_type": "Document", "url": url},
+        {"type": "response", "requestId": "1", "status_code": 200, "url": url},
+    ]);
+    phishkit_output(&direct_dir, &loaded, "loaded direct\n");
+    let direct = scan_of(&direct_dir, &job, ScanState::Completed, work.path());
+    let harness = harness.scan(direct);
+    let third = harness
+        .rerun_parser(
+            observable,
+            harness.after_delay(retry, 2, Duration::from_secs(5)),
+        )
+        .expect("an outcome");
+    let Outcome::Done(result) = &third else {
+        panic!("expected a result, got {third:?}");
+    };
+    let details = serde_json::to_value(&result.details).expect("details");
+    assert_eq!(
+        details["proxy_status"],
+        json!({
+            "configured": true,
+            "host": "http://proxy.example.com:3128",
+            "fallback_enabled": true,
+            "fallback_triggered": true,
+            "fallback_reason": "error_pattern",
+            "fallback_details": {
+                "matched_error_patterns": ["ERR_TUNNEL_CONNECTION_FAILED"],
+                "failed_url": url,
+            },
+            "final_route": "direct",
+        })
+    );
+    let summary = result.summary.as_deref().unwrap_or_default();
+    assert!(
+        summary.ends_with(" - proxy failed (error_pattern: lure.example.net), fetched direct"),
+        "{summary}"
+    );
+    let stdout = details["stdout"].as_str().unwrap_or_default();
+    assert!(
+        stdout.starts_with(
+            "--- PROXY ATTEMPT (failed, retried direct) ---\nloaded through the proxy"
+        ),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains("--- DIRECT ATTEMPT ---\nloaded direct"),
+        "{stdout}"
+    );
+}
+
+/// A page the proxy loaded stays proxied; with no proxy in the pool, the route is none.
+#[test]
+fn a_page_the_proxy_loaded_says_so_and_none_is_none() {
+    for (proxied, route, configured) in [
+        (Some("proxy.example.com:3128"), "proxy", true),
+        (None, "none", false),
+    ] {
+        let work = tempfile::tempdir().expect("a directory");
+        let harness =
+            Harness::<PhishkitAnalyzer>::with_settings(json!({ "proxy": true })).expect("harness");
+        let url = "https://lure.example.net/start";
+        let observable = harness
+            .observable(ObservableKind::Url, url)
+            .with_directive("crawl");
+        let first = harness.run_parser(observable.clone()).expect("an outcome");
+        let Outcome::Delay(delay) = &first else {
+            panic!("{first:?}");
+        };
+        let job: String = serde_json::from_value(delay.state["job"].clone()).expect("a job");
+        let dir = work.path().join("out");
+        phishkit_output(
+            &dir,
+            &json!([{"type": "response", "requestId": "1", "status_code": 200, "url": url}]),
+            "loaded\n",
+        );
+        let mut scan = scan_of(&dir, &job, ScanState::Completed, work.path());
+        scan.proxied = proxied.map(str::to_owned);
+        let harness = harness.scan(scan);
+        let outcome = harness
+            .rerun_parser(
+                observable,
+                harness.after_delay(delay, 1, Duration::from_secs(5)),
+            )
+            .expect("an outcome");
+        let Outcome::Done(result) = &outcome else {
+            panic!("{outcome:?}");
+        };
+        let status = &serde_json::to_value(&result.details).expect("details")["proxy_status"];
+        assert_eq!(status["final_route"], route);
+        assert_eq!(status["configured"], configured);
+        assert_eq!(status["fallback_triggered"], false);
     }
 }

@@ -84,6 +84,7 @@ impl Run<'_> {
             exit_code: scan.exit_code,
             error: scan.error.clone(),
             output: self.scan_output.map(Path::to_path_buf),
+            proxied: scan.proxied.clone(),
         })
     }
 
@@ -275,6 +276,9 @@ pub fn task_end<D: AnalysisType>(
         },
         Ok(Outcome::Skipped(reason)) => TaskEnd::Skipped { reason, writes },
         Err(ModuleError::Cancelled) => TaskEnd::Cancelled,
+        Err(e @ ModuleError::Unavailable(_)) => TaskEnd::Unavailable {
+            error: e.to_string(),
+        },
         Err(e) => TaskEnd::Failed {
             error: e.to_string(),
         },
@@ -297,6 +301,42 @@ fn done<D: AnalysisType>(
         Err(e) => TaskEnd::Failed {
             error: format!("the result doesn't serialize: {e}"),
         },
+    }
+}
+
+/// A pool's modules, which a reload of their settings files replaces (PLAN.md decision 65): the
+/// pool's runner and supervisor share it, and each task runs on the modules as they were when it
+/// started.
+#[derive(Clone)]
+pub struct ModulesHandle(Arc<std::sync::RwLock<Arc<Modules>>>);
+
+impl ModulesHandle {
+    pub fn new(modules: Modules) -> Self {
+        ModulesHandle(Arc::new(std::sync::RwLock::new(Arc::new(modules))))
+    }
+
+    /// The modules as they are now.
+    pub fn now(&self) -> Arc<Modules> {
+        // a poisoned lock still holds modules that were built: a panic while swapping one Arc for
+        // another leaves either
+        self.0
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    /// Replaces the modules for the tasks that start from now.
+    pub fn replace(&self, modules: Modules) {
+        *self
+            .0
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Arc::new(modules);
+    }
+}
+
+impl From<Arc<Modules>> for ModulesHandle {
+    fn from(modules: Arc<Modules>) -> Self {
+        ModulesHandle(Arc::new(std::sync::RwLock::new(modules)))
     }
 }
 
@@ -507,6 +547,18 @@ impl Registry {
 
 #[cfg(test)]
 mod tests {
+    /// A replacement is seen by every clone of the handle from then on; what a task took before
+    /// stays its own.
+    #[test]
+    fn replaced_modules_are_the_next_task_s() {
+        let handle = super::ModulesHandle::new(super::Modules::new());
+        let clone = handle.clone();
+        let before = handle.now();
+        clone.replace(super::Modules::new().with_tools(&[]));
+        assert!(!std::sync::Arc::ptr_eq(&before, &handle.now()));
+        assert!(std::sync::Arc::ptr_eq(&clone.now(), &handle.now()));
+    }
+
     use super::*;
     use ace_results::ObservableKind;
     use ace_sdk::LocalFileStore;
@@ -670,5 +722,27 @@ mod tests {
         assert_eq!(state(&task(None, false), &[]), CarryingEmail::Absent);
         assert_eq!(state(&email, &[]), CarryingEmail::NoBody);
         assert_eq!(state(&email, &parts), CarryingEmail::Parts(parts.to_vec()));
+    }
+
+    /// A peer that couldn't be reached ends the task as unavailable, which the core runs again
+    /// later; any other failure ends it failed, and both drop what it wrote.
+    #[test]
+    fn an_unavailable_peer_ends_the_task_for_a_retry() {
+        use ace_results::types::rdap::RdapAnalysis;
+        let unavailable: Result<Outcome<RdapAnalysis>, _> =
+            Err(ModuleError::Unavailable("the vendor answered 429".into()));
+        assert_eq!(
+            task_end(unavailable, Vec::new()),
+            TaskEnd::Unavailable {
+                error: "peer unavailable: the vendor answered 429".to_owned()
+            }
+        );
+        let other: Result<Outcome<RdapAnalysis>, _> = Err(ModuleError::other("a bug"));
+        assert_eq!(
+            task_end(other, Vec::new()),
+            TaskEnd::Failed {
+                error: "a bug".to_owned()
+            }
+        );
     }
 }

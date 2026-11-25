@@ -759,6 +759,7 @@ impl Api {
                     timeout_seconds: scan.timeout_seconds,
                     deadline_seconds: scan.deadline_in.as_secs_f64(),
                     lease_seconds: worker.lease().as_secs_f64(),
+                    proxy: scan.proxy,
                 }));
             }
             if self.inner.stopping.is_cancelled() {
@@ -822,6 +823,7 @@ impl Api {
             exit_code: scan.exit_code,
             error: scan.error,
             output,
+            proxied: scan.proxied,
         }))
     }
 
@@ -1713,8 +1715,8 @@ impl Api {
         path: Option<&str>,
     ) -> Result<bool, Failure> {
         let orchestrator = &self.inner.orchestrator;
-        let Some(component) = orchestrator
-            .catalog()
+        let catalog = orchestrator.catalog();
+        let Some(component) = catalog
             .component(&task.module)
             .filter(|c| crate::cache::caches(orchestrator.cache(), c))
         else {
@@ -2284,6 +2286,7 @@ async fn end_scan(
         error,
         output: end.output.map(|o| (o.sha256, o.size)),
         image_id: end.image_id.as_deref(),
+        proxied: end.proxied.as_deref(),
     };
     let hold = Hold::root(root);
     let (worker, ended, spooled, hold) = (&worker, &ended, &spooled, &hold);
@@ -2630,6 +2633,16 @@ async fn end_in(
             return Ok(StatusCode::NO_CONTENT);
         }
         TaskEnd::Failed { error } => worker.fail(task, &text_without_nul(&error)).await?,
+        // run again later while it has attempts left (`Worker::retry_later`)
+        TaskEnd::Unavailable { error } => {
+            if worker
+                .retry_later(task, &text_without_nul(&error))
+                .await?
+                .is_some()
+            {
+                return Ok(StatusCode::NO_CONTENT);
+            }
+        }
         TaskEnd::Cancelled => worker.cancelled(task).await?,
     }
     // a task that ends while its scan still runs doesn't wait for it (PLAN.md 7.7)
@@ -2844,7 +2857,7 @@ impl Api {
         crate::reads::answer(
             &self.inner.db,
             &self.inner.stores,
-            catalog,
+            &catalog,
             &self.inner.config.actions,
             task,
             read,

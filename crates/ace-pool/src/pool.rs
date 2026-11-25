@@ -20,7 +20,7 @@ use crate::containment::SandboxProfile;
 /// The target of the lease's timing events (`ace_core::api::LEASE_TIMING`): a pool logs one a
 /// lease request, at debug, with its round trip, the slots it had free and the tasks it got.
 pub const LEASE_TIMING: &str = "ace_lease";
-use crate::modules::Modules;
+use crate::modules::{Modules, ModulesHandle};
 use crate::run::run_in_process;
 
 /// What a pool is: the modules it runs, how many tasks it runs at once and what its processes
@@ -28,7 +28,8 @@ use crate::run::run_in_process;
 /// (`Registry::start`). Its container sets the pool's resource limits.
 pub struct PoolDefinition {
     pub name: String,
-    pub modules: Arc<Modules>,
+    /// What it runs, which a reload of a settings file replaces (`ModulesHandle`).
+    pub modules: ModulesHandle,
     pub concurrency: usize,
     pub sandbox: SandboxProfile,
 }
@@ -347,7 +348,7 @@ fn count(stats: &mut PoolStats, finished: Result<bool, tokio::task::JoinError>) 
 /// one runtime. A panic in one task fails that task; the process keeps serving.
 pub struct AsyncPool {
     client: LeaseClient,
-    modules: Arc<Modules>,
+    modules: ModulesHandle,
     concurrency: usize,
     /// How long one lease request waits for a task.
     lease_wait: Duration,
@@ -380,7 +381,8 @@ impl AsyncPool {
     pub async fn run(&self, stop: CancellationToken) -> PoolStats {
         let (client, modules) = (self.client.clone(), self.modules.clone());
         let run: Runner = Arc::new(move |task, shutdown| {
-            let (client, modules) = (client.clone(), modules.clone());
+            // the modules as they are when the task starts
+            let (client, modules) = (client.clone(), modules.now());
             Box::pin(async move {
                 let (id, module) = (task.id, task.module.clone());
                 match run_in_process(&client, &modules, task, &shutdown).await {

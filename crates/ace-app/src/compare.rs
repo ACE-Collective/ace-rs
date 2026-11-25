@@ -1184,7 +1184,6 @@ pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
     let components = crate::cli::components(&app.registry(), &overlay)?;
     // SVS's hook is on in every core (`ace serve`), whatever the overlay says
     let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks)
-        .context("the overlay's hooks section")?
         .with_svs(ace_core::svs::attribution::HookConfig::default());
     // the core's hooks that are on count as ported, as a module the binary has does
     let ported: BTreeSet<String> = components

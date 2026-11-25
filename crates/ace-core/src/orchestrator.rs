@@ -21,7 +21,7 @@
 
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use ace_results::{
     Detection, FieldError, NewObservable, ObservableAdditions, ObservableKind, ObservableRef,
@@ -94,14 +94,21 @@ pub struct Dispositioned {
     pub queued: Vec<TaskId>,
 }
 
+/// The results' schemas, or why they couldn't be made, as made at one generation of the types.
+type MadeRegistry = Arc<Result<Registry, String>>;
+
 /// The modules the core runs, and the modes that choose among them.
 #[derive(Debug, Clone)]
 pub struct Orchestrator {
-    catalog: Catalog,
+    /// The components, which a reload of their settings files replaces (`replace_catalog`, PLAN.md
+    /// decision 65): every clone shares it, and each use takes the catalog as it is then.
+    catalog: Arc<std::sync::RwLock<Arc<Catalog>>>,
     modes: Modes,
     /// The catalog's analysis types and their schemas, built the first time a result is
     /// checked.
-    registry: Arc<OnceLock<Result<Registry, String>>>,
+    /// Made again when the observable types change (`ObservableKind::generation`), since a schema
+    /// lists the types an observable may have.
+    registry: Arc<std::sync::Mutex<Option<(u64, MadeRegistry)>>>,
     /// The hooks the core runs over the tree (`crate::hooks`).
     hooks: Hooks,
     /// Whether the modules' declarations keep tasks off the queue or are only audited
@@ -187,7 +194,7 @@ pub struct Rejected {
 impl Orchestrator {
     pub fn new(catalog: Catalog, modes: Modes) -> Self {
         Orchestrator {
-            catalog,
+            catalog: Arc::new(std::sync::RwLock::new(Arc::new(catalog))),
             modes,
             registry: Arc::default(),
             hooks: Hooks::none(),
@@ -246,8 +253,8 @@ impl Orchestrator {
             error,
             fields: Vec::new(),
         };
-        let manifest = self
-            .catalog
+        let catalog = self.catalog();
+        let manifest = catalog
             .get(module)
             .ok_or_else(|| rejected(format!("no module {module} in the catalog")))?;
         let name = result.get("analysis_type").and_then(Value::as_str);
@@ -317,19 +324,31 @@ impl Orchestrator {
                 )));
             }
         }
-        let registry = self
-            .registry
-            .get_or_init(|| {
-                // a module's instances share its analysis type, listed once
-                let mut modules = BTreeSet::new();
-                let outputs: Vec<_> = self
-                    .catalog
-                    .iter()
-                    .filter(|c| modules.insert(c.manifest.name))
-                    .map(|c| c.manifest.output)
-                    .collect();
-                Registry::new(&outputs).map_err(|e| e.to_string())
-            })
+        let generation = ace_results::ObservableKind::generation();
+        let made = {
+            let mut cached = self
+                .registry
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            match cached.as_ref() {
+                Some((made, registry)) if *made == generation => registry.clone(),
+                _ => {
+                    // a module's instances share its analysis type, listed once
+                    let mut modules = BTreeSet::new();
+                    let catalog = self.catalog();
+                    let outputs: Vec<_> = catalog
+                        .iter()
+                        .filter(|c| modules.insert(c.manifest.name))
+                        .map(|c| c.manifest.output)
+                        .collect();
+                    let registry = Arc::new(Registry::new(&outputs).map_err(|e| e.to_string()));
+                    *cached = Some((generation, registry.clone()));
+                    registry
+                }
+            }
+        };
+        let registry = made
+            .as_ref()
             .as_ref()
             .map_err(|e| rejected(format!("the catalog's analysis types: {e}")))?;
         registry.validate(result).map_err(|invalid| Rejected {
@@ -360,8 +379,24 @@ impl Orchestrator {
         })
     }
 
-    pub fn catalog(&self) -> &Catalog {
-        &self.catalog
+    /// The components as they are now.
+    pub fn catalog(&self) -> Arc<Catalog> {
+        // a poisoned lock still holds a catalog: a panic while swapping one Arc for another leaves
+        // either
+        self.catalog
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    /// Replaces the components, for every clone of this orchestrator, as a reload of their settings
+    /// files makes them; a task, a landing or a hooks run that started takes the catalog it began
+    /// with.
+    pub fn replace_catalog(&self, catalog: Catalog) {
+        *self
+            .catalog
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Arc::new(catalog);
     }
 
     pub fn modes(&self) -> &Modes {
@@ -420,7 +455,8 @@ impl Orchestrator {
         rerun_all: bool,
     ) -> Result<Vec<TaskId>, OrchestratorError> {
         // what the mode runs and the binary has: a dependency outside it never has a result
-        let catalog = self.catalog.keys();
+        let components = self.catalog();
+        let catalog = components.keys();
         let mut mode_modules = self.modes.modules_in(mode);
         mode_modules.retain(|m| catalog.contains(m));
         let only: Option<Vec<i64>> = match scope {
@@ -500,9 +536,10 @@ impl Orchestrator {
         let none = BTreeSet::new();
         // a file's type step, queued first and alone where something reads the type
         // (`crate::type_step`)
-        let type_step = self.catalog.component(TYPE_STEP);
-        let reads_type: BTreeSet<&str> = self
-            .catalog
+        // the catalog as it is now, for the whole landing
+        let catalog = self.catalog();
+        let type_step = catalog.component(TYPE_STEP);
+        let reads_type: BTreeSet<&str> = catalog
             .iter()
             .filter(|component| component.takes.reads().file_type)
             .map(|component| component.key.as_str())
@@ -567,11 +604,10 @@ impl Orchestrator {
                 settled.insert(TYPE_STEP);
             }
             let tasks_on = seen.get(&observable.id).unwrap_or(&no_tasks);
-            eligibility::settle(&self.catalog, facts, &mode_modules, &mut settled, |key| {
+            eligibility::settle(&catalog, facts, &mode_modules, &mut settled, |key| {
                 tasks_on.get(key).copied().unwrap_or(TaskSeen::None)
             });
-            let mut components: Vec<&ace_sdk::Component> = self
-                .catalog
+            let mut components: Vec<&ace_sdk::Component> = catalog
                 .iter()
                 .filter(|component| component.key != TYPE_STEP)
                 .filter(|component| check(component, facts, &mode_modules, &settled).is_ok())
@@ -624,7 +660,7 @@ impl Orchestrator {
                 open: !gated,
             });
         }
-        let needs = declared::Needs::of(self.catalog.iter());
+        let needs = declared::Needs::of(catalog.iter());
         let mut held = if declaring.is_empty() {
             BTreeMap::new()
         } else {
@@ -761,11 +797,10 @@ impl Orchestrator {
                 if !no_task || !open {
                     break;
                 }
-                eligibility::settle(&self.catalog, rules, &mode_modules, &mut settled, |key| {
+                eligibility::settle(&catalog, rules, &mode_modules, &mut settled, |key| {
                     tasks_on.get(key).copied().unwrap_or(TaskSeen::None)
                 });
-                components = self
-                    .catalog
+                components = catalog
                     .iter()
                     .filter(|component| component.key != TYPE_STEP)
                     .filter(|component| !looked.contains(component.key.as_str()))
@@ -820,8 +855,8 @@ impl Orchestrator {
     /// counts together, as ace3 counts a root's analyses of one type.
     fn same_type<'c>(&'c self, component: &'c ace_sdk::Component) -> (&'c str, Vec<String>) {
         let analysis_type = component.manifest.output.name;
-        let modules = self
-            .catalog
+        let catalog = self.catalog();
+        let modules = catalog
             .iter()
             .filter(|c| c.manifest.output.name == analysis_type)
             .map(|c| c.key.clone())
@@ -838,12 +873,12 @@ impl Orchestrator {
         root: Uuid,
         module: &str,
     ) -> Result<Vec<TaskId>, OrchestratorError> {
-        let Some(component) = self.catalog.component(module) else {
+        let catalog = self.catalog();
+        let Some(component) = catalog.component(module) else {
             return Ok(Vec::new());
         };
         let (_, modules) = self.same_type(component);
-        if !self
-            .catalog
+        if !catalog
             .iter()
             .any(|c| modules.contains(&c.key) && c.automation_limit.is_some())
         {
@@ -868,9 +903,9 @@ impl Orchestrator {
         observable: ObservableId,
         module: &str,
     ) -> Result<Vec<TaskId>, OrchestratorError> {
+        let catalog = self.catalog();
         if module == TYPE_STEP
-            || !self
-                .catalog
+            || !catalog
                 .iter()
                 .any(|c| c.manifest.depends_on.contains(&module))
         {
@@ -925,7 +960,7 @@ impl Orchestrator {
         let analyzed = if kept.files.is_empty() || !named {
             None
         } else {
-            match settleable_path(tx, &self.catalog, root, observable).await? {
+            match settleable_path(tx, &self.catalog(), root, observable).await? {
                 Some(path) => Some(path),
                 None => return Ok(Hit::Wait),
             }
@@ -1194,7 +1229,7 @@ impl Orchestrator {
         mode: &str,
         scope: Scope<'_>,
     ) -> Result<Vec<ObservableId>, OrchestratorError> {
-        if self.catalog.component(TYPE_STEP).is_none() {
+        if self.catalog().component(TYPE_STEP).is_none() {
             return Ok(Vec::new());
         }
         let only: Option<Vec<i64>> = match scope {
@@ -1222,8 +1257,8 @@ impl Orchestrator {
         .fetch_all(tx.conn())
         .await?;
         if !unsettled.is_empty() {
-            let last: Vec<String> = self
-                .catalog
+            let catalog = self.catalog();
+            let last: Vec<String> = catalog
                 .iter()
                 .filter(|c| c.manifest.runs_last)
                 .map(|c| c.key.clone())
@@ -1248,12 +1283,13 @@ impl Orchestrator {
         mode: &str,
         scope: Scope<'_>,
     ) -> Result<Vec<ObservableId>, OrchestratorError> {
-        let Some(component) = self.catalog.component(TYPE_STEP) else {
+        let catalog = self.catalog();
+        let Some(component) = catalog.component(TYPE_STEP) else {
             return Ok(Vec::new());
         };
-        let catalog = self.catalog.keys();
+        let keys = catalog.keys();
         let mut mode_modules = self.modes.modules_in(mode);
-        mode_modules.retain(|m| catalog.contains(m));
+        mode_modules.retain(|m| keys.contains(m));
         let only: Option<Vec<i64>> = match scope {
             Scope::All => None,
             Scope::Observables(ids) => Some(ids.iter().map(|id| id.0).collect()),
@@ -1364,12 +1400,13 @@ impl Orchestrator {
     ) -> Result<Dispositioned, OrchestratorError> {
         let cancelled = queue::cancel_root(tx, root).await?;
         let mut queued = self.set_mode(tx, root, DISPOSITIONED).await?;
+        let catalog = self.catalog();
         let rerun: Vec<String> = self
             .modes
             .modules_in(DISPOSITIONED)
             .into_iter()
             .filter(|key| {
-                self.catalog
+                catalog
                     .get(key)
                     .is_some_and(|manifest| !manifest.stores_results)
             })
@@ -1481,7 +1518,8 @@ impl Orchestrator {
         probes: &BTreeMap<String, String>,
         writes: bool,
     ) -> Result<(), OrchestratorError> {
-        let Some(component) = self.catalog.component(&task.module) else {
+        let catalog = self.catalog();
+        let Some(component) = catalog.component(&task.module) else {
             return Ok(());
         };
         let Some(ttl) = component

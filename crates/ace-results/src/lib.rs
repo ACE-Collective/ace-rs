@@ -25,7 +25,8 @@ pub use file::{
 };
 pub use links::{Detection, ObservableRef, Relationship, RelationshipKind};
 pub use observable::{
-    ObservableKind, ObservableType, TypeListError, UnknownObservableKind, install_types, type_list,
+    FileType, FileTypesMerged, ObservableKind, ObservableType, TypeListError,
+    UnknownObservableKind, install_types, merge_file_types, type_list,
 };
 pub use registry::{AnalysisTypeInfo, Registry, RegistryError, result_schema, sort_json_keys};
 pub use role::{FileRole, RoleListError, UnknownFileRole, install_roles, role_list};

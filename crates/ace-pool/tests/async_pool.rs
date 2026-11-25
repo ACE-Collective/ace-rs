@@ -23,7 +23,7 @@ use common::{Core, PoolProcess, TOKEN, root_with_tasks, test_pool, wait_until_id
 fn definition(concurrency: usize) -> PoolDefinition {
     PoolDefinition {
         name: "test".to_owned(),
-        modules: Arc::new(testing::modules(&json!({})).expect("the test modules")),
+        modules: Arc::new(testing::modules(&json!({})).expect("the test modules")).into(),
         concurrency,
         sandbox: Default::default(),
     }

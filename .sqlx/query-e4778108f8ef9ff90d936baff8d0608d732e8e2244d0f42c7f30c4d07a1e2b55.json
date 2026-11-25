@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE queue.scans s\n               SET state = 'running', lease_owner = $1,\n                   lease_expires_at = now() + make_interval(secs => $2),\n                   started_at = now(), deadline_at = now() + make_interval(secs => s.timeout_seconds)\n               WHERE s.id = (SELECT id FROM queue.scans WHERE state = 'queued' AND scanner = ANY($3)\n                             ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1)\n               RETURNING s.id, s.task_id AS \"task_id: TaskId\", s.root_id, s.scanner, s.args, s.inputs,\n                         s.timeout_seconds, s.deadline_at AS \"deadline_at!\",\n                         extract(epoch FROM s.deadline_at - now())::float8 AS \"deadline_in!\"",
+  "query": "UPDATE queue.scans s\n               SET state = 'running', lease_owner = $1,\n                   lease_expires_at = now() + make_interval(secs => $2),\n                   started_at = now(), deadline_at = now() + make_interval(secs => s.timeout_seconds)\n               WHERE s.id = (SELECT id FROM queue.scans WHERE state = 'queued' AND scanner = ANY($3)\n                             ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1)\n               RETURNING s.id, s.task_id AS \"task_id: TaskId\", s.root_id, s.scanner, s.args, s.inputs,\n                         s.timeout_seconds, s.deadline_at AS \"deadline_at!\", s.proxy,\n                         extract(epoch FROM s.deadline_at - now())::float8 AS \"deadline_in!\"",
   "describe": {
     "columns": [
       {
@@ -93,6 +93,17 @@
       },
       {
         "ordinal": 8,
+        "name": "proxy",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "proxy"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
         "name": "deadline_in!",
         "type_info": "Float8",
         "origin": "Expression"
@@ -114,8 +125,9 @@
       false,
       false,
       true,
+      false,
       null
     ]
   },
-  "hash": "2c12aa3ce895e378a52ce4611137d8425339c2a6b55f208d7ced121631a34d8c"
+  "hash": "e4778108f8ef9ff90d936baff8d0608d732e8e2244d0f42c7f30c4d07a1e2b55"
 }

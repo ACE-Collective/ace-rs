@@ -205,7 +205,7 @@ fn main() -> ExitCode {
             }
             let definition = PoolDefinition {
                 name: "test".to_owned(),
-                modules,
+                modules: modules.clone().into(),
                 concurrency: args.concurrency,
                 sandbox: Default::default(),
             };
@@ -249,7 +249,7 @@ fn main() -> ExitCode {
                 RulesetWatcher::new(client.clone(), dir, Arc::new(ace_mod_yara::check_ruleset))
                     .every(args.ruleset_poll)
             });
-            let mut supervisor = Supervisor::new(client, modules, config);
+            let mut supervisor = Supervisor::new(client, modules.into(), config);
             if args.commands {
                 supervisor = supervisor.with_commands(ace_pool::commands::CommandConfig::new(
                     program,
@@ -402,6 +402,7 @@ fn outcome_name(end: &ace_sdk::wire::TaskEnd) -> &'static str {
         TaskEnd::Skipped { .. } => "skipped",
         TaskEnd::Delay { .. } => "delayed",
         TaskEnd::Failed { .. } => "failed",
+        TaskEnd::Unavailable { .. } => "unavailable",
         TaskEnd::Cancelled => "cancelled",
     }
 }

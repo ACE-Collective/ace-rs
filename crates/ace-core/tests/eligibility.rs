@@ -2077,7 +2077,7 @@ fn hooked(yaml: &str) -> Orchestrator {
         disabled_modules: Vec::new(),
     });
     let overlay = ace_sdk::Overlay::from_yaml(yaml).expect("an overlay");
-    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks).expect("rules that compile");
+    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks);
     Orchestrator::new(Catalog::new(manifests()), modes).with_hooks(hooks)
 }
 
@@ -2283,7 +2283,7 @@ hooks:
         disabled_modules: Vec::new(),
     };
     let orchestrator = Orchestrator::new(
-        hooked.catalog().clone(),
+        hooked.catalog().as_ref().clone(),
         hooked.modes().clone().with_mode(rdap_mode),
     )
     .with_hooks(hooked.hooks().clone());
@@ -2381,7 +2381,7 @@ hooks:
         disabled_modules: Vec::new(),
     };
     let orchestrator = Orchestrator::new(
-        orchestrator.catalog().clone(),
+        orchestrator.catalog().as_ref().clone(),
         orchestrator.modes().clone().with_mode(modes_with_rdap),
     )
     .with_hooks(orchestrator.hooks().clone());
@@ -2510,7 +2510,7 @@ hooks:
 "#,
     );
     let orchestrator = Orchestrator::new(
-        orchestrator.catalog().clone(),
+        orchestrator.catalog().as_ref().clone(),
         orchestrator.modes().clone().with_mode(AnalysisMode {
             name: "hooks_rdap".to_owned(),
             module_groups: vec!["common".to_owned(), "correlation".to_owned()],
@@ -2592,64 +2592,159 @@ async fn a_failed_hooks_task_ends_the_pass_and_doesnt_run_again() {
     assert!(hooks.claim().await.expect("claims").is_none());
 }
 
+/// A rule ace3 would log and skip is skipped, and the rules around it run (the owner's decision of
+/// 2026-11-24): the overlay still parses, and the core still starts.
 #[test]
-fn the_hooks_refuse_rules_ace3_would_skip() {
-    let refused = |yaml: &str| {
-        let overlay = ace_sdk::Overlay::from_yaml(yaml);
-        match overlay {
-            Err(e) => e.to_string(),
-            Ok(o) => ace_core::hooks::Hooks::from_section(&o.hooks)
-                .expect_err("refused")
-                .to_string(),
-        }
+fn the_hooks_skip_rules_ace3_would_skip() {
+    let kept = |rule: &str| -> Vec<String> {
+        let yaml = format!(
+            "hooks:\n  observable_modifier:\n    rules:\n      - {rule}\n      - {{name: fine, uuid: fine}}\n"
+        );
+        let overlay = ace_sdk::Overlay::from_yaml(&yaml).expect("the overlay parses");
+        let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks);
+        let rules = hooks.rules().expect("the modifier is on");
+        rules.rules().iter().map(|r| r.name.clone()).collect()
     };
-    let rules =
-        |rule: &str| format!("hooks:\n  observable_modifier:\n    rules:\n      - {rule}\n");
-    assert!(
-        refused(&rules("{name: a}")).contains("uuid"),
-        "a uuid is required"
+    for bad in [
+        "{name: a}",
+        "{uuid: u, phase: later}",
+        "{uuid: u, conditions: {value_pattern: '('}}",
+        "{uuid: u, conditions: {observable_types: [nope]}}",
+        "{uuid: u, conditions: {tree_conditions: [{observable_match: {size: x}}]}}",
+        "{uuid: u, actions: {explode: true}}",
+    ] {
+        assert_eq!(kept(bad), ["fine"], "{bad}");
+    }
+    let long = format!(
+        "{{uuid: u, conditions: {{value_pattern: '{}'}}}}",
+        "a".repeat(1025)
     );
-    assert!(refused(&rules("{uuid: u, phase: later}")).contains("phase"));
-    assert!(
-        refused(&rules("{uuid: u, conditions: {value_pattern: '(?=x)'}}"))
-            .contains("doesn't compile"),
-        "a look-around needs backtracking, which the regex crate doesn't do"
-    );
-    assert!(refused(&rules("{uuid: u, conditions: {observable_types: [nope]}}")).contains("nope"));
-    assert!(
-        refused(&rules(
-            "{uuid: u, conditions: {tree_conditions: [{observable_match: {size: x}}]}}"
-        ))
-        .contains("observable_match")
-    );
-    assert!(
-        refused(&rules(&format!(
-            "{{uuid: u, conditions: {{value_pattern: '{}'}}}}",
-            "a".repeat(1025)
-        )))
-        .contains("at most 1024 bytes")
+    assert_eq!(kept(&long), ["fine"]);
+    // Python's patterns compile, look-around included
+    assert_eq!(
+        kept("{name: ahead, uuid: u, conditions: {value_pattern: '(?=x)'}}"),
+        ["ahead", "fine"]
     );
     let many: String = (0..1001)
         .map(|i| format!("      - {{uuid: u{i}}}\n"))
         .collect();
-    assert!(
-        refused(&format!(
-            "hooks:\n  observable_modifier:\n    rules:\n{many}"
-        ))
-        .contains("at most 1000 rules")
+    let overlay = ace_sdk::Overlay::from_yaml(&format!(
+        "hooks:\n  observable_modifier:\n    rules:\n{many}"
+    ))
+    .expect("parses");
+    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks);
+    assert_eq!(
+        hooks.rules().expect("on").rules().len(),
+        1000,
+        "the first 1000"
     );
-    assert!(refused(&rules("{uuid: u, actions: {explode: true}}")).contains("explode"));
-    // no section, and a section of disabled rules, run nothing
-    let none = ace_core::hooks::Hooks::from_section(&ace_sdk::hooks::HooksSection::default())
-        .expect("none");
+    // no section, and a section of disabled rules and no file, run nothing
+    let none = ace_core::hooks::Hooks::from_section(&ace_sdk::hooks::HooksSection::default());
     assert!(none.names().is_empty());
-    let off = ace_sdk::Overlay::from_yaml(&rules("{uuid: u, enabled: false}")).expect("parses");
+    let off = ace_sdk::Overlay::from_yaml(
+        "hooks:\n  observable_modifier:\n    rules:\n      - {uuid: u, enabled: false}\n",
+    )
+    .expect("parses");
     assert!(
         ace_core::hooks::Hooks::from_section(&off.hooks)
-            .expect("compiles")
             .names()
             .is_empty()
     );
+}
+
+/// ace3's `rules_config_path`: the file's rules follow the overlay's, and a change to the file is taken
+/// when it's read again, as ace3 watches it. A file that can't be read, or doesn't read as rules,
+/// keeps the rules running.
+#[tokio::test]
+async fn the_rules_file_is_read_again_when_it_changes() {
+    let errors = Errors::default();
+    // this thread's alone: the test runs on a current-thread runtime
+    let _logging =
+        tracing::subscriber::set_default(tracing_subscriber::layer::SubscriberExt::with(
+            tracing_subscriber::registry(),
+            errors.clone(),
+        ));
+    let dir = tempfile::tempdir().expect("a directory");
+    let file = dir.path().join("rules.yaml");
+    let names = |hooks: &ace_core::hooks::Hooks| -> Vec<String> {
+        let rules = hooks.rules().expect("on");
+        rules.rules().iter().map(|r| r.name.clone()).collect()
+    };
+    let overlay = ace_sdk::Overlay::from_yaml(&format!(
+        "hooks:\n  observable_modifier:\n    rules_file: {}\n    rules:\n      - {{name: inline, uuid: i}}\n",
+        file.display()
+    ))
+    .expect("parses");
+    // no file yet: the modifier is on, with the overlay's rules, and logs that it can't read it
+    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks);
+    assert_eq!(names(&hooks), ["inline"]);
+    let modifier = hooks.modifier().expect("on").clone();
+    assert!(!modifier.reload().await, "still no file");
+
+    assert!(errors.any("rules file can't be read"));
+    std::fs::write(&file, "rules:\n  - {name: one, uuid: a}\n  - {name: bad}\n").expect("written");
+    assert!(modifier.reload().await, "the file's rules are taken");
+    assert!(
+        errors.any("doesn't compile, so it is skipped"),
+        "a skipped rule is logged at ERROR"
+    );
+    assert_eq!(names(&hooks), ["inline", "one"], "a clone sees the reload");
+    assert!(
+        !modifier.reload().await,
+        "an unchanged file isn't compiled again"
+    );
+
+    std::fs::write(
+        &file,
+        "rules:\n  - {name: two, uuid: b}\n  - {name: dup, uuid: i}\n",
+    )
+    .expect("written");
+    assert!(modifier.reload().await);
+    assert_eq!(
+        names(&hooks),
+        ["inline", "two"],
+        "a uuid the overlay has is skipped"
+    );
+
+    std::fs::write(&file, "rules: [not: yaml").expect("written");
+    assert!(!modifier.reload().await);
+    assert_eq!(names(&hooks), ["inline", "two"], "the rules running stay");
+    assert!(errors.any("doesn't read, so the rules running stay"));
+    std::fs::remove_file(&file).expect("removed");
+    assert!(!modifier.reload().await);
+    assert_eq!(names(&hooks), ["inline", "two"]);
+}
+
+/// The messages of the ERROR records a test's thread logs.
+#[derive(Clone, Default)]
+struct Errors(std::sync::Arc<std::sync::Mutex<Vec<String>>>);
+
+impl Errors {
+    fn any(&self, text: &str) -> bool {
+        self.0
+            .lock()
+            .expect("the records")
+            .iter()
+            .any(|m| m.contains(text))
+    }
+}
+
+impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for Errors {
+    fn on_event(&self, event: &tracing::Event<'_>, _: tracing_subscriber::layer::Context<'_, S>) {
+        struct Message(String);
+        impl tracing::field::Visit for Message {
+            fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+                if field.name() == "message" {
+                    self.0 = format!("{value:?}");
+                }
+            }
+        }
+        if *event.metadata().level() == tracing::Level::ERROR {
+            let mut message = Message(String::new());
+            event.record(&mut message);
+            self.0.lock().expect("the records").push(message.0);
+        }
+    }
 }
 
 /// PLAN.md 7.10 batch 6: SVS's hook, ace3's `svs_alert_tagger`, is one of the core's hooks, in the modes
@@ -5493,4 +5588,22 @@ async fn a_result_s_directives_are_its_module_s() {
     .await
     .expect("reads");
     assert_eq!(directives, ["sandbox", "old", "extract_urls"]);
+}
+
+/// PLAN.md decision 65: a catalog a reload of the settings files makes replaces the components for
+/// every clone of the orchestrator, and what a caller took before keeps its own.
+#[test]
+fn a_replaced_catalog_is_every_clone_s() {
+    let orchestrator = Orchestrator::new(Catalog::new(manifests()), Modes::ace3());
+    let clone = orchestrator.clone();
+    let before = orchestrator.catalog();
+    let all = before.keys().len();
+    assert!(all > 1);
+    clone.replace_catalog(Catalog::new(manifests().into_iter().take(1)));
+    assert_eq!(
+        orchestrator.catalog().keys().len(),
+        1,
+        "the original sees it"
+    );
+    assert_eq!(before.keys().len(), all, "a snapshot keeps its own");
 }
