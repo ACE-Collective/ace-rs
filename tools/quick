@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+"""`make quick`: formatting, lints and tests of the crates a change touches, and of the crates that
+depend on them, in place of the whole workspace's. Run in the dev container.
+
+A crate is touched when a file under its directory differs from BASE (HEAD unless BASE is set in the
+environment), staged or not, untracked files included. The checks:
+
+- cargo fmt --check and cargo clippy -D warnings on the touched crates of this workspace;
+- cargo nextest on those crates and every crate of this workspace that depends on them;
+- the doctests of the touched crates only, which nextest doesn't run: a doctest compiles on its own,
+  so a dependent's doctests cost the most and break the least.
+
+A change to a file that every build reads (Cargo.toml or Cargo.lock at the root, the toolchain,
+.cargo/, .config/ or .sqlx/) runs the whole workspace's checks instead. A change nothing builds from
+(docs, tests/e2e, the samples) runs nothing. `make test` is still the check before a commit: this
+leaves out the dependents' lints and doctests, and the checks `make check` adds.
+
+  --also DIR   counts the changes of another git checkout too, whose crates this workspace builds
+               from by path, as a site's workspace does from ace-rs's under `make live`; a crate of
+               its that this workspace doesn't build from changes nothing here
+  --unlocked   runs cargo without --locked, as a site's workspace must while its Cargo.lock follows
+               a working tree
+  --print      prints the commands and runs none
+"""
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+WHOLE = ("Cargo.toml", "Cargo.lock", "rust-toolchain.toml", ".cargo/", ".config/", ".sqlx/")
+
+
+def git(checkout, *args):
+    return subprocess.run(["git", "-C", str(checkout), *args], check=True, capture_output=True,
+                          text=True).stdout.splitlines()
+
+
+def changed(checkout, base):
+    """The files of a checkout that differ from base, or are untracked, as absolute paths."""
+    names = git(checkout, "diff", "--name-only", base)
+    names += git(checkout, "ls-files", "--others", "--exclude-standard")
+    return {checkout / name for name in names}
+
+
+def option(argv, name):
+    values = []
+    for i, arg in enumerate(argv):
+        if arg == name:
+            if i + 1 >= len(argv):
+                raise SystemExit(f"quick: {name} takes a value")
+            values.append(argv[i + 1])
+    return values
+
+
+def main(argv):
+    root = Path.cwd().resolve()
+    base = os.environ.get("BASE") or "HEAD"
+    locked = [] if "--unlocked" in argv else ["--locked"]
+    files = changed(root, base)
+    for other in option(argv, "--also"):
+        files |= changed(Path(other).resolve(), "HEAD")
+
+    metadata = json.loads(subprocess.run(
+        ["cargo", "metadata", "--format-version", "1", *locked], check=True, capture_output=True,
+        text=True).stdout)
+    members = set(metadata["workspace_members"])
+    packages = {p["id"]: p for p in metadata["packages"]}
+    # deepest directory first, so a crate inside another's directory takes its own files
+    dirs = sorted(((Path(p["manifest_path"]).parent, i) for i, p in packages.items()),
+                  key=lambda d: len(d[0].parts), reverse=True)
+
+    whole = sorted(str(f.relative_to(root)) for f in files if f.is_relative_to(root)
+                   and any(str(f.relative_to(root)) == w or str(f.relative_to(root)).startswith(w)
+                           for w in WHOLE))
+    touched = set()
+    for f in files:
+        owner = next((i for d, i in dirs if f.is_relative_to(d)), None)
+        if owner is not None:
+            touched.add(owner)
+
+    def names(ids):
+        return sorted(packages[i]["name"] for i in ids)
+
+    if whole:
+        print(f"quick: {', '.join(whole)} changed, which every build reads: checking the whole "
+              "workspace", flush=True)
+        commands = [
+            ["cargo", "fmt", "--all", "--check"],
+            ["cargo", "clippy", "--workspace", "--all-targets", *locked, "--", "-D", "warnings"],
+            ["cargo", "nextest", "run", "--workspace", *locked, "--no-fail-fast"],
+            ["cargo", "test", "--doc", "--workspace", *locked],
+        ]
+    else:
+        # the crates that depend on a touched one, through the resolved graph, normal and dev
+        # dependencies alike
+        dependents = {}
+        for node in metadata["resolve"]["nodes"]:
+            for dep in node["deps"]:
+                dependents.setdefault(dep["pkg"], set()).add(node["id"])
+        reached, todo = set(), list(touched)
+        while todo:
+            current = todo.pop()
+            if current in reached:
+                continue
+            reached.add(current)
+            todo.extend(dependents.get(current, ()))
+        own = touched & members
+        tested = reached & members
+        if not tested:
+            print("quick: no crate this workspace builds has changed since " + base, flush=True)
+            return 0
+        print(f"quick: changed: {', '.join(names(touched))}", flush=True)
+        print(f"quick: the crates to test ({len(tested)}): {', '.join(names(tested))}", flush=True)
+
+        def flags(ids):
+            return [arg for name in names(ids) for arg in ("-p", name)]
+
+        commands = []
+        if own:
+            commands += [
+                ["cargo", "fmt", "--check", *flags(own)],
+                ["cargo", "clippy", *flags(own), "--all-targets", *locked, "--", "-D", "warnings"],
+            ]
+        commands.append(["cargo", "nextest", "run", *flags(tested), *locked, "--no-fail-fast"])
+        documented = {i for i in own
+                      if any("lib" in t["kind"] for t in packages[i]["targets"])}
+        if documented:
+            commands.append(["cargo", "test", "--doc", *flags(documented), *locked])
+
+    status = 0
+    for command in commands:
+        print("quick: " + " ".join(command), flush=True)
+        if "--print" in argv:
+            continue
+        env = dict(os.environ, CI="true")
+        code = subprocess.run(command, env=env).returncode
+        # nextest and the doctests say "no tests to run" with an exit code of their own, which
+        # isn't a failure here
+        if code != 0 and not (command[1] == "nextest" and code == 4):
+            status = code
+            if command[1] in ("fmt", "clippy"):
+                break
+    return status
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

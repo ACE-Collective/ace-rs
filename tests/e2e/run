@@ -116,8 +116,10 @@ on, the scanner check's page is rendered twice: phishkit_analyzer's first result
 its scan's image id, and the second root has to take it from the cache, with the same files and no
 scan of its own (PLAN.md decision 27). Then the core goes back to the site's own overlay.
 
-Usage: tests/e2e/run [--keep] [--compare] [--jobs N]
+Usage: tests/e2e/run [--keep] [--no-build] [--compare] [--jobs N] [--only CHECKS]
+                     [--samples GLOBS | --modules NAMES | --crates NAMES | --changed]
   --keep      leaves the stack up
+  --no-build  starts the stack from the images this host has, without building them
   --compare   only brings up the stack and runs `ace compare` over the sample set, reporting
               differences without enforcing the threshold, and fails only when a sample can't be
               run
@@ -125,6 +127,25 @@ Usage: tests/e2e/run [--keep] [--compare] [--jobs N]
               (crates/ace-app/src/compare.rs, *Several samples at once*). Without it, as many as
               the parser pool has slots here: 8 on a machine whose Docker has 10 CPUs or more,
               4 on a small one
+  --only CHECKS
+              runs only these checks, comma-separated, of: gui, command, email, search, ai, lists,
+              scanners, browser, library-diff, inventory, compare, cache. search and ai need email's
+              roots and cache needs compare's world, so each brings in the other. `none` runs no
+              check: the stack comes up, with its key and ruleset, and with --keep stays up
+  --samples GLOBS, --modules NAMES, --crates NAMES, --changed
+              compare only some of the sample set, which is then the only check, or the one
+              --only adds to its own:
+              the samples whose paths match a glob; those where ace3's tree has a result of one of
+              the modules, or where the last report (<work>/compare/report.json) found a
+              difference in one; the modules docs/modules.md says a crate holds; or the crates
+              with uncommitted changes in this checkout, all of the sample set when one of them is
+              a crate other than a module's, and none when no crate changed. The threshold then
+              holds over the samples compared: no unexplained difference, no failed sample and,
+              outside CI, no absent one. A row of differences.md that matched nothing isn't
+              checked, since the samples it covers may not have run.
+
+A change is checked in full, with every check and the whole sample set, by a run without --only or
+a selection of samples, which is what `make test-all` runs.
 
 With ACE_RS_TAKES_AUDIT=1 in the environment, the stack's core audits the modules' declarations of what
 they take rather than applying them (PLAN.md decision 23): it queues every task and marks the ones a
@@ -160,6 +181,7 @@ inventory check this repository, not a stack, so a site's run never includes the
 """
 
 import base64
+import fnmatch
 import hashlib
 import http.client
 import json
@@ -2193,6 +2215,135 @@ def jobs_of(argv):
     return int(following[0])
 
 
+CHECKS = ["gui", "command", "email", "search", "ai", "lists", "scanners", "browser", "library-diff",
+          "inventory", "compare", "cache"]
+SELECTIONS = ["--samples", "--modules", "--crates", "--changed"]
+
+
+def value_of(argv, name):
+    """The comma-separated values after `name`, or None without it."""
+    if name not in argv:
+        return None
+    following = argv[argv.index(name) + 1:]
+    if not following or following[0].startswith("--"):
+        raise SystemExit(f"e2e: {name} takes a comma-separated list")
+    return [v for v in following[0].split(",") if v]
+
+
+def checks_of(argv):
+    """The checks --only names, with what each needs, or every check without it."""
+    named = value_of(argv, "--only")
+    if named is None:
+        return set(CHECKS)
+    if named == ["none"]:
+        named = []
+    unknown = [c for c in named if c not in CHECKS]
+    if unknown:
+        raise SystemExit(f"e2e: --only names no such check: {', '.join(unknown)}; the checks are "
+                         + ", ".join(CHECKS))
+    checks = set(named)
+    if checks & {"search", "ai"}:
+        checks.add("email")
+    if "cache" in checks:
+        checks.add("compare")
+    return checks
+
+
+def crates_changed():
+    """The crates with uncommitted changes in this checkout, staged or not, untracked files too."""
+    if not (ROOT / ".git").exists():
+        raise SystemExit(f"e2e: --changed needs a git checkout, and {ROOT} isn't one")
+    out = subprocess.run(
+        ["git", "-C", str(ROOT), "status", "--porcelain", "--untracked-files=all", "--", "crates"],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    return sorted({line[3:].split(" -> ")[-1].split("/")[1] for line in out.splitlines()})
+
+
+def modules_of_crates(crates):
+    """The modules docs/modules.md's inventory says each crate holds, by its third column."""
+    held = {}
+    for line in (ROOT / "docs" / "modules.md").read_text().splitlines():
+        cells = [c.strip().strip("`") for c in line.strip().strip("|").split("|")]
+        if len(cells) > 3 and cells[2].startswith("ace-mod-") and re.fullmatch(r"[a-z0-9_]+", cells[0]):
+            held.setdefault(cells[2], set()).add(cells[0])
+    missing = [c for c in crates if c not in held]
+    if missing:
+        raise SystemExit(f"e2e: docs/modules.md names no module in {', '.join(missing)}")
+    return sorted(set().union(*(held[c] for c in crates))) if crates else []
+
+
+def samples_with_modules(paths, modules):
+    """The samples where ace3's tree has a result of one of the modules, or where the last report
+    found a difference in one."""
+    wanted = set(modules)
+    chosen = set()
+    for path in paths:
+        tree = TREES / "reference" / f"{path}.json"
+        if tree.is_file():
+            observables = json.loads(tree.read_text()).get("observables") or {}
+            if any(wanted & set(o.get("results") or {}) for o in observables.values()):
+                chosen.add(path)
+    last = WORK / "compare" / "report.json"
+    if last.is_file():
+        for sample in json.loads(last.read_text()).get("samples", []):
+            if wanted & set(sample.get("modules") or {}):
+                chosen.add(sample["sample"])
+    return [p for p in paths if p in chosen]
+
+
+def samples_of(argv):
+    """The samples a selection names, in the manifest's order: None without a selection, which is
+    the whole sample set, and possibly none."""
+    given = [name for name in SELECTIONS if name in argv]
+    if not given:
+        return None
+    if len(given) > 1:
+        raise SystemExit(f"e2e: {' and '.join(given)} can't be given together")
+    paths = [s["path"] for s in json.loads((ROOT / "samples" / "manifest.json").read_text())["samples"]]
+    if "--samples" in argv:
+        globs = value_of(argv, "--samples")
+        chosen = [p for p in paths if any(fnmatch.fnmatchcase(p, g) for g in globs)]
+        log(f"comparing the {len(chosen)} samples matching {', '.join(globs)}")
+        return chosen
+    if "--modules" in argv:
+        modules = value_of(argv, "--modules")
+    elif "--crates" in argv:
+        modules = modules_of_crates(value_of(argv, "--crates"))
+    else:
+        crates = crates_changed()
+        others = [c for c in crates if not c.startswith("ace-mod-")]
+        if others:
+            log(f"comparing the whole sample set: {', '.join(others)} changed, and no module's crate "
+                "says which samples those reach")
+            return None
+        if not crates:
+            log("comparing no sample: no crate has an uncommitted change")
+            return []
+        modules = modules_of_crates(crates)
+        log(f"changed: {', '.join(crates)}")
+    chosen = samples_with_modules(paths, modules)
+    log(f"comparing the {len(chosen)} samples that reach {', '.join(modules)}")
+    return chosen
+
+
+def threshold_over(samples):
+    """docs/acceptance.md's threshold over a selection of samples, from the report `ace compare`
+    wrote: no unexplained difference, no failed sample and, outside CI, no absent one. Returns why
+    it isn't met, or an empty list."""
+    report = json.loads((WORK / "compare" / "report.json").read_text())
+    unmet = []
+    if report["totals"]["unexplained"]:
+        unmet.append(f"{report['totals']['unexplained']} unexplained differences")
+    if report["failed"]:
+        unmet.append(f"{len(report['failed'])} samples failed")
+    if report["absent"] and not os.environ.get("CI"):
+        unmet.append(f"{len(report['absent'])} samples are absent")
+    log(f"the threshold over the {len(samples)} samples compared; a row of differences.md that "
+        "matched nothing isn't checked, since the samples it covers may not have run")
+    return unmet
+
+
 # The audit of the modules' declarations of what they take (PLAN.md decision 23, ace_core::takes):
 # with ACE_RS_TAKES_AUDIT=1 in the environment (a site's prefix in place of ACE_RS_) the stack's core
 # queues every task and marks the ones a declaration would have declined. This is
@@ -2233,9 +2384,10 @@ def check_takes_audit(failures):
             f"stored a result or failed")
 
 
-def compare_with_ace3(threshold=False, jobs=None):
-    """Runs `ace compare` over the sample set in a one-off ace container, with the report under
-    <work>/compare, `jobs` samples at once when it's given. Returns its exit code."""
+def compare_with_ace3(threshold=False, jobs=None, samples=None):
+    """Runs `ace compare` over the sample set, or the given samples, in a one-off ace container, with
+    the report under <work>/compare, `jobs` samples at once when it's given. Returns its exit code,
+    and over a selection of samples 1 when threshold_over says the threshold isn't met."""
     report = WORK / "compare"
     report.mkdir(parents=True, exist_ok=True)
     # ace3's trees were made against an empty brocess (tools/ace3/trees/brocess.json), and the
@@ -2265,12 +2417,19 @@ def compare_with_ace3(threshold=False, jobs=None):
     ]
     if jobs:
         command += ["--jobs", str(jobs)]
-    if threshold:
+    for sample in samples or ():
+        command += ["--only", sample]
+    if threshold and samples is None:
         command.append("--threshold")
         if os.environ.get("CI"):
             command.append("--allow-absent")
     code = compose(*command, check=False, exit_code=True)
     log(f"the comparison's report is in {report}")
+    if threshold and samples is not None and code == 0:
+        unmet = threshold_over(samples)
+        for reason in unmet:
+            log(f"FAIL  {reason}")
+        code = 1 if unmet else 0
     return code
 
 
@@ -2337,6 +2496,13 @@ def main(argv):
     keep = "--keep" in argv
     compare_only = "--compare" in argv
     jobs = jobs_of(argv) or POOL_SLOTS
+    checks = checks_of(argv)
+    samples = samples_of(argv)
+    if samples is not None:
+        # a selection alone compares those samples and checks nothing else
+        checks = checks | {"compare"} if "--only" in argv else {"compare"}
+    if checks != set(CHECKS):
+        log(f"checks: {', '.join(c for c in CHECKS if c in checks) or 'none'}")
     WORK.mkdir(parents=True, exist_ok=True)
     commit = make_signatures()
     log(f"signatures at {WORK / 'signatures'}, commit {commit}")
@@ -2344,7 +2510,8 @@ def main(argv):
     if not browser and "ACE_RS_E2E_COMPOSE" not in os.environ:
         raise SystemExit("e2e: compose.yaml has no browser service")
     build_scanner_images()
-    compose("up", "-d", "--build", "--wait", *SERVICES, *(["browser"] if browser else []))
+    build = [] if "--no-build" in argv else ["--build"]
+    compose("up", "-d", *build, "--wait", *SERVICES, *(["browser"] if browser else []))
     failures = []
     try:
         make_key()
@@ -2359,36 +2526,47 @@ def main(argv):
             within=60,
         )
         if compare_only:
-            if compare_with_ace3(jobs=jobs) != 0:
+            if samples == []:
+                log("no sample to compare")
+            elif compare_with_ace3(jobs=jobs, samples=samples) != 0:
                 failures.append("ace compare couldn't run every sample; see above")
             check_takes_audit(failures)
             return finish(failures)
-        check_gui(failures)
+        if "gui" in checks:
+            check_gui(failures)
         make_analyst()
-        check_gui_command(failures)
+        if "command" in checks:
+            check_gui_command(failures)
         email = (ROOT / "samples" / SAMPLE).read_bytes()
-        first, undisturbed = run(email, kill=False, failures=failures)
-        second, killed = run(email, kill=True, failures=failures)
-        log(f"completion: {undisturbed:.2f}s undisturbed, {killed:.2f}s with the parser pool "
-            f"killed mid-run (lease {LEASE_SECONDS}s)")
-        if killed <= undisturbed:
-            failures.append("the run with the kill wasn't slower; did the kill land?")
-        form = normal_form(first)
-        (WORK / "normal-form.json").write_text(form)
-        check_normal_form(form, failures)
-        killed_form = normal_form(second)
-        (WORK / "normal-form-killed.json").write_text(killed_form)
-        if form == killed_form:
-            log("ok    both roots have the same normal form, killed pool and all")
-        else:
-            log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
-            failures.append("the same email's two roots have different normal forms")
-        check_root_metrics([first, second], failures)
-        check_search(first, second, failures)
-        check_ai(first, failures)
-        check_list_edit(email, failures)
-        check_scanners(failures)
-        if browser:
+        if "email" in checks:
+            first, undisturbed = run(email, kill=False, failures=failures)
+            second, killed = run(email, kill=True, failures=failures)
+            log(f"completion: {undisturbed:.2f}s undisturbed, {killed:.2f}s with the parser pool "
+                f"killed mid-run (lease {LEASE_SECONDS}s)")
+            if killed <= undisturbed:
+                failures.append("the run with the kill wasn't slower; did the kill land?")
+            form = normal_form(first)
+            (WORK / "normal-form.json").write_text(form)
+            check_normal_form(form, failures)
+            killed_form = normal_form(second)
+            (WORK / "normal-form-killed.json").write_text(killed_form)
+            if form == killed_form:
+                log("ok    both roots have the same normal form, killed pool and all")
+            else:
+                log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
+                failures.append("the same email's two roots have different normal forms")
+            check_root_metrics([first, second], failures)
+        if "search" in checks:
+            check_search(first, second, failures)
+        if "ai" in checks:
+            check_ai(first, failures)
+        if "lists" in checks:
+            check_list_edit(email, failures)
+        if "scanners" in checks:
+            check_scanners(failures)
+        if "browser" not in checks:
+            pass
+        elif browser:
             try:
                 check_live_alert(email, failures)
             except SystemExit as error:
@@ -2396,20 +2574,27 @@ def main(argv):
                 failures.append(f"the browser test: {error}")
         else:
             log("SKIP  the browser test: the Compose file has no browser service")
-        if not SITE_RUN:
+        if not SITE_RUN and "library-diff" in checks:
             check_library_diff(failures)
+        if not SITE_RUN and "inventory" in checks:
             check_module_inventory(failures)
-        if COMPARE:
-            compare_failed = compare_with_ace3(threshold=True, jobs=jobs) != 0
-            check_ports_compared(failures)
+        # a selection of samples is a request to compare them, in a site's run too
+        if (COMPARE or samples is not None) and "compare" in checks and samples != []:
+            compare_failed = compare_with_ace3(threshold=True, jobs=jobs, samples=samples) != 0
+            if samples is None:
+                check_ports_compared(failures)
             check_takes_audit(failures)
             if compare_failed:
                 failures.append("the acceptance threshold (docs/acceptance.md) isn't met; see "
                                 "above and target/e2e/compare/report.md")
-            else:
+            elif samples is None:
                 log("ok    the acceptance threshold is met: every difference from ace3 is listed "
                     "in differences.md, and every row matched one")
-        if CACHE:
+            else:
+                log(f"ok    the acceptance threshold is met over the {len(samples)} samples compared")
+        elif samples == []:
+            log("SKIP  the comparison: no sample selected")
+        if CACHE and "cache" in checks and samples != []:
             check_cache(failures)
     finally:
         if failures or keep:

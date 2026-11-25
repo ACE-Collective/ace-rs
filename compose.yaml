@@ -206,6 +206,13 @@ services:
       context: .
       dockerfile: docker/ace-rs/Dockerfile
       target: ace
+      # With ACE_RS_PREBUILT naming a directory of release binaries the dev container built
+      # (make prebuilt), the images take those in place of compiling the workspace; the
+      # end-to-end test's fast runs use it, and a full run builds from source.
+      args: &prebuilt-args
+        BINARIES: ${ACE_RS_PREBUILT:+prebuilt}
+      additional_contexts: &prebuilt-context
+        prebuilt-binaries: ${ACE_RS_PREBUILT:-docker/ace-rs}
     image: ace-rs-ace:latest
     depends_on:
       stack-guard:
@@ -339,6 +346,8 @@ services:
       context: .
       dockerfile: docker/ace-rs/Dockerfile
       target: parsers
+      args: *prebuilt-args
+      additional_contexts: *prebuilt-context
     image: ace-rs-parsers:latest
     depends_on:
       ace:
@@ -373,6 +382,8 @@ services:
       context: .
       dockerfile: docker/ace-rs/Dockerfile
       target: sandbox
+      args: *prebuilt-args
+      additional_contexts: *prebuilt-context
     image: ace-rs-sandbox:latest
     depends_on:
       ace:
@@ -405,6 +416,8 @@ services:
       context: .
       dockerfile: docker/ace-rs/Dockerfile
       target: lookups
+      args: *prebuilt-args
+      additional_contexts: *prebuilt-context
     image: ace-rs-lookups:latest
     depends_on:
       ace:
@@ -447,6 +460,8 @@ services:
       context: .
       dockerfile: docker/ace-rs/Dockerfile
       target: scanners
+      args: *prebuilt-args
+      additional_contexts: *prebuilt-context
     image: ace-rs-scanners:latest
     depends_on:
       ace:
@@ -486,6 +501,8 @@ services:
       context: .
       dockerfile: docker/ace-rs/Dockerfile
       target: responder
+      args: *prebuilt-args
+      additional_contexts: *prebuilt-context
     image: ace-rs-responder:latest
     profiles: [e2e]
     depends_on:

@@ -63,11 +63,27 @@ The checks and tests run in the Compose stack's dev container, with its Postgres
 is no CI for now: run them before a push.
 
 ```bash
+make quick      # make test's checks on the crates a change touches and the tests of their dependents
 make test       # formatting, clippy, the sqlx and layering checks, then every crate's tests
 make e2e        # the end-to-end test: the sample set through the stack, compared with ace3's trees
+make test-all   # make test, then make e2e: the full run
 make coverage   # every crate's tests with coverage, reported in coverage/html/index.html
 make help       # the other targets
 ```
+
+While changing something, run part of the end-to-end test, on images made from release binaries
+the dev container builds (`make prebuilt`), which recompile only what changed:
+
+```bash
+make e2e PREBUILT=1 ARGS="--only gui,browser"        # some of the scenario checks
+make e2e PREBUILT=1 ARGS="--modules pdf_link_text"   # the samples that reach these modules
+make e2e PREBUILT=1 ARGS="--crates ace-mod-pdf"      # the samples that reach these crates' modules
+make e2e PREBUILT=1 ARGS="--changed"                 # the samples your uncommitted changes reach
+```
+
+`tests/e2e/run`'s usage lists the checks. Over a selection of samples the threshold holds over those
+samples, but a row of `differences.md` that matched nothing isn't checked. `make test-all`, with
+every check, the whole sample set and the images built from source, is the full run.
 
 `make e2e` needs an ace3 checkout at `../ace3`. `make coverage` builds a separate instrumented
 copy of every test program, which peaks at about 23 GB on Docker's disk, and refuses to start with

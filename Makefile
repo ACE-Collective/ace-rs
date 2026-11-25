@@ -6,8 +6,17 @@
 #   make test       formatting, lints, the sqlx and layering checks, then every crate's tests:
 #                   cargo nextest, which runs tests of different test programs at once, then
 #                   cargo test --doc for the doctests, which nextest doesn't run
+#   make quick      make test's checks on the crates a change touches, and the tests of the crates
+#                   that depend on them (tools/quick); make test is still the check before a commit
 #   make test-all   make test, then the end-to-end test (tests/e2e/run), which compares the
-#                   sample set with ace3's trees
+#                   sample set with ace3's trees: the full run, by hand when there's time for it
+#   make e2e ARGS="--only gui,browser" PREBUILT=1
+#                   a part of the end-to-end test: ARGS go to tests/e2e/run, whose usage lists its
+#                   checks and the selections of samples (--modules, --crates, --changed), and
+#                   PREBUILT=1 makes the images from make prebuilt's binaries
+#   make prebuilt   the stack's release binaries, built in the dev container, whose target directory
+#                   keeps what didn't change, into target/prebuilt; PREBUILT=1 on make e2e or make
+#                   stack builds and uses them
 #   make coverage   every crate's tests with coverage: an HTML report in coverage/html/index.html
 #                   and a per-file summary in coverage/summary.txt (git-ignored)
 #   make stack      build and start the whole stack, with the GUI at http://127.0.0.1:7443, and on a
@@ -29,16 +38,19 @@ TARGET_CAP_GB ?= 20
 DEV     := $(COMPOSE) exec -T dev
 DEV_CI  := $(COMPOSE) exec -T -e CI=true dev
 
-.PHONY: help build images up down stack check test e2e test-all coverage hooks target-cap
+.PHONY: help build images up down stack check test quick e2e test-all coverage hooks target-cap \
+	prebuilt
 
 help:
-	@sed -n '1,22p' Makefile | sed 's/^# \{0,1\}//'
+	@sed -n '1,32p' Makefile | sed 's/^# \{0,1\}//'
 
+# Each profile's directory on its own: make prebuilt's target/release is about 10 GB besides.
 target-cap: up
-	@$(DEV) sh -c 'used=$$(du -sm target/debug 2>/dev/null | cut -f1); used=$${used:-0}; \
+	@$(DEV) sh -c 'for dir in debug:dev release:release; do \
+		used=$$(du -sm target/$${dir%:*} 2>/dev/null | cut -f1); used=$${used:-0}; \
 		if [ "$$used" -gt $$(( $(TARGET_CAP_GB) * 1024 )) ]; then \
-			echo "target/debug holds $$(( used / 1024 )) GB, over TARGET_CAP_GB=$(TARGET_CAP_GB): emptying it"; \
-			cargo clean --profile dev; fi'
+			echo "target/$${dir%:*} holds $$(( used / 1024 )) GB, over TARGET_CAP_GB=$(TARGET_CAP_GB): emptying it"; \
+			cargo clean --profile $${dir#*:}; fi; done'
 
 build: target-cap
 	$(DEV) cargo build --workspace --all-targets --locked
@@ -58,8 +70,8 @@ down:
 STACK_USER     ?= analyst
 STACK_PASSWORD ?= analystanalyst
 
-stack:
-	$(COMPOSE) up -d --build --wait
+stack: $(if $(PREBUILT),prebuilt)
+	$(PREBUILT_ENV) $(COMPOSE) up -d --build --wait
 	@out=$$(printf '%s\n' '$(STACK_PASSWORD)' | $(COMPOSE) exec -T ace ace user create-first \
 		$(STACK_USER) --password-stdin 2>&1); status=$$?; \
 	if [ $$status -eq 0 ]; then echo "made the dev login $(STACK_USER) / $(STACK_PASSWORD)"; \
@@ -78,8 +90,23 @@ test: check
 	$(DEV_CI) cargo nextest run --workspace --locked --no-fail-fast
 	$(DEV_CI) cargo test --doc --workspace --locked
 
-e2e:
-	tests/e2e/run
+quick: up
+	$(DEV) tools/quick
+
+# The binaries docker/ace-rs/Dockerfile's build stage compiles, compiled in the dev container instead,
+# and copied out of its target volume for the image build's named context (compose.yaml,
+# ACE_RS_PREBUILT). The images then hold what the working tree builds, as from source.
+PREBUILT_BINS := ace ace-parsers ace-sandbox ace-lookups ace-scanners replay-server
+PREBUILT_ENV  := $(if $(PREBUILT),ACE_RS_PREBUILT=target/prebuilt)
+
+prebuilt: target-cap
+	$(DEV) cargo build --release --locked -p ace -p ace-testkit --bins
+	mkdir -p target/prebuilt
+	for bin in $(PREBUILT_BINS); do \
+		$(COMPOSE) cp dev:/workspace/target/release/$$bin target/prebuilt/$$bin || exit 1; done
+
+e2e: $(if $(PREBUILT),prebuilt)
+	$(PREBUILT_ENV) tests/e2e/run $(ARGS)
 
 test-all: test e2e
 

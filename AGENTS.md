@@ -93,10 +93,17 @@ the bucket and the telemetry collector; run a command there with `docker compose
 ## Testing
 
 ```sh
+make quick      # fmt, clippy and doctests of the crates a change touches, nextest of their dependents too
 make test       # fmt, clippy -D warnings, the sqlx check, the layering check, nextest, doctests
 make e2e        # tests/e2e/run: the stack's images, the sample set compared with ace3's trees
 make coverage   # every crate's tests instrumented; the report in coverage/html/index.html
 ```
+
+While iterating, run part of the end-to-end test on images from the dev container's release build:
+`make e2e PREBUILT=1 ARGS="--only gui,browser"` for some of its checks, or `ARGS="--crates
+ace-mod-pdf"` (or `--modules`, `--samples`, `--changed`) to compare only the samples a change
+reaches. `make quick` and these partial runs are for iterating; `make test` is the check before a
+commit, and `make test-all` the full run.
 
 One test or one crate, in the dev container:
 

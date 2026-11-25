@@ -10,6 +10,9 @@
 # Set by BuildKit to the build's architecture (arm64, amd64), and declared here so a stage's FROM
 # can name it.
 ARG TARGETARCH
+# `prebuilt` when the images take the binaries in the named context prebuilt-binaries, which
+# compose.yaml sets from ACE_RS_PREBUILT (make prebuilt), in place of the build stage's.
+ARG BINARIES
 
 # OpenCV 5.0.0, the release ace3's opencv-python 5.0.0.93 is built from, for the ocr and qrcode
 # modules' `opencv` crate (PLAN.md 7.3). It keeps the wheel's defaults, so the same code runs: its
@@ -157,6 +160,13 @@ RUN --mount=type=cache,id=ace-rs-images-registry,target=/usr/local/cargo/registr
     && cp target/release/ace target/release/ace-parsers target/release/ace-sandbox target/release/ace-lookups \
         target/release/ace-scanners target/release/replay-server /out/
 
+# The dev container's release binaries (make prebuilt): it keeps its target directory, so after a
+# change it compiles only what changed, where the build stage above compiles the whole workspace.
+FROM scratch AS prebuilt
+COPY --from=prebuilt-binaries / /out/
+
+FROM ${BINARIES:-build} AS binaries
+
 # What every image runs on: Debian with the pinned libmagic and its database, which the core's
 # mime types and the YARA module's mime_type filter read.
 FROM debian:13.7-slim AS runtime
@@ -176,7 +186,7 @@ FROM runtime AS ace
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git curl openssh-client \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=build /out/ace /usr/local/bin/ace
+COPY --from=binaries /out/ace /usr/local/bin/ace
 # the search index's embedding model, which `ace serve` loads when ACE_RS_SEARCH_MODEL names it
 COPY --from=search-model /model /usr/local/share/ace-rs/search-model/all-MiniLM-L6-v2
 ENV ACE_RS_SEARCH_MODEL=/usr/local/share/ace-rs/search-model/all-MiniLM-L6-v2
@@ -192,7 +202,7 @@ FROM runtime AS parsers
 RUN useradd --system --uid 10001 --user-group --no-create-home --home-dir /nonexistent \
         --shell /usr/sbin/nologin ace-rs-task \
     && mkdir -p /var/lib/ace-rs/rulesets
-COPY --from=build /out/ace-parsers /usr/local/bin/ace-parsers
+COPY --from=binaries /out/ace-parsers /usr/local/bin/ace-parsers
 CMD ["ace-parsers"]
 
 # The sandbox pool (PLAN.md 7.3, 7.5 batch 10): a parser pool whose supervisor also runs, at a task's
@@ -256,12 +266,12 @@ RUN echo "wireshark-common wireshark-common/install-setuid boolean false" | debc
         tshark=4.4.19-0+deb13u1 wireshark-common=4.4.19-0+deb13u1 libwireshark18=4.4.19-0+deb13u1 \
         libwiretap15=4.4.19-0+deb13u1 libwsutil16=4.4.19-0+deb13u1 libwireshark-data=4.4.19-0+deb13u1 \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=build /out/ace-sandbox /usr/local/bin/ace-sandbox
+COPY --from=binaries /out/ace-sandbox /usr/local/bin/ace-sandbox
 CMD ["ace-sandbox"]
 
 # The network pool, which contains itself before it starts.
 FROM runtime AS lookups
-COPY --from=build /out/ace-lookups /usr/local/bin/ace-lookups
+COPY --from=binaries /out/ace-lookups /usr/local/bin/ace-lookups
 USER ace-rs
 CMD ["ace-lookups"]
 
@@ -269,7 +279,7 @@ CMD ["ace-lookups"]
 # the phishkit and js-deobfuscator scanner images (docker/scanners/build), and parses nothing they
 # write. It runs as root, which the socket's owner is.
 FROM runtime AS scanners
-COPY --from=build /out/ace-scanners /usr/local/bin/ace-scanners
+COPY --from=binaries /out/ace-scanners /usr/local/bin/ace-scanners
 CMD ["ace-scanners"]
 
 # The libraries tools/library-diff/run (PLAN.md 4.8) compares each Rust port with. Nothing in the
@@ -310,7 +320,7 @@ RUN pip install --no-cache-dir --disable-pip-version-check --no-deps --require-h
 
 # The end-to-end test's recorded RDAP and Splunk APIs (tools/ace3/dumps/reference).
 FROM runtime AS responder
-COPY --from=build /out/replay-server /usr/local/bin/replay-server
+COPY --from=binaries /out/replay-server /usr/local/bin/replay-server
 COPY tools/ace3/dumps/reference /recordings
 COPY tools/ace3/trees/dns.json /recordings/trees.dns.json
 USER ace-rs
