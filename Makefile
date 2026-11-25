@@ -1,5 +1,5 @@
-# The checks and tests CI runs (.github/workflows/ci.yml), and the coverage report, all in the
-# Compose stack's dev container with its Postgres, bucket and telemetry collector, as CI runs them.
+# The checks and tests, and the coverage report, all in the Compose stack's dev container with its
+# Postgres, bucket and telemetry collector.
 #
 #   make build      compile every crate and its tests in the dev container
 #   make images     build the stack's images (the dev container's, Postgres's and ace-rs's own)

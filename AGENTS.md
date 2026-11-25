@@ -123,16 +123,16 @@ docker compose exec -T -e CI=true dev cargo nextest run --locked -p ace-core --t
   could be recorded, they are written by hand in the shape of the vendor's documentation, and say so.
 - **View fixtures and snapshots.** `ace_testkit::check_view_fixture` checks a result against its
   analysis view's fixture; `ACE_RS_WRITE_FIXTURES=1` rewrites them. A few tests use insta snapshots.
-- **Local samples.** `samples/local/` is git-ignored, so CI has none of it. A test that reads one
-  skips a dump whose local sample is missing, names it on stderr, and passes it to the differences
-  check as skipped (the email, archive, encrypted and scripts reference tests do this).
+- **Local samples.** `samples/local/` is git-ignored, so another clone has none of it. A test that
+  reads one skips a dump whose local sample is missing, names it on stderr, and passes it to the
+  differences check as skipped (the email, archive, encrypted and scripts reference tests do this).
 - **Time.** A test never asserts that something finished within a fixed time, except as a generous
   guard against a hang. It waits for the state it needs (a count, a row, a lock in
   `pg_stat_activity`) instead. `make coverage` runs the tests several times slower, and a test that
   assumes speed fails there.
-- **CI** (`.github/workflows/ci.yml`) runs fmt, clippy, nextest, the doctests, the sqlx check and the
-  layering check on an x86-64 runner; `coexistence.yml` runs the coexistence check. This Mac is
-  arm64, so something architecture-specific (OpenCV's hardware libraries, say) shows up only in CI.
+- **No CI for now.** The GitHub workflows were removed until ace-rs is more stable: `make test` and
+  the coexistence check (`bin/check-coexistence`) are the checks, run here before a push. This Mac
+  is arm64, so nothing checks an x86-64 build (OpenCV's hardware libraries, say) until CI is back.
   The end-to-end test and `tools/library-diff/run` run by hand: the first needs an ace3 checkout at
   `../ace3`, the second compares a Python library with its Rust port when a port changes.
 

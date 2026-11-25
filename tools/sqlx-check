@@ -1,6 +1,6 @@
 #!/bin/sh
-# Applies the migrations and checks sqlx's offline query data (.sqlx/) against the queries, as
-# CI's "sqlx offline data" step does, for `make check`. Run in the dev container.
+# Applies the migrations and checks sqlx's offline query data (.sqlx/) against the queries, for
+# `make check`. Run in the dev container.
 #
 # `cargo sqlx prepare --check` touches the root file of every target that uses sqlx's macros, so
 # that cargo expands the macros again, and that leaves the next test build recompiling those

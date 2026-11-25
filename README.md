@@ -57,8 +57,8 @@ ace3* has the full list.
 
 ## Testing
 
-The checks and tests run in the Compose stack's dev container, with its Postgres and bucket, as CI
-runs them.
+The checks and tests run in the Compose stack's dev container, with its Postgres and bucket. There
+is no CI for now: run them before a push.
 
 ```bash
 make test       # formatting, clippy, the sqlx and layering checks, then every crate's tests

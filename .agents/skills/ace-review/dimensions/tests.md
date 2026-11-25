@@ -1,6 +1,6 @@
 # Tests reviewer
 
-CI runs the whole suite on every push, but only on what was pushed, and it can't tell a test that
+`make test` runs the whole suite, but only on what was written, and it can't tell a test that
 proves something from one that can't fail. You judge whether the change is tested well enough that a
 later change breaking it would be caught.
 

@@ -60,9 +60,9 @@ the logs, or for permission to add instrumentation. Don't start theorizing witho
   two runs or a run and ace3's tree can be diffed.
 - **When it started.** A regression has a first commit. Run `git bisect run` with the check. In a site's
   workspace, the ace-rs tag it pins narrows the window first.
-- **CI only.** The runner is x86-64 and this Mac is arm64, and the runner has no `samples/local/`.
-  Reproduce those conditions before guessing: move `samples/local/` aside and run with `CI=true`, or
-  look for something chosen by architecture.
+- **Another machine only.** An x86-64 machine differs from this arm64 Mac, and another clone has no
+  `samples/local/`. Reproduce those conditions before guessing: move `samples/local/` aside and run
+  with `CI=true`, or look for something chosen by architecture.
 
 ## 3. Hypotheses
 

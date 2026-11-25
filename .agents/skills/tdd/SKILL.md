@@ -109,7 +109,7 @@ calls, because then the test only proves the fake.
 - **Catalog views across tests.** Every test's database is on the same Postgres, so a query of
   `pg_stat_activity` or `pg_locks` filters on `current_database()`.
 - **Local samples.** A test on a file under `samples/local/` skips it when it's missing, names it, and
-  passes it to the differences check as skipped. CI has none of them.
+  passes it to the differences check as skipped. Another clone has none of them.
 - **`#[ignore]`.** An ignored test never runs in `make test`. Use it only for a measurement run by
   hand, or a test another test runs, and give the reason in the attribute.
 - **A fallback that hides the bug.** A test that a stored value is used must trip every fallback that

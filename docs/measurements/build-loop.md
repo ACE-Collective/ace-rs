@@ -196,7 +196,7 @@ What else the 4.9 numbers include:
 
 ## CI's Linux runner
 
-Pending, as in 0.5. The `build-loop` workflow (`.github/workflows/build-loop.yml`) runs the same two scripts inside the dev image on GitHub's `ubuntu-24.04` runner, by hand from the Actions tab, and writes the same table to the run's summary. It hasn't run yet, because this checkout has no GitHub repository. As written it measures 0.5's spike, with Cargo's default profile; 1.31's rows on CI would need `make-spike --ace-rs-profile` and a run over the workspace as below.
+Pending, as in 0.5. A `build-loop` workflow that ran the same two scripts in the dev image on GitHub's `ubuntu-24.04` runner was written and never run, and was removed with the other workflows until ace-rs is more stable. Measuring a Linux runner needs it back, or the commands below run on one by hand.
 
 ## How to rerun
 

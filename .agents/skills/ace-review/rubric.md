@@ -242,7 +242,7 @@ Write no file when there are none.
 - Changed-line coverage: <X% of N added lines; uncovered: file:lines, top few | not measured (no --coverage)>
 - sqlx check: <pass | FAIL | n/a>; layering check: <pass | FAIL | n/a>
 - Migrations: <n/a | new: <files> | EDITED: <applied migration>>
-- Not exercised by these checks: <test_scope.outside, and what would check each (make images, make e2e, CI on x86-64) | none>
+- Not exercised by these checks: <test_scope.outside, and what would check each (make images, make e2e, an x86-64 build) | none>
 - Testing in the commit message or PR description: <present | missing>
 - Review: <full | fix round since round N-1, new work: <files | none> | full, because <delta_reason>>
 
