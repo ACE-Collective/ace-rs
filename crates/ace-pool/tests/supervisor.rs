@@ -90,6 +90,123 @@ async fn a_panicking_parser_fails_its_task_and_the_supervisor_keeps_leasing() {
     );
 }
 
+/// The supervisor with `log` as its `ACE_RS_LOG`, which it passes its task processes, writing its
+/// records as plain text, so a field reads as `name=value`.
+fn logging_supervisor(core: &Core, log: &str) -> PoolProcess {
+    let mut command = test_pool(
+        core,
+        &[
+            "parsers",
+            "--task-user",
+            "ace-rs-task",
+            "--concurrency",
+            "1",
+        ],
+    );
+    command.env("ACE_RS_LOG", log).env("NO_COLOR", "1");
+    PoolProcess::start(command)
+}
+
+async fn task_id(core: &Core, root: uuid::Uuid, module: &str) -> i64 {
+    sqlx::query_scalar("SELECT id FROM queue.tasks WHERE root_id = $1 AND module = $2")
+        .bind(root)
+        .bind(module)
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("the task")
+}
+
+/// The pool's records of task `id`'s events: those the supervisor relayed from its process.
+fn relayed(stderr: &str, id: i64) -> Vec<&str> {
+    stderr
+        .lines()
+        .filter(|line| {
+            line.contains(": ace_pool::task_log: ")
+                && line.contains(&format!(" task={id} "))
+                && line.contains("task_target=\"ace_pool::testing\"")
+        })
+        .collect()
+}
+
+/// A module's log events in a contained task process reach the pool's log at their own level, with
+/// the task's id and the event's fields, where they used to be dropped: a task process had no
+/// subscriber. A DEBUG line stays out at the default filter and comes in when `ACE_RS_LOG` turns the
+/// module up. A line the process prints itself is logged as before, and a failed task's reason is
+/// made from those lines alone.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_modules_log_events_in_a_task_process_reach_the_pools_log_at_their_level() {
+    let core = Core::start(
+        testing::test_manifests(),
+        &["test_logs"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let logs = root_with_tasks(&core, &["logs.example.com".to_owned()], "test_logs").await;
+    let exits = root_with_tasks(&core, &["exits.example.com".to_owned()], "test_logs").await;
+    let mut pool = logging_supervisor(&core, "info");
+    wait_until_idle(&core, logs, Duration::from_secs(60)).await;
+    wait_until_idle(&core, exits, Duration::from_secs(60)).await;
+    let stderr = pool.stop();
+
+    let (state, _) = task_of(&core, logs, "test_logs").await;
+    assert_eq!(state, "done", "{stderr}");
+    let id = task_id(&core, logs, "test_logs").await;
+    let records = relayed(&stderr, id);
+    assert_eq!(records.len(), 2, "the WARN and the ERROR\n{stderr}");
+    let warning = records[0];
+    assert!(warning.contains(" WARN "), "{warning}");
+    assert!(
+        warning.contains("test_logs: a warning about logs.example.com"),
+        "{warning}"
+    );
+    for field in [r#""path":"/rulesets/aa""#, r#""count":3"#] {
+        assert!(warning.contains(field), "{field} in {warning}");
+    }
+    let error = records[1];
+    assert!(error.contains(" ERROR "), "{error}");
+    assert!(error.contains(r#""error":"no space left""#), "{error}");
+    assert!(!stderr.contains("a routine line"), "{stderr}");
+    // the process's own line, as it was
+    assert!(
+        stderr.lines().any(|line| line.contains(" INFO ")
+            && line.contains(&format!(
+                "task process: test_logs: a line of its own about logs.example.com task={id}"
+            ))),
+        "{stderr}"
+    );
+    assert!(!stderr.contains(r#"{"task_log":"#), "{stderr}");
+
+    let (state, error) = task_of(&core, exits, "test_logs").await;
+    assert_eq!(state, "failed", "{stderr}");
+    let error = error.expect("a reason");
+    assert!(
+        error.starts_with("the task process exited 3: contained: "),
+        "{error}"
+    );
+    assert!(
+        error.ends_with(" | test_logs: a line of its own about exits.example.com"),
+        "{error}"
+    );
+    assert!(
+        !error.contains("a warning") && !error.contains("task_log"),
+        "{error}"
+    );
+
+    // the module turned up: the task process logs its DEBUG line, and the supervisor passes it on
+    let debug = root_with_tasks(&core, &["debug.example.com".to_owned()], "test_logs").await;
+    let mut pool = logging_supervisor(&core, "info,ace_pool::testing=debug");
+    wait_until_idle(&core, debug, Duration::from_secs(60)).await;
+    let stderr = pool.stop();
+    let id = task_id(&core, debug, "test_logs").await;
+    let records = relayed(&stderr, id);
+    assert_eq!(records.len(), 3, "{stderr}");
+    assert!(
+        records[1].contains(" DEBUG ")
+            && records[1].contains("test_logs: a routine line about debug.example.com"),
+        "{stderr}"
+    );
+}
+
 /// PLAN.md 3.6: a task process's end carries how long its module's `analyze` took, which the
 /// process wrote with its end, and the CPU of the process and of its tools, which the supervisor read
 /// from their rusage when it reaped them. A process that panicked wrote no end, so its task has no

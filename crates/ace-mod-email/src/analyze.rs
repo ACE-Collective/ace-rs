@@ -70,7 +70,8 @@ fn find_target<'a, 'm>(root: &'a Node<'m>) -> Target<'a, 'm> {
             && part.content_type == "text/plain"
             && let Some(meta) = meta_block(part)
         {
-            tracing::info!(
+            // routine: every journaled email has one
+            tracing::debug!(
                 sender = %meta.sender,
                 recipients = ?meta.recipients,
                 "parsed the o365 meta block"

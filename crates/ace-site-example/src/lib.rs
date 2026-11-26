@@ -525,6 +525,13 @@ impl Parser for TicketFile {
     ) -> Result<Outcome<TicketFileAnalysis>, ModuleError> {
         use std::io::Read;
         let file = ctx.input_file()?;
+        if file.size > TICKET_FILE_BYTES {
+            tracing::info!(
+                size = file.size,
+                read = TICKET_FILE_BYTES,
+                "the file is longer than the parser reads; a ticket past its start isn't found"
+            );
+        }
         let mut bytes = Vec::new();
         std::fs::File::open(&file.local_path)?
             .take(TICKET_FILE_BYTES)

@@ -422,7 +422,8 @@ impl Parser for LureUrlAnalyzer {
                 observable: ObservableRef::new(url.kind, url.value.clone()),
                 additions,
             });
-            tracing::info!(
+            // routine for every email with a lure, whose result holds the url
+            tracing::debug!(
                 url = %url.value,
                 lure_score = primary.score,
                 "the email's lure url"

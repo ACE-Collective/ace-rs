@@ -179,6 +179,7 @@ fn harness(rulesets: &Path) -> (Harness<YaraScanner>, String) {
     let writer = logs.clone();
     let subscriber = tracing_subscriber::fmt()
         .with_writer(move || writer.clone())
+        .with_max_level(tracing::Level::DEBUG)
         .with_ansi(false)
         .finish();
     let harness = tracing::subscriber::with_default(subscriber, || {
@@ -222,16 +223,21 @@ fn the_native_copy_matches_as_the_cores_file_does() {
     // a copy already there is kept
     assert_eq!(prepare_ruleset(&current).expect("nothing to do"), None);
 
+    // every task loads the copy, so that is a DEBUG line, and the fallback to the core's file INFO
+    let logged = |logs: &str, level: &str, wanted: &str| {
+        logs.lines()
+            .any(|line| line.contains(level) && line.contains(wanted) && line.contains("key=aa"))
+    };
     let (with_copy, logs) = harness(rulesets.path());
-    assert!(logs.contains("INFO"), "{logs}");
-    assert!(logs.contains("loaded the pool's native copy"), "{logs}");
-    assert!(logs.contains("key=aa"), "{logs}");
+    assert!(
+        logged(&logs, "DEBUG", "loaded the pool's native copy"),
+        "{logs}"
+    );
     let native = outcomes(&with_copy, &payloads);
 
     std::fs::remove_file(&built).expect("removed");
     let (without, logs) = harness(rulesets.path());
-    assert!(logs.contains("INFO"), "{logs}");
-    assert!(logs.contains("no native copy"), "{logs}");
+    assert!(logged(&logs, "INFO", "no native copy"), "{logs}");
     let core = outcomes(&without, &payloads);
 
     let matched = core.iter().filter(|o| o.contains("scan_results")).count();

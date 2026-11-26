@@ -71,6 +71,7 @@ pub fn registry() -> Registry {
         .lookup::<UsesTaskDir>()
         .parser::<Capabilities>()
         .parser::<PanickingParser>()
+        .parser::<Logs>()
         .parser::<Spin>()
         .parser::<Stuck>()
         .parser::<WritesFiles>()
@@ -163,6 +164,7 @@ pub fn test_manifests() -> Vec<ace_sdk::Manifest> {
         ace_sdk::Manifest::lookup::<UsesTaskDir>(),
         ace_sdk::Manifest::parser::<Capabilities>(),
         ace_sdk::Manifest::parser::<PanickingParser>(),
+        ace_sdk::Manifest::parser::<Logs>(),
         ace_sdk::Manifest::parser::<Spin>(),
         ace_sdk::Manifest::parser::<Stuck>(),
         ace_sdk::Manifest::parser::<WritesFiles>(),
@@ -219,6 +221,8 @@ note_type!(
     "test_panicking_parser_note",
     "test_panicking_parser"
 );
+
+note_type!(LogsNote, "test_logs_note", "test_logs");
 
 /// How many `test_counted` tasks run right now, and the most that ever ran at once.
 pub static RUNNING: AtomicUsize = AtomicUsize::new(0);
@@ -567,6 +571,45 @@ impl Module for PanickingParser {
 impl ace_sdk::Parser for PanickingParser {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<PanickingNote>, ModuleError> {
         panic!("test_panicking_parser was given {}", ctx.observable().value);
+    }
+}
+
+/// A parser that logs a WARN with fields, a DEBUG line and an ERROR, and prints a line of its own on
+/// stderr, then finishes, or, on an fqdn that starts with `exits.`, has its process exit 3.
+pub struct Logs;
+
+impl Module for Logs {
+    const NAME: &'static str = "test_logs";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+    type Output = LogsNote;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ModuleError> {
+        Ok(Logs)
+    }
+}
+
+impl ace_sdk::Parser for Logs {
+    fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<LogsNote>, ModuleError> {
+        let value = &ctx.observable().value;
+        tracing::warn!(
+            path = "/rulesets/aa",
+            count = 3,
+            "test_logs: a warning about {value}"
+        );
+        tracing::debug!("test_logs: a routine line about {value}");
+        let error = std::io::Error::other("no space left");
+        tracing::error!(
+            error = &error as &dyn std::error::Error,
+            "test_logs: an error"
+        );
+        eprintln!("test_logs: a line of its own about {value}");
+        if value.starts_with("exits.") {
+            std::process::exit(3);
+        }
+        Ok(Outcome::Done(ResultEnvelope::new(LogsNote {
+            note: format!("logged about {value}"),
+        })))
     }
 }
 

@@ -4,9 +4,10 @@
 //! task's directory and starts a task process by exec, never fork (#982): the pool's own
 //! binary again, with the `task` mode, as a non-root user with no capabilities and an empty
 //! environment. It writes the task on the process's stdin and reads how the task ended from its
-//! stdout. The task process contains itself (`contain`) before the module touches its input,
-//! so it runs one thread, can't start a thread or a process, reads only its input and writes
-//! only its output directory.
+//! stdout, and logs what the process writes on stderr, its module's log events at their own levels
+//! (`crate::task_log`). The task process contains itself (`contain`) before the module touches its
+//! input, so it runs one thread, can't start a thread or a process, reads only its input and
+//! writes only its output directory.
 //!
 //! The supervisor holds every module of its pool, built when the pool started, which is where a
 //! setting that doesn't load or a module that doesn't build stops the pool (PLAN.md 2.23). A task
@@ -41,6 +42,7 @@ use ace_sdk::wire::{LeasedTask, TaskEnd};
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_util::sync::CancellationToken;
+use tracing::Instrument;
 
 use crate::client::{ClientError, LeaseClient};
 use crate::commands::{CommandConfig, run_commands};
@@ -52,6 +54,7 @@ use crate::run::{
     LeaseKeeper, TaskDir, fetch_email_parts, fetch_input, fetch_scan_output, fetch_tree_files,
     finish,
 };
+use crate::task_log::StderrLines;
 use crate::tools::{ToolDirs, ToolHost, ToolTable};
 
 /// The task's end is on stdout.
@@ -481,10 +484,22 @@ async fn run_process(
         let mut out = Vec::new();
         stdout.read_to_end(&mut out).await.map(|_| out)
     });
-    let errors = tokio::spawn(async move {
-        let mut err = Vec::new();
-        stderr.read_to_end(&mut err).await.map(|_| err)
-    });
+    // read as it comes, so the task's log events reach the pool's log in their time, under the
+    // task's span, and what's kept of them is bounded (`crate::task_log`)
+    let errors = tokio::spawn(
+        async move {
+            let mut lines = StderrLines::new(id);
+            let mut chunk = vec![0; 8192];
+            loop {
+                let read = stderr.read(&mut chunk).await?;
+                if read == 0 {
+                    return Ok::<_, std::io::Error>(lines.finish());
+                }
+                lines.push(&chunk[..read]);
+            }
+        }
+        .instrument(tracing::Span::current()),
+    );
     // one thread and no children, so a kill ends all of it
     enum Ended {
         Exited(ExitStatus),
@@ -523,10 +538,6 @@ async fn run_process(
         .await
         .map_err(std::io::Error::other)?
         .map_err(std::io::Error::other)??;
-    let stderr = String::from_utf8_lossy(&stderr);
-    for line in stderr.lines() {
-        tracing::info!(task = id, "task process: {line}");
-    }
     let end = match ended {
         Ended::Exited(status) => end_of(status, &stdout, &stderr),
         Ended::Cancelled => TimedEnd::untimed(TaskEnd::Cancelled),
@@ -549,7 +560,9 @@ fn seconds(duration: Duration) -> String {
 }
 
 /// How a task ended, from its process's exit status and output: the end the process wrote, with
-/// its `analyze` time, or a failure with no time, since the module didn't answer.
+/// its `analyze` time, or a failure with no time, since the module didn't answer. `stderr` is the
+/// end of what the process wrote there less its log events (`StderrLines::finish`), so a failure's
+/// reason is the process's own last words, not the lines its module logged before them.
 pub fn end_of(status: ExitStatus, stdout: &[u8], stderr: &str) -> TimedEnd {
     let tail = || last_lines(stderr, 5);
     let failed = |error: String| TimedEnd::untimed(TaskEnd::Failed { error });

@@ -1614,6 +1614,47 @@ fn task_process(request: &ace_pool::supervisor::TaskRequest) -> (Option<i32>, Ve
     )
 }
 
+/// A site's parser logs from its task process, in the production binary's `task` mode: its event is a
+/// line of JSON on stderr, at its level with its fields, which the supervisor logs again
+/// (`ace_pool::task_log`). The process had no subscriber, and the line was dropped. Its environment is
+/// empty, as the supervisor's is when it has no `ACE_RS_LOG`, so this is the default filter.
+#[test]
+fn a_site_s_parser_logs_from_its_task_process() {
+    let dir = tempfile::tempdir().expect("a directory");
+    let module = "example_ticket_file";
+    let mut text = b"TICKET-42 ".to_vec();
+    text.resize(1024 * 1024 + 10, b' ');
+    let (code, stdout, stderr) =
+        task_process(&task_request(dir.path(), module, module, None, &text));
+    assert_eq!(code, Some(0), "{stderr}");
+    let end: Value = serde_json::from_slice(&stdout).expect("a task's end");
+    assert_eq!(
+        end["end"]["result"]["details"]["tickets"],
+        json!(["TICKET-42"])
+    );
+    let events: Vec<ace_pool::task_log::TaskLog> = stderr
+        .lines()
+        .filter_map(ace_pool::task_log::TaskLog::parse)
+        .map(|event| event.expect("an event that reads"))
+        .collect();
+    assert_eq!(events.len(), 1, "{stderr}");
+    let event = &events[0];
+    assert_eq!(
+        (event.level.as_str(), event.target.as_str()),
+        ("INFO", "ace_site_example")
+    );
+    assert!(
+        event.message.contains("longer than the parser reads"),
+        "{event:?}"
+    );
+    assert_eq!(
+        Value::Object(event.fields.clone()),
+        json!({"size": text.len(), "read": 1024 * 1024})
+    );
+    // the rest of stderr is as it was
+    assert!(stderr.contains("contained: Contained"), "{stderr}");
+}
+
 /// A site's parser runs in a task process that builds it alone, from the settings its request
 /// carries: the request names the module, and the process is given no overlay and no ruleset
 /// directory, so it has nothing to build the pool's other modules from as the pool configured

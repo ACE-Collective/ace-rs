@@ -127,14 +127,15 @@ fn main() -> ExitCode {
     if std::env::args().nth(1).as_deref() == Some("tool") {
         return ace_pool::tools::tool_main();
     }
-    // logs now; span export, which starts threads, once any containment is in place
-    let mut telemetry = ace_pool::telemetry::init("ace-rs-test-pool", "info");
-    // a task's process builds the one module its task names, with the settings the task carries
+    // a task's process builds the one module its task names, with the settings the task carries,
+    // and sets up its own logging, as a pool binary's does
     if std::env::args().nth(1).as_deref() == Some("task") {
         return ace_pool::task_process::main(&ace_pool::testing::registry(), &|_| {
             Ok(ace_sdk::Secrets::new())
         });
     }
+    // logs now; span export, which starts threads, once any containment is in place
+    let mut telemetry = ace_pool::telemetry::init("ace-rs-test-pool", "info");
     let args = match parse() {
         Ok(args) => args,
         Err(e) => {

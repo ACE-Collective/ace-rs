@@ -172,7 +172,8 @@ pub fn prepare_ruleset(current: &Generation) -> Result<Option<PathBuf>, String> 
 }
 
 /// The generation's ruleset: the pool's native copy when there is one that loads, else the core's
-/// file. A task logs which, since the copy is what makes a task with a large ruleset start quickly.
+/// file. A task logs which, since the copy is what makes a task with a large ruleset start quickly:
+/// the copy at DEBUG, since every task loads it, and the core's file, a fallback, at INFO or WARN.
 fn load_generation(current: &Generation, options: &LoadOptions) -> Result<Ruleset, ModuleError> {
     let key = current.info.key.as_str();
     let copy = current.dir.join(native_copy_name());
@@ -180,7 +181,7 @@ fn load_generation(current: &Generation, options: &LoadOptions) -> Result<Rulese
     match std::fs::read(&copy) {
         Ok(bytes) => match Ruleset::from_bytes(&bytes, options) {
             Ok(ruleset) => {
-                tracing::info!(key = %key, path = %copy.display(), "loaded the pool's native copy of the ruleset");
+                tracing::debug!(key = %key, path = %copy.display(), "loaded the pool's native copy of the ruleset");
                 return Ok(ruleset);
             }
             Err(error) => tracing::warn!(

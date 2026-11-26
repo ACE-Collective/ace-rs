@@ -16,6 +16,9 @@
 //! The request is read before the module is built, because it names the module. It was always
 //! read and parsed before containment; what the module does with the task's input still comes
 //! after.
+//!
+//! Its logging is set up first, before the module is built, so its setup's lines are logged too:
+//! each event a line of JSON on stderr, which the supervisor logs again (`crate::task_log`).
 
 use std::io::{Read, Write};
 use std::process::ExitCode;
@@ -48,6 +51,7 @@ pub type TaskSecrets<'a> = &'a dyn Fn(&Manifest) -> Result<Secrets, String>;
 /// `registry`'s modules it builds the one the request on stdin names, with the request's
 /// settings and what `secrets` gives for it.
 pub fn main(registry: &Registry, secrets: TaskSecrets<'_>) -> ExitCode {
+    crate::telemetry::init_task_process();
     let mut bytes = Vec::new();
     if let Err(e) = std::io::stdin().read_to_end(&mut bytes) {
         return setup_failed(format!("reading the request: {e}"));

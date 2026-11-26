@@ -26,6 +26,7 @@ pub mod run;
 pub mod scanners;
 pub mod secrets;
 pub mod supervisor;
+pub mod task_log;
 pub mod task_process;
 pub mod telemetry;
 #[cfg(feature = "test-pools")]

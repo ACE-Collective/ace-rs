@@ -250,7 +250,8 @@ impl Parser for PcapTlsDecryptor {
                 f
             })
             .collect();
-        tracing::info!(
+        // routine for every decryption, whose result holds these counts
+        tracing::debug!(
             "decrypted TLS with {} key logs: keys for {} of {} sessions, added {}",
             keylogs.len(),
             result.details.sessions_with_keys,

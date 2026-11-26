@@ -145,6 +145,8 @@ A process that can't have children dies completely when its PID is killed, which
 
 A task process builds one module, the one its task names, before it contains itself, so a module's setup can open what the contained process can't, such as a YARA ruleset or libmagic's database, which the type step, the YARA module and the modules that run urlfinderlib map, so a task's libmagic reads only the pages it matches against. The pool's supervisor builds every module once, when the pool starts, which is where a setting that doesn't load stops the pool. It sends each task process the settings block it built the task's module from, so the process reads no overlay and pays for no other module's setup ([`docs/measurements/task-start.md`](docs/measurements/task-start.md)).
 
+A task process can't reach the collector and has no log of its own, so it writes each log event on stderr as a line of JSON, which its supervisor reads as it comes and logs again at the event's level, with the task's id and the event's fields (`ace_pool::task_log`). The supervisor bounds what it keeps of a task's stderr, and a failed task's reason comes from the lines that aren't log events.
+
 A failed or hung task leaves a row with its error and the hashes of its inputs, which are already in the bucket, so the task can be replayed under a debugger.
 
 ### Postgres and an object store, and nothing else that holds state

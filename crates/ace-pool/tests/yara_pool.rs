@@ -134,7 +134,7 @@ async fn a_switch_during_a_stream_of_scans_drops_none() {
     std::fs::set_permissions(rulesets.path(), std::fs::Permissions::from_mode(0o755)).unwrap();
     let dir = rulesets.path().to_str().unwrap();
     let settings = json!({MODULE: {"rulesets": dir}}).to_string();
-    let mut pool = PoolProcess::start(test_pool(
+    let mut command = test_pool(
         &core,
         &[
             "parsers",
@@ -149,7 +149,10 @@ async fn a_switch_during_a_stream_of_scans_drops_none() {
             "--settings",
             &settings,
         ],
-    ));
+    );
+    // the module's DEBUG lines too, among them the one a task logs when it loads the native copy
+    command.env("ACE_RS_LOG", "info,ace_mod_yara=debug");
+    let mut pool = PoolProcess::start(command);
 
     // a stream of files: half at once, so scans are queued and running when the rules change.
     // The pool is stopped while they are queued and the second ruleset is built, and then let go:
@@ -225,8 +228,10 @@ async fn a_switch_during_a_stream_of_scans_drops_none() {
             "no native copy of {key}\n{stderr}"
         );
     }
+    // a task's DEBUG line, which the module turned up in ACE_RS_LOG lets through
     assert!(
-        stderr.contains("loaded the pool's native copy of the ruleset"),
+        stderr.lines().any(|l| l.contains("ace_pool::task_log")
+            && l.contains("loaded the pool's native copy of the ruleset")),
         "{stderr}"
     );
     let copy = rulesets
