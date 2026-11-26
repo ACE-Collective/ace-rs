@@ -18,6 +18,7 @@
 //!   previews.
 
 use std::fs;
+use std::path::Path;
 use std::time::Duration;
 
 use ace_results::types::file_type::{FileTypeAnalysis, TypeFacts, asks_about_javascript};
@@ -26,7 +27,7 @@ use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskCon
 
 use crate::checks;
 use crate::javascript;
-use crate::libmagic::{self, Answer, Magic};
+use crate::libmagic::{self, Answer, Database, Magic};
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<FileType>();
@@ -37,9 +38,9 @@ pub fn tags_javascript(path: &str, mime: &str, data: &[u8]) -> bool {
     asks_about_javascript(path, mime) && javascript::is_javascript_file(path, data)
 }
 
-/// The module, with libmagic's database read before containment, which can't open it.
+/// The module, with libmagic's database mapped before containment, which can't open it.
 pub struct FileType {
-    database: Result<Vec<u8>, String>,
+    database: Result<Database, String>,
 }
 
 impl Module for FileType {
@@ -57,7 +58,7 @@ impl Module for FileType {
 
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(FileType {
-            database: fs::read(libmagic::DATABASE).map_err(|e| e.to_string()),
+            database: Database::open(Path::new(libmagic::DATABASE)),
         })
     }
 }
@@ -123,7 +124,7 @@ pub fn as_ace3(facts: &TypeFacts, path: &str) -> ResultEnvelope<FileTypeAnalysis
 /// for a test harness (`ace_testkit::Harness::with_typer`), which has no core to run the step. None
 /// when libmagic's database or the file doesn't read.
 pub fn type_of(alert_path: &str, local: &std::path::Path) -> Option<TypeFacts> {
-    let database = fs::read(libmagic::DATABASE).ok()?;
+    let database = Database::open(Path::new(libmagic::DATABASE)).ok()?;
     let describe = |answer| {
         Magic::load(&database, answer)
             .ok()
@@ -140,7 +141,7 @@ impl Parser for FileType {
         let database = self
             .database
             .as_ref()
-            .map_err(|e| ModuleError::other(format!("{}: {e}", libmagic::DATABASE)))?;
+            .map_err(|e| ModuleError::other(e.clone()))?;
         let describe = |answer| -> Result<String, ModuleError> {
             let magic = Magic::load(database, answer).map_err(ModuleError::other)?;
             Ok(ace_pycompat::pystr::strip(&magic.file(&file.local_path)).to_owned())

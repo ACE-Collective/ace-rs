@@ -16,7 +16,7 @@ use std::fs;
 use std::path::Path;
 use std::time::Duration;
 
-use ace_mod_files::libmagic::{self, Answer, Magic};
+use ace_mod_files::libmagic::{self, Answer, Database, Magic};
 use ace_pycompat::pystr::strip;
 use ace_results::FileRole;
 use ace_results::types::macos::{Cve202130657Analysis, DmgAnalysis};
@@ -216,7 +216,7 @@ fn file_list(stdout: &str) -> Result<Vec<String>, ModuleError> {
 
 /// The cve_2021_30657_analyzer module.
 pub struct Cve202130657Analyzer {
-    database: Result<Vec<u8>, String>,
+    database: Result<Database, String>,
     entry: Regex,
 }
 
@@ -230,8 +230,8 @@ impl Module for Cve202130657Analyzer {
 
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(Cve202130657Analyzer {
-            // libmagic's database, read before containment
-            database: fs::read(libmagic::DATABASE).map_err(|e| e.to_string()),
+            // libmagic's database, mapped before containment
+            database: Database::open(std::path::Path::new(libmagic::DATABASE)),
             // cve.py's RE_7Z_FILE_ENTRY
             entry: Regex::new(r"^.+?\d+\s+\d+\s+(.+)$").map_err(ModuleError::other)?,
         })
@@ -281,7 +281,7 @@ impl Parser for Cve202130657Analyzer {
             }
             Ok(_) => None,
             Err(e) => {
-                return Err(ModuleError::other(format!("{}: {e}", libmagic::DATABASE)));
+                return Err(ModuleError::other(e.clone()));
             }
         };
         let local = file.local_path.display().to_string();

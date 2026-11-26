@@ -18,6 +18,8 @@ ace-sdk = { path = "../ace-sdk" }
 # ssdeep's hashes (PLAN.md 7.3); the comparison is ssdeep 2.14.1's, in src/ssdeep.rs.
 fuzzyhash = "0.2.2"
 magic-sys = "0.4.3"
+# libmagic's database, mapped once per task rather than read and copied (src/libmagic.rs)
+memmap2 = "0.9.12"
 md5 = { package = "md-5", version = "0.11.0" }
 oxc_allocator = "0.157.0"
 oxc_ast = "0.157.0"

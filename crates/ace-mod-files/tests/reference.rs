@@ -192,3 +192,23 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         panic!("{report}");
     }
 }
+
+/// The type step maps libmagic's database rather than reading and copying it: a task reads its file
+/// and none of the database's 10 MB, and finds what it found before (the dumps above).
+#[test]
+fn the_type_step_reads_none_of_libmagics_database() {
+    let database = std::fs::metadata(ace_mod_files::libmagic::DATABASE)
+        .expect("the database")
+        .len();
+    let path = fixtures().join("page.html");
+    let (outcome, read) = ace_testkit::bytes_read_by(|| {
+        let harness = Harness::<FileType>::new().expect("harness");
+        let observable = harness.file("page.html", &path, &[]).expect("the file");
+        harness.run_parser(observable).expect("the step runs")
+    });
+    let Outcome::Done(facts) = outcome else {
+        panic!("{outcome:?}");
+    };
+    assert_eq!(facts.details.mime, "text/html");
+    assert!(read < database / 10, "{read} bytes read");
+}
