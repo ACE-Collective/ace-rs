@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n               SELECT FROM queue.actions a\n               JOIN queue.action_roots r ON r.action_id = a.id AND r.root_id = $3\n               WHERE a.kind = 'remediation_check' AND a.result = 'CONFIRMED' AND a.handler = $1\n                 AND a.updated_at >= now() - make_interval(hours => $2)) AS \"holds!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "holds!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "978c0c9d7c0a7e01139c8159d75628da91b23b2e1237e59673f081a8452782c1"
+}

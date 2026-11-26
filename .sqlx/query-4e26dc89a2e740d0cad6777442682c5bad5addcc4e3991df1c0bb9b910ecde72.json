@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.type AS \"kind!\", o.value AS \"value!\" FROM analysis.observables o\n                       JOIN unnest($2::text[], $3::text[]) AS e (kind, value)\n                         ON o.type = e.kind AND lower(o.value) = e.value\n                       WHERE o.root_id = $1\n                       ORDER BY o.type, o.value LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "value!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "TextArray",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "4e26dc89a2e740d0cad6777442682c5bad5addcc4e3991df1c0bb9b910ecde72"
+}

@@ -233,7 +233,13 @@ async fn serve(app: &App) -> Result<ExitCode> {
     for pool in &config.pools {
         tracing::info!(pool = %pool.name, modules = ?pool.modules, "serving a pool");
     }
+    // the alert automation rules (PLAN.md 7.22): a rule that fails its checks is logged and doesn't run
+    let automation =
+        ace_service::AlertAutomation::load(&overlay.alert_automation, &dispositions, &actions)
+            .map_err(anyhow::Error::msg)
+            .context("the overlay's alert_automation section")?;
     let service = ace_service::Service::new(db.clone(), orchestrator.clone())
+        .with_alert_automation(automation)
         .with_actions(actions)
         .with_dispositions(dispositions)
         .with_log_search(log_search)

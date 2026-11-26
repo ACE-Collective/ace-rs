@@ -4604,7 +4604,7 @@ async fn a_remediator_asks_what_another_removal_covers_and_names_what_it_acted_o
         .await
         .expect("updates");
         assert_eq!(
-            ace_core::actions::removal_covers(db, "test", "test", "owner")
+            ace_core::actions::removal_covers(db.pool(), "test", "test", "owner")
                 .await
                 .expect("answers"),
             covers,
@@ -4634,14 +4634,14 @@ async fn a_remediator_asks_what_another_removal_covers_and_names_what_it_acted_o
         .await
         .expect("restored");
     assert!(
-        !ace_core::actions::removal_covers(db, "test", "test", "owner")
+        !ace_core::actions::removal_covers(db.pool(), "test", "test", "owner")
             .await
             .expect("answers"),
         "the latest action put it back"
     );
     // another remediator's row for the key, or another type's, isn't this target's
     assert!(
-        !ace_core::actions::removal_covers(db, "other", "test", "alias")
+        !ace_core::actions::removal_covers(db.pool(), "other", "test", "alias")
             .await
             .expect("answers")
     );

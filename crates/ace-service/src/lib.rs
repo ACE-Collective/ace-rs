@@ -95,6 +95,10 @@
 //! alert belongs in, run by `ace serve`'s routing worker when an alert's pass completes, and the audited move
 //! between queues.
 //!
+//! `alert_automation` is ace3's alert automation (7.22): the overlay's rules, which the scheduler's
+//! `alert_automation` sweeps under `alert_automation:run`, each disposing an alert, queueing its removals or
+//! recording a comment when its trigger, a probe's confirmed remediation check, fires.
+//!
 //! `filters` is the filter model of a list screen (5.10), ace3's filter language and share links, which the
 //! alert list (`alerts`) and the detection points (`detection_points`) take, and `saved_filters` keeps an
 //! analyst's saved filters, ace3's `saved_filters` router.
@@ -109,6 +113,7 @@
 
 mod actor;
 pub mod ai;
+mod alert_automation;
 mod alert_graph;
 mod alert_view;
 mod alert_work;
@@ -198,6 +203,10 @@ pub use ace_sdk::actions::{ActionKind, RemediationAction};
 pub use ace_sdk::directives::{Directive, DirectiveList};
 pub use ace_sdk::lists::MatchKind;
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
+pub use alert_automation::{
+    ActionRecord, ActionStatus, AlertAutomation, AutomationSweep, Confirmation, Detail, Evidence,
+    Rule as AutomationRule, RunStatus,
+};
 pub use alert_graph::{
     AlertGraph, GraphEdge, GraphEdgeKind, GraphNode, GraphNodeKind, MAX_GRAPH_EDGES,
     MAX_GRAPH_NODES, MAX_LABEL_CHARS, graph_of,
@@ -284,17 +293,17 @@ pub use ownership::{
     SkippedAlert, check_alert_ownership, confirmed_takes, describe_frozen, describe_skipped,
 };
 pub use permission::{
-    ADMIN_READ, AI_ALERT, AI_BACKENDS, AI_EVENT, AI_EXPORT, AI_SEARCH, ALERT_CREATE, ALERT_QUEUE,
-    ALERT_READ, ALERT_WRITE, ANALYSIS_CACHE_MAINTAIN, ANALYSIS_CLEANUP, BUCKET_GC, BUCKET_VERIFY,
-    CATALOG, CLI_EXECUTE, CRASH_READ, CatalogEntry, DETECTION_READ, DETECTION_WRITE,
-    EMAIL_ARCHIVE_MAINTAIN, EMAIL_READ, EVENT_READ, EVENT_WRITE, EXPORT_RECORD, Effect,
-    FILE_COLLECTION_CREATE, FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ, FILE_COLLECTION_WRITE,
-    HUNT_READ, HUNT_WRITE, InvalidPermission, LIST_READ, LIST_WRITE, MONITORING_READ,
-    MONITORING_REPORT, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName,
-    PermissionPattern, REMEDIATION_READ, REMEDIATION_WRITE, SEARCH_INDEX, SIGNATURE_DOWNLOAD,
-    SIGNATURE_QA_PURGE, SIGNATURE_READ, SVS_ADMIN, SVS_COVERAGE_REFRESH, SVS_COVERAGE_SNAPSHOT,
-    SVS_RUN_MANAGE, SVS_RUN_READ, SVS_RUN_REGISTER, SVS_RUN_TIMERS, SVS_VALIDATE,
-    SVS_VALIDATION_PRUNE, USER_READ, USER_SELF, USER_WRITE,
+    ADMIN_READ, AI_ALERT, AI_BACKENDS, AI_EVENT, AI_EXPORT, AI_SEARCH, ALERT_AUTOMATION_RUN,
+    ALERT_CREATE, ALERT_QUEUE, ALERT_READ, ALERT_WRITE, ANALYSIS_CACHE_MAINTAIN, ANALYSIS_CLEANUP,
+    BUCKET_GC, BUCKET_VERIFY, CATALOG, CLI_EXECUTE, CRASH_READ, CatalogEntry, DETECTION_READ,
+    DETECTION_WRITE, EMAIL_ARCHIVE_MAINTAIN, EMAIL_READ, EVENT_READ, EVENT_WRITE, EXPORT_RECORD,
+    Effect, FILE_COLLECTION_CREATE, FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ,
+    FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE, InvalidPermission, LIST_READ, LIST_WRITE,
+    MONITORING_READ, MONITORING_REPORT, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE,
+    PermissionName, PermissionPattern, REMEDIATION_READ, REMEDIATION_WRITE, SEARCH_INDEX,
+    SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, SVS_ADMIN, SVS_COVERAGE_REFRESH,
+    SVS_COVERAGE_SNAPSHOT, SVS_RUN_MANAGE, SVS_RUN_READ, SVS_RUN_REGISTER, SVS_RUN_TIMERS,
+    SVS_VALIDATE, SVS_VALIDATION_PRUNE, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
@@ -641,6 +650,8 @@ pub struct Service {
     directives: std::sync::Arc<ace_sdk::directives::DirectiveList>,
     /// The Observable Patterns refused for a bound, remembered for a while (`filters::patterns`).
     pattern_refusals: std::sync::Arc<filters::patterns::Refusals>,
+    /// The overlay's alert automation rules (PLAN.md 7.22), `alert_automation`'s docs. None by default.
+    automation: std::sync::Arc<alert_automation::AlertAutomation>,
 }
 
 impl Service {
@@ -665,6 +676,7 @@ impl Service {
             ai: None,
             directives: std::sync::Arc::default(),
             pattern_refusals: std::sync::Arc::default(),
+            automation: std::sync::Arc::default(),
         }
     }
 

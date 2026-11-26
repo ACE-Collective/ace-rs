@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.alert_automation_runs\n         SET actions = $2, status = $3, version = version + 1, updated_at = now()\n         WHERE id = $1\n         RETURNING version",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "version",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "analysis.alert_automation_runs",
+            "name": "version"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Jsonb",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2008efd35bb4aca58edddb0e0d19de1db421149cea6f77af54284dbf9b6f630e"
+}

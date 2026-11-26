@@ -281,6 +281,10 @@ pub const AI_EXPORT: PermissionName = PermissionName::known("ai", "export");
 /// Search past alerts through the AI investigation API: ace3's `ai:search`.
 pub const AI_SEARCH: PermissionName = PermissionName::known("ai", "search");
 /// Read an alert and its files: ace3's `alert:read`.
+/// Act on alerts by the overlay's alert automation rules (PLAN.md 7.22): set their disposition, queue
+/// removals and record what each rule did. ace3's `alert_automation` service writes as its automation
+/// user, under no permission. Only the scheduler's `scheduler:alert_automation` holds it.
+pub const ALERT_AUTOMATION_RUN: PermissionName = PermissionName::known("alert_automation", "run");
 pub const ALERT_READ: PermissionName = PermissionName::known("alert", "read");
 /// Change an alert: ace3's `alert:write`, which its disposition route requires.
 pub const ALERT_WRITE: PermissionName = PermissionName::known("alert", "write");
@@ -429,6 +433,11 @@ pub static CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         name: AI_SEARCH,
         description: "Search past alerts through the AI investigation API.",
+    },
+    CatalogEntry {
+        name: ALERT_AUTOMATION_RUN,
+        description: "Act on alerts by the alert automation rules: set their disposition, queue removals and \
+                      record what each rule did. The scheduler holds it.",
     },
     CatalogEntry {
         name: ALERT_CREATE,

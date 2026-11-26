@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO analysis.alert_automation_runs\n                         (rule_name, root_id, mode, evidence, actions)\n                     VALUES ($1, $2, $3, $4, $5)\n                     ON CONFLICT ON CONSTRAINT alert_automation_runs_once DO NOTHING\n                     RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.alert_automation_runs",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Text",
+        "Jsonb",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6e8ee08f956d3d274c8920267dcd93ddab77547fd7878cbb503594d5ea0b40c6"
+}

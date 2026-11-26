@@ -1700,6 +1700,7 @@ async fn every_write_function_has_an_audit_test_in_turn() {
         svs_attribution_tests::association::review::close_svs_runs_records_its_row(db).await,
         svs_attribution_tests::association::review::review_svs_run_records_its_row(db).await,
         ai_tests::ai_record_records_its_row(db).await,
+        alert_automation_tests::run_alert_automation_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3772,6 +3773,8 @@ async fn every_write_fails_when_its_audit_fails_in_turn() {
     let decisions_before = svs_results_tests::decision_rows(db).await;
     let coverage_before = svs_results_tests::coverage::coverage_rows(db).await;
     let runs = svs_runs_tests::before_the_audit_breaks(db).await;
+    let automation = alert_automation_tests::before_the_audit_breaks(db).await;
+    let automation_before = alert_automation_tests::rows(db, &automation).await;
     let runs_before = svs_runs_tests::runs_rows(db, &runs).await;
     let hosts_before = test_host_rows(db).await;
     // a sample for each of its actions
@@ -4791,6 +4794,7 @@ async fn every_write_fails_when_its_audit_fails_in_turn() {
         .await,
     );
     attempts.extend(ai_tests::attempts_with_the_audit_broken(&ai).await);
+    attempts.extend(alert_automation_tests::attempts_with_the_audit_broken(&automation).await);
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
         assert!(error.to_string().contains("broken"), "{function}: {error}");
@@ -4853,6 +4857,11 @@ async fn every_write_fails_when_its_audit_fails_in_turn() {
         "no run's state, owner or reviewer changed, and no event was written"
     );
     assert_eq!(command_rows(db).await, commands_before);
+    assert_eq!(
+        alert_automation_tests::rows(db, &automation).await,
+        automation_before,
+        "no alert was dispositioned, no run recorded and no removal queued"
+    );
     assert_eq!(sample_rows(db).await, samples_before, "no sample changed");
     assert_eq!(
         validation_rows(db).await,
@@ -53693,5 +53702,1665 @@ mod work_tests {
                 .await,
             Err(ServiceError::PermissionDenied { .. })
         ));
+    }
+}
+
+// PLAN.md 7.22: ace3's `tests/saq/alert_automation/` (its `c55f15a2`) as Rust tests. Each of ace3's cases
+// and where it went, or why it has no counterpart:
+//
+// test_config.py (7):
+//   test_a_rule_rejects_an_unknown_key, test_a_rule_defaults_to_disabled_and_dry_run and
+//     test_the_configuration_rejects_two_rules_with_one_name: ace-sdk's alert_automation tests
+//     a_mistake_in_a_rule_refuses_the_overlay_with_its_path and
+//     a_rule_is_off_and_in_dry_run_unless_it_says_otherwise.
+//   test_a_rule_needs_an_action and test_a_trigger_or_action_block_that_does_not_validate_fails_the_rule:
+//     the overlay's parse for an unknown key, type or `targets` (ace-sdk's), and
+//     a_rule_that_fails_its_checks_is_logged_and_the_others_still_load for the rest.
+//   test_a_type_must_be_a_trigger_or_action_class: none; the types are the binary's own, not classes
+//     named in the configuration.
+//   test_a_rule_that_fails_to_load_is_logged_and_the_others_still_load:
+//     a_rule_that_fails_its_checks_is_logged_and_the_others_still_load.
+// test_rules.py (32): each has the test of its name here, but for
+//   test_an_alert_the_automation_user_owns_is_acted_on: none; ACE's components never own an alert.
+//   test_a_sweep_that_dies_after_the_disposition_leaves_the_removal_to_a_later_sweep:
+//     a_run_a_stopped_sweep_left_is_finished_by_the_next_without_repeating_its_actions; there is no lease
+//     to wait out, since an action and its record commit together.
+//   test_a_failed_write_on_one_alert_does_not_fail_the_next_alert:
+//     a_failed_action_on_one_alert_does_not_fail_the_next_alert.
+//   test_a_sweep_that_read_a_pending_run_another_sweep_finished_leaves_it_alone and
+//     ..._another_sweep_advanced_leaves_it_alone: a_sweep_that_read_a_run_another_sweep_changed_leaves_it_alone.
+//   test_a_run_another_sweep_has_claimed_is_not_retried_until_its_lease_runs_out:
+//     a_run_another_sweep_holds_is_left_to_it.
+//   test_a_sweep_whose_run_another_sweep_took_over_logs_it_and_stops and
+//     test_a_sweep_whose_unstarted_run_another_sweep_took_over_keeps_it_when_its_action_defers: none; an
+//     action runs under its run's row lock, so no sweep can take the run over while it runs.
+//   test_an_alert_that_changes_during_the_sweep_stops_the_rule: the same name, where an alert taken or
+//     dispositioned since the sweep chose it is left alone by the guards under its lock, which ace3's
+//     disposition action finds instead.
+//   test_a_sweep_stops_between_alerts_when_it_is_stopping: none here; the scheduler stops a sweep at its
+//     timeout or a shutdown (ace-app's shutdown_stops_a_running_task_within_its_bound), and each step is a
+//     transaction, so a stopped sweep leaves nothing half done.
+// test_service.py (6):
+//   test_a_single_threaded_service_sweeps_the_rules_once: ace-app's alert_automation_sweeps_the_overlay_s_rules.
+//   test_a_non_primary_node_stays_idle, test_the_service_sweeps_until_it_is_stopping,
+//     test_the_service_stops_between_rules and test_a_sweep_that_outlasts_the_shutdown_deadline_is_logged:
+//     the scheduler's own, ace-app's two_replicas_run_a_task_once_for_its_missed_due_times,
+//     a_lease_keeps_a_second_run_out_and_an_expired_one_is_abandoned and
+//     shutdown_stops_a_running_task_within_its_bound.
+//   test_a_rule_whose_sweep_fails_is_logged_and_the_service_goes_on:
+//     a_rule_whose_sweep_fails_is_logged_and_the_others_go_on.
+// test_cli.py (4): none; ace-rs has no `ace alert-automation` (PLAN.md 7.22).
+mod alert_automation_tests {
+    use super::*;
+    use ace_core::actions::ActionCatalog;
+    use ace_sdk::actions::{ActionKind, ActionSpec};
+    use ace_service::AlertAutomation;
+
+    pub(super) const PROBE: &str = "made_up_probe";
+    const RULE: &str = "confirmed_removal";
+    const ALICE: &str = "<automation-test@example.com>|alice@example.com";
+    const BOB: &str = "<Automation-Test@Example.com>|bob@example.com";
+    const OTHER: &str = "<another-message@example.com>|alice@example.com";
+    const DISPOSITION_COMMENT: &str = "{probe} confirmed removal of {observable} at {event_time}; ACE removal queued as a backstop";
+
+    /// A probe a site's binary could have, under a name ace-rs ships nothing by.
+    static MADE_UP_PROBE: ActionSpec = ActionSpec::new(
+        ActionKind::RemediationCheck,
+        PROBE,
+        "Made-up probe",
+        "Confirms nothing; its checks are written by the tests.",
+        "email_delivery",
+    );
+
+    /// A remediator of email deliveries, ace3's test `ObservableRemediationInterface`.
+    static MAIL_REMEDIATOR: ActionSpec = ActionSpec::new(
+        ActionKind::Remediation,
+        "test_mail",
+        "Test mail remediator",
+        "Removes nothing; its removals are only queued.",
+        "email_delivery",
+    );
+
+    fn catalog(remediable: bool) -> ActionCatalog {
+        let mut specs: Vec<&'static ActionSpec> = vec![&MADE_UP_PROBE];
+        if remediable {
+            specs.push(&MAIL_REMEDIATOR);
+        }
+        ActionCatalog::new(&specs).expect("a catalog")
+    }
+
+    pub(super) fn automator() -> Actor {
+        component("scheduler:alert_automation")
+    }
+
+    fn automator_json() -> Value {
+        json!({"kind": "internal", "id": "scheduler:alert_automation"})
+    }
+
+    /// An overlay's `alert_automation:` section, as a site writes it.
+    fn section(yaml: &str) -> ace_sdk::alert_automation::AlertAutomationSection {
+        ace_sdk::Overlay::from_yaml(yaml)
+            .expect("the overlay reads")
+            .alert_automation
+    }
+
+    /// A rule named `RULE` on the made-up probe, its actions YAML's flow lists.
+    fn rule(mode: &str, actions: &str) -> String {
+        format!(
+            "alert_automation:
+  rules:
+    {RULE}:
+      enabled: true
+      mode: {mode}
+      trigger: {{type: external_remediation_confirmed, probe: {PROBE}, max_age_hours: 120}}
+      actions: {actions}
+"
+        )
+    }
+
+    /// ace3's `ACTIONS`: the disposition with its comment, then the removal of the message.
+    fn confirmed_removal() -> String {
+        format!(
+            "[{{type: disposition, disposition: DELIVERY, comment: '{DISPOSITION_COMMENT}'}}, \
+             {{type: remediate, targets: same_message}}]"
+        )
+    }
+
+    fn automated(db: &Db, yaml: &str, remediable: bool) -> Service {
+        let actions = catalog(remediable);
+        let automation =
+            AlertAutomation::load(&section(yaml), &ace_service::Dispositions::ace3(), &actions)
+                .expect("loads");
+        Service::new(db.clone(), orchestrator())
+            .with_actions(actions)
+            .with_alert_automation(automation)
+    }
+
+    async fn sweep(service: &Service) -> ace_service::AutomationSweep {
+        service
+            .run_alert_automation(&automator())
+            .await
+            .expect("sweeps")
+    }
+
+    /// A root holding these deliveries, an alert unless `alerted` is false.
+    pub(super) async fn make_root(db: &Db, deliveries: &[&str], alerted: bool) -> Uuid {
+        make_root_as(db, NewRoot::new("correlation"), deliveries, alerted).await
+    }
+
+    async fn make_root_as(db: &Db, root: NewRoot, deliveries: &[&str], alerted: bool) -> Uuid {
+        let mut tx = db.begin().await.expect("begins");
+        tree::create_root(&mut tx, &root).await.expect("creates");
+        for delivery in deliveries {
+            tree::upsert_observable(
+                &mut tx,
+                root.id,
+                &NewObservable::new(ObservableKind::EmailDelivery, *delivery),
+            )
+            .await
+            .expect("adds");
+        }
+        tx.commit().await.expect("commits");
+        if alerted {
+            make_alert(db, root.id).await;
+        }
+        root.id
+    }
+
+    async fn make_alert(db: &Db, root: Uuid) {
+        sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("an alert");
+    }
+
+    /// A check of `probe` for the root, CONFIRMED `hours_ago` by the database's clock.
+    pub(super) async fn confirm(db: &Db, root: Uuid, delivery: &str, hours_ago: i32, probe: &str) {
+        let check: i64 = sqlx::query_scalar(
+            "INSERT INTO queue.actions (kind, handler, observable_type, observable_value, status, result,
+                                        updated_at)
+             VALUES ('remediation_check', $1, 'email_delivery', $2, 'COMPLETED', 'CONFIRMED',
+                     now() - make_interval(hours => $3))
+             RETURNING id",
+        )
+        .bind(probe)
+        .bind(delivery)
+        .bind(hours_ago)
+        .fetch_one(db.pool())
+        .await
+        .expect("a check");
+        sqlx::query("INSERT INTO queue.action_roots (action_id, root_id) VALUES ($1, $2)")
+            .bind(check)
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("attaches");
+    }
+
+    async fn confirmed_alert(db: &Db, deliveries: &[&str], confirmed: &str) -> Uuid {
+        let root = make_root(db, deliveries, true).await;
+        confirm(db, root, confirmed, 0, PROBE).await;
+        root
+    }
+
+    async fn set(db: &Db, root: Uuid, assignments: &str) {
+        // the tests' own text
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "UPDATE analysis.roots SET {assignments} WHERE id = $1"
+        )))
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("sets");
+    }
+
+    /// The alert's disposition, who made it and its owner.
+    async fn state(db: &Db, root: Uuid) -> (Option<String>, Option<Value>, Option<Uuid>) {
+        sqlx::query_as(
+            "SELECT disposition, dispositioned_by::jsonb, owner_id FROM analysis.roots WHERE id = $1",
+        )
+        .bind(root)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads")
+    }
+
+    /// The alert's runs: rule, mode, status, evidence and actions.
+    pub(super) async fn runs(db: &Db, root: Uuid) -> Vec<(String, String, String, Value, Value)> {
+        sqlx::query_as(
+            "SELECT rule_name, mode, status, evidence, actions FROM analysis.alert_automation_runs
+             WHERE root_id = $1 ORDER BY id",
+        )
+        .bind(root)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+    }
+
+    /// Each action's type, status and attempts in the alert's one run.
+    async fn actions(db: &Db, root: Uuid) -> Vec<(String, String, u64)> {
+        let runs = runs(db, root).await;
+        assert_eq!(runs.len(), 1, "{runs:?}");
+        runs[0]
+            .4
+            .as_array()
+            .expect("a list")
+            .iter()
+            .map(|a| {
+                (
+                    a["type"].as_str().expect("a type").to_owned(),
+                    a["status"].as_str().expect("a status").to_owned(),
+                    a["attempts"].as_u64().expect("attempts"),
+                )
+            })
+            .collect()
+    }
+
+    /// Every queued removal's value, with who asked and the person it's for.
+    async fn removals(db: &Db) -> Vec<(String, Value, Option<Uuid>)> {
+        sqlx::query_as(
+            "SELECT observable_value, requested_by::jsonb, user_id FROM queue.actions
+             WHERE kind = 'remediation' AND action = 'remove' ORDER BY observable_value COLLATE \"C\"",
+        )
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+    }
+
+    fn by_automation(values: &[&str]) -> Vec<(String, Value, Option<Uuid>)> {
+        let mut values: Vec<&str> = values.to_vec();
+        values.sort_unstable();
+        values
+            .into_iter()
+            .map(|v| (v.to_owned(), automator_json(), None))
+            .collect()
+    }
+
+    async fn analyst(db: &Db, name: &str) -> Uuid {
+        let service = service(db);
+        new_user(&service, &admin(db).await, name).await.0
+    }
+
+    /// Makes the next `times` inserts into `table` that `when` holds for fail, counting every such
+    /// insert in the sequence `test_fault_calls`, which a rollback doesn't undo.
+    async fn fail_inserts(db: &Db, table: &str, when: &str, times: i64) {
+        // the tests' own text
+        sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
+            "CREATE SEQUENCE IF NOT EXISTS test_fault_calls;
+             CREATE FUNCTION test_fault() RETURNS trigger LANGUAGE plpgsql AS $$
+             BEGIN
+                 IF nextval('test_fault_calls') <= {times} THEN
+                     RAISE EXCEPTION 'the remediation system is down';
+                 END IF;
+                 RETURN NEW;
+             END $$;
+             CREATE TRIGGER test_fault BEFORE INSERT ON {table} FOR EACH ROW WHEN ({when})
+                 EXECUTE FUNCTION test_fault();"
+        )))
+        .execute(db.pool())
+        .await
+        .expect("breaks the inserts");
+    }
+
+    async fn fault_calls(db: &Db) -> i64 {
+        sqlx::query_scalar(
+            "SELECT CASE WHEN is_called THEN last_value ELSE 0 END FROM test_fault_calls",
+        )
+        .fetch_one(db.pool())
+        .await
+        .expect("reads")
+    }
+
+    /// Runs `sql` in the transaction of every update of `table` that `when` holds for: what another
+    /// sweep or an analyst does while this sweep is between two of its steps.
+    async fn meanwhile(db: &Db, table: &str, when: &str, sql: &str) {
+        // the tests' own text
+        sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
+            "CREATE FUNCTION test_meanwhile() RETURNS trigger LANGUAGE plpgsql AS $$
+             BEGIN {sql}; RETURN NULL; END $$;
+             CREATE TRIGGER test_meanwhile AFTER UPDATE ON {table} FOR EACH ROW WHEN ({when})
+                 EXECUTE FUNCTION test_meanwhile();"
+        )))
+        .execute(db.pool())
+        .await
+        .expect("adds the trigger");
+    }
+
+    /// Two confirmed alerts in the order a sweep takes them.
+    async fn two_alerts(db: &Db, first: &[&str], second: &[&str]) -> (Uuid, Uuid) {
+        let mut roots = [NewRoot::new("correlation"), NewRoot::new("correlation")];
+        roots.sort_by_key(|root| root.id);
+        let [a, b] = roots;
+        let a = make_root_as(db, a, first, true).await;
+        confirm(db, a, first[0], 0, PROBE).await;
+        let b = make_root_as(db, b, second, true).await;
+        confirm(db, b, second[0], 0, PROBE).await;
+        (a, b)
+    }
+
+    /// A pending run recorded as a sweep would have left it, with these action records.
+    async fn pending_run(db: &Db, root: Uuid, records: Value) -> i64 {
+        sqlx::query_scalar(
+            "INSERT INTO analysis.alert_automation_runs (rule_name, root_id, mode, evidence, actions)
+             VALUES ($1, $2, 'enforce', $3, $4) RETURNING id",
+        )
+        .bind(RULE)
+        .bind(root)
+        .bind(json!({"probe": PROBE, "confirmations": [{
+            "check_id": 1, "observable_type": "email_delivery", "observable_value": ALICE,
+            "confirmed_at": "2026-11-24T22:10:30Z"}]}))
+        .bind(records)
+        .fetch_one(db.pool())
+        .await
+        .expect("a run")
+    }
+
+    fn record(kind: &str, status: &str, attempts: u32) -> Value {
+        json!({"type": kind, "status": status, "attempts": attempts, "detail": {}, "reason": null})
+    }
+
+    /// A site adds a rule in its overlay alone: one in dry_run on a probe of its own, under a name ace-rs
+    /// ships nothing by, loads and records what it would do, and changes nothing.
+    #[tokio::test]
+    async fn a_site_adds_a_dry_run_rule_on_its_own_probe_in_its_overlay_alone() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let overlay = format!(
+            "alert_automation:
+  rules:
+    site_confirmed_removal:
+      enabled: true
+      mode: dry_run
+      trigger:
+        type: external_remediation_confirmed
+        probe: {PROBE}
+      actions:
+        - type: disposition
+          disposition: DELIVERY
+          comment: \"{DISPOSITION_COMMENT}\"
+        - type: remediate
+          targets: same_message
+"
+        );
+        let service = automated(db, &overlay, true);
+        let root = confirmed_alert(db, &[ALICE, BOB], ALICE).await;
+
+        let swept = sweep(&service).await;
+
+        assert_eq!(
+            (swept.rules, swept.runs_started, swept.actions_finished),
+            (1, 1, 2)
+        );
+        assert_eq!(state(db, root).await, (None, None, None));
+        assert_eq!(removals(db).await, []);
+        let runs = runs(db, root).await;
+        assert_eq!(runs.len(), 1);
+        let (name, mode, status, evidence, actions) = &runs[0];
+        assert_eq!(
+            (name.as_str(), mode.as_str(), status.as_str()),
+            ("site_confirmed_removal", "dry_run", "done")
+        );
+        assert_eq!(evidence["probe"], PROBE);
+        assert_eq!(actions[0]["detail"]["disposition"], "DELIVERY");
+        let queued: BTreeSet<&str> = actions[1]["detail"]["queued"]
+            .as_array()
+            .expect("queued")
+            .iter()
+            .map(|v| v.as_str().expect("a name"))
+            .collect();
+        assert_eq!(
+            queued,
+            BTreeSet::from([
+                format!("test_mail:email_delivery:{ALICE}").as_str(),
+                format!("test_mail:email_delivery:{BOB}").as_str(),
+            ])
+        );
+    }
+
+    #[tokio::test]
+    async fn confirmed_removal_dispositions_the_alert_and_removes_every_delivery_of_the_message() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actions = confirmed_removal().replace(
+            "targets: same_message}]",
+            "targets: same_message}, {type: comment, comment: 'rule {rule} acted on {alert_uuid}'}]",
+        );
+        let service = automated(db, &rule("enforce", &actions), true);
+        let root = confirmed_alert(db, &[ALICE, BOB, OTHER], ALICE).await;
+        let (records, _guard) = record_capture();
+
+        sweep(&service).await;
+
+        let (disposition, by, owner) = state(db, root).await;
+        assert_eq!(disposition.as_deref(), Some("DELIVERY"));
+        assert_eq!(by, Some(automator_json()));
+        // ACE's components never own an alert
+        assert_eq!(owner, None);
+        // every delivery of the confirmed message, and only those, by the automation and for nobody
+        assert_eq!(removals(db).await, by_automation(&[ALICE, BOB]));
+        let runs = runs(db, root).await;
+        let (name, mode, status, evidence, recorded) = &runs[0];
+        assert_eq!(
+            (name.as_str(), mode.as_str(), status.as_str()),
+            (RULE, "enforce", "done")
+        );
+        assert_eq!(evidence["confirmations"][0]["observable_value"], ALICE);
+        assert_eq!(
+            actions_of(recorded),
+            [
+                ("disposition", "done", 1),
+                ("remediate", "done", 1),
+                ("comment", "done", 1)
+            ]
+        );
+        let comment = recorded[0]["detail"]["comment"]
+            .as_str()
+            .expect("a comment");
+        assert!(
+            comment.starts_with(&format!("{PROBE} confirmed removal of {ALICE} at ")),
+            "{comment}"
+        );
+        assert!(
+            comment.ends_with("; ACE removal queued as a backstop"),
+            "{comment}"
+        );
+        assert_eq!(
+            recorded[2]["detail"]["comment"],
+            format!("rule {RULE} acted on {root}")
+        );
+        for action in ["disposition", "remediate", "comment"] {
+            let logged = records.one(&format!(
+                "alert automation rule {RULE}: action {action} done"
+            ));
+            assert_eq!(logged.level, tracing::Level::INFO);
+            assert_eq!(logged.get("alert_uuid"), Some(root.to_string().as_str()));
+            assert_eq!(
+                (logged.get("rule"), logged.get("action"), logged.get("mode")),
+                (Some(RULE), Some(action), Some("enforce"))
+            );
+        }
+    }
+
+    fn actions_of(recorded: &Value) -> Vec<(&str, &str, u64)> {
+        recorded
+            .as_array()
+            .expect("a list")
+            .iter()
+            .map(|a| {
+                (
+                    a["type"].as_str().expect("a type"),
+                    a["status"].as_str().expect("a status"),
+                    a["attempts"].as_u64().expect("attempts"),
+                )
+            })
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn targets_evidence_removes_only_the_confirmed_delivery() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actions = confirmed_removal().replace("same_message", "evidence");
+        let service = automated(db, &rule("enforce", &actions), true);
+        confirmed_alert(db, &[ALICE, BOB], ALICE).await;
+
+        sweep(&service).await;
+
+        assert_eq!(removals(db).await, by_automation(&[ALICE]));
+    }
+
+    /// The disposition rule in enforce and in dry_run, and a rule with no disposition, which only the
+    /// guards keep off an alert: ace3's `GUARDED_RULES`.
+    fn guarded_rules() -> [String; 3] {
+        [
+            rule("enforce", &confirmed_removal()),
+            rule("dry_run", &confirmed_removal()),
+            rule("enforce", "[{type: remediate, targets: same_message}]"),
+        ]
+    }
+
+    #[tokio::test]
+    async fn an_owned_alert_is_left_alone_until_it_is_unassigned() {
+        for yaml in guarded_rules() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let service = automated(db, &yaml, true);
+            let root = confirmed_alert(db, &[ALICE], ALICE).await;
+            let alice = analyst(db, "alice").await;
+            set(db, root, &format!("owner_id = '{alice}'")).await;
+
+            sweep(&service).await;
+
+            assert_eq!(state(db, root).await, (None, None, Some(alice)), "{yaml}");
+            assert_eq!(removals(db).await, [], "{yaml}");
+            assert_eq!(runs(db, root).await, [], "{yaml}");
+
+            set(db, root, "owner_id = NULL").await;
+            sweep(&service).await;
+
+            let runs = runs(db, root).await;
+            assert_eq!(runs.len(), 1, "{yaml}");
+            assert_eq!(runs[0].2, "done", "{yaml}");
+        }
+    }
+
+    #[tokio::test]
+    async fn an_alert_that_is_not_open_is_left_alone() {
+        for disposition in ["FALSE_POSITIVE", "SIMULATED"] {
+            for yaml in guarded_rules() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let service = automated(db, &yaml, true);
+                let root = confirmed_alert(db, &[ALICE], ALICE).await;
+                set(
+                    db,
+                    root,
+                    &format!("disposition = '{disposition}', dispositioned_by = '{{\"kind\": \"internal\", \"id\": \"svs\"}}'"),
+                )
+                .await;
+
+                sweep(&service).await;
+
+                assert_eq!(
+                    state(db, root).await.0.as_deref(),
+                    Some(disposition),
+                    "{yaml}"
+                );
+                assert_eq!(removals(db).await, [], "{yaml}");
+                assert_eq!(runs(db, root).await, [], "{yaml}");
+            }
+        }
+    }
+
+    /// An alert taken or dispositioned since the sweep chose it is left alone by the guards under its
+    /// lock, with no run; one whose confirmation went is left alone by the disposition, which finds the
+    /// trigger no longer holds, and its run goes.
+    #[tokio::test]
+    async fn an_alert_that_changes_during_the_sweep_stops_the_rule() {
+        for change in ["taken", "dispositioned", "no longer confirmed"] {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+            let (first, second) = two_alerts(db, &[OTHER], &[ALICE]).await;
+            let alice = analyst(db, "alice").await;
+            // the second alert changes in the transaction of the first one's disposition, after the
+            // sweep chose both
+            let sql = match change {
+                "taken" => {
+                    format!("UPDATE analysis.roots SET owner_id = '{alice}' WHERE id = '{second}'")
+                }
+                "dispositioned" => format!(
+                    "UPDATE analysis.roots SET disposition = 'FALSE_POSITIVE', \
+                     dispositioned_by = '{{\"kind\": \"internal\", \"id\": \"svs\"}}' WHERE id = '{second}'"
+                ),
+                _ => format!("DELETE FROM queue.action_roots WHERE root_id = '{second}'"),
+            };
+            meanwhile(
+                db,
+                "analysis.roots",
+                &format!("NEW.id = '{first}' AND NEW.disposition IS DISTINCT FROM OLD.disposition"),
+                &sql,
+            )
+            .await;
+            let (records, _guard) = record_capture();
+
+            sweep(&service).await;
+
+            assert_eq!(state(db, first).await.0.as_deref(), Some("DELIVERY"));
+            let after = state(db, second).await;
+            assert_eq!(
+                after.0.as_deref(),
+                (change == "dispositioned").then_some("FALSE_POSITIVE"),
+                "{change}"
+            );
+            assert_ne!(after.1, Some(automator_json()), "{change}");
+            assert_eq!(removals(db).await, by_automation(&[OTHER]), "{change}");
+            // nothing was done, so no run holds the alert back once it is OPEN and nobody's again
+            assert_eq!(runs(db, second).await, [], "{change}");
+            if change == "no longer confirmed" {
+                let logged = records.one(&format!(
+                    "alert automation rule {RULE}: action disposition left"
+                ));
+                assert_eq!(logged.level, tracing::Level::INFO);
+                assert_eq!(logged.get("reason"), Some("the trigger no longer holds"));
+                assert_eq!(logged.get("alert_uuid"), Some(second.to_string().as_str()));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn an_alert_whose_run_cannot_be_recorded_is_logged_and_the_sweep_goes_on() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+        let (failing, other) = two_alerts(db, &[ALICE], &[OTHER]).await;
+        fail_inserts(
+            db,
+            "analysis.alert_automation_runs",
+            &format!("NEW.root_id = '{failing}'"),
+            100,
+        )
+        .await;
+        let (records, _guard) = record_capture();
+
+        let swept = sweep(&service).await;
+
+        assert_eq!(swept.unrecorded, 1);
+        assert!(
+            swept
+                .first_error
+                .as_deref()
+                .is_some_and(|e| e.contains("the remediation system is down")),
+            "{swept:?}"
+        );
+        let logged = records.one(&format!(
+            "alert automation rule {RULE} failed on alert {failing}"
+        ));
+        assert_eq!(logged.level, tracing::Level::ERROR);
+        assert_eq!(logged.get("rule"), Some(RULE));
+        assert_eq!(state(db, failing).await.0, None);
+        assert_eq!(runs(db, failing).await, []);
+        assert_eq!(state(db, other).await.0.as_deref(), Some("DELIVERY"));
+    }
+
+    #[tokio::test]
+    async fn dry_run_records_the_decision_and_changes_nothing_then_enforce_acts() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let root = confirmed_alert(db, &[ALICE, BOB], ALICE).await;
+
+        sweep(&automated(db, &rule("dry_run", &confirmed_removal()), true)).await;
+
+        assert_eq!(state(db, root).await, (None, None, None));
+        assert_eq!(removals(db).await, []);
+        let dry = runs(db, root).await;
+        assert_eq!((dry[0].1.as_str(), dry[0].2.as_str()), ("dry_run", "done"));
+        let recorded = &dry[0].4;
+        assert_eq!(recorded[0]["detail"]["disposition"], "DELIVERY");
+        assert!(
+            recorded[0]["detail"]["comment"].as_str().is_some_and(
+                |c| c.starts_with(&format!("{PROBE} confirmed removal of {ALICE} at "))
+            ),
+            "{recorded}"
+        );
+        assert_eq!(
+            recorded[1]["detail"]["queued"].as_array().map(Vec::len),
+            Some(2)
+        );
+
+        sweep(&automated(db, &rule("enforce", &confirmed_removal()), true)).await;
+
+        assert_eq!(state(db, root).await.0.as_deref(), Some("DELIVERY"));
+        assert_eq!(removals(db).await, by_automation(&[ALICE, BOB]));
+        let both: Vec<(String, String)> = runs(db, root)
+            .await
+            .into_iter()
+            .map(|r| (r.1, r.2))
+            .collect();
+        assert_eq!(
+            both,
+            [
+                ("dry_run".to_owned(), "done".to_owned()),
+                ("enforce".to_owned(), "done".to_owned())
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn a_target_whose_removal_is_under_way_is_not_queued_again() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+        let root = confirmed_alert(db, &[ALICE, BOB], ALICE).await;
+        let alice = analyst(db, "alice").await;
+        sqlx::query(
+            "INSERT INTO queue.actions (kind, handler, observable_type, observable_value, action, requested_by,
+                                        user_id)
+             VALUES ('remediation', 'test_mail', 'email_delivery', $1, 'remove', $2, $3)",
+        )
+        .bind(BOB)
+        .bind(json!({"kind": "user", "id": alice, "name": "alice"}))
+        .bind(alice)
+        .execute(db.pool())
+        .await
+        .expect("a removal under way");
+
+        sweep(&service).await;
+
+        let queued = removals(db).await;
+        assert_eq!(queued.len(), 2, "{queued:?}");
+        assert!(queued.contains(&by_automation(&[ALICE])[0]), "{queued:?}");
+        assert!(
+            queued.contains(&(
+                BOB.to_owned(),
+                json!({"kind": "user", "id": alice, "name": "alice"}),
+                Some(alice)
+            )),
+            "BOB's own removal, the analyst's: {queued:?}"
+        );
+        let runs = runs(db, root).await;
+        assert_eq!(
+            runs[0].4[1]["detail"]["covered"],
+            json!([format!("test_mail:email_delivery:{BOB}")])
+        );
+    }
+
+    #[tokio::test]
+    async fn a_confirmation_older_than_max_age_hours_does_not_fire() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+        let old = make_root(db, &[ALICE], true).await;
+        confirm(db, old, ALICE, 121, PROBE).await;
+        let recent = make_root(db, &[OTHER], true).await;
+        confirm(db, recent, OTHER, 119, PROBE).await;
+
+        sweep(&service).await;
+
+        assert_eq!(state(db, old).await.0, None);
+        assert_eq!(runs(db, old).await, []);
+        assert_eq!(state(db, recent).await.0.as_deref(), Some("DELIVERY"));
+    }
+
+    #[tokio::test]
+    async fn another_probes_confirmation_does_not_fire() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+        let root = make_root(db, &[ALICE], true).await;
+        confirm(db, root, ALICE, 0, "another_probe").await;
+
+        sweep(&service).await;
+
+        assert_eq!(runs(db, root).await, []);
+    }
+
+    /// ace3's `test_a_check_row_with_no_alert_row_fires_once_the_alert_exists`: a probe's module often
+    /// confirms before its root is an alert.
+    #[tokio::test]
+    async fn a_check_on_a_root_that_isn_t_an_alert_fires_once_it_is_one() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+        let root = make_root(db, &[ALICE], false).await;
+        confirm(db, root, ALICE, 0, PROBE).await;
+
+        sweep(&service).await;
+
+        assert_eq!(runs(db, root).await, []);
+        assert_eq!(removals(db).await, []);
+
+        make_alert(db, root).await;
+        sweep(&service).await;
+
+        assert_eq!(state(db, root).await.0.as_deref(), Some("DELIVERY"));
+        assert_eq!(removals(db).await, by_automation(&[ALICE]));
+    }
+
+    /// A removal that fails is rolled back and counted on its run, and logged at ERROR with its attempt;
+    /// the next sweep tries it again without repeating the disposition.
+    #[tokio::test]
+    async fn a_failing_action_is_logged_and_retried_without_repeating_what_succeeded() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        fail_inserts(db, "queue.actions", "NEW.kind = 'remediation'", 1).await;
+        let (records, _guard) = record_capture();
+
+        let swept = sweep(&service).await;
+
+        assert_eq!((swept.actions_finished, swept.actions_failed), (1, 1));
+        assert_eq!(state(db, root).await.0.as_deref(), Some("DELIVERY"));
+        let logged = records.one(&format!(
+            "alert automation rule {RULE}: action remediate failed"
+        ));
+        assert_eq!(logged.level, tracing::Level::ERROR);
+        assert_eq!(
+            (
+                logged.get("rule"),
+                logged.get("action"),
+                logged.get("mode"),
+                logged.get("attempt")
+            ),
+            (Some(RULE), Some("remediate"), Some("enforce"), Some("1"))
+        );
+        assert!(
+            logged.message.contains("the remediation system is down"),
+            "{}",
+            logged.message
+        );
+        assert_eq!(runs(db, root).await[0].2, "pending");
+        assert_eq!(
+            actions(db, root).await,
+            [
+                ("disposition".to_owned(), "done".to_owned(), 1),
+                ("remediate".to_owned(), "pending".to_owned(), 1)
+            ]
+        );
+        assert_eq!(removals(db).await, []);
+
+        // the alert is DELIVERY now, which the rule's own disposition set: the run goes on
+        sweep(&service).await;
+
+        assert_eq!(runs(db, root).await[0].2, "done");
+        assert_eq!(
+            actions(db, root).await,
+            [
+                ("disposition".to_owned(), "done".to_owned(), 1),
+                ("remediate".to_owned(), "done".to_owned(), 2)
+            ]
+        );
+        assert_eq!(removals(db).await, by_automation(&[ALICE]));
+    }
+
+    #[tokio::test]
+    async fn an_action_that_keeps_failing_is_marked_failed() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let yaml = rule(
+            "enforce",
+            "[{type: remediate, targets: same_message}, {type: comment, comment: after}]",
+        )
+        .replace(
+            "alert_automation:\n",
+            "alert_automation:\n  max_action_attempts: 2\n",
+        );
+        let service = automated(db, &yaml, true);
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        fail_inserts(db, "queue.actions", "NEW.kind = 'remediation'", 10).await;
+        let (records, _guard) = record_capture();
+
+        sweep(&service).await;
+        let swept = sweep(&service).await;
+
+        assert_eq!(swept.runs_failed, 1);
+        let runs_after = runs(db, root).await;
+        assert_eq!(runs_after[0].2, "failed");
+        assert_eq!(
+            actions(db, root).await,
+            [
+                ("remediate".to_owned(), "failed".to_owned(), 2),
+                ("comment".to_owned(), "pending".to_owned(), 0)
+            ]
+        );
+        assert!(
+            runs_after[0].4[0]["reason"]
+                .as_str()
+                .is_some_and(|r| r.contains("the remediation system is down")),
+            "{:?}",
+            runs_after[0].4
+        );
+        let gave_up: Vec<LogRecord> = records
+            .starting(&format!(
+                "alert automation rule {RULE}: action remediate failed"
+            ))
+            .into_iter()
+            .filter(|r| r.message.contains("gave up after 2 attempts"))
+            .collect();
+        assert_eq!(gave_up.len(), 1);
+        assert_eq!(gave_up[0].level, tracing::Level::ERROR);
+
+        sweep(&service).await;
+
+        assert_eq!(fault_calls(db).await, 2, "a failed run isn't tried again");
+        assert_eq!(runs(db, root).await[0].4[1]["status"], "pending");
+    }
+
+    #[tokio::test]
+    async fn an_observable_with_no_remediation_target_is_logged_at_error() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), false);
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        let (records, _guard) = record_capture();
+
+        sweep(&service).await;
+
+        let logged = records.one(&format!(
+            "alert automation rule {RULE}: no remediation target"
+        ));
+        assert_eq!(logged.level, tracing::Level::ERROR);
+        assert_eq!(logged.get("alert_uuid"), Some(root.to_string().as_str()));
+        assert_eq!(
+            logged.get("observable"),
+            Some(format!("email_delivery:{ALICE}").as_str())
+        );
+        assert_eq!(logged.get("rule"), Some(RULE));
+        assert_eq!(removals(db).await, []);
+        assert_eq!(
+            runs(db, root).await[0].4[1]["detail"]["untargeted"],
+            json!([format!("email_delivery:{ALICE}")])
+        );
+    }
+
+    #[tokio::test]
+    async fn an_alert_with_nothing_to_remediate_skips_the_action() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+        // the confirmed delivery is not in the alert's tree
+        let root = make_root(db, &[OTHER], true).await;
+        confirm(db, root, ALICE, 0, PROBE).await;
+
+        sweep(&service).await;
+
+        let runs = runs(db, root).await;
+        assert_eq!(runs[0].2, "done");
+        assert_eq!(runs[0].4[1]["status"], "skipped");
+        assert_eq!(
+            runs[0].4[1]["reason"],
+            "the alert has no observable to remediate"
+        );
+        assert_eq!(removals(db).await, []);
+    }
+
+    #[tokio::test]
+    async fn a_rule_acts_once_even_after_the_alert_is_reopened() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        sweep(&service).await;
+        let first = removals(db).await;
+
+        sweep(&service).await;
+        set(db, root, "disposition = 'OPEN', owner_id = NULL").await;
+        sweep(&service).await;
+
+        assert_eq!(state(db, root).await.0.as_deref(), Some("OPEN"));
+        assert_eq!(removals(db).await, first);
+        assert_eq!(
+            actions(db, root)
+                .await
+                .iter()
+                .map(|a| a.2)
+                .collect::<Vec<_>>(),
+            [1, 1]
+        );
+    }
+
+    /// Another sweep recorded a run on the alert after this one chose it: the unique key leaves the
+    /// alert to that run.
+    #[tokio::test]
+    async fn an_overlapping_sweep_does_not_act_on_an_alert_that_already_has_a_run() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+        let (first, second) = two_alerts(db, &[OTHER], &[ALICE]).await;
+        meanwhile(
+            db,
+            "analysis.roots",
+            &format!("NEW.id = '{first}' AND NEW.disposition IS DISTINCT FROM OLD.disposition"),
+            &format!(
+                "INSERT INTO analysis.alert_automation_runs (rule_name, root_id, mode, status, evidence, actions)
+                 VALUES ('{RULE}', '{second}', 'enforce', 'done', '{{}}', '[]')"
+            ),
+        )
+        .await;
+
+        sweep(&service).await;
+
+        assert_eq!(state(db, second).await.0, None);
+        assert_eq!(removals(db).await, by_automation(&[OTHER]));
+        assert_eq!(runs(db, second).await[0].2, "done");
+    }
+
+    #[tokio::test]
+    async fn the_sweep_pages_through_every_candidate() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let yaml = rule("enforce", &confirmed_removal()).replace(
+            "alert_automation:\n",
+            "alert_automation:\n  batch_size: 2\n",
+        );
+        let service = automated(db, &yaml, true);
+        let mut roots = Vec::new();
+        for index in 0..5 {
+            let delivery = format!("<page-{index}@example.com>|alice@example.com");
+            roots.push(confirmed_alert(db, &[delivery.as_str()], &delivery).await);
+        }
+
+        let swept = sweep(&service).await;
+
+        assert_eq!(swept.runs_started, 5);
+        for root in roots {
+            assert_eq!(state(db, root).await.0.as_deref(), Some("DELIVERY"));
+        }
+    }
+
+    /// ace3's `test_a_sweep_that_dies_after_the_disposition_leaves_the_removal_to_a_later_sweep`: a sweep
+    /// stopped after its disposition committed left the run pending with the disposition done, and the
+    /// next sweep finishes it at once, without disposing again, since an action commits with its record
+    /// and there's no lease to wait out.
+    #[tokio::test]
+    async fn a_run_a_stopped_sweep_left_is_finished_by_the_next_without_repeating_its_actions() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        set(
+            db,
+            root,
+            &format!(
+                "disposition = 'DELIVERY', dispositioned_at = '2026-11-01 00:00:00+00', \
+                 dispositioned_by = '{}'",
+                automator_json()
+            ),
+        )
+        .await;
+        pending_run(
+            db,
+            root,
+            json!([
+                record("disposition", "done", 1),
+                record("remediate", "pending", 0)
+            ]),
+        )
+        .await;
+
+        sweep(&service).await;
+
+        assert_eq!(removals(db).await, by_automation(&[ALICE]));
+        assert_eq!(runs(db, root).await[0].2, "done");
+        assert_eq!(
+            actions(db, root).await,
+            [
+                ("disposition".to_owned(), "done".to_owned(), 1),
+                ("remediate".to_owned(), "done".to_owned(), 1)
+            ]
+        );
+        let at: String =
+            sqlx::query_scalar("SELECT dispositioned_at::text FROM analysis.roots WHERE id = $1")
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads");
+        assert_eq!(
+            at, "2026-11-01 00:00:00+00",
+            "the disposition didn't run again"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_failed_action_on_one_alert_does_not_fail_the_next_alert() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(
+            db,
+            &rule(
+                "enforce",
+                "[{type: remediate, targets: same_message}, {type: comment, comment: after}]",
+            ),
+            true,
+        );
+        let (first, second) = two_alerts(db, &[ALICE], &[OTHER]).await;
+        fail_inserts(
+            db,
+            "queue.actions",
+            &format!("NEW.observable_value = '{ALICE}'"),
+            100,
+        )
+        .await;
+        let (records, _guard) = record_capture();
+
+        sweep(&service).await;
+
+        let failed = records.one(&format!(
+            "alert automation rule {RULE}: action remediate failed"
+        ));
+        assert_eq!(failed.get("alert_uuid"), Some(first.to_string().as_str()));
+        let second_errors: Vec<LogRecord> = records
+            .starting("")
+            .into_iter()
+            .filter(|r| {
+                r.level == tracing::Level::ERROR
+                    && r.get("alert_uuid") == Some(second.to_string().as_str())
+            })
+            .collect();
+        assert!(second_errors.is_empty(), "{second_errors:?}");
+        assert_eq!(runs(db, second).await[0].2, "done");
+        assert_eq!(runs(db, second).await[0].4[1]["detail"]["comment"], "after");
+    }
+
+    /// A sweep that read two pending runs, the second of which another sweep changed before this one got
+    /// to it, leaves the second alone, as ace3's version check does.
+    #[tokio::test]
+    async fn a_sweep_that_read_a_run_another_sweep_changed_leaves_it_alone() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(
+            db,
+            &rule("enforce", "[{type: comment, comment: once}]"),
+            true,
+        );
+        let (first_root, second_root) = two_alerts(db, &[ALICE], &[OTHER]).await;
+        let first = pending_run(db, first_root, json!([record("comment", "pending", 1)])).await;
+        let second = pending_run(db, second_root, json!([record("comment", "pending", 1)])).await;
+        meanwhile(
+            db,
+            "analysis.alert_automation_runs",
+            &format!("NEW.id = {first}"),
+            &format!("UPDATE analysis.alert_automation_runs SET version = version + 1 WHERE id = {second}"),
+        )
+        .await;
+        let (records, _guard) = record_capture();
+
+        let swept = sweep(&service).await;
+
+        assert_eq!(swept.left_alone, 1);
+        assert_eq!(runs(db, first_root).await[0].2, "done");
+        assert_eq!(runs(db, second_root).await[0].2, "pending");
+        assert_eq!(
+            actions(db, second_root).await,
+            [("comment".to_owned(), "pending".to_owned(), 1)]
+        );
+        let logged = records.one(&format!(
+            "alert automation rule {RULE} leaves alert {second_root} alone"
+        ));
+        assert_eq!(logged.level, tracing::Level::INFO);
+        assert!(errors(&records).is_empty());
+    }
+
+    fn errors(records: &Records) -> Vec<LogRecord> {
+        records
+            .starting("")
+            .into_iter()
+            .filter(|r| r.level == tracing::Level::ERROR)
+            .collect()
+    }
+
+    /// A pending run another sweep holds is left to it, and finished by the first sweep after.
+    #[tokio::test]
+    async fn a_run_another_sweep_holds_is_left_to_it() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(
+            db,
+            &rule("enforce", "[{type: comment, comment: once}]"),
+            true,
+        );
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        let run = pending_run(db, root, json!([record("comment", "pending", 1)])).await;
+        let mut other = db.begin().await.expect("begins");
+        sqlx::query("SELECT id FROM analysis.alert_automation_runs WHERE id = $1 FOR UPDATE")
+            .bind(run)
+            .execute(other.conn())
+            .await
+            .expect("holds the run");
+
+        let swept = sweep(&service).await;
+
+        assert_eq!(swept.left_alone, 1);
+        assert_eq!(runs(db, root).await[0].2, "pending");
+
+        other.rollback().await.expect("lets it go");
+        sweep(&service).await;
+
+        assert_eq!(runs(db, root).await[0].2, "done");
+        assert_eq!(runs(db, root).await[0].4[0]["detail"]["comment"], "once");
+    }
+
+    #[tokio::test]
+    async fn a_pending_run_of_a_rule_whose_actions_changed_is_marked_failed() {
+        for (before, after) in [
+            (
+                "[{type: remediate, targets: same_message}]",
+                "[{type: remediate, targets: same_message}, {type: comment, comment: added}]",
+            ),
+            (
+                "[{type: remediate, targets: same_message}, {type: comment, comment: kept}]",
+                "[{type: comment, comment: kept}]",
+            ),
+        ] {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let root = confirmed_alert(db, &[ALICE], ALICE).await;
+            fail_inserts(db, "queue.actions", "NEW.kind = 'remediation'", 1).await;
+            sweep(&automated(db, &rule("enforce", before), true)).await;
+            let (records, _guard) = record_capture();
+
+            let swept = sweep(&automated(db, &rule("enforce", after), true)).await;
+
+            assert_eq!(swept.runs_failed, 1);
+            let logged = records.one(&format!(
+                "alert automation rule {RULE}: its actions are now"
+            ));
+            assert_eq!(logged.level, tracing::Level::ERROR);
+            assert!(
+                logged.message.contains("was started for"),
+                "{}",
+                logged.message
+            );
+            let runs = runs(db, root).await;
+            assert_eq!(runs[0].2, "failed");
+            let expected: Vec<(&str, &str, u64)> = section(&rule("enforce", before)).rules[RULE]
+                .actions
+                .iter()
+                .map(|a| {
+                    let kind = a.type_name();
+                    (kind, "pending", u64::from(kind == "remediate"))
+                })
+                .collect();
+            assert_eq!(actions_of(&runs[0].4), expected);
+        }
+    }
+
+    /// ace3's `ActionContext.render`: the trigger's fields, the confirmed values sorted and joined, the
+    /// latest confirmation's time, the rule and the alert, and `{{` and `}}` as braces.
+    #[tokio::test]
+    async fn a_comment_renders_the_trigger_s_fields() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(
+            db,
+            &rule(
+                "enforce",
+                "[{type: comment, comment: '{probe} confirmed removal of {observable} at {event_time}; \
+                 rule {rule} on {alert_uuid} {{x}}'}]",
+            ),
+            true,
+        );
+        let root = make_root(db, &[ALICE, BOB], true).await;
+        confirm(db, root, BOB, 2, PROBE).await;
+        confirm(db, root, ALICE, 1, PROBE).await;
+        let latest: String = sqlx::query_scalar(
+            "SELECT to_char(max(updated_at) AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')
+             FROM queue.actions WHERE kind = 'remediation_check'",
+        )
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+
+        sweep(&service).await;
+
+        // the values in byte order, as ace3's sorted()
+        assert_eq!(
+            runs(db, root).await[0].4[0]["detail"]["comment"],
+            format!(
+                "{PROBE} confirmed removal of {BOB}, {ALICE} at {latest}; rule {RULE} on {root} {{x}}"
+            )
+        );
+    }
+
+    #[tokio::test]
+    async fn a_dry_run_comment_is_recorded_and_not_added() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(
+            db,
+            &rule("dry_run", "[{type: comment, comment: 'rule {rule} acted'}]"),
+            true,
+        );
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        let audits = audit_rows(db).await.len();
+
+        sweep(&service).await;
+
+        let runs = runs(db, root).await;
+        assert_eq!(runs[0].2, "done");
+        assert_eq!(
+            runs[0].4[0]["detail"],
+            json!({"comment": format!("rule {RULE} acted")})
+        );
+        // the run's audit row, and no change to the alert
+        assert_eq!(audit_rows(db).await.len(), audits + 1);
+        assert_eq!(state(db, root).await, (None, None, None));
+    }
+
+    #[tokio::test]
+    async fn a_started_run_stops_while_an_analyst_has_the_alert() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        fail_inserts(db, "queue.actions", "NEW.kind = 'remediation'", 1).await;
+        sweep(&service).await;
+        let alice = analyst(db, "alice").await;
+        set(db, root, &format!("owner_id = '{alice}'")).await;
+        let (records, _guard) = record_capture();
+
+        sweep(&service).await;
+
+        assert_eq!(runs(db, root).await[0].2, "pending");
+        assert_eq!(
+            actions(db, root).await,
+            [
+                ("disposition".to_owned(), "done".to_owned(), 1),
+                ("remediate".to_owned(), "pending".to_owned(), 1)
+            ]
+        );
+        let logged = records.one(&format!(
+            "alert automation rule {RULE} leaves alert {root} alone"
+        ));
+        assert_eq!(logged.level, tracing::Level::INFO);
+        assert_eq!(
+            logged.get("reason"),
+            Some(format!("user {alice} owns the alert").as_str())
+        );
+
+        set(db, root, "owner_id = NULL").await;
+        sweep(&service).await;
+
+        assert_eq!(runs(db, root).await[0].2, "done");
+    }
+
+    /// The comment was recorded, then an analyst took the alert before the disposition: the run is kept,
+    /// and the comment isn't recorded again.
+    #[tokio::test]
+    async fn a_started_run_whose_disposition_defers_is_kept() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actions_yaml = format!(
+            "[{{type: comment, comment: first}}, {{type: disposition, disposition: DELIVERY, comment: '{DISPOSITION_COMMENT}'}}]"
+        );
+        let service = automated(db, &rule("enforce", &actions_yaml), true);
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        let alice = analyst(db, "alice").await;
+        meanwhile(
+            db,
+            "analysis.alert_automation_runs",
+            &format!("NEW.root_id = '{root}'"),
+            &format!("UPDATE analysis.roots SET owner_id = '{alice}' WHERE id = '{root}'"),
+        )
+        .await;
+
+        sweep(&service).await;
+
+        assert_eq!(state(db, root).await, (None, None, Some(alice)));
+        assert_eq!(runs(db, root).await[0].2, "pending");
+        assert_eq!(
+            actions(db, root).await,
+            [
+                ("comment".to_owned(), "done".to_owned(), 1),
+                ("disposition".to_owned(), "pending".to_owned(), 0)
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn a_pending_run_whose_alert_was_deleted_is_left_as_it_is() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = automated(db, &rule("enforce", &confirmed_removal()), true);
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        fail_inserts(db, "queue.actions", "NEW.kind = 'remediation'", 1).await;
+        sweep(&service).await;
+        let before = runs(db, root).await;
+        sqlx::query("DELETE FROM analysis.roots WHERE id = $1")
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("deletes the alert");
+        let (records, _guard) = record_capture();
+
+        sweep(&service).await;
+
+        assert_eq!(runs(db, root).await, before);
+        assert!(errors(&records).is_empty());
+        let logged = records.one(&format!(
+            "alert automation rule {RULE} leaves alert {root} alone"
+        ));
+        assert_eq!(logged.get("reason"), Some("the alert does not exist"));
+    }
+
+    #[tokio::test]
+    async fn a_rule_whose_sweep_fails_is_logged_and_the_others_go_on() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let yaml = rule("enforce", &confirmed_removal()).replace(
+            "  rules:\n",
+            &format!(
+                "  rules:\n    broken:\n      enabled: true\n      mode: enforce\n      trigger: {{type: \
+                 external_remediation_confirmed, probe: {PROBE}}}\n      actions: [{{type: comment, comment: x}}]\n"
+            ),
+        );
+        let service = automated(db, &yaml, true);
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        // a pending run of `broken` whose evidence doesn't read
+        sqlx::query(
+            "INSERT INTO analysis.alert_automation_runs (rule_name, root_id, mode, evidence, actions)
+             VALUES ('broken', $1, 'enforce', '{\"not\": \"evidence\"}', '[]')",
+        )
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("a run");
+        let (records, _guard) = record_capture();
+
+        let swept = sweep(&service).await;
+
+        assert_eq!(swept.unrecorded, 1);
+        let logged = records.one("alert automation rule broken sweep failed");
+        assert_eq!(logged.level, tracing::Level::ERROR);
+        assert_eq!(logged.get("rule"), Some("broken"));
+        assert_eq!(state(db, root).await.0.as_deref(), Some("DELIVERY"));
+    }
+
+    /// ace3's `test_a_rule_that_fails_to_load_is_logged_and_the_others_still_load` and the checks of
+    /// `test_a_trigger_or_action_block_that_does_not_validate_fails_the_rule` that need the server: a
+    /// probe it doesn't have, an age of 0, a disposition it doesn't have or that only ACE sets, a comment
+    /// naming a field the trigger hasn't, no actions, and a name the runs table can't hold.
+    #[test]
+    fn a_rule_that_fails_its_checks_is_logged_and_the_others_still_load() {
+        let good = rule("enforce", &confirmed_removal());
+        let entry = |yaml: &str| {
+            yaml.split_once("  rules:\n")
+                .expect("its rules")
+                .1
+                .to_owned()
+        };
+        let actions = format!("actions: {}", confirmed_removal());
+        for (from, to, says) in [
+            (
+                "probe: made_up_probe",
+                "probe: no_such_probe",
+                "no_such_probe isn't a remediation probe",
+            ),
+            (
+                "max_age_hours: 120",
+                "max_age_hours: 0",
+                "trigger.max_age_hours: 0",
+            ),
+            (
+                "disposition: DELIVERY",
+                "disposition: NOT_A_DISPOSITION",
+                "isn't one of this site's dispositions",
+            ),
+            (
+                "disposition: DELIVERY",
+                "disposition: SIMULATED",
+                "isn't analyst_selectable",
+            ),
+            (
+                "{probe} confirmed",
+                "{sender} confirmed",
+                "template field {sender} is not one of",
+            ),
+            (
+                "{probe} confirmed",
+                "{probe.__class__} confirmed",
+                "{probe.__class__} is not one of",
+            ),
+            (
+                "{probe} confirmed",
+                "{probe:>10} confirmed",
+                "{probe:>10} is not one of",
+            ),
+            ("{event_time};", "{event_time;", "a { with no }"),
+            ("{probe} confirmed", "probe} confirmed", "a } with no {"),
+            (
+                actions.as_str(),
+                "actions: []",
+                "actions: a rule has at least one action",
+            ),
+            (
+                "    broken:",
+                "    'bad name!':",
+                "a rule's name is 1 to 128",
+            ),
+        ] {
+            let broken = entry(&good)
+                .replace(&format!("    {RULE}:"), "    broken:")
+                .replace(from, to);
+            // a rule that's off isn't checked
+            let yaml = format!(
+                "{good}{broken}    off:\n      trigger: {{type: external_remediation_confirmed, probe: \
+                 no_such_probe}}\n      actions: [{{type: comment, comment: x}}]\n"
+            );
+            check_load(&yaml, says);
+        }
+    }
+
+    #[track_caller]
+    fn check_load(yaml: &str, says: &str) {
+        let (records, _guard) = record_capture();
+        let loaded = AlertAutomation::load(
+            &section(yaml),
+            &ace_service::Dispositions::ace3(),
+            &catalog(true),
+        )
+        .expect("loads");
+        let names: Vec<&str> = loaded.rules().iter().map(|r| r.name.as_str()).collect();
+        assert_eq!(names, [RULE], "{yaml}");
+        let errors = errors(&records);
+        assert_eq!(errors.len(), 1, "{yaml}: {errors:?}");
+        assert!(
+            errors[0].message.contains(says),
+            "{says}: {}",
+            errors[0].message
+        );
+        assert!(
+            errors[0]
+                .message
+                .contains("failed to load and does not run"),
+            "{}",
+            errors[0].message
+        );
+        assert_ne!(errors[0].get("rule"), Some(RULE));
+    }
+
+    #[test]
+    fn a_section_setting_out_of_bounds_is_refused() {
+        for (setting, says) in [
+            ("max_action_attempts: 0", "max_action_attempts"),
+            ("batch_size: 0", "batch_size"),
+            ("batch_size: 1001", "batch_size"),
+        ] {
+            let yaml = format!("alert_automation:\n  {setting}\n");
+            let error = AlertAutomation::load(
+                &section(&yaml),
+                &ace_service::Dispositions::ace3(),
+                &catalog(true),
+            )
+            .expect_err(setting);
+            assert!(error.contains(says), "{setting}: {error}");
+        }
+    }
+
+    /// Only `alert_automation:run` sweeps, and a refused actor learns nothing and changes nothing.
+    #[tokio::test]
+    async fn run_alert_automation_needs_its_permission() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        for yaml in [rule("enforce", &confirmed_removal()), String::new()] {
+            let service = automated(db, &yaml, true);
+            for actor in [
+                component("scheduler:bucket_gc"),
+                user(UserId(Uuid::from_u128(9))),
+            ] {
+                let refused = service.run_alert_automation(&actor).await;
+                assert!(
+                    matches!(&refused, Err(ServiceError::PermissionDenied { permission, .. })
+                        if *permission == ace_service::ALERT_AUTOMATION_RUN),
+                    "{refused:?}"
+                );
+            }
+        }
+        assert_eq!(state(db, root).await, (None, None, None));
+        assert_eq!(runs(db, root).await, []);
+    }
+
+    /// The one write, `run_alert_automation`: each step's row names the alert, the run before and
+    /// after, and what the step did.
+    pub(super) async fn run_alert_automation_records_its_row(db: &Db) -> String {
+        let service = automated(
+            db,
+            &rule("enforce", "[{type: disposition, disposition: DELIVERY}]"),
+            true,
+        );
+        let root = confirmed_alert(db, &[ALICE], ALICE).await;
+        sweep(&service).await;
+        let row = audit_rows(db)
+            .await
+            .into_iter()
+            .rfind(|row| row.target == ("root".to_owned(), root.to_string()))
+            .expect("its row");
+        let run: i64 =
+            sqlx::query_scalar("SELECT id FROM analysis.alert_automation_runs WHERE root_id = $1")
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("its run");
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: automator_json(),
+                action: "run_alert_automation".to_owned(),
+                target: ("root".to_owned(), root.to_string()),
+                before: None,
+                after: Some(json!({
+                    "run": run, "rule": RULE, "mode": "enforce", "status": "done",
+                    "actions": [{"type": "disposition", "status": "done", "attempts": 1,
+                                 "detail": {"disposition": "DELIVERY"}, "reason": null}],
+                })),
+                details: json!({"action": "disposition", "disposition_before": "OPEN"}),
+            }
+        );
+        row.action
+    }
+
+    /// What `every_write_fails_when_its_audit_fails` sets up before the audit breaks: a confirmed alert
+    /// and a service with a rule for it.
+    pub(super) struct BeforeTheAuditBreaks {
+        service: Service,
+        root: Uuid,
+    }
+
+    pub(super) async fn before_the_audit_breaks(db: &Db) -> BeforeTheAuditBreaks {
+        BeforeTheAuditBreaks {
+            service: automated(db, &rule("enforce", &confirmed_removal()), true),
+            root: confirmed_alert(db, &[ALICE], ALICE).await,
+        }
+    }
+
+    /// The sweep with the audit broken: its failure, as the error it reports.
+    pub(super) async fn attempts_with_the_audit_broken(
+        before: &BeforeTheAuditBreaks,
+    ) -> Vec<(&'static str, ServiceError)> {
+        let swept = sweep(&before.service).await;
+        assert_eq!((swept.runs_started, swept.unrecorded), (0, 1), "{swept:?}");
+        vec![(
+            "run_alert_automation",
+            ServiceError::Conflict(swept.first_error.expect("the first error")),
+        )]
+    }
+
+    /// What a failed sweep must leave as it was: the alert, its runs and the removals.
+    pub(super) async fn rows(
+        db: &Db,
+        before: &BeforeTheAuditBreaks,
+    ) -> (
+        (Option<String>, Option<Value>, Option<Uuid>),
+        Vec<(String, String, String, Value, Value)>,
+        Vec<(String, Value, Option<Uuid>)>,
+    ) {
+        (
+            state(db, before.root).await,
+            runs(db, before.root).await,
+            removals(db).await,
+        )
     }
 }

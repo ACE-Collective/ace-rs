@@ -1274,6 +1274,7 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
         ace_service::ANALYSIS_CACHE_MAINTAIN,
         ace_service::FILE_COLLECTION_PRUNE,
         ace_service::ANALYSIS_CLEANUP,
+        ace_service::ALERT_AUTOMATION_RUN,
         ace_service::ALERT_READ,
     ];
     for (task, holds) in [
@@ -1292,6 +1293,7 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
         ),
         ("file_collection_prune", ace_service::FILE_COLLECTION_PRUNE),
         ("root_cleanup", ace_service::ANALYSIS_CLEANUP),
+        ("alert_automation", ace_service::ALERT_AUTOMATION_RUN),
     ] {
         let actor = builtin(task).actor;
         for name in &names {
@@ -1327,6 +1329,99 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
     assert_eq!(
         run.error.as_deref(),
         Some("internal:scheduler:nobody doesn't hold bucket:gc")
+    );
+}
+
+/// A probe a site's binary could have, for `alert_automation`'s test.
+static MADE_UP_PROBE: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec::new(
+    ace_sdk::actions::ActionKind::RemediationCheck,
+    "made_up_probe",
+    "Made-up probe",
+    "Confirms nothing; its checks are written by the test.",
+    "email_delivery",
+);
+
+/// PLAN.md 7.22, ace3's `test_a_single_threaded_service_sweeps_the_rules_once`: the scheduler's
+/// `alert_automation` sweeps the rules the overlay gives `ace serve`, as its own component, and its run
+/// says what the sweep did.
+#[tokio::test]
+async fn alert_automation_sweeps_the_overlay_s_rules() {
+    let mut fixture = Fixture::new().await;
+    let overlay = ace_sdk::Overlay::from_yaml(
+        "alert_automation:
+  rules:
+    confirmed_removal:
+      enabled: true
+      mode: enforce
+      trigger: {type: external_remediation_confirmed, probe: made_up_probe}
+      actions: [{type: disposition, disposition: DELIVERY, comment: '{probe} confirmed {observable}'}]
+",
+    )
+    .expect("reads");
+    let actions = ace_core::actions::ActionCatalog::new(&[&MADE_UP_PROBE]).expect("a catalog");
+    let automation = ace_service::AlertAutomation::load(
+        &overlay.alert_automation,
+        &ace_service::Dispositions::ace3(),
+        &actions,
+    )
+    .expect("loads");
+    fixture.service = fixture
+        .service
+        .clone()
+        .with_actions(actions)
+        .with_alert_automation(automation);
+    let db = fixture.db().clone();
+    let root = ace_core::tree::NewRoot::new("correlation");
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    tx.commit().await.expect("commits");
+    sqlx::query(
+        "WITH a AS (
+             INSERT INTO queue.actions (kind, handler, observable_type, observable_value, status, result,
+                                        updated_at)
+             VALUES ('remediation_check', 'made_up_probe', 'email_delivery', '<m@x>|bob@example.com',
+                     'COMPLETED', 'CONFIRMED', now())
+             RETURNING id)
+         INSERT INTO queue.action_roots (action_id, root_id) SELECT id, $1 FROM a",
+    )
+    .bind(root.id)
+    .execute(db.pool())
+    .await
+    .expect("a confirmed check");
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+        .bind(root.id)
+        .execute(db.pool())
+        .await
+        .expect("an alert");
+    let task = builtin("alert_automation");
+    make_due(&db, &task).await;
+
+    let run = run_once(&fixture, vec![task], "alert_automation").await;
+
+    assert_eq!(run.outcome.as_deref(), Some("succeeded"), "{run:?}");
+    let summary = run.summary.expect("a summary");
+    assert_eq!(
+        (
+            summary["rules"].clone(),
+            summary["runs_started"].clone(),
+            summary["actions_finished"].clone()
+        ),
+        (json!(1), json!(1), json!(1)),
+        "{summary}"
+    );
+    let (disposition, by): (Option<String>, Option<Value>) = sqlx::query_as(
+        "SELECT disposition, dispositioned_by::jsonb FROM analysis.roots WHERE id = $1",
+    )
+    .bind(root.id)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(disposition.as_deref(), Some("DELIVERY"));
+    assert_eq!(
+        by,
+        Some(json!({"kind": "internal", "id": "scheduler:alert_automation"}))
     );
 }
 
@@ -1627,6 +1722,8 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             ("svs_coverage_refresh", "*/2 * * * *", 600, true),
             ("svs_coverage_snapshot", "0 5 * * *", 3600, true),
             ("root_cleanup", "*/10 * * * *", 540, true),
+            // ace3's `service_alert_automation.interval_seconds`, 60
+            ("alert_automation", "* * * * *", 600, true),
             ("nrd_refresh", "*/30 * * * *", 1500, true),
             // ace3's monitors (PLAN.md 7.12): every 5 or 30 seconds there, every minute here; its
             // pools' every 300 seconds; and its hourly cron for the node's read cache
@@ -1656,6 +1753,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             "internal:scheduler:svs_coverage_refresh",
             "internal:scheduler:svs_coverage_snapshot",
             "internal:scheduler:root_cleanup",
+            "internal:scheduler:alert_automation",
             "internal:scheduler:nrd_refresh",
             "internal:scheduler:monitor_workload",
             "internal:scheduler:monitor_delayed_analysis",
@@ -1684,7 +1782,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
         "scheduler:\n  bucket_gc:\n    schedule: '*/15 * * * *'\n    timeout_seconds: 600\n  \
          bucket_verify:\n    enabled: false\n  cas_node_stats:\n    enabled: true\n",
     );
-    assert_eq!(set.len(), 21, "the removed task is skipped");
+    assert_eq!(set.len(), 22, "the removed task is skipped");
     assert_eq!(
         (
             set[0].schedule.as_str(),

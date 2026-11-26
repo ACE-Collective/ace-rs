@@ -918,7 +918,7 @@ impl ActionWorker {
             ));
         }
         Ok(removal_covers(
-            &self.db,
+            self.db.pool(),
             &row.handler,
             &row.observable_type,
             observable_value,
@@ -1039,7 +1039,7 @@ async fn record(tx: &mut Tx<'_>, id: i64, decided: &Decided) -> Result<(), Actio
 /// removal instead of acting twice. A removal that failed, errored or was cancelled leaves the message
 /// where it was, and a restore put it back, so neither covers.
 pub async fn removal_covers(
-    db: &Db,
+    executor: impl sqlx::PgExecutor<'_>,
     handler: &str,
     observable_type: &str,
     observable_value: &str,
@@ -1053,7 +1053,7 @@ pub async fn removal_covers(
         observable_type,
         observable_value,
     )
-    .fetch_optional(db.pool())
+    .fetch_optional(executor)
     .await?;
     Ok(latest.is_some_and(|row| {
         row.action.as_deref() == Some(RemediationAction::Remove.as_str())

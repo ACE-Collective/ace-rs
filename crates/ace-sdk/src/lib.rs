@@ -27,6 +27,7 @@
 //! its key holds, what a cacheable module may read, and what is never kept.
 
 pub mod actions;
+pub mod alert_automation;
 pub mod cache;
 pub mod connections;
 pub mod context;

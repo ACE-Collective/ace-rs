@@ -1,0 +1,81 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH chosen AS (\n                               SELECT DISTINCT r.root_id\n                               FROM queue.actions a\n                               JOIN queue.action_roots r ON r.action_id = a.id\n                               JOIN analysis.roots o ON o.id = r.root_id\n                               WHERE a.kind = 'remediation_check' AND a.result = 'CONFIRMED' AND a.handler = $1\n                                 AND a.updated_at >= now() - make_interval(hours => $2)\n                                 AND ($3::uuid IS NULL OR r.root_id > $3)\n                                 AND o.alerted_at IS NOT NULL AND o.owner_id IS NULL\n                                 AND (o.disposition IS NULL OR o.disposition = 'OPEN')\n                                 AND NOT EXISTS (\n                                     SELECT FROM analysis.alert_automation_runs x\n                                     WHERE x.rule_name = $4 AND x.mode = $5 AND x.root_id = r.root_id)\n                               ORDER BY r.root_id LIMIT $6)\n                           SELECT r.root_id, a.id, a.observable_type, a.observable_value, a.updated_at\n                           FROM chosen c\n                           JOIN queue.action_roots r ON r.root_id = c.root_id\n                           JOIN queue.actions a ON a.id = r.action_id\n                           WHERE a.kind = 'remediation_check' AND a.result = 'CONFIRMED' AND a.handler = $1\n                             AND a.updated_at >= now() - make_interval(hours => $2)\n                           ORDER BY r.root_id, a.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "queue.action_roots",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "observable_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "observable_type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "observable_value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "observable_value"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4",
+        "Uuid",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "40fb92df92cfd6de9dc8366b031b47513b286b4708fd844fd2a5053b0149374e"
+}

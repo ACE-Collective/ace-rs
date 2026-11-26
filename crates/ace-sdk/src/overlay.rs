@@ -113,6 +113,10 @@
 //! `alert_actions:` holds the settings of the alert page's actions the binary registers, by name, with
 //! `enabled: false` to leave one off (PLAN.md decision 55). `ace serve` reads it.
 //!
+//! `alert_automation:` holds the rules that act on an alert by themselves when their trigger fires
+//! (PLAN.md 7.22, `crate::alert_automation`), by rule name, and how often a failing action is tried.
+//! `ace serve` checks each rule against the server when it starts and sweeps them every minute.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -217,6 +221,9 @@ pub struct Overlay {
     /// `ace_app::App::detection_export`), by export name, ace3's `observable_export_<name>:`. `ace export
     /// <name>` reads its own; nothing else does.
     pub exports: BTreeMap<String, ExportSection>,
+    /// The alert automation rules (PLAN.md 7.22, `crate::alert_automation`), ace3's
+    /// `alert_automation_rule_<name>` blocks, by rule name. `ace serve` reads it; nothing else does.
+    pub alert_automation: crate::alert_automation::AlertAutomationSection,
 }
 
 /// What the overlay says about one analysis mode (`Overlay::analysis_modes`).
@@ -1686,6 +1693,8 @@ impl Overlay {
             root_cleanup: RootCleanupSection::default(),
             // an export is a process of the `ace` binary, never a pool's
             exports: BTreeMap::new(),
+            // `ace serve` sweeps the rules
+            alert_automation: crate::alert_automation::AlertAutomationSection::default(),
         }
     }
 
