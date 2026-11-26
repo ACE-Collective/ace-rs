@@ -230,6 +230,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-libmagic"
+version = "0.1.0"
+dependencies = [
+ "magic-sys",
+ "memmap2",
+ "tempfile",
+]
+
+[[package]]
 name = "ace-lnkparse"
 version = "0.1.0"
 dependencies = [
@@ -394,6 +403,7 @@ name = "ace-mod-files"
 version = "0.1.0"
 dependencies = [
  "ace-dhash",
+ "ace-libmagic",
  "ace-lnkparse",
  "ace-mod-oletools",
  "ace-pycompat",
@@ -403,9 +413,7 @@ dependencies = [
  "ace-x509",
  "base64 0.22.1",
  "fuzzyhash",
- "magic-sys",
  "md-5",
- "memmap2",
  "oxc_allocator",
  "oxc_ast",
  "oxc_ast_visit",
@@ -1065,11 +1073,11 @@ dependencies = [
 name = "ace-urlfinder"
 version = "0.1.0"
 dependencies = [
+ "ace-libmagic",
  "ace-lxml",
  "ace-mod-oletools",
  "ace-pycompat",
  "base64 0.22.1",
- "magic-sys",
  "memchr",
  "regex",
  "rustc-hash 2.1.3",

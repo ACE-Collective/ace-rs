@@ -3,15 +3,17 @@
 //! `{"output": [urls, sorted]}` or `{"error": {"type": ..., "message": ...}}`. `--soup` prints
 //! BeautifulSoup's `get_text()` of the file instead, and `--lxml` lxml's serializations of it.
 
+use std::path::Path;
 use std::process::ExitCode;
 
-use ace_urlfinder::{Finder, Magic, find_urls_in_text};
+use ace_urlfinder::magic::{DATABASE, Database};
+use ace_urlfinder::{Finder, find_urls_in_text};
 
 /// `--batch DIR`: every file of a directory in each of the oracle script's modes, as one JSON
 /// object keyed `name|mode`.
 fn batch(dir: &str) -> ExitCode {
-    let database = std::fs::read(ace_urlfinder::magic::DATABASE).expect("the magic database");
-    let magic = Magic::load(database).expect("libmagic");
+    let database = Database::open(Path::new(DATABASE));
+    let magic = database.load().expect("libmagic");
     let finder = Finder::new(&magic);
     let mut names: Vec<String> = std::fs::read_dir(dir)
         .expect("the directory")
@@ -116,14 +118,8 @@ fn main() -> ExitCode {
     let result = if text {
         find_urls_in_text(&blob, domain_as_url)
     } else {
-        let database = match std::fs::read(ace_urlfinder::magic::DATABASE) {
-            Ok(database) => database,
-            Err(e) => {
-                eprintln!("{}: {e}", ace_urlfinder::magic::DATABASE);
-                return ExitCode::from(2);
-            }
-        };
-        let magic = match Magic::load(database) {
+        let database = Database::open(Path::new(DATABASE));
+        let magic = match database.load() {
             Ok(magic) => magic,
             Err(e) => {
                 eprintln!("{e}");

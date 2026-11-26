@@ -43,6 +43,7 @@ Each crate is added by the step in the last column.
 | `ace-gui` | the HTML adapter | 5.7 |
 | `ace-hunt` | the hunt model, loading hunts from a signatures checkout as ace3's hunter does, and rendering their templates as its Jinja does | 6.2, 6.3 |
 | `ace-search` | the search index: an alert's text as chunks, their embeddings and terms in Postgres, the embedding model, and the indexer's work | 7.11 |
+| `ace-libmagic` | libmagic's database mapped read-only before containment, and libmagic cookies over it, for the type step and `ace-urlfinder` | after 3.6's measurement |
 
 ## Running beside ace3
 

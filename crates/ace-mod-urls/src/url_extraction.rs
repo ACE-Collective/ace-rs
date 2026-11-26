@@ -19,7 +19,7 @@
 //!   pruning and the analysis cache read it.
 //! - urlfinderlib chooses its finder from libmagic's description of the bytes, which ace3's asks
 //!   python-magic's `from_buffer` for. Here it is given the type step's description, from the
-//!   file_type result (`file -b -L`'s flags, stripped), so a task reads no libmagic database and
+//!   file_type result (`file -b -L`'s flags, stripped), so a task loads no libmagic and
 //!   makes no libmagic call for a description the type step has made already (PLAN.md decision 25).
 //!   The two descriptions can differ: over 875 files (`samples/` and `tools/ace3/dumps/fixtures`)
 //!   they differed on 28, 25 zips and 2 jars that `from_buffer` calls only "data" and a gzip whose
@@ -28,8 +28,8 @@
 //!   the 28 hold one on either side, so every one of the 875 takes the same finder
 //!   (`tests/type_description.rs` keeps a file of each class). libmagic is still loaded where
 //!   urlfinderlib describes bytes the type step never saw: UTF-16 text with its NULs taken out,
-//!   and a file whose description is empty. For those the database is read through a descriptor
-//!   `init` opened, since a contained task can't open it.
+//!   and a file whose description is empty. For those libmagic loads from the database's mapping,
+//!   which `init` made, since a contained task can't open it.
 
 use std::collections::BTreeSet;
 use std::fs;
@@ -89,8 +89,8 @@ impl Default for UrlExtractionSettings {
     }
 }
 
-/// The module, with libmagic's database opened before containment, which can't open it. It is read
-/// only for a task whose bytes urlfinderlib has to describe itself.
+/// The module, with libmagic's database mapped before containment, which can't open it. libmagic
+/// is loaded only for a task whose bytes urlfinderlib has to describe itself.
 pub struct UrlExtraction {
     database: magic::Database,
 }

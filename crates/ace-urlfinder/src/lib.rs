@@ -110,15 +110,15 @@ fn remove_utf16_chars(blob: &[u8]) -> Vec<u8> {
 }
 
 /// What loads libmagic for a [`Finder`] that may not need it, or why it can't.
-pub type LoadMagic<'m> = &'m dyn Fn() -> Result<Magic, String>;
+pub type LoadMagic<'m> = &'m dyn Fn() -> Result<Magic<'m>, String>;
 
 /// Where a [`Finder`] gets libmagic, for the bytes it describes itself.
 enum Describer<'m> {
-    Loaded(&'m Magic),
+    Loaded(&'m Magic<'m>),
     /// Loaded at the first description, at most once.
     OnDemand {
         load: LoadMagic<'m>,
-        magic: std::cell::OnceCell<Result<Magic, String>>,
+        magic: std::cell::OnceCell<Result<Magic<'m>, String>>,
     },
 }
 
@@ -128,7 +128,7 @@ pub struct Finder<'m> {
 }
 
 impl<'m> Finder<'m> {
-    pub fn new(magic: &'m Magic) -> Finder<'m> {
+    pub fn new(magic: &'m Magic<'m>) -> Finder<'m> {
         Finder {
             describer: Describer::Loaded(magic),
         }

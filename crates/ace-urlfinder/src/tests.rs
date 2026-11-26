@@ -31,7 +31,7 @@ fn matches_urlfinderlib_on_every_case() {
     let cases: Value =
         serde_json::from_str(include_str!("../tests/data/cases.json")).expect("the cases read");
     let database = std::fs::read(crate::magic::DATABASE).expect("the magic database");
-    let magic = Magic::load(database).expect("libmagic");
+    let magic = Magic::load(&database).expect("libmagic");
     let finder = Finder::new(&magic);
     let mut failures = Vec::new();
     let cases = cases["cases"].as_array().expect("cases");
@@ -99,21 +99,23 @@ fn child_urls_are_urlfinderlib_s() {
     assert_eq!(children, ["https://target.example.org/land"]);
 }
 
-/// An `on_demand` finder with a loader that counts its calls, and libmagic loaded or refused.
-fn counting(calls: &std::cell::Cell<u32>, refuse: bool) -> impl Fn() -> Result<Magic, String> + '_ {
-    move || {
-        calls.set(calls.get() + 1);
-        if refuse {
-            return Err("no database".to_owned());
-        }
-        Magic::load(std::fs::read(crate::magic::DATABASE).map_err(|e| e.to_string())?)
+/// A loader for an `on_demand` finder that counts its calls, and loads libmagic or refuses.
+fn count<'a>(
+    calls: &std::cell::Cell<u32>,
+    database: &'a [u8],
+    refuse: bool,
+) -> Result<Magic<'a>, String> {
+    calls.set(calls.get() + 1);
+    if refuse {
+        return Err("no database".to_owned());
     }
+    Magic::load(database)
 }
 
 #[test]
 fn an_on_demand_finder_given_a_description_loads_no_libmagic() {
     let calls = std::cell::Cell::new(0);
-    let load = counting(&calls, true);
+    let load = || count(&calls, &[], true);
     let finder = Finder::on_demand(&load);
     let blob = b"<a href=\"https://a.example.com/x\">x</a>";
     let urls = finder
@@ -133,13 +135,13 @@ fn an_on_demand_finder_loads_libmagic_once_for_bytes_it_describes() {
         blob.extend([*b, 0]);
     }
     let database = std::fs::read(crate::magic::DATABASE).expect("the magic database");
-    let magic = Magic::load(database).expect("libmagic");
+    let magic = Magic::load(&database).expect("libmagic");
     for mimetype in [
         "",
         "HTML document, Unicode text, UTF-16, little-endian text",
     ] {
         let calls = std::cell::Cell::new(0);
-        let load = counting(&calls, false);
+        let load = || count(&calls, &database, false);
         let finder = Finder::on_demand(&load);
         let urls = finder.find_urls(&blob, "", mimetype, false);
         assert_eq!(
@@ -158,11 +160,51 @@ fn an_on_demand_finder_loads_libmagic_once_for_bytes_it_describes() {
 #[test]
 fn an_on_demand_finder_that_cant_load_libmagic_says_why() {
     let calls = std::cell::Cell::new(0);
-    let load = counting(&calls, true);
+    let load = || count(&calls, &[], true);
     let finder = Finder::on_demand(&load);
     let error = finder
         .find_urls(b"https://a.example.com/", "", "", false)
         .expect_err("libmagic was needed");
     assert_eq!(error.kind, "OSError");
     assert_eq!(finder.load_error(), Some("no database"));
+}
+
+fn files_under(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+    for entry in std::fs::read_dir(dir).expect("the directory reads") {
+        let path = entry.expect("an entry").path();
+        if path.is_dir() {
+            files_under(&path, out);
+        } else {
+            out.push(path);
+        }
+    }
+}
+
+/// A cookie over the database's mapping describes every committed sample and fixture as one over a
+/// copy of its bytes did, python-magic's settings and all.
+#[test]
+fn the_mapped_database_describes_as_a_copy_of_it_did() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let mut files = Vec::new();
+    for dir in [
+        "samples/ace3",
+        "samples/ace-rs",
+        "tools/ace3/dumps/fixtures",
+    ] {
+        files_under(&root.join(dir), &mut files);
+    }
+    assert!(files.len() > 800, "only {} files", files.len());
+    let database = crate::magic::Database::open(std::path::Path::new(crate::magic::DATABASE));
+    let mapped = database.load().expect("libmagic");
+    let copy = std::fs::read(crate::magic::DATABASE).expect("the database reads");
+    let copied = Magic::load(&copy).expect("libmagic");
+    for path in &files {
+        let blob = std::fs::read(path).expect("the file reads");
+        assert_eq!(
+            mapped.from_buffer(&blob),
+            copied.from_buffer(&blob),
+            "{}",
+            path.display()
+        );
+    }
 }

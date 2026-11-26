@@ -292,8 +292,8 @@ fn result<D: AnalysisType>(
     result
 }
 
-/// The module, with libmagic's database opened before containment, which can't open it, for
-/// urlfinderlib's sniffing of a Proofpoint URL. Only such a URL's task reads it.
+/// The module, with libmagic's database mapped before containment, which can't open it, for
+/// urlfinderlib's sniffing of a Proofpoint URL. Only such a URL's task loads libmagic.
 pub struct ProtectedUrlAnalyzer {
     database: magic::Database,
 }

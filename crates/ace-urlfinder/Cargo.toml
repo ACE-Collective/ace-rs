@@ -12,10 +12,10 @@ name = "urlfinderlib"
 path = "src/bin/urlfinderlib.rs"
 
 [dependencies]
+ace-libmagic = { path = "../ace-libmagic" }
 ace-lxml = { path = "../ace-lxml" }
 ace-mod-oletools = { path = "../ace-mod-oletools" }
 ace-pycompat = { path = "../ace-pycompat" }
-magic-sys = "0.4.3"
 memchr = "2.8.3"
 regex = "1.13.1"
 rustc-hash = "2.1.3"

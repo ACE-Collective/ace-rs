@@ -1,0 +1,18 @@
+[package]
+name = "ace-libmagic"
+version = "0.1.0"
+description = "libmagic's database mapped before containment, and libmagic cookies over it, for the type step and urlfinderlib's port"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+magic-sys = "0.4.3"
+memmap2 = "0.9.12"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

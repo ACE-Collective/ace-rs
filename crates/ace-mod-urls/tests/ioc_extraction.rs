@@ -1,5 +1,5 @@
-//! ioc_extraction reads libmagic's database only for a task that looks for URLs: urlfinderlib
-//! describes the file's re-fanged text, which the type step never saw, as ace3's does.
+//! ioc_extraction loads libmagic only for a task that looks for URLs: urlfinderlib describes the
+//! file's re-fanged text, which the type step never saw, as ace3's does.
 
 use std::path::{Path, PathBuf};
 
@@ -44,8 +44,10 @@ fn iocs(outcome: &Outcome<ace_results::types::ioc_extraction::IocExtractionAnaly
     }
 }
 
+/// A task that looks for URLs loads libmagic over the database's mapping, and one that doesn't
+/// loads none: neither reads the database, and only the first fails without it.
 #[test]
-fn only_a_task_that_looks_for_urls_reads_libmagics_database() {
+fn no_task_reads_libmagics_database_and_only_one_looking_for_urls_loads_it() {
     let database = std::fs::metadata(ace_urlfinder::magic::DATABASE)
         .expect("the database")
         .len();
@@ -54,10 +56,9 @@ fn only_a_task_that_looks_for_urls_reads_libmagics_database() {
     assert!(iocs(&outcome) > 0);
     assert!(read < database / 10, "{read} bytes read without urls");
 
-    // what the count would see of a read
     let (outcome, read) = run(json!({}), None);
     assert!(iocs(&outcome.expect("runs")) > 0);
-    assert!(read >= database, "{read} bytes read with urls");
+    assert!(read < database / 10, "{read} bytes read with urls");
 
     let missing = Path::new("/nonexistent/magic.mgc");
     let (outcome, _) = run(json!({ "urls": null }), Some(missing));

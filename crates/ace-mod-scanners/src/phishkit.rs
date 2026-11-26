@@ -176,9 +176,9 @@ struct Fallback {
 /// The most of a proxied attempt's stdout kept beside the direct one's.
 const MAX_PROXY_STDOUT: usize = 64 * 1024;
 
-/// The phishkit_analyzer module, with libmagic's database opened before containment, which can't
+/// The phishkit_analyzer module, with libmagic's database mapped before containment, which can't
 /// open it. It gives urlfinderlib the captured bodies as `text/plain`, as ace3 does, so urlfinderlib
-/// has nothing to describe and no task reads the database.
+/// has nothing to describe and no task loads libmagic.
 pub struct PhishkitAnalyzer {
     database: magic::Database,
 }

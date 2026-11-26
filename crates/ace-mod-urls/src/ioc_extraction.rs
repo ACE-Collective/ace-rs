@@ -184,7 +184,7 @@ struct Compiled {
 }
 
 /// The module: its patterns compiled, invalid ones left out as ace3 logs and skips them, and
-/// libmagic's database, opened before containment, which can't open it, and read only by a task
+/// libmagic's database, mapped before containment, which can't open it, and loaded only by a task
 /// that looks for URLs.
 pub struct IocExtraction {
     refang: Vec<(String, Vec<Pattern>)>,

@@ -315,11 +315,11 @@ fn a_command_line_writes_at_most_500_payload_files() {
     );
 }
 
-/// Only a Proofpoint URL has urlfinderlib describe text, so only its task reads libmagic's
-/// database: the module reads none of it at `init` or for any other URL, and with the database
-/// missing a Proofpoint URL fails, naming it.
+/// Only a Proofpoint URL has urlfinderlib describe text, so only its task loads libmagic, and
+/// then over the database's mapping: no task reads the database, and with it missing a Proofpoint
+/// URL fails, naming it, where any other URL is analyzed.
 #[test]
-fn only_a_proofpoint_url_reads_libmagics_database() {
+fn no_task_reads_libmagics_database_and_only_a_proofpoint_url_loads_it() {
     let database = std::fs::metadata(ace_urlfinder::magic::DATABASE)
         .expect("the database")
         .len();
@@ -348,13 +348,15 @@ fn only_a_proofpoint_url_reads_libmagics_database() {
         Some("https://evil.example.com/page")
     );
     assert!(read < database / 10, "{read} bytes read for {safelinks}");
-    // what the count would see of a read
     let (outcome, read) = run(proofpoint);
     assert_eq!(
         extracted(outcome).as_deref(),
         Some("https://evil.example.com/path")
     );
-    assert!(read >= database, "{read} bytes read for {proofpoint}");
+    assert!(read < database / 10, "{read} bytes read for {proofpoint}");
+    // the count does see a read of the database
+    let (_, read) = ace_testkit::bytes_read_by(|| std::fs::read(ace_urlfinder::magic::DATABASE));
+    assert!(read >= database, "{read} bytes read reading it");
 
     let missing = Path::new("/nonexistent/magic.mgc");
     let harness = Harness::<ProtectedUrlAnalyzer>::new()
