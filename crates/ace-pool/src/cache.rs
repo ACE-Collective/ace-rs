@@ -210,6 +210,7 @@ mod tests {
             writes: Vec::new(),
             probes: BTreeMap::new(),
             keep: true,
+            keep_for_seconds: None,
         };
         attach(&mut done, "other", &probes);
         assert!(matches!(&done, TaskEnd::Done { probes, .. } if probes.is_empty()));

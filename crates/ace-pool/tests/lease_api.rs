@@ -2874,6 +2874,7 @@ async fn the_archive_readers_add_the_email_the_core_opened() {
                 writes: Vec::new(),
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await;
@@ -2931,6 +2932,7 @@ async fn the_archive_readers_add_the_email_the_core_opened() {
                 writes: Vec::new(),
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await;
@@ -3160,6 +3162,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
                         writes,
                         probes: Default::default(),
                         keep: true,
+                        keep_for_seconds: None,
                     },
                 )
                 .await;
@@ -3183,6 +3186,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
                         writes,
                         probes: Default::default(),
                         keep: true,
+                        keep_for_seconds: None,
                     },
                 )
                 .await;
@@ -3213,6 +3217,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
                 writes: vec![own(&mine)],
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await;
@@ -3229,6 +3234,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
                 writes: vec![own(&mine)],
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await
@@ -3253,6 +3259,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
                 writes: vec![own(&mine)],
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await;
@@ -3412,6 +3419,7 @@ async fn pcap_files_adds_what_pcap_analyzer_stored() {
                 writes: Vec::new(),
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await;
@@ -7398,6 +7406,7 @@ async fn a_done_end_that_says_not_to_keep_is_landed_and_not_kept() {
                     writes: Vec::new(),
                     probes: Default::default(),
                     keep,
+                    keep_for_seconds: None,
                 },
             )
             .await
@@ -7417,6 +7426,89 @@ async fn a_done_end_that_says_not_to_keep_is_landed_and_not_kept() {
     .await
     .expect("counts");
     assert_eq!(landed, 2, "both land in their root");
+}
+
+/// `Outcome::DoneKeptFor`: a `Done` end that says how long to keep its result is kept for the shorter
+/// of that and its module's time to live, an hour here: ten minutes for one, the hour for one that
+/// asks for a day.
+#[tokio::test]
+async fn a_done_end_kept_for_less_is_kept_for_the_shorter_time() {
+    let core = Core::start(
+        vec![ace_sdk::Manifest::lookup::<not_kept::Cached>()],
+        &["test_kept_or_not"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let db = core.test_db.db();
+    let root = ace_core::tree::NewRoot::new("analysis");
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    for value in ["unknown.example", "known.example"] {
+        let id = ace_core::tree::upsert_observable(
+            &mut tx,
+            root.id,
+            &ace_results::NewObservable::new(ace_results::ObservableKind::Fqdn, value),
+        )
+        .await
+        .expect("adds")
+        .id;
+        ace_core::queue::enqueue(&mut tx, root.id, id, "test_kept_or_not")
+            .await
+            .expect("queues");
+    }
+    tx.commit().await.expect("commits");
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    for _ in 0..2 {
+        let task = lease_one(&client, "test_kept_or_not").await;
+        let seconds = if task.observable.value == "unknown.example" {
+            600
+        } else {
+            86_400
+        };
+        let result = ace_results::ResultEnvelope::new(ace_sdk::example::LineStats {
+            lines: 1,
+            longest_line: 1,
+            first_line: ace_results::Bytes::new(b"x".to_vec()),
+            truncated: false,
+        })
+        .to_raw()
+        .expect("raw");
+        client
+            .end(
+                task.id,
+                &ace_sdk::wire::TaskEnd::Done {
+                    result,
+                    writes: Vec::new(),
+                    probes: Default::default(),
+                    keep: true,
+                    keep_for_seconds: Some(seconds),
+                },
+            )
+            .await
+            .expect("ends");
+    }
+    let lives: Vec<(String, f64)> = sqlx::query_as(
+        "SELECT observable_value, extract(epoch FROM expires_at - created_at)::float8
+         FROM cache.results ORDER BY observable_value",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    let lives: Vec<(String, i64)> = lives
+        .into_iter()
+        .map(|(value, seconds)| (value, (seconds / 60.0).round() as i64))
+        .collect();
+    assert_eq!(
+        lives,
+        [
+            ("known.example".to_owned(), 60),
+            ("unknown.example".to_owned(), 10)
+        ],
+        "minutes each is kept"
+    );
 }
 
 // ---- a module's file collections and sandbox submissions (PLAN.md decisions 49 and 50) ----
@@ -7793,6 +7885,7 @@ async fn a_module_asks_for_a_file_reads_its_collection_and_lets_go_of_it() {
                 writes: Vec::new(),
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await

@@ -308,6 +308,12 @@ pub enum Outcome<D> {
     /// know a hash yet, which ace3's VirusTotal module never put in its Redis cache. For a module
     /// that isn't cacheable it is `Done`.
     DoneNotKept(ResultEnvelope<D>),
+    /// The result, stored as `Done`'s is, which the analysis cache keeps for at most this long: the
+    /// shorter of it and the module's time to live (`Cache::ttl`, the overlay's `cache_ttl`). An
+    /// answer worth keeping for less time than the module's others, such as a vendor's "unknown"
+    /// that may change within hours while a report it has holds for days. A zero is `DoneNotKept`.
+    /// For a module that isn't cacheable it is `Done`.
+    DoneKeptFor(ResultEnvelope<D>, std::time::Duration),
     /// The result as far as it goes, which the core stores, and a request to run the task again
     /// whenever its observable gains a tag, a directive, a relationship or another result, and on the
     /// root's next pass, with no limit, as ace3's engine runs a module again on an analysis it

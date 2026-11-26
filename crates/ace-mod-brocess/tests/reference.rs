@@ -943,6 +943,12 @@ async fn the_attachment_and_link_modules_match_the_reference_dumps_or_lists_each
                 Outcome::DoneNotKept(_) => {
                     panic!("{} {path}: the module's result was not kept", dump.name)
                 }
+                Outcome::DoneKeptFor(..) => {
+                    panic!(
+                        "{} {path}: the module's result was kept for less",
+                        dump.name
+                    )
+                }
             }
         }
         compared.push((
@@ -1008,6 +1014,12 @@ async fn the_attachment_and_link_modules_match_the_reference_dumps_or_lists_each
                 }
                 Outcome::DoneNotKept(_) => {
                     panic!("{} {value}: the module's result was not kept", dump.name)
+                }
+                Outcome::DoneKeptFor(..) => {
+                    panic!(
+                        "{} {value}: the module's result was kept for less",
+                        dump.name
+                    )
                 }
             }
         }

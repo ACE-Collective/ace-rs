@@ -178,6 +178,9 @@ pub enum Ending {
     Done,
     /// Done, and not kept (`Outcome::DoneNotKept`, PLAN.md decision 47).
     DoneNotKept,
+    /// Done, and kept for at most this long (`Outcome::DoneKeptFor`): the shorter of it and its
+    /// module's time to live.
+    DoneKeptFor(std::time::Duration),
     /// As far as it goes, run again on a change (`Outcome::Incomplete`, PLAN.md decision 34), and
     /// not kept.
     Incomplete,
@@ -1492,8 +1495,13 @@ impl Orchestrator {
         if self.takes == TakesMode::Audit {
             declared::report_if_marked(tx, task.id, &task.module, "stored a result").await?;
         }
-        if ending == Ending::Done {
-            self.keep(tx, task, result, probes, writes).await?;
+        match ending {
+            Ending::Done => self.keep(tx, task, result, probes, writes, None).await?,
+            Ending::DoneKeptFor(at_most) => {
+                self.keep(tx, task, result, probes, writes, Some(at_most))
+                    .await?
+            }
+            Ending::DoneNotKept | Ending::Incomplete => {}
         }
         self.apply_result(
             tx,
@@ -1509,7 +1517,8 @@ impl Orchestrator {
     }
 
     /// Keeps a task's result for later roots, when its module's are kept and it may be
-    /// (`cache::refusal`), with the versions its pool sent.
+    /// (`cache::refusal`), with the versions its pool sent, for its module's time to live or
+    /// `at_most`, whichever is shorter.
     async fn keep(
         &self,
         tx: &mut Tx<'_>,
@@ -1517,6 +1526,7 @@ impl Orchestrator {
         result: &ResultEnvelope<Value>,
         probes: &BTreeMap<String, String>,
         writes: bool,
+        at_most: Option<std::time::Duration>,
     ) -> Result<(), OrchestratorError> {
         let catalog = self.catalog();
         let Some(component) = catalog.component(&task.module) else {
@@ -1528,6 +1538,10 @@ impl Orchestrator {
         else {
             return Ok(());
         };
+        let ttl = at_most.map_or(ttl, |at_most| ttl.min(at_most));
+        if ttl.is_zero() {
+            return Ok(());
+        }
         // the images its task's scans ran are versions as its tools' are (`Cache::scanners`)
         let scanned;
         let probes = match component.manifest.cache.map(|cache| cache.scanners) {

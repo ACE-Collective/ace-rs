@@ -580,8 +580,10 @@ pub fn check_result<D: AnalysisType>(result: &ResultEnvelope<D>) -> Result<(), H
 }
 
 fn check_outcome<D: AnalysisType>(outcome: Outcome<D>) -> Result<Outcome<D>, HarnessError> {
-    if let Outcome::Done(result) | Outcome::DoneNotKept(result) | Outcome::Incomplete(result) =
-        &outcome
+    if let Outcome::Done(result)
+    | Outcome::DoneNotKept(result)
+    | Outcome::DoneKeptFor(result, _)
+    | Outcome::Incomplete(result) = &outcome
     {
         check_result(result)?;
     }
@@ -604,6 +606,12 @@ pub fn snapshot_value<D: AnalysisType>(outcome: &Outcome<D>) -> Value {
         }),
         Outcome::DoneNotKept(result) => json!({
             "outcome": "done_not_kept",
+            "result": serde_json::to_value(result)
+                .unwrap_or_else(|e| json!({"unserializable": e.to_string()})),
+        }),
+        Outcome::DoneKeptFor(result, ttl) => json!({
+            "outcome": "done_kept_for",
+            "kept_for_seconds": ttl.as_secs_f64(),
             "result": serde_json::to_value(result)
                 .unwrap_or_else(|e| json!({"unserializable": e.to_string()})),
         }),

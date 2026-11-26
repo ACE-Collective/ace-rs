@@ -373,6 +373,11 @@ pub enum TaskEnd {
         /// module's results are kept.
         #[serde(default = "keep_by_default", skip_serializing_if = "is_kept")]
         keep: bool,
+        /// The longest the analysis cache may keep it, in seconds, when the module said
+        /// (`Outcome::DoneKeptFor`): the core keeps it for the shorter of this and the module's time
+        /// to live. Left out for the module's own.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        keep_for_seconds: Option<u64>,
     },
     /// The module's result as far as it goes (`Outcome::Incomplete`, PLAN.md decision 34), landed
     /// as a `Done` is, writes and all, and the task runs again when its observable changes.

@@ -297,9 +297,18 @@ pub fn task_end<D: AnalysisType>(
     writes: Vec<WireWrite>,
 ) -> TaskEnd {
     match outcome {
-        Ok(Outcome::Done(result)) => done(&result, writes, true),
+        Ok(Outcome::Done(result)) => done(&result, writes, true, None),
         // a result the analysis cache isn't to keep (PLAN.md decision 47)
-        Ok(Outcome::DoneNotKept(result)) => done(&result, writes, false),
+        Ok(Outcome::DoneNotKept(result)) => done(&result, writes, false, None),
+        // one it keeps for less than its module's time to live, whole seconds up, so a part of a
+        // second is never taken for none
+        Ok(Outcome::DoneKeptFor(result, ttl)) if ttl.is_zero() => {
+            done(&result, writes, false, None)
+        }
+        Ok(Outcome::DoneKeptFor(result, ttl)) => {
+            let seconds = ttl.as_secs() + u64::from(ttl.subsec_nanos() > 0);
+            done(&result, writes, true, Some(seconds))
+        }
         Ok(Outcome::Incomplete(result)) => match result.to_raw() {
             Ok(result) => TaskEnd::Incomplete {
                 result,
@@ -335,6 +344,7 @@ fn done<D: AnalysisType>(
     result: &ace_results::ResultEnvelope<D>,
     writes: Vec<WireWrite>,
     keep: bool,
+    keep_for_seconds: Option<u64>,
 ) -> TaskEnd {
     match result.to_raw() {
         Ok(result) => TaskEnd::Done {
@@ -342,6 +352,7 @@ fn done<D: AnalysisType>(
             writes,
             probes: Default::default(),
             keep,
+            keep_for_seconds,
         },
         Err(e) => TaskEnd::Failed {
             error: format!("the result doesn't serialize: {e}"),
@@ -764,7 +775,73 @@ mod tests {
         let wire = serde_json::to_value(&kept).expect("writes");
         assert!(wire.get("keep").is_none(), "{wire}");
         let back: TaskEnd = serde_json::from_value(wire).expect("reads");
-        assert!(matches!(back, TaskEnd::Done { keep: true, .. }));
+        assert!(matches!(
+            back,
+            TaskEnd::Done {
+                keep: true,
+                keep_for_seconds: None,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn a_result_kept_for_less_ends_as_a_done_with_its_seconds() {
+        let result = ace_results::ResultEnvelope::new(ace_sdk::example::LineStats {
+            lines: 1,
+            longest_line: 1,
+            first_line: ace_results::Bytes::new(b"x".to_vec()),
+            truncated: false,
+        });
+        let six_hours = std::time::Duration::from_secs(6 * 3600);
+        let end = task_end(
+            Ok(Outcome::DoneKeptFor(result.clone(), six_hours)),
+            Vec::new(),
+        );
+        let wire = serde_json::to_value(&end).expect("writes");
+        assert_eq!(wire["keep_for_seconds"], 21_600, "{wire}");
+        let back: TaskEnd = serde_json::from_value(wire).expect("reads");
+        assert!(matches!(
+            back,
+            TaskEnd::Done {
+                keep: true,
+                keep_for_seconds: Some(21_600),
+                ..
+            }
+        ));
+        // a part of a second is a second, never none; nothing at all is not kept
+        let end = task_end(
+            Ok(Outcome::DoneKeptFor(
+                result.clone(),
+                std::time::Duration::from_millis(1),
+            )),
+            Vec::new(),
+        );
+        assert!(
+            matches!(
+                end,
+                TaskEnd::Done {
+                    keep_for_seconds: Some(1),
+                    ..
+                }
+            ),
+            "{end:?}"
+        );
+        let end = task_end(
+            Ok(Outcome::DoneKeptFor(result, std::time::Duration::ZERO)),
+            Vec::new(),
+        );
+        assert!(
+            matches!(
+                end,
+                TaskEnd::Done {
+                    keep: false,
+                    keep_for_seconds: None,
+                    ..
+                }
+            ),
+            "{end:?}"
+        );
     }
 
     #[test]

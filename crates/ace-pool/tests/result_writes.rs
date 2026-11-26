@@ -71,6 +71,7 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_a
         writes: Vec::new(),
         probes: Default::default(),
         keep: true,
+        keep_for_seconds: None,
     };
     let refused = client.end(task.id, &done).await;
     let Err(ClientError::Api { status, error }) = refused else {
@@ -125,6 +126,7 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_a
                 writes: Vec::new(),
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await;
@@ -170,6 +172,7 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_a
                 writes: Vec::new(),
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await;
@@ -195,6 +198,7 @@ async fn an_invalid_result_is_rejected_with_its_fields_path_nothing_is_written_a
                 writes: Vec::new(),
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await
@@ -278,6 +282,7 @@ async fn a_large_result_lands_and_one_past_the_limit_fails_its_task_at_once() {
                     writes: Vec::new(),
                     probes: Default::default(),
                     keep: true,
+                    keep_for_seconds: None,
                 },
             )
             .await;
@@ -362,6 +367,7 @@ async fn a_result_relates_its_observable_only_to_one_in_the_root_or_one_it_adds(
         writes: Vec::new(),
         probes: Default::default(),
         keep: true,
+        keep_for_seconds: None,
     };
     let related = |targets: &[(&str, &str)]| {
         json!({
@@ -491,6 +497,7 @@ async fn a_nul_from_a_hostile_file_doesnt_stop_a_task_ending() {
                 writes: Vec::new(),
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await
@@ -598,6 +605,7 @@ async fn a_result_that_says_it_failed_lands_with_its_reason_and_its_task_is_done
                 writes: Vec::new(),
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await
@@ -649,6 +657,7 @@ async fn a_result_that_says_it_failed_lands_with_its_reason_and_its_task_is_done
                 writes: Vec::new(),
                 probes: Default::default(),
                 keep: true,
+                keep_for_seconds: None,
             },
         )
         .await;

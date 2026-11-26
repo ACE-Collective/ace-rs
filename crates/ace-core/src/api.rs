@@ -2542,16 +2542,20 @@ async fn end_in(
             writes,
             probes,
             keep,
+            keep_for_seconds,
         } => {
             let writes = api.check_writes(&worker, task, writes, false).await?;
             // checked as JSON, so each field that fails is named
             let result = serde_json::to_value(result)
                 .map_err(|e| Failure::Internal(format!("re-encoding a result: {e}")))?;
-            // a result its module asked the cache not to keep (PLAN.md decision 47)
-            let ending = if keep {
-                Ending::Done
-            } else {
-                Ending::DoneNotKept
+            // a result its module asked the cache not to keep (PLAN.md decision 47), or to keep for
+            // less than its module's time to live
+            let ending = match (keep, keep_for_seconds) {
+                (false, _) => Ending::DoneNotKept,
+                (true, Some(seconds)) => {
+                    Ending::DoneKeptFor(std::time::Duration::from_secs(seconds))
+                }
+                (true, None) => Ending::Done,
             };
             api.land(&worker, task, without_nul(result), &writes, &probes, ending)
                 .await?
