@@ -2,9 +2,39 @@
 
 Comparing how long a root takes in each system doesn't work, because ace-rs runs a root's modules side by side and ace3 runs them one after another ([`docs/root-analysis.html`](../root-analysis.html)). This compares what each module costs instead, over the whole sample set, on both sides. It also compares what the whole set costs.
 
-There have been two measurements. The first, on 2026-11-25 and 26 at ace-rs `862b13ab` plus 3.6's uncommitted changes, found the problems *What the first measurement found* lists; each was fixed or filed. The figures below are the second, on 2026-11-26 at ace-rs `ec68bca3`, after those fixes, with ace3's `custom_requirement` checks timed as well. [`module-timings.tsv`](module-timings.tsv) has every module's median, minimum and maximum on both sides, from the second.
+There have been two measurements. The first, on 2026-11-25 and 26 at ace-rs `862b13ab` plus 3.6's uncommitted changes, found the problems *What the first measurement found* lists; each was fixed or filed. The figures below are the second, on 2026-11-26 at ace-rs `ec68bca3`, after those fixes, with ace3's `custom_requirement` checks timed as well. Later the same day ace-rs ran three times more, at `998fcbf7`, after the fixes the second measurement led to, against the same ace3 runs: *ace-rs after the second measurement's fixes*, below. [`module-timings.tsv`](module-timings.tsv) has every module's median, minimum and maximum on both sides, from those latest runs.
 
 Both ran on one machine: Docker (Rancher Desktop) with 10 CPUs and 31 GiB. ace3's stack and a site's dev stack were on the same VM and idle. ace-rs ran in release images; ace3 was at `ebad554d`. The two sides never ran at the same time, and each ran three times, taking turns. Every figure is the median of the three runs.
+
+## ace-rs after the second measurement's fixes
+
+Three more ace-rs runs on 2026-11-26, at `998fcbf7`, with the same commands, settings and trees as the second measurement, joined with its ace3 runs (ace3 was still at `ebad554d`). Every run compared 474 samples with no failure and no unexplained difference, in 1,205 s, 1,207 s and 1,214 s (1,311 to 1,326 s in the second measurement). Between the two, ace-rs gained: `lure_url_analyzer`'s declaration; the core's run-last waits woken rather than polled; `url_extraction` choosing its finder from the type step's description; libmagic's database mapped, not read, in the type step, the modules on urlfinderlib and the YARA module; `xlmdeobfuscator`'s rules compiled when the crate is built; `html_data_url_extraction`'s and `tls_keylog`'s patterns compiled only for input that can match; and a YARA pool's ruleset copy with machine code.
+
+| Over 474 roots, ace-rs | Second measurement | Now |
+|---|---:|---:|
+| Module runs | 75,377 | 71,372 |
+| analyze | 214 s (213 to 216) | 189 s (189 to 189) |
+| Slot | 728 s (708 to 733) | 607 s (604 to 633) |
+| CPU of module work | 418 s (415 to 420) | 352 s (351 to 353) |
+
+Against ace3's 945 s of analyze, ace-rs's is now 0.20 of it (0.23 before), and its CPU of module work 352 s against ace3's 1,198 s.
+
+The modules that moved most, totals in seconds over the set:
+
+| Module | Runs | analyze | Slot | CPU |
+|---|---|---|---|---|
+| `lure_url_analyzer` | 4,074 → 69 | 0.17 → 0.14 | 50.0 → 1.1 | 15.6 → 0.4 |
+| `xlmdeobfuscator` | 4,074 | 32.4 → 14.6 | 69.8 → 49.9 | 46.2 → 28.0 |
+| `yara_scanner_v3_4` | 4,074 | 1.47 → 1.47 | 47.0 → 33.7 | 29.9 → 17.1 |
+| `file_type` | 4,052 | n/a | 41.1 → 31.3 | n/a |
+| `url_extraction` | 1,935 | 2.87 → 0.41 | 22.7 → 15.5 | 14.0 → 6.9 |
+| `html_data_url_extraction` | 4,048 | 1.31 → 0.12 | 31.0 → 28.3 | 14.7 → 13.4 |
+| `tls_keylog` | 4,074 | 0.57 → 0.14 | 29.8 → 27.8 | 13.5 → 13.1 |
+| `protected_url_analyzer` | 500 | 0.01 → 0.01 | 4.0 → 2.9 | 2.9 → 1.8 |
+
+- **`xlmdeobfuscator`'s total is one sample's.** Its median task went from 5.12 ms to 0.77 ms (run 2 of each), the rules built with the crate loading as they should; 11.3 s of its 14.6 s is `ace-rs/office/xlm_loop.xlsm`, whose macro the module emulates, about the same as before. Without that sample its total went from about 21 s to 3.4 s. A one-sample stack run with task processes' log lines passed on (the fix that came after these runs) showed no fallback to compiling the source, and 0.7 ms of analyze on the files its rules decline.
+- **`yara_scanner_v3_4`'s analyze didn't change,** as expected: the e2e ruleset has two rules, so the machine code saves little; its slot time fell 13 s, mostly libmagic's database no longer read. A production-sized ruleset would show the copy's saving.
+- **The modules queued on almost every file** (`active_mime`, `hidden_mime`, `html_data_url_extraction`, `tls_keylog`, `rar_encryption_analyzer`) still hold about 28 to 34 s of slot time each, almost all of it the task's start and end; issues #2 to #6.
 
 ## The commands
 
