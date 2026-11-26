@@ -24622,6 +24622,18 @@
             },
             "description": "1 to 1000 pairs."
           },
+          "queues": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "The alert queues whose alerts are counted and listed, 1 to 100 names of 1 to 64 characters; the\ndefault queue when omitted, so prevalence leaves out test runs and special-purpose queues.\n`faqueue` alerts never count.",
+            "maxItems": 100,
+            "minItems": 1
+          },
           "recent_alerts": {
             "type": "integer",
             "format": "int32",
@@ -25818,7 +25830,7 @@
           "alerts": {
             "type": "integer",
             "format": "int64",
-            "description": "How many alerts hold it."
+            "description": "How many alerts in the lookup's queues hold it, `faqueue` alerts left out."
           },
           "dispositions": {
             "type": "object",
@@ -26453,7 +26465,8 @@
         "type": "object",
         "required": [
           "id",
-          "alerted_at"
+          "alerted_at",
+          "queue"
         ],
         "properties": {
           "alerted_at": {
@@ -26469,6 +26482,10 @@
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "queue": {
+            "type": "string",
+            "description": "The queue it's in."
           }
         }
       },

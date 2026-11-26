@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT w.n AS \"n!\", r.disposition, count(*) AS \"alerts!\",\n                                  min(r.alerted_at) AS \"first_seen!\", max(r.alerted_at) AS \"last_seen!\"\n                           FROM unnest($1::text[], $2::text[], $3::bigint[]) AS w(type, value, n)\n                           JOIN analysis.observables o\n                             ON o.type = w.type AND o.value_hash = analysis.value_hash(w.value)\n                            AND o.value = w.value\n                           JOIN analysis.roots r ON r.id = o.root_id\n                           WHERE r.alerted_at IS NOT NULL AND r.id <> ALL ($4::uuid[])\n                             AND ($5::timestamptz IS NULL OR r.alerted_at >= $5)\n                             AND r.queue::text = ANY ($6::text[])\n                             AND (r.origin ->> 'alert_type') IS DISTINCT FROM $7\n                           GROUP BY w.n, r.disposition",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "disposition",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "disposition"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "alerts!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "first_seen!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "last_seen!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray",
+        "Int8Array",
+        "UuidArray",
+        "Timestamptz",
+        "TextArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a41ad59d169a0e18e87edde38e120cdbbbba5fe01082ad799151cb55b67d7648"
+}

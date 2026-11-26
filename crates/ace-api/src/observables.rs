@@ -44,6 +44,12 @@ pub(crate) struct LookupRequest {
     /// Count only alerts made at or after this.
     #[serde(default)]
     since: Option<DateTime<Utc>>,
+    /// The alert queues whose alerts are counted and listed, 1 to 100 names of 1 to 64 characters; the
+    /// default queue when omitted, so prevalence leaves out test runs and special-purpose queues.
+    /// `faqueue` alerts never count.
+    #[serde(default)]
+    #[schema(min_items = 1, max_items = 100)]
+    queues: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -51,6 +57,8 @@ pub(crate) struct RecentAlertBody {
     id: Uuid,
     disposition: Option<String>,
     alerted_at: DateTime<Utc>,
+    /// The queue it's in.
+    queue: String,
 }
 
 /// One pair's prevalence, at its index in the request.
@@ -63,7 +71,7 @@ pub(crate) struct PrevalenceBody {
     value: Option<String>,
     /// Why the pair couldn't be looked up, such as a type that doesn't exist.
     error: Option<String>,
-    /// How many alerts hold it.
+    /// How many alerts in the lookup's queues hold it, `faqueue` alerts left out.
     alerts: i64,
     first_seen: Option<DateTime<Utc>>,
     last_seen: Option<DateTime<Utc>>,
@@ -91,6 +99,7 @@ impl From<Prevalence> for PrevalenceBody {
                     id: alert.id,
                     disposition: alert.disposition,
                     alerted_at: alert.alerted_at,
+                    queue: alert.queue,
                 })
                 .collect(),
         }
@@ -132,6 +141,7 @@ pub(crate) async fn lookup(
         recent: body.recent_alerts,
         exclude: body.exclude_alerts,
         since: body.since,
+        queues: body.queues,
     };
     let results = web.service.lookup_observables(&actor, &lookup).await?;
     Ok(Json(LookupBody {

@@ -3241,6 +3241,99 @@ async fn looks_up(client: &mut Client<'_>, token: &str, file_alert: Uuid, file_b
         )
         .await;
     assert_eq!(left_out["results"][0]["alerts"], 1);
+    assert_eq!(results[0]["recent"][0]["queue"], "default");
+
+    // only the default queue counts unless the lookup names others, and a faqueue alert never does
+    // (ace3 67be6869's `queues`, and its `_alert_predicates`)
+    let routed = alert(
+        client.stack,
+        "routed",
+        &[(ObservableKind::Fqdn, "seen.example")],
+    )
+    .await;
+    let fa = alert(
+        client.stack,
+        "fa",
+        &[(ObservableKind::Fqdn, "seen.example")],
+    )
+    .await;
+    let pool = client.stack.test_db.db().pool();
+    sqlx::query("UPDATE analysis.roots SET queue = 'svs' WHERE id = ANY ($1)")
+        .bind(vec![routed, fa])
+        .execute(pool)
+        .await
+        .expect("routes");
+    sqlx::query(
+        "UPDATE analysis.roots SET origin = coalesce(origin, '{}') || '{\"alert_type\": \"faqueue\"}' WHERE id = $1",
+    )
+    .bind(fa)
+    .execute(pool)
+    .await
+    .expect("types");
+    let count = |queues: Value| {
+        let mut body =
+            json!({"observables": [{"type": "fqdn", "value": "seen.example"}], "recent_alerts": 5});
+        if !queues.is_null() {
+            body["queues"] = queues;
+        }
+        body
+    };
+    let default = client
+        .json(
+            Method::POST,
+            LOOKUP,
+            LOOKUP,
+            Some(token),
+            Send::Json(count(Value::Null)),
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(default["results"][0]["alerts"], 2, "{default}");
+    let svs = client
+        .json(
+            Method::POST,
+            LOOKUP,
+            LOOKUP,
+            Some(token),
+            Send::Json(count(json!(["svs"]))),
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(
+        svs["results"][0]["alerts"], 1,
+        "only the routed alert: {svs}"
+    );
+    assert_eq!(svs["results"][0]["recent"][0]["id"], routed.to_string());
+    assert_eq!(svs["results"][0]["recent"][0]["queue"], "svs");
+    let both = client
+        .json(
+            Method::POST,
+            LOOKUP,
+            LOOKUP,
+            Some(token),
+            Send::Json(count(json!(["default", "svs", "nowhere"]))),
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(both["results"][0]["alerts"], 3, "{both}");
+    let queues: Vec<String> = (0..101).map(|i| format!("q{i}")).collect();
+    for bad in [
+        json!([]),
+        json!(queues),
+        json!([""]),
+        json!(["q".repeat(65)]),
+    ] {
+        client
+            .json(
+                Method::POST,
+                LOOKUP,
+                LOOKUP,
+                Some(token),
+                Send::Json(count(bad)),
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+    }
 
     let many: Vec<Value> = (0..1001)
         .map(|i| json!({"type": "fqdn", "value": format!("{i}.example")}))

@@ -2,12 +2,17 @@
 //! many alerts hold it, when it was first and last seen, their dispositions and the newest few. It needs
 //! `observable:read`, as ace3's does.
 //!
+//! As in ace3, only alerts in the request's queues count, the default queue when it names none, so
+//! prevalence leaves out test runs and special-purpose queues, and an alert whose type is `faqueue` never
+//! counts (ace3's `_alert_predicates`). A caller asking whether something became an alert at all names
+//! the queues its alerts are routed to (ace3 67be6869). Each recent alert says which queue it's in.
+//!
 //! What differs from ace3:
 //! - ace3 keeps one index of every observable it has seen, and normalizes a value by its type there. ace-rs
 //!   looks in every alert's own observables, so a value matches as it's stored: a file's sha256 is
 //!   lowercased, as `ace_results` writes it, and other values are matched exactly.
-//! - ace3 counts only its default queue and leaves out `faqueue` alerts. ace-rs's roots have no queue or
-//!   alert type yet, so every alert counts.
+//! - ace3's alert type is a column that is never empty; ace-rs's is the root's `origin ->> 'alert_type'`,
+//!   which the API's own submissions leave out. An alert with none counts, as one that isn't `faqueue`.
 //! - ace3 lists the events each alert belongs to. Events come with 5.6's events router.
 //! - Seen is when the root became an alert, where ace3's is when its alert row was inserted.
 //!
@@ -29,6 +34,13 @@ use crate::{Service, ServiceError};
 pub const MAX_LOOKUP_PAIRS: usize = 1000;
 pub const MAX_RECENT_ALERTS: u32 = 20;
 pub const MAX_EXCLUDED_ALERTS: usize = 100;
+pub const MAX_LOOKUP_QUEUES: usize = 100;
+/// The queue counted when a lookup names none, ace3's `QUEUE_DEFAULT`.
+pub const DEFAULT_QUEUE: &str = "default";
+/// The alert type that is never counted, ace3's `ANALYSIS_TYPE_FAQUEUE`.
+pub const FAQUEUE: &str = "faqueue";
+/// The longest queue name, as `analysis.queue_name` (ace3's `alerts.queue`, a VARCHAR(64)).
+const MAX_QUEUE_CHARS: usize = 64;
 /// The disposition counts' key for alerts nobody has dispositioned, as ace3 calls them.
 pub const OPEN: &str = "OPEN";
 
@@ -42,6 +54,8 @@ pub struct Lookup {
     pub exclude: Vec<Uuid>,
     /// Only alerts that became alerts at or after this.
     pub since: Option<DateTime<Utc>>,
+    /// The queues whose alerts count: 1 to `MAX_LOOKUP_QUEUES` names, or None for `DEFAULT_QUEUE`.
+    pub queues: Option<Vec<String>>,
 }
 
 /// One pair's prevalence, at the pair's index in the request.
@@ -66,6 +80,7 @@ pub struct RecentAlert {
     pub id: Uuid,
     pub disposition: Option<String>,
     pub alerted_at: DateTime<Utc>,
+    pub queue: String,
 }
 
 /// The value a pair is matched as, or why it can't be.
@@ -119,6 +134,25 @@ impl Service {
                 "a lookup leaves out at most {MAX_EXCLUDED_ALERTS} alerts"
             )));
         }
+        let queues = match &lookup.queues {
+            None => vec![DEFAULT_QUEUE.to_owned()],
+            Some(queues) if queues.is_empty() || queues.len() > MAX_LOOKUP_QUEUES => {
+                return Err(ServiceError::InvalidRequest(format!(
+                    "a lookup names 1 to {MAX_LOOKUP_QUEUES} queues"
+                )));
+            }
+            Some(queues) => {
+                if let Some(bad) = queues
+                    .iter()
+                    .find(|q| q.is_empty() || q.chars().count() > MAX_QUEUE_CHARS)
+                {
+                    return Err(ServiceError::InvalidRequest(format!(
+                        "a queue's name is 1 to {MAX_QUEUE_CHARS} characters, not {bad:?}"
+                    )));
+                }
+                queues.clone()
+            }
+        };
         let mut results: Vec<Prevalence> = Vec::with_capacity(lookup.pairs.len());
         let (mut kinds, mut values, mut indexes) = (Vec::new(), Vec::new(), Vec::new());
         for (index, (kind, value)) in lookup.pairs.iter().enumerate() {
@@ -141,7 +175,7 @@ impl Service {
         }
         let (kinds, values, indexes) = (&kinds, &values, &indexes);
         let recent = i64::from(lookup.recent);
-        let (exclude, since) = (&lookup.exclude, lookup.since);
+        let (exclude, since, queues) = (&lookup.exclude, lookup.since, &queues);
         let (counts, newest) = self
             .gate
             .read(actor, "lookup_observables", &OBSERVABLE_READ, &|tx| {
@@ -156,12 +190,16 @@ impl Service {
                            JOIN analysis.roots r ON r.id = o.root_id
                            WHERE r.alerted_at IS NOT NULL AND r.id <> ALL ($4::uuid[])
                              AND ($5::timestamptz IS NULL OR r.alerted_at >= $5)
+                             AND r.queue::text = ANY ($6::text[])
+                             AND (r.origin ->> 'alert_type') IS DISTINCT FROM $7
                            GROUP BY w.n, r.disposition"#,
                         kinds,
                         values,
                         indexes,
                         exclude,
                         since,
+                        queues,
+                        FAQUEUE,
                     )
                     .fetch_all(tx.conn())
                     .await?;
@@ -169,8 +207,9 @@ impl Service {
                         Vec::new()
                     } else {
                         sqlx::query!(
-                            r#"SELECT n AS "n!", id AS "id!", disposition, alerted_at AS "alerted_at!"
-                               FROM (SELECT w.n, r.id, r.disposition, r.alerted_at,
+                            r#"SELECT n AS "n!", id AS "id!", disposition, alerted_at AS "alerted_at!",
+                                      queue AS "queue!"
+                               FROM (SELECT w.n, r.id, r.disposition, r.alerted_at, r.queue::text AS queue,
                                             row_number() OVER (PARTITION BY w.n
                                                 ORDER BY r.alerted_at DESC, r.id DESC) AS rank
                                      FROM unnest($1::text[], $2::text[], $3::bigint[]) AS w(type, value, n)
@@ -179,7 +218,9 @@ impl Service {
                                       AND o.value = w.value
                                      JOIN analysis.roots r ON r.id = o.root_id
                                      WHERE r.alerted_at IS NOT NULL AND r.id <> ALL ($4::uuid[])
-                                       AND ($5::timestamptz IS NULL OR r.alerted_at >= $5)) ranked
+                                       AND ($5::timestamptz IS NULL OR r.alerted_at >= $5)
+                                       AND r.queue::text = ANY ($7::text[])
+                                       AND (r.origin ->> 'alert_type') IS DISTINCT FROM $8) ranked
                                WHERE rank <= $6
                                ORDER BY n, rank"#,
                             kinds,
@@ -188,6 +229,8 @@ impl Service {
                             exclude,
                             since,
                             recent,
+                            queues,
+                            FAQUEUE,
                         )
                         .fetch_all(tx.conn())
                         .await?
@@ -199,6 +242,7 @@ impl Service {
                                     id: row.id,
                                     disposition: row.disposition,
                                     alerted_at: row.alerted_at,
+                                    queue: row.queue,
                                 },
                             )
                         })
