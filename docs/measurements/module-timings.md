@@ -114,9 +114,13 @@ How to read it:
 - **Where both sides spend their time in the same external tool, the two agree.** `exif` (exiftool: 53 s against 67 s) and `java_class_decompiler` (CFR: 14 s against 16 s, 28 s of CPU on each side) both do. That is the check that the two sides measure the same thing.
 - **Where ace-rs replaced Python, it is far cheaper.** `archive`, `officeparser3`, `msoffice_encryption_analyzer`, `pcodedmp`, `olevba_v1_2`, `extracted_ole_analyzer` and `yara_scanner_v3_4` each take under 1.5 s in ace-rs against 17 to 149 s in ace3.
 - **`proxy_domain_splunk` measures the fakes, not the module.** ace3 asks `fake_splunk.py` and waits on its job's polling. ace-rs is answered by the e2e responder's recording.
-- **ace-rs's analyze is slower in a few modules:** `user_defined_tagging` (4.76 s against 0.71 s), `file_hash_analyzer`, `html_data_url_extraction`, `parse_url` and `tls_keylog`. Only the first is worth a look on its own, below.
+- **ace-rs's analyze is higher in a few modules:** `user_defined_tagging` (4.76 s against 0.71 s), `file_hash_analyzer`, `html_data_url_extraction`, `parse_url`, `tls_keylog` and `email_conversation_frequency_analyzer`.
+  - `user_defined_tagging` and `email_conversation_frequency_analyzer` don't compare: their ace3 figures have no database in them. `make-trees` runs ace3 without one, so `run_module.py` answers `user_defined_tagging`'s SELECT from a list in memory (`fake_observable_tags`), and `--brocess` gives the frequency module its smtplog rows from a JSON file. In ace-rs each run is a read through the core's lease API, which queries Postgres (0.50 ms a run, against ace3's 0.066 ms for a scan of a list). In production, ace3 sends the same SELECT to its database for every observable, which these figures leave out.
+  - What those queries cost ace3 was measured on its own, below (*ace3's database queries*). With it, `user_defined_tagging` is about 0.31 ms a run in ace3 (0.066 ms of module and fake, plus 0.244 ms of query) against ace-rs's 0.50 ms: 1.6 times, not 7.6. Its total would be about 3.3 s over ace3's 10,852 runs, against ace-rs's 4.76 s. The frequency module sends ace3 one query a run, and a second only for a sender brocess has seen before (0.229 and 0.221 ms), so it comes to between about 0.30 and 0.52 ms a run in ace3, against ace-rs's 0.54 ms.
 - **ace-rs's per-task cost dominates modules that are queued on every file and do almost nothing.** `active_mime`, `autoit`, `hidden_mime`, `html_data_url_extraction`, `tls_keylog`, `zip_encryption_analyzer`, `rar_encryption_analyzer` and `msoffice_encryption_analyzer` each run about 4,000 times for about 30 s of slot time and about 13 s of CPU, almost all of it the task's start and end.
-- **A module's runs can be higher in ace-rs.** `lure_url_analyzer` (15,136 against 5,774) and `rdap_analyzer` (710 against 449) run more often. Why wasn't looked into.
+- **A module's runs can be higher in ace-rs, for two reasons found since.**
+  - The core counted each wait of a `RUNS_LAST` module for the rest of its root as a run of the module, with the lease's own time as slot time, though no pool saw the task. That is most of `lure_url_analyzer`'s runs (15,136 against 5,774) and slot time, and `email_thread_analyzer`'s. On `ace-rs/pcap/many_hosts.pcap`, `lure_url_analyzer` had 206 runs, 51 without the waits, as in ace3. Fixed since (migration 0089): the wait counts nothing.
+  - `rdap_analyzer` (710 against 449) runs on IPs that aren't globally routable, and declines them in `analyze`. ace3 drops them in its `custom_requirement`, before its count.
 
 ## What else the numbers include
 
@@ -128,10 +132,38 @@ How to read it:
 - **The analysis cache was off** (`tests/e2e/site/overlay.yaml`), so every module ran. There were no cache hits on either side.
 - **This is one machine,** with ace3's stack idle beside it and a site's dev stack with two containers restarting in a loop. Across the three runs, the whole set's totals are within 4% of each other, except ace3's CPU of module work (1,213 to 1,328 s, 9%). Some modules vary more: ace3's `msoffice_encryption_analyzer` analyze ranges from 46.1 to 65.2 s.
 
+## Two costs a parser task pays because it is a fresh process
+
+`file_hash_analyzer` (1.9 ms a run in ace-rs against 0.22 ms in ace3) and `parse_url` (2.3 against 0.72 ms, on the same 500 runs) aren't slower in their own work. Most of their time goes on building something ace3 builds once per process, which a parser task, a process of its own, builds again every time. Both were timed with throwaway release builds of `ace-pycompat` in the dev container, on 2026-11-26; the examples weren't kept.
+
+- **`parse_url`: the public suffix list.** `is_netloc_valid_tld` reads `ace_pycompat::tld`'s trie, built from the embedded `effective_tld_names.dat` the first time a process asks (`LazyLock`). The first lookup in a fresh process took 2.04 ms (median of 15 processes, 1.92 to 2.45), the next one 0.0007 ms. That is nearly all of `parse_url`'s 2.3 ms a run. Every other parser task that asks for a TLD pays it once too (`url_extraction` among them). Fixed since: the tries are built when the crate is compiled (`ace-pycompat`'s `build.rs`), and the first lookup in a fresh process takes 0.0043 ms (median of 15, 0.0035 to 0.0078).
+- **`file_hash_analyzer`: its declaration's globs.** The pool checks a module's declaration again inside the time it counts as `analyze` (`ace_sdk::run_parser`'s `declined`). `file_hash_analyzer`'s declaration is 28 path globs and 4 mime globs (ace3's `ignore_pattern_*` and `ignore_mime_type_*`), and `ace_pycompat::fnmatch` compiled a regex for each on every call, where Python's `fnmatch` caches each compiled pattern. One check of 30 of them in a fresh process took 0.89 ms (median of 15, 0.78 to 1.03), and of all 32, 1.10 ms (median of 15, 0.86 to 1.19); in a warm loop, 0.66 ms a check of the 30 compiling each time (three runs: 0.657, 0.640, 0.677) against 0.0017 ms with the patterns compiled once. That is about half of `file_hash_analyzer`'s 1.9 ms a run; the rest wasn't found. The core checks the same declaration for every file it queues, in a process that does keep running, so it compiled the same patterns again for each file. Fixed since: `fnmatch` matches without a regex, and a check of the 32 takes 0.0097 ms in a fresh process (median of 15, 0.0077 to 0.0115) and 0.0063 ms warm.
+
+## ace3's database queries
+
+`make-trees` answers `user_defined_tagging`'s and the conversation frequency module's queries from memory, so their ace3 figures leave the database out. These are ace3's own queries, timed in its dev container against its dev databases, read only, through ace3's `get_db_connection` as the modules call it (a connection pool, its first connection made before the timing):
+
+```
+docker exec -i -e PYTHONPATH=/opt/ace -e SAQ_SKIP_LOCAL_SAQ_YAML=1 -w /opt/ace ace-dev-1 \
+    /venv/bin/python3 - 2000 3 < tools/ace3/timings/query-bench.py
+```
+
+Three runs of 2,000 calls each, on 2026-11-26. Half the tag lookups are for observables the table holds and half for ones it doesn't; the brocess sums are for addresses it doesn't hold.
+
+| Query, per call | Median of the runs' medians | Runs' medians | p10 to p90, over all runs |
+|---|---:|---|---|
+| `user_defined_tagging`'s SELECT | 0.244 ms | 0.239, 0.244, 0.250 | 0.209 to 0.284 ms |
+| brocess sum by sender | 0.229 ms | 0.229, 0.236, 0.218 | 0.206 to 0.270 ms |
+| brocess sum by conversation | 0.221 ms | 0.218, 0.221, 0.222 | 0.204 to 0.248 ms |
+
+What else these include, and leave out:
+- **ace3's dev databases are nearly empty:** 677 observables, 19 tags, no tag mappings, and an empty smtplog. A query here is mostly its round trip and its planning. How it grows with production's tables isn't measured.
+- **The database is on the same Docker VM,** as ace-rs's Postgres was. A production database across a network adds its own round trip to every call.
+- **Nothing else was running in ace3's container,** where ace-rs's 0.50 ms a read is from a comparison run, with the other pools' tasks beside it.
+
 ## Found and left
 
 - **Declarations that would skip most of the per-task cost.** `autoit` declares nothing about which files it takes (`crates/ace-mod-sandbox/src/autoit.rs`), so the core queues it on every file and `is_autoit` runs inside `analyze`. "The file's type is PE, or its name ends `.au3`" can be checked by the core. The other modules queued on every file (`active_mime`, `hidden_mime`, `html_data_url_extraction`, `tls_keylog` and the three encryption analyzers) may be the same, though some of them do real work on the files they take. Together these are about 250 s of slot time over the set, 29% of ace-rs's total.
-- **`user_defined_tagging` takes 7 times as long in ace-rs** (4.76 s against 0.71 s over 9,492 runs), with 25 s of slot time. It has no CPU recorded, so it runs in a shared process.
 - **ace3's snapshot of the root around `observable_modifier`** costs 1,838 s over the sample set, against 4.4 s for the module. That is a finding about ace3, not ace-rs, and it applies wherever ace3 snapshots the root for a module that runs on every observable.
-- **ace3's `custom_requirement` checks** could be timed by the same wrapper, which would make ace3's totals complete. They weren't, so that all three runs stayed alike.
+- **ace3's `custom_requirement` checks** are timed by `make-trees --timings` since these runs (`requirement_runs`, `requirement_seconds`, `requirement_cpu_seconds`), and `tools/timings/compare` adds them to ace3's figures. The figures above are from before, without them. On `ace3/executables/hello_autoit.exe` alone, three modules have a check: `autoit`'s ran 67 times in 2.7 ms, and `qrcode`'s and `pdf_link_text`'s 88 times each, where neither module's `analyze` ran.
 - **The other containers' CPU** (core, Postgres, bucket, lookups, scanners) during these runs, which `compare-speed.md`'s cgroup reading would give.
