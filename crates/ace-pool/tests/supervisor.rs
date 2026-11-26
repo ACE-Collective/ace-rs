@@ -90,6 +90,77 @@ async fn a_panicking_parser_fails_its_task_and_the_supervisor_keeps_leasing() {
     );
 }
 
+/// PLAN.md 3.6: a task process's end carries how long its module's `analyze` took, which the
+/// process wrote with its end, and the CPU of the process and of its tools, which the supervisor read
+/// from their rusage when it reaped them. A process that panicked wrote no end, so its task has no
+/// `analyze` time, and its CPU all the same.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_task_processs_end_carries_its_analyze_time_and_its_cpu_with_its_tools() {
+    let core = Core::start(
+        testing::test_manifests(),
+        &[
+            "test_runs_tool",
+            "test_capabilities",
+            "test_panicking_parser",
+        ],
+        Duration::from_secs(30),
+    )
+    .await;
+    let tool = format!("test-tool={}", env!("CARGO_BIN_EXE_containment-test-task"));
+    // a tool that spins for half a CPU second, which the task process waits for and doesn't use
+    let (spins, sha256) =
+        root_with_bytes(&core, "event", b"--uncontained\ncpu\n0.5", "cpu.txt").await;
+    common::enqueue(&core, spins, &sha256.to_hex(), "test_runs_tool").await;
+    let reports = root_with_tasks(
+        &core,
+        &["reports.example.com".to_owned()],
+        "test_capabilities",
+    )
+    .await;
+    let panics = root_with_tasks(
+        &core,
+        &["panics.example.com".to_owned()],
+        "test_panicking_parser",
+    )
+    .await;
+    let mut pool = supervisor(&core, &["--tool", &tool]);
+    for root in [spins, reports, panics] {
+        wait_until_idle(&core, root, Duration::from_secs(60)).await;
+    }
+    let stderr = pool.stop();
+    let cost = |root: uuid::Uuid, module: &'static str| {
+        let db = core.test_db.db().pool().clone();
+        async move {
+            sqlx::query_as::<_, (String, Option<f64>, Option<f64>)>(
+                "SELECT state::text, analyze_seconds, cpu_seconds FROM queue.tasks
+                 WHERE root_id = $1 AND module = $2",
+            )
+            .bind(root)
+            .bind(module)
+            .fetch_one(&db)
+            .await
+            .expect("the task")
+        }
+    };
+
+    let (state, analyze, cpu) = cost(spins, "test_runs_tool").await;
+    assert_eq!(state, "done", "{stderr}");
+    let (analyze, cpu) = (analyze.expect("an analyze time"), cpu.expect("a CPU"));
+    // the tool's half second is in both: the module waited for it, and its CPU is the task's
+    assert!(analyze >= 0.5, "{analyze}");
+    assert!(cpu >= 0.5, "{cpu}");
+
+    let (state, analyze, cpu) = cost(reports, "test_capabilities").await;
+    assert_eq!(state, "done", "{stderr}");
+    assert!(analyze.is_some_and(|s| s >= 0.0), "{analyze:?}");
+    assert!(cpu.is_some_and(|s| s >= 0.0), "{cpu:?}");
+
+    let (state, analyze, cpu) = cost(panics, "test_panicking_parser").await;
+    assert_eq!(state, "failed", "{stderr}");
+    assert_eq!(analyze, None, "the process wrote no end");
+    assert!(cpu.is_some_and(|s| s >= 0.0), "{cpu:?}");
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn the_archive_module_unpacks_rar_5_in_a_contained_task_process() {
     let core = Core::start(
@@ -1014,6 +1085,64 @@ async fn cancelling_a_root_kills_its_running_task_process_and_the_task_ends_canc
     assert_eq!((state.as_str(), error), ("cancelled", None), "{stderr}");
     assert!(stderr.contains("the task was cancelled"), "{stderr}");
     assert!(stderr.contains("test_stuck: stuck on"), "{stderr}");
+}
+
+/// PLAN.md 3.6: a task cancelled while one of its tools runs has that run cut off, killed and reaped
+/// without its rusage, so the task's CPU goes null rather than a sum that leaves the tool out, and
+/// the supervisor's log says why.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_tool_run_cut_off_by_its_tasks_end_leaves_the_tasks_cpu_unknown() {
+    const RENEWAL: Duration = Duration::from_secs(1);
+    let core = Core::start(
+        testing::test_manifests(),
+        &["test_runs_tool"],
+        RENEWAL * 3, // the lease; a keeper renews it every third
+    )
+    .await;
+    let tool = format!("test-tool={}", env!("CARGO_BIN_EXE_containment-test-task"));
+    // the module gives its tool five seconds, far longer than a cancel takes to reach it
+    let (root, sha256) =
+        root_with_bytes(&core, "event", b"--uncontained\nsleep\n60", "sleeps.txt").await;
+    common::enqueue(&core, root, &sha256.to_hex(), "test_runs_tool").await;
+    let mut pool = supervisor(&core, &["--tool", &tool]);
+    // the tool, once it has exec'd: the supervisor's child whose arguments say sleep
+    let parent = pool.pid().to_string();
+    let waiting = Instant::now();
+    while !std::fs::read_dir("/proc")
+        .expect("/proc")
+        .flatten()
+        .filter_map(|entry| entry.file_name().to_str()?.parse::<u32>().ok())
+        .any(|pid| {
+            proc_stat(pid).is_some_and(|stat| stat[1] == parent)
+                && std::fs::read(format!("/proc/{pid}/cmdline"))
+                    .is_ok_and(|command| command.split(|b| *b == 0).any(|arg| arg == b"sleep"))
+        })
+    {
+        assert!(
+            // a guard against a hang, not a bound on how soon the tool starts
+            waiting.elapsed() < Duration::from_secs(30),
+            "no tool running"
+        );
+        // polls /proc for the tool, the state this waits for, as `stuck_task_process` does
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+
+    let mut tx = core.test_db.db().begin().await.expect("begins");
+    ace_core::queue::cancel_root(&mut tx, root)
+        .await
+        .expect("cancels");
+    tx.commit().await.expect("commits");
+    let (state, _, _) = task_state(&core, root, "test_runs_tool", Duration::from_secs(30)).await;
+    let stderr = pool.stop();
+    assert_eq!(state, "cancelled", "{stderr}");
+    let cpu: Option<f64> =
+        sqlx::query_scalar("SELECT cpu_seconds FROM queue.tasks WHERE root_id = $1")
+            .bind(root)
+            .fetch_one(core.test_db.db().pool())
+            .await
+            .expect("the task");
+    assert_eq!(cpu, None, "{stderr}");
+    assert!(stderr.contains("stopped before it was reaped"), "{stderr}");
 }
 
 /// SIGTERM with a task running: the process dies, the lease goes back at once rather than by

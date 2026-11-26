@@ -1,0 +1,245 @@
+#!/usr/bin/env python3
+"""tools/timings/compare's tests, on fixtures/: three ace-rs runs and three ace3 runs of five samples
+built so each rule has a case. In every fixture run k (1, 2, 3) a counted figure is k times its
+run 1 value, so its median is run 2's and its range runs 1 and 3's. A sample or module that must be
+left out carries values big enough that counting it would show.
+
+    tools/timings/self-test
+"""
+
+import importlib.machinery
+import importlib.util
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+FIXTURES = HERE / "fixtures"
+A, B, C, D, E = "ace3/files/a.bin", "ace3/files/b.bin", "ace-rs/files/c.bin", "ace3/files/d.bin", "ace3/files/e.bin"
+
+# the script has no .py name, so it is loaded by path; no bytecode, which would land in the tree
+sys.dont_write_bytecode = True
+_loader = importlib.machinery.SourceFileLoader("compare_timings", str(HERE / "compare"))
+_spec = importlib.util.spec_from_loader("compare_timings", _loader)
+compare = importlib.util.module_from_spec(_spec)
+_loader.exec_module(compare)
+
+
+def run_script():
+    command = [str(HERE / "compare")]
+    for k in (1, 2, 3):
+        command += ["--ace-rs", str(FIXTURES / "ace-rs" / f"run{k}" / "report.json")]
+    for k in (1, 2, 3):
+        command += ["--ace3", str(FIXTURES / "ace3" / f"run{k}")]
+    with tempfile.TemporaryDirectory() as work:
+        out = Path(work) / "timings.json"
+        done = subprocess.run(command + ["--json", str(out)], capture_output=True, text=True, check=True)
+        return done.stdout, json.loads(out.read_text())
+
+
+def spread(median, low, high, runs=3):
+    return {"median": median, "min": low, "max": high, "runs": runs}
+
+
+class Fixtures(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.text, cls.result = run_script()
+        cls.modules = {row["module"]: row for row in cls.result["modules"]}
+        cls.one_side = {row["module"]: row for row in cls.result["one_side_modules"]}
+
+    def assertSpread(self, actual, median, low, high):
+        self.assertIsNotNone(actual)
+        for key, wanted in (("median", median), ("min", low), ("max", high)):
+            self.assertAlmostEqual(actual[key], wanted, places=9, msg=f"{key} of {actual}")
+        self.assertEqual(actual["runs"], 3)
+
+    def test_joins_by_sample_and_module_with_medians_and_ranges_over_three_runs(self):
+        ft = self.modules["file_type"]
+        self.assertSpread(ft["ace_rs"]["total"]["analyze"], 0.04, 0.02, 0.06)
+        self.assertSpread(ft["ace_rs"]["total"]["slot"], 0.2, 0.1, 0.3)
+        self.assertSpread(ft["ace_rs"]["total"]["cpu"], 0.02, 0.01, 0.03)
+        self.assertSpread(ft["ace3"]["total"]["analyze"], 0.02, 0.01, 0.03)
+        self.assertSpread(ft["ace3"]["total"]["slot"], 0.1, 0.05, 0.15)
+        self.assertSpread(ft["ace3"]["total"]["cpu"], 0.016, 0.008, 0.024)
+        self.assertAlmostEqual(ft["ratio"]["analyze"], 2.0)
+        self.assertAlmostEqual(ft["ratio"]["cpu"], 1.25)
+
+    def test_a_lookup_has_no_cpu_and_a_missing_executor_has_no_slot(self):
+        rdap = self.modules["rdap_analyzer"]
+        self.assertIsNone(rdap["ace_rs"]["total"]["cpu"])
+        self.assertEqual(rdap["ace_rs"]["nulls"]["cpu"], {"samples": 1, "of": 1})
+        self.assertIsNone(rdap["ratio"]["cpu"])
+        self.assertIsNone(rdap["ace3"]["total"]["slot"])
+        self.assertSpread(rdap["ace3"]["total"]["cpu"], 0.04, 0.02, 0.06)
+        # two runs on each side: the totals are the sample's sums, the per-run figures half of them
+        self.assertSpread(rdap["ace_rs"]["total"]["analyze"], 0.6, 0.3, 0.9)
+        self.assertSpread(rdap["ace3"]["total"]["analyze"], 1.0, 0.5, 1.5)
+        self.assertSpread(rdap["ace_rs"]["per_run"]["analyze"], 0.3, 0.15, 0.45)
+        self.assertSpread(rdap["ace3"]["per_run"]["analyze"], 0.5, 0.25, 0.75)
+        self.assertAlmostEqual(rdap["ratio"]["analyze"], 0.6)
+        self.assertEqual(rdap["ace_rs"]["runs"]["median"], 2)
+        self.assertEqual(rdap["ace_rs"]["cache_hits"]["median"], 1)
+        self.assertIn("| n/a |", next(line for line in self.text.splitlines() if "`rdap_analyzer`" in line))
+
+    def test_samples_missing_from_a_run_on_either_side_count_nowhere(self):
+        left = self.result["left_out_samples"]
+        self.assertEqual(left["missing from an ace-rs run"], [D, E])
+        self.assertEqual(left["missing from an ace3 run"], [C])
+        self.assertEqual(self.result["samples_on_both_sides"], 2)
+        # c and e carry file_type figures of 1 and 50 seconds; counted, they would move the median
+        self.assertAlmostEqual(self.modules["file_type"]["ace_rs"]["total"]["analyze"]["median"], 0.04)
+
+    def test_an_unexplained_difference_in_any_run_leaves_the_sample_out_of_that_module(self):
+        ft = self.modules["file_type"]
+        self.assertEqual(ft["left_out"]["unexplained difference"], [B])
+        self.assertEqual(ft["samples"], 1)
+        self.assertIn("`file_type`: 1 sample with an unexplained difference: `ace3/files/b.bin`", self.text)
+
+    def test_explained_differences_are_counted(self):
+        exif = self.modules["exif"]
+        self.assertEqual(exif["samples"], 1)
+        self.assertEqual(exif["left_out"], {"unexplained difference": [], "failed task": []})
+        self.assertSpread(exif["ace_rs"]["total"]["analyze"], 0.4, 0.2, 0.6)
+
+    def test_a_failed_task_leaves_the_sample_out_of_that_module(self):
+        self.assertEqual(self.modules["rdap_analyzer"]["left_out"]["failed task"], [B])
+
+    def test_modules_on_one_side_only_are_listed_apart_with_their_runs(self):
+        self.assertEqual(set(self.one_side), {"email_logger", "olevba_v1_2", "yara_scanner_v3_4"})
+        self.assertEqual(self.one_side["email_logger"]["ran_on"], "ace-rs")
+        self.assertEqual(self.one_side["olevba_v1_2"]["ran_on"], "ace3")
+        yara = self.one_side["yara_scanner_v3_4"]
+        self.assertEqual((yara["ran_on"], yara["ace_rs"]["runs"]["max"], yara["ace_rs"]["cache_hits"]["max"]),
+                         ("ace3", 0, 1))
+        self.assertNotIn("ratio", yara)
+
+    def test_a_module_with_no_runs_on_either_side_is_left_out_without_dividing_by_zero(self):
+        self.assertNotIn("ocr", self.modules)
+        self.assertNotIn("ocr", self.one_side)
+
+    def test_roots_compare_cpu_and_summed_analyze_and_leave_out_unclean_ones(self):
+        self.assertEqual([r["sample"] for r in self.result["roots"]], [A])
+        self.assertEqual(self.result["left_out_roots"], {B: ["failed task", "unexplained difference"]})
+        root = self.result["roots"][0]
+        self.assertSpread(root["ace_rs"]["cpu"], 0.02, 0.01, 0.03)
+        self.assertSpread(root["ace_rs"]["analyze"], 0.66, 0.33, 0.99)
+        # ace3's process CPU is self plus children: 1.0k + 0.5k
+        self.assertSpread(root["ace3"]["cpu"], 3.0, 1.5, 4.5)
+        self.assertSpread(root["ace3"]["analyze"], 1.82, 0.91, 2.73)
+        self.assertEqual(root["ace3_only_modules"], ["olevba_v1_2"])
+        self.assertEqual(self.result["root_totals"]["roots"], 1)
+
+    def test_the_whole_sample_set_sums_the_counted_roots(self):
+        totals = self.result["root_totals"]
+        self.assertSpread(totals["ace_rs"]["cpu"], 0.02, 0.01, 0.03)
+        self.assertSpread(totals["ace3"]["cpu"], 3.0, 1.5, 4.5)
+        line = next(line for line in self.text.splitlines() if line.startswith("Over the 1 counted root"))
+        self.assertIn("CPU ratio 0.00667", line)
+
+    def test_the_main_table_has_totals_and_the_per_run_table_follows_it(self):
+        lines = self.text.splitlines()
+        main = lines.index("## Modules that ran on both sides")
+        per_run = lines.index("### Per run")
+        rdap = [line for line in lines if line.startswith("| `rdap_analyzer`")]
+        self.assertTrue(main < per_run)
+        self.assertIn("| 0.6 [0.3, 0.9] | 1 [0.5, 1.5] |", rdap[0])
+        self.assertIn("| 0.3 [0.15, 0.45] | 0.5 [0.25, 0.75] |", rdap[1])
+
+
+def rs_run(samples):
+    return {"path": "rs", "ace3_commit": "c", "missing": set(),
+            "samples": {s["sample"]: {"differences": [], "failed_tasks": [], **s} for s in samples}}
+
+
+def ace3_run(samples):
+    return {"path": "ace3", "ace3_commit": "c", "samples": {s["sample"]: s for s in samples}}
+
+
+def process(cpu=1.0):
+    return {"wall_seconds": 1.0, "cpu_seconds": cpu, "children_cpu_seconds": 0.0}
+
+
+class Edges(unittest.TestCase):
+    def test_per_run_drops_a_null_value_with_its_runs_and_never_divides_by_zero(self):
+        self.assertAlmostEqual(compare.per_run([(1.0, 2), (None, 5), (3.0, 2)]), 1.0)
+        self.assertIsNone(compare.per_run([(None, 3), (2.0, 0)]))
+        self.assertIsNone(compare.per_run([]))
+
+    def test_a_missing_executor_value_in_one_sample_leaves_the_others(self):
+        rs = rs_run([
+            {"sample": s, "timings": {"root": {}, "modules": {"m": {
+                "runs": 1, "run_seconds": 1.0, "analyze_seconds": 1.0, "cpu_seconds": 1.0, "cache_hits": 0}}}}
+            for s in ("x", "y")])
+        ace3 = ace3_run([
+            {"sample": "x", "process": process(), "modules": {"m": {
+                "executor_runs": 1, "executor_seconds": 0.5, "runs": 1, "analyze_seconds": 0.4, "cpu_seconds": 0.4}}},
+            {"sample": "y", "process": process(), "modules": {"m": {
+                "executor_runs": None, "executor_seconds": None, "runs": 3, "analyze_seconds": 0.8, "cpu_seconds": 0.8}}},
+        ])
+        result = compare.compare([rs], [ace3])
+        row = result["modules"][0]
+        # no total of a part: the slot total is withheld and said to be partial
+        self.assertIsNone(row["ace3"]["total"]["slot"])
+        self.assertEqual(row["ace3"]["nulls"]["slot"], {"samples": 1, "of": 2})
+        self.assertIn("partial (1 of 2 null)", compare.markdown(result))
+        # per run, the sample with no value leaves with its runs
+        self.assertEqual(row["ace3"]["per_run"]["slot"]["median"], 0.5)
+        self.assertAlmostEqual(row["ace3"]["per_run"]["analyze"]["median"], 0.3)
+        self.assertAlmostEqual(row["ace3"]["total"]["analyze"]["median"], 1.2)
+        self.assertEqual(row["ace3"]["runs"]["median"], 4)
+
+    def test_some_lookup_samples_make_ace_rs_cpu_partial_and_give_no_cpu_ratio(self):
+        figures = [(1.0, 1.0), (1.0, None)]
+        rs = rs_run([
+            {"sample": s, "timings": {"root": {}, "modules": {"m": {
+                "runs": 1, "run_seconds": 1.0, "analyze_seconds": a, "cpu_seconds": c, "cache_hits": 0}}}}
+            for s, (a, c) in zip(("x", "y"), figures)])
+        ace3 = ace3_run([{"sample": s, "process": process(), "modules": {"m": {
+            "executor_runs": 1, "executor_seconds": 1.0, "runs": 1, "analyze_seconds": 1.0, "cpu_seconds": 1.0}}}
+            for s in ("x", "y")])
+        row = compare.compare([rs], [ace3])["modules"][0]
+        self.assertIsNone(row["ace_rs"]["total"]["cpu"])
+        self.assertIsNone(row["ratio"]["cpu"])
+        self.assertEqual(row["ratio"]["analyze"], 1.0)
+
+    def test_totals_compare_where_run_counts_differ_by_thousands(self):
+        rs = rs_run([{"sample": "x", "timings": {"root": {}, "modules": {"m": {
+            "runs": 4, "run_seconds": 2.0, "analyze_seconds": 1.6, "cpu_seconds": 1.6, "cache_hits": 0}}}}])
+        ace3 = ace3_run([{"sample": "x", "process": process(), "modules": {"m": {
+            "executor_runs": 5000, "executor_seconds": 2.5, "runs": 5000, "analyze_seconds": 2.0, "cpu_seconds": 2.0}}}])
+        row = compare.compare([rs], [ace3])["modules"][0]
+        self.assertAlmostEqual(row["ratio"]["analyze"], 0.8)
+        self.assertAlmostEqual(row["ratio"]["cpu"], 0.8)
+        self.assertEqual((row["ace_rs"]["runs"]["median"], row["ace3"]["runs"]["median"]), (4, 5000))
+
+    def test_a_root_of_lookups_alone_has_no_ace_rs_cpu_and_adds_nothing_to_the_total(self):
+        rs = rs_run([
+            {"sample": "x", "timings": {"root": {"cpu_seconds": None, "analyze_seconds": 0.2}, "modules": {
+                "l": {"runs": 1, "run_seconds": 0.3, "analyze_seconds": 0.2, "cpu_seconds": None, "cache_hits": 0}}}},
+            {"sample": "y", "timings": {"root": {"cpu_seconds": 0.7, "analyze_seconds": 0.5}, "modules": {}}},
+        ])
+        ace3 = ace3_run([{"sample": s, "process": process(), "modules": {}} for s in ("x", "y")])
+        result = compare.compare([rs], [ace3])
+        self.assertEqual(result["root_totals"]["ace_rs_roots_without_cpu"], 1)
+        self.assertEqual(result["root_totals"]["ace_rs"]["cpu"]["median"], 0.7)
+        self.assertIn("every task of theirs a lookup", compare.markdown(result))
+
+    def test_a_tree_difference_leaves_the_root_out_but_not_its_modules(self):
+        rs = rs_run([{"sample": "x",
+                      "differences": [{"module": "(tree)", "class": "unexplained", "path": "/observables/1"}],
+                      "timings": {"root": {}, "modules": {"m": {
+                          "runs": 1, "run_seconds": 1.0, "analyze_seconds": 1.0, "cpu_seconds": 1.0, "cache_hits": 0}}}}])
+        ace3 = ace3_run([{"sample": "x", "process": process(), "modules": {"m": {
+            "executor_runs": 1, "executor_seconds": 1.0, "runs": 1, "analyze_seconds": 1.0, "cpu_seconds": 1.0}}}])
+        result = compare.compare([rs], [ace3])
+        self.assertEqual(result["roots"], [])
+        self.assertEqual(result["left_out_roots"], {"x": ["unexplained difference"]})
+        self.assertEqual(result["modules"][0]["samples"], 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -9,8 +9,9 @@ use ace_results::Sha256;
 use ace_sdk::http::{HttpClient, HttpError};
 use ace_sdk::reads::{ReadError, Reader};
 use ace_sdk::wire::{
-    ApiError, CommandEnd, CommandLeaseRequest, CommandReply, CommandReport, CurrentRuleset,
-    LeaseRequest, LeasedCommand, LeasedTask, Presigned, Renewal, TaskEnd, UploadRequest, paths,
+    ANALYZE_SECONDS_HEADER, ApiError, CPU_SECONDS_HEADER, CommandEnd, CommandLeaseRequest,
+    CommandReply, CommandReport, CurrentRuleset, LeaseRequest, LeasedCommand, LeasedTask,
+    Presigned, Renewal, RunCost, TaskEnd, UploadRequest, paths,
 };
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
@@ -338,11 +339,31 @@ impl LeaseClient {
         answer(response, task).await
     }
 
+    /// Ends a task, saying nothing of what its run cost.
     pub async fn end(&self, task: i64, end: &TaskEnd) -> Result<(), ClientError> {
-        let request = self
+        self.end_timed(task, end, RunCost::default()).await
+    }
+
+    /// Ends a task with what its run cost in this pool (PLAN.md 3.6), each number known in a header
+    /// of its own beside the body.
+    pub async fn end_timed(
+        &self,
+        task: i64,
+        end: &TaskEnd,
+        cost: RunCost,
+    ) -> Result<(), ClientError> {
+        let mut request = self
             .post(&paths::task(task, "end"))
             .timeout(TRANSFER_TIMEOUT)
             .json(end);
+        for (header, seconds) in [
+            (ANALYZE_SECONDS_HEADER, cost.analyze_seconds),
+            (CPU_SECONDS_HEADER, cost.cpu_seconds),
+        ] {
+            if let Some(seconds) = seconds {
+                request = request.header(header, seconds.to_string());
+            }
+        }
         let response = self.http.send(request).await?;
         expect_empty(response, task).await
     }

@@ -412,6 +412,31 @@ pub enum TaskEnd {
     Cancelled,
 }
 
+/// What a task's run cost in its pool (PLAN.md 3.6), which the core adds to the task's run in its
+/// root's pass beside `run_seconds` (`ace_core::metrics`). Each is None where the pool doesn't
+/// know it, and so is either from a pool built before it sent them. A worker sends them in its end
+/// request's headers (`ANALYZE_SECONDS_HEADER`, `CPU_SECONDS_HEADER`), not in its body, so the body
+/// stays a `TaskEnd` read in one pass, and a core that doesn't know them ignores them.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RunCost {
+    /// How long the module's `analyze` took, with the checks before it that can skip the task
+    /// (`ace_sdk::module::run_parser`, `run_lookup`), timed in the process that ran it. None when the
+    /// module never answered, as a task process that crashed or was killed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub analyze_seconds: Option<f64>,
+    /// The user and system CPU of the task's own process and of the tool processes it had run
+    /// (`crate::tools`), read from their rusage when the pool reaped them. None for a task that
+    /// shares its process, as a lookup's, and for one whose rusage couldn't be read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cpu_seconds: Option<f64>,
+}
+
+/// The end request's header with `RunCost::analyze_seconds`, a decimal number of seconds.
+pub const ANALYZE_SECONDS_HEADER: &str = "x-ace-rs-analyze-seconds";
+/// The end request's header with `RunCost::cpu_seconds`, a decimal number of seconds.
+pub const CPU_SECONDS_HEADER: &str = "x-ace-rs-cpu-seconds";
+
 /// A worker asking where to upload a file a module wrote.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

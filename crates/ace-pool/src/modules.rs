@@ -12,12 +12,13 @@ use std::sync::Arc;
 use ace_results::AnalysisType;
 use ace_sdk::reads::Reader;
 use ace_sdk::tools::{LocalRunner, ToolRunner, ToolSpec};
-use ace_sdk::wire::{LeasedTask, TaskEnd};
+use ace_sdk::wire::{LeasedTask, RunCost, TaskEnd};
 use ace_sdk::writes::WireWrite;
 use ace_sdk::{
     CarryingEmail, Component, EmailBodyPart, FileStore, Lookup, Manifest, ModuleError, Outcome,
     Parser, Secrets, SettingsError, TaskContext, load_settings, run_lookup, run_parser,
 };
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 
@@ -108,14 +109,51 @@ pub trait PoolParser: Send + Sync {
     /// The settings block it was built from, which the supervisor hands each of its task
     /// processes, so the process builds it again from the block the pool checked when it started.
     fn settings(&self) -> Option<&Value>;
-    fn run(&self, run: Run<'_>) -> TaskEnd;
+    /// Runs the module on the task: its end, with how long its `analyze` took (`analyzed`).
+    fn run(&self, run: Run<'_>) -> TimedEnd;
 }
 
 /// A lookup a pool runs, built with its settings.
 pub trait PoolLookup: Send + Sync {
     fn manifest(&self) -> Manifest;
     fn key(&self) -> &str;
-    fn run<'a>(&'a self, run: Run<'a>) -> Pin<Box<dyn Future<Output = TaskEnd> + Send + 'a>>;
+    /// Runs the module on the task: its end, with how long its `analyze` took (`analyzed`).
+    fn run<'a>(&'a self, run: Run<'a>) -> Pin<Box<dyn Future<Output = TimedEnd> + Send + 'a>>;
+}
+
+/// A task's end with what its run cost (PLAN.md 3.6), as a module's run returns it and a task
+/// process writes it to its supervisor, with no CPU, which the supervisor adds. The core gets the
+/// cost in the end request's headers instead (`ace_sdk::wire::ANALYZE_SECONDS_HEADER`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TimedEnd {
+    #[serde(default)]
+    pub cost: RunCost,
+    pub end: TaskEnd,
+}
+
+impl TimedEnd {
+    /// An end with no cost known.
+    pub fn untimed(end: TaskEnd) -> Self {
+        TimedEnd {
+            cost: RunCost::default(),
+            end,
+        }
+    }
+}
+
+/// A module's end with how long its run took (PLAN.md 3.6): `ace_sdk`'s `run_parser` or
+/// `run_lookup`, which are the `task` span, the module's `analyze` and the checks before it that can
+/// skip the task. The result's encoding for the wire comes after and isn't counted. Its CPU is the
+/// supervisor's to add, since only a task's own process has CPU of its own.
+fn analyzed(end: TaskEnd, took: std::time::Duration) -> TimedEnd {
+    TimedEnd {
+        cost: RunCost {
+            analyze_seconds: Some(took.as_secs_f64()),
+            cpu_seconds: None,
+        },
+        end,
+    }
 }
 
 /// A module, its settings and the secrets it declared, under its component's key.
@@ -220,8 +258,12 @@ impl<M: Parser> PoolParser for Entry<M> {
         self.block.as_ref()
     }
 
-    fn run(&self, run: Run<'_>) -> TaskEnd {
-        task_end(run_parser(&self.module, &self.context(&run)), Vec::new())
+    fn run(&self, run: Run<'_>) -> TimedEnd {
+        let ctx = self.context(&run);
+        let started = std::time::Instant::now();
+        let outcome = run_parser(&self.module, &ctx);
+        let took = started.elapsed();
+        analyzed(task_end(outcome, Vec::new()), took)
     }
 }
 
@@ -234,11 +276,14 @@ impl<M: Lookup> PoolLookup for Entry<M> {
         &self.key
     }
 
-    fn run<'a>(&'a self, run: Run<'a>) -> Pin<Box<dyn Future<Output = TaskEnd> + Send + 'a>> {
+    fn run<'a>(&'a self, run: Run<'a>) -> Pin<Box<dyn Future<Output = TimedEnd> + Send + 'a>> {
         Box::pin(async move {
             let ctx = self.context(&run);
+            // wall time, as ace3's: a lookup's awaits and its share of the runtime count
+            let started = std::time::Instant::now();
             let outcome = run_lookup(&self.module, &ctx).await;
-            task_end(outcome, ctx.take_writes())
+            let took = started.elapsed();
+            analyzed(task_end(outcome, ctx.take_writes()), took)
         })
     }
 }
@@ -557,6 +602,36 @@ mod tests {
         clone.replace(super::Modules::new().with_tools(&[]));
         assert!(!std::sync::Arc::ptr_eq(&before, &handle.now()));
         assert!(std::sync::Arc::ptr_eq(&clone.now(), &handle.now()));
+    }
+
+    /// What a task process writes its supervisor: the end as a field of its own, with the cost
+    /// beside it, and a field neither knows refused, as the end alone refused one.
+    #[test]
+    fn a_timed_end_reads_back_and_refuses_a_field_it_doesnt_know() {
+        let timed = TimedEnd {
+            cost: RunCost {
+                analyze_seconds: Some(0.25),
+                cpu_seconds: None,
+            },
+            end: TaskEnd::Cancelled,
+        };
+        let json = serde_json::to_value(&timed).expect("serializes");
+        assert_eq!(
+            json,
+            serde_json::json!({"cost": {"analyze_seconds": 0.25}, "end": {"outcome": "cancelled"}})
+        );
+        assert_eq!(
+            serde_json::from_value::<TimedEnd>(json).expect("reads"),
+            timed
+        );
+        for body in [
+            r#"{"end":{"outcome":"cancelled"},"extra":1}"#,
+            r#"{"cost":{"extra":1},"end":{"outcome":"cancelled"}}"#,
+            r#"{"end":{"outcome":"failed","error":"x","extra":1}}"#,
+        ] {
+            let refused = serde_json::from_str::<TimedEnd>(body);
+            assert!(refused.is_err(), "{body}: {refused:?}");
+        }
     }
 
     use super::*;

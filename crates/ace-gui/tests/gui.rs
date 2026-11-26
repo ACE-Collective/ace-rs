@@ -12278,6 +12278,8 @@ fn the_monitoring_page_draws_runs_and_records_as_text() {
         analysis_time_seconds: 0.5,
         percentage: 100.0,
         exec_count: 1,
+        analyze_seconds: Some(0.25),
+        cpu_seconds: Some(0.25),
         cache: Some(ace_core::metrics::CacheMetrics {
             cache_hit_count: 1,
             cache_miss_count: 1,
@@ -12313,7 +12315,7 @@ fn the_monitoring_page_draws_runs_and_records_as_text() {
         .1;
     for (json, table, count) in [
         (event.to_json(), root_table, 14),
-        (module.to_json(), module_table, 14),
+        (module.to_json(), module_table, 16),
     ] {
         let fields: serde_json::Value = serde_json::from_str(&json).expect("JSON");
         let fields = fields.as_object().expect("an object");

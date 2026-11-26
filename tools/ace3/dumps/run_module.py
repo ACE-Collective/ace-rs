@@ -61,7 +61,10 @@ does (saq/cli/commands/correlate.py) with all modules disabled except the ones n
 - with --analysis-mode MODE, the root is in that mode rather than cli, such as correlation, the only
   one phishkit renders files in;
 - with --tree, it also writes tree.json, the whole root in the normal form of PLAN.md 3.1
-  (crates/ace-core/src/normal.rs), which tools/ace3/trees/make-trees collects.
+  (crates/ace-core/src/normal.rs), which tools/ace3/trees/make-trees collects;
+- with --timings, it also writes timings.json (PLAN.md 3.6): for each module, the executor's own
+  total_exec_count and total_analysis_time, and each call of its analyze timed by wall clock and CPU;
+  and the process's wall time and CPU, its children's apart, from its start to the engine's end.
 
 The dump lists every analysis on the observable (the module's and its dependencies'), with the
 observables each one added, and what the module did to the observable itself (tags, directives,
@@ -150,6 +153,10 @@ def parse_args():
         "its place in the file from 1, and answer the YARA module's read of a matched detection's row",
     )
     parser.add_argument("--tree", action="store_true", help="also write the root in the normal form to tree.json")
+    parser.add_argument(
+        "--timings", action="store_true",
+        help="also write each module's run times and CPU, and the process's, to timings.json",
+    )
     parser.add_argument(
         "--tree-view", action="store_true",
         help="also keep the whole root in the dump, as ace-rs's core hands a module that walks it its tree",
@@ -844,6 +851,90 @@ def record_fluent_bit():
 
     sender.FluentSender.emit = emit
     return sent
+
+
+def children_cpu():
+    import resource
+
+    usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+    return usage.ru_utime + usage.ru_stime
+
+
+class ModuleTimings:
+    """Times each module's runs from inside the run (PLAN.md 3.6). The cli mode's single-threaded
+    engine runs every module in this process (Engine.start_single_threaded), so the wrappers sit where
+    analyze runs. The executor's own totals are kept on each EngineExecutionContext and reach nothing
+    but fluent-bit, so every context made is kept to read them back; a delayed analysis makes another.
+    analyze is wrapped on AnalysisModule, which every module inherits it from without overriding it,
+    so a call the module declines (analysis_covered, an INCOMPLETE) counts as the executor counts it.
+    CPU is the whole process's, the monitor and logging threads included, and the children's that
+    finished during the call, such as the tools rtfole and the decompilers run."""
+
+    def __init__(self):
+        import time
+
+        from saq.engine.execution_context import EngineExecutionContext
+        from saq.modules.base_module import AnalysisModule
+
+        self.contexts = []
+        self.modules = {}
+        contexts, modules = self.contexts, self.modules
+
+        init = EngineExecutionContext.__init__
+
+        def context_init(context, *args, **kwargs):
+            init(context, *args, **kwargs)
+            contexts.append(context)
+
+        EngineExecutionContext.__init__ = context_init
+
+        analyze = AnalysisModule.analyze
+
+        def timed_analyze(module, *args, **kwargs):
+            wall, cpu, children = time.perf_counter(), time.process_time(), children_cpu()
+            try:
+                return analyze(module, *args, **kwargs)
+            finally:
+                entry = modules.setdefault(module.name, {"runs": 0, "analyze_seconds": 0.0, "cpu_seconds": 0.0})
+                entry["runs"] += 1
+                entry["analyze_seconds"] += time.perf_counter() - wall
+                entry["cpu_seconds"] += time.process_time() - cpu + children_cpu() - children
+
+        AnalysisModule.analyze = timed_analyze
+
+    def form(self, process):
+        executor_seconds, executor_runs = {}, {}
+        for context in self.contexts:
+            for name, seconds in context.total_analysis_time.items():
+                executor_seconds[name] = executor_seconds.get(name, 0.0) + seconds
+            for name, count in context.total_exec_count.items():
+                executor_runs[name] = executor_runs.get(name, 0) + count
+        modules = {}
+        for name in sorted(set(self.modules) | set(executor_seconds) | set(executor_runs)):
+            mine = self.modules.get(name, {"runs": 0, "analyze_seconds": 0.0, "cpu_seconds": 0.0})
+            modules[name] = {
+                "executor_runs": executor_runs.get(name, 0) if self.contexts else None,
+                "executor_seconds": executor_seconds.get(name, 0.0) if self.contexts else None,
+            } | mine
+        return {"process": process, "modules": modules}
+
+
+def process_timings():
+    """The process from its start, interpreter and imports included: wall time from the kernel's start
+    time (to a clock tick), CPU from rusage."""
+    import resource
+    import time
+
+    with open("/proc/self/stat") as fp:
+        # the fields after the command, which may hold spaces, start at the third; starttime is the 22nd
+        start_ticks = int(fp.read().rsplit(")", 1)[1].split()[19])
+    started = start_ticks / os.sysconf("SC_CLK_TCK")
+    usage = resource.getrusage(resource.RUSAGE_SELF)
+    return {
+        "wall_seconds": time.clock_gettime(time.CLOCK_BOOTTIME) - started,
+        "cpu_seconds": usage.ru_utime + usage.ru_stime,
+        "children_cpu_seconds": children_cpu(),
+    }
 
 
 # What the normal form calls each ace3 analysis, and the fields of a result that describe the run
@@ -1733,6 +1824,7 @@ def main():
     scanner_requests = []
     if args.scanner_output:
         fake_scanners(args.scanner_output, scanner_requests)
+    timings = ModuleTimings() if args.timings else None
 
     # results must not reach ace3's database through the analysis cache
     get_config().analysis_cache.enabled = False
@@ -1823,6 +1915,8 @@ def main():
         engine.configuration_manager.enable_module(name, args.analysis_mode)
 
     engine.start_single_threaded(execution_mode=EngineExecutionMode.UNTIL_COMPLETE)
+    # the trees' and dumps' own work below isn't ace3's cost of the root
+    process = process_timings() if timings else None
 
     root = RootAnalysis(storage_dir=root_dir)
     root.load()
@@ -1912,6 +2006,10 @@ def main():
         tree = relative_paths(tree_form(root), [(root_dir, "<root>"), (work, "<work>")])
         with open(os.path.join(work, "tree.json"), "w") as fp:
             json.dump(tree, fp, indent=2, sort_keys=True, ensure_ascii=False)
+            fp.write("\n")
+    if timings is not None:
+        with open(os.path.join(work, "timings.json"), "w") as fp:
+            json.dump(timings.form(process), fp, indent=2)
             fp.write("\n")
     if recorder is not None:
         dump["http_exchanges"] = len(recorder.exchanges)

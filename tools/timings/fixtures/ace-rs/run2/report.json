@@ -1,0 +1,220 @@
+{
+  "ace3_commit": "141a60a2",
+  "ported": [
+    "exif",
+    "file_type",
+    "rdap_analyzer"
+  ],
+  "compared": 4,
+  "absent": [],
+  "failed": [],
+  "seconds": 10.0,
+  "samples": [
+    {
+      "sample": "ace3/files/a.bin",
+      "root": "00000000-0000-4000-8000-000000000000",
+      "seconds": 1.0,
+      "skipped": {},
+      "failed_tasks": [],
+      "modules": {
+        "file_type": {
+          "explained": 1,
+          "unported": 0,
+          "harness": 0,
+          "unexplained": 0
+        }
+      },
+      "differences": [
+        {
+          "module": "file_type",
+          "class": "explained",
+          "path": "/observables/0/results/file_type/details/x",
+          "ace3": 1,
+          "ace-rs": 2
+        }
+      ],
+      "timings": {
+        "root": {
+          "pass_open_seconds": 0.5,
+          "runs": 4,
+          "run_seconds": 1.1,
+          "analyze_seconds": 0.66,
+          "cpu_seconds": 0.02
+        },
+        "modules": {
+          "file_type": {
+            "runs": 1,
+            "run_seconds": 0.2,
+            "analyze_seconds": 0.04,
+            "cpu_seconds": 0.02,
+            "cache_hits": 0
+          },
+          "rdap_analyzer": {
+            "runs": 2,
+            "run_seconds": 0.8,
+            "analyze_seconds": 0.6,
+            "cpu_seconds": null,
+            "cache_hits": 1
+          },
+          "yara_scanner_v3_4": {
+            "runs": 0,
+            "run_seconds": 0,
+            "analyze_seconds": null,
+            "cpu_seconds": null,
+            "cache_hits": 1
+          },
+          "email_logger": {
+            "runs": 1,
+            "run_seconds": 0.1,
+            "analyze_seconds": 0.02,
+            "cpu_seconds": null,
+            "cache_hits": 0
+          },
+          "ocr": {
+            "runs": 0,
+            "run_seconds": 0,
+            "analyze_seconds": null,
+            "cpu_seconds": null,
+            "cache_hits": 0
+          }
+        }
+      }
+    },
+    {
+      "sample": "ace3/files/b.bin",
+      "root": "00000000-0000-4000-8000-000000000000",
+      "seconds": 1.0,
+      "skipped": {},
+      "failed_tasks": [],
+      "modules": {
+        "exif": {
+          "explained": 1,
+          "unported": 0,
+          "harness": 0,
+          "unexplained": 0
+        },
+        "(tree)": {
+          "explained": 0,
+          "unported": 0,
+          "harness": 1,
+          "unexplained": 0
+        },
+        "file_type": {
+          "explained": 0,
+          "unported": 0,
+          "harness": 0,
+          "unexplained": 1
+        }
+      },
+      "differences": [
+        {
+          "module": "exif",
+          "class": "explained",
+          "path": "/observables/0/results/exif/details/x",
+          "ace3": 1,
+          "ace-rs": 2
+        },
+        {
+          "module": "(tree)",
+          "class": "harness",
+          "path": "/observables/0/results/(tree)/details/x",
+          "ace3": 1,
+          "ace-rs": 2
+        },
+        {
+          "module": "file_type",
+          "class": "unexplained",
+          "path": "/observables/0/results/file_type/details/x",
+          "ace3": 1,
+          "ace-rs": 2
+        }
+      ],
+      "timings": {
+        "root": {
+          "pass_open_seconds": 0.5,
+          "runs": 3,
+          "run_seconds": 200.6,
+          "analyze_seconds": 200.4,
+          "cpu_seconds": 100.2
+        },
+        "modules": {
+          "file_type": {
+            "runs": 1,
+            "run_seconds": 100,
+            "analyze_seconds": 100,
+            "cpu_seconds": 100,
+            "cache_hits": 0
+          },
+          "rdap_analyzer": {
+            "runs": 1,
+            "run_seconds": 100,
+            "analyze_seconds": 100,
+            "cpu_seconds": null,
+            "cache_hits": 0
+          },
+          "exif": {
+            "runs": 1,
+            "run_seconds": 0.6,
+            "analyze_seconds": 0.4,
+            "cpu_seconds": 0.2,
+            "cache_hits": 0
+          }
+        }
+      }
+    },
+    {
+      "sample": "ace-rs/files/c.bin",
+      "root": "00000000-0000-4000-8000-000000000000",
+      "seconds": 1.0,
+      "skipped": {},
+      "failed_tasks": [],
+      "modules": {},
+      "differences": [],
+      "timings": {
+        "root": {
+          "pass_open_seconds": 0.5,
+          "runs": 1,
+          "run_seconds": 1,
+          "analyze_seconds": 1,
+          "cpu_seconds": 1
+        },
+        "modules": {
+          "file_type": {
+            "runs": 1,
+            "run_seconds": 1,
+            "analyze_seconds": 1,
+            "cpu_seconds": 1,
+            "cache_hits": 0
+          }
+        }
+      }
+    },
+    {
+      "sample": "ace3/files/e.bin",
+      "root": "00000000-0000-4000-8000-000000000000",
+      "seconds": 1.0,
+      "skipped": {},
+      "failed_tasks": [],
+      "modules": {},
+      "differences": [],
+      "timings": {
+        "root": {
+          "pass_open_seconds": 0.5,
+          "runs": 1,
+          "run_seconds": 50,
+          "analyze_seconds": 50,
+          "cpu_seconds": 50
+        },
+        "modules": {
+          "file_type": {
+            "runs": 1,
+            "run_seconds": 50,
+            "analyze_seconds": 50,
+            "cpu_seconds": 50,
+            "cache_hits": 0
+          }
+        }
+      }
+    }
+  ]
+}

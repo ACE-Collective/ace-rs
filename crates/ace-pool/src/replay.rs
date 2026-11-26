@@ -91,9 +91,9 @@ pub async fn replay_task(
         task_dir: lookup_dir.as_deref(),
     };
     if let Some(parser) = modules.parser(&task.module) {
-        Ok(tokio::task::block_in_place(|| parser.run(run)))
+        Ok(tokio::task::block_in_place(|| parser.run(run)).end)
     } else if let Some(lookup) = modules.lookup(&task.module) {
-        Ok(lookup.run(run).await)
+        Ok(lookup.run(run).await.end)
     } else {
         Ok(TaskEnd::Failed {
             error: format!("no module {} to replay with", task.module),

@@ -7,13 +7,14 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ace_sdk::wire::{LeasedTask, TaskEnd};
+
 use ace_sdk::{EmailBodyPart, LocalFileStore};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tracing::Instrument;
 
 use crate::client::{ClientError, LeaseClient};
-use crate::modules::{Modules, Run};
+use crate::modules::{Modules, Run, TimedEnd};
 
 /// Renews a task's lease every third of its length until dropped. Its token fires when the
 /// task is cancelled or the lease is lost, so the module stops.
@@ -197,16 +198,16 @@ pub async fn fetch_scan_output(
     Ok(Some(path))
 }
 
-/// Uploads each file a result adds from the task's output directory, then ends the task. A 422 is
-/// an end too, to the end or to an upload's URL: the core rejected the result, or the upload, and
-/// failed the task, and its row says why.
+/// Uploads each file a result adds from the task's output directory, then ends the task, with what
+/// its run cost. A 422 is an end too, to the end or to an upload's URL: the core rejected the result,
+/// or the upload, and failed the task, and its row says why.
 pub async fn send_end(
     client: &LeaseClient,
     task: &LeasedTask,
     outputs: &LocalFileStore,
-    end: &TaskEnd,
+    timed: &TimedEnd,
 ) -> Result<(), ClientError> {
-    let uploads: Vec<(&ace_results::Sha256, u64)> = match end {
+    let uploads: Vec<(&ace_results::Sha256, u64)> = match &timed.end {
         TaskEnd::Done { result, .. } | TaskEnd::Incomplete { result, .. } => result
             .files
             .iter()
@@ -247,7 +248,7 @@ pub async fn send_end(
             client.upload(&url, &path).await?;
         }
     }
-    match client.end(task.id, end).await {
+    match client.end_timed(task.id, &timed.end, timed.cost).await {
         Err(ClientError::Api { status: 422, error }) => {
             tracing::error!(
                 task = task.id,
@@ -266,19 +267,19 @@ pub async fn finish(
     client: &LeaseClient,
     task: &LeasedTask,
     outputs: &LocalFileStore,
-    end: &TaskEnd,
+    timed: &TimedEnd,
     shutdown: &CancellationToken,
 ) -> Result<(), ClientError> {
-    if shutdown.is_cancelled() && matches!(end, TaskEnd::Cancelled) {
+    if shutdown.is_cancelled() && matches!(timed.end, TaskEnd::Cancelled) {
         tracing::info!(task = task.id, "shutting down; giving the task back");
         return client.release(task.id).await;
     }
-    send_end(client, task, outputs, end).await
+    send_end(client, task, outputs, timed).await
 }
 
 /// Runs a leased task in this process, uncontained: a parser on a blocking thread, a lookup on
 /// the runtime. `shutdown` stops it, and the task then goes back to the queue. Returns how it
-/// ended.
+/// ended. Its end carries its `analyze` time and no CPU, since the process is shared (PLAN.md 3.6).
 pub async fn run_in_process(
     client: &LeaseClient,
     modules: &Arc<Modules>,
@@ -341,7 +342,7 @@ pub async fn run_in_process(
                     task_dir: None,
                 })
             }),
-            None => unknown_module(&owned_task),
+            None => TimedEnd::untimed(unknown_module(&owned_task)),
         })
         .await
     } else {
@@ -365,20 +366,22 @@ pub async fn run_in_process(
                             })
                             .await
                     }
-                    None => unknown_module(&owned_task),
+                    None => TimedEnd::untimed(unknown_module(&owned_task)),
                 }
             }
             .instrument(span),
         )
         .await
     };
-    let end = joined.unwrap_or_else(|e| TaskEnd::Failed {
-        error: format!("the module panicked: {}", panic_message(e)),
+    let timed = joined.unwrap_or_else(|e| {
+        TimedEnd::untimed(TaskEnd::Failed {
+            error: format!("the module panicked: {}", panic_message(e)),
+        })
     });
-    finish(client, &task, &outputs, &end, shutdown)
+    finish(client, &task, &outputs, &timed, shutdown)
         .instrument(tracing::info_span!("send_end"))
         .await?;
-    Ok(end)
+    Ok(timed.end)
 }
 
 fn unknown_module(task: &LeasedTask) -> TaskEnd {

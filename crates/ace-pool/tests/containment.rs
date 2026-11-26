@@ -307,6 +307,7 @@ mod runner {
     use std::path::{Path, PathBuf};
     use std::time::{Duration, Instant};
 
+    use ace_pool::reap::CpuTally;
     use ace_pool::tools::{Keeping, Ran, ToolExec, ToolTable, cpu_seconds, execute_keeping};
     use ace_sdk::tools::{
         Keep, OPEN_FILES_LIMIT, SANDBOX_TOOLS, ToolRun, ToolStatus, ToolStop, environment,
@@ -393,9 +394,17 @@ mod runner {
             into,
             when_stopped: false,
         });
-        let ran = execute_keeping(Path::new(TASK), &[], None, exec, timeout, keep)
-            .await
-            .expect("the tool starts");
+        let ran = execute_keeping(
+            Path::new(TASK),
+            &[],
+            None,
+            exec,
+            timeout,
+            keep,
+            &CpuTally::default(),
+        )
+        .await
+        .expect("the tool starts");
         println!(
             "{:?}: {:?}\nstdout: {}\nstderr: {}\n",
             exec.argv,
@@ -512,7 +521,16 @@ mod runner {
         std::os::unix::fs::symlink("/etc/passwd", dirs.task().join("link")).unwrap();
         let mut exec = test_task(&dirs, &["read", "/etc/passwd"]);
         exec.task_reads = vec![PathBuf::from("link")];
-        let refused = execute_keeping(Path::new(TASK), &[], None, &exec, LONG, None).await;
+        let refused = execute_keeping(
+            Path::new(TASK),
+            &[],
+            None,
+            &exec,
+            LONG,
+            None,
+            &CpuTally::default(),
+        )
+        .await;
         let why = refused.err().expect("the runner refuses the link");
         assert!(why.contains("the task's link"), "{why}");
     }
@@ -594,6 +612,38 @@ mod runner {
         let kept = ran.kept.expect("what it kept");
         assert_eq!(kept.keys().collect::<Vec<_>>(), ["out"]);
         assert_eq!(fs::read_to_string(&kept["out"]).unwrap(), "kept\n");
+    }
+
+    /// A run whose outputs can't be kept is an error, and its runner was reaped before that, so its
+    /// CPU is in the task's tally all the same (PLAN.md 3.6).
+    #[tokio::test]
+    async fn a_run_whose_outputs_cant_be_kept_still_counts_its_cpu() {
+        let dirs = Dirs::new();
+        let not_a_dir = dirs.task().join("file");
+        fs::write(&not_a_dir, "").unwrap();
+        let keeping = Keeping {
+            keep: &Keep::All,
+            staged: &[],
+            into: &not_a_dir.join("kept"),
+            when_stopped: false,
+        };
+        let tally = CpuTally::default();
+        let exec = test_task(&dirs, &["keep"]);
+        let failed = execute_keeping(
+            Path::new(TASK),
+            &[],
+            None,
+            &exec,
+            LONG,
+            Some(keeping),
+            &tally,
+        )
+        .await
+        .err()
+        .expect("its outputs can't be kept");
+        assert!(failed.contains("keeping its outputs"), "{failed}");
+        let cpu = tally.total().expect("its rusage was read");
+        assert!(cpu > Duration::ZERO, "{cpu:?}");
     }
 
     /// A run keeps at most `MAX_KEPT_FILES` files, the first by name, and its answer lists them
@@ -1181,9 +1231,17 @@ mod runner {
             }
         }
         open_up(dirs.task());
-        let ran = execute_keeping(Path::new(TASK), &[], Some((65534, 65534)), exec, LONG, None)
-            .await
-            .expect("the tool starts");
+        let ran = execute_keeping(
+            Path::new(TASK),
+            &[],
+            Some((65534, 65534)),
+            exec,
+            LONG,
+            None,
+            &CpuTally::default(),
+        )
+        .await
+        .expect("the tool starts");
         println!(
             "{:?} as nobody: {:?}\nstdout: {}\nstderr: {}\n",
             exec.argv,
@@ -1313,9 +1371,17 @@ mod runner {
         let mut plain = Vec::new();
         for _ in 0..21 {
             let started = Instant::now();
-            let ran = execute_keeping(Path::new(TASK), &[], None, &exec, LONG, None)
-                .await
-                .expect("runs");
+            let ran = execute_keeping(
+                Path::new(TASK),
+                &[],
+                None,
+                &exec,
+                LONG,
+                None,
+                &CpuTally::default(),
+            )
+            .await
+            .expect("runs");
             contained.push(started.elapsed());
             assert_eq!(ran.status, ToolStatus::Exited(0));
             let started = Instant::now();

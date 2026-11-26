@@ -15,9 +15,10 @@
 //!   task was cancelled.
 //! - `POST /api/worker/v1/tasks/<id>/uploads`: a presigned URL to upload one file the module
 //!   wrote, under the task's own key in the bucket.
-//! - `POST /api/worker/v1/tasks/<id>/end`: the task's end, a `TaskEnd`. A result's files must
-//!   be uploaded first; the core checks each one's bytes against its sha256 and moves it into
-//!   the `alert_files` pool, held by the root. A result that fails its check is answered 422 with
+//! - `POST /api/worker/v1/tasks/<id>/end`: the task's end, a `TaskEnd`, with what its run cost in
+//!   the pool in two headers (`RunCost`, PLAN.md 3.6), which a pool may leave out. A result's
+//!   files must be uploaded first; the core checks each one's bytes against its sha256 and moves it
+//!   into the `alert_files` pool, held by the root. A result that fails its check is answered 422 with
 //!   each field that failed, and that ends the task as failed, because the same module would write
 //!   the same result again. The row's error says why. A result or a skip also carries the writes
 //!   to ACE's data the task made (PLAN.md 7.2, `writes.rs`), which land in the end's transaction;
@@ -80,10 +81,11 @@ use std::time::Duration;
 
 use ace_results::{AlertPath, ObservableKind, ObservableRef, ResultEnvelope, Sha256, YaraMeta};
 use ace_sdk::wire::{
-    ApiError, COMMANDS, CarryingEmail, CommandEnd, CommandLeaseRequest, CommandOutcome,
-    CommandReply, CommandReport, CurrentRuleset, EmailBodyPart, FieldError as WireFieldError,
-    LeaseRequest, LeasedCommand, LeasedTask, MAX_LEASED_AT_ONCE, Presigned, Renewal, TaskEnd,
-    TaskFile, TaskObservable, UploadRequest, paths,
+    ANALYZE_SECONDS_HEADER, ApiError, COMMANDS, CPU_SECONDS_HEADER, CarryingEmail, CommandEnd,
+    CommandLeaseRequest, CommandOutcome, CommandReply, CommandReport, CurrentRuleset,
+    EmailBodyPart, FieldError as WireFieldError, LeaseRequest, LeasedCommand, LeasedTask,
+    MAX_LEASED_AT_ONCE, Presigned, Renewal, RunCost, TaskEnd, TaskFile, TaskObservable,
+    UploadRequest, paths,
 };
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, State};
@@ -2559,8 +2561,8 @@ async fn end_in(
     headers: HeaderMap,
     end: TaskEnd,
 ) -> Result<StatusCode, Failure> {
-    let worker = api.worker(&headers)?;
     let task = TaskId(id);
+    let worker = api.worker(&headers)?.with_cost(sent_cost(task, &headers));
     match end {
         TaskEnd::Done {
             result,
@@ -2661,6 +2663,37 @@ async fn end_in(
         crate::scans::cancel_for_task(&api.inner.db, task).await?;
     }
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// The most a run's `analyze` time or CPU may be, in seconds: a day. A run is bounded by its
+/// module's timeout (`Resources::timeout`, minutes for the modules here), and its CPU by that
+/// timeout times the CPUs its tools may use, so a day is no measurement. The numbers come from a
+/// task process a hostile file may have taken over, and the end's statements and a pass's metrics
+/// sum them as float8, which a number near its largest would overflow, failing the end or the
+/// pass's completion on every retry.
+const MAX_RUN_COST_SECONDS: f64 = 86_400.0;
+
+/// What a pool said a task's run cost, from its end request's headers, without a number that
+/// can't be one: a header that isn't a number, a negative or infinite time, or one past
+/// `MAX_RUN_COST_SECONDS` is a pool's bug or a hostile process's, which costs the task nothing but
+/// the number, logged.
+fn sent_cost(task: TaskId, headers: &HeaderMap) -> RunCost {
+    let known = |field: &str, header: &str| {
+        let value = headers.get(header)?;
+        let seconds = value
+            .to_str()
+            .ok()
+            .and_then(|text| text.parse::<f64>().ok())
+            .filter(|seconds| (0.0..=MAX_RUN_COST_SECONDS).contains(seconds));
+        if seconds.is_none() {
+            tracing::warn!(%task, field, ?value, "a task's end sent a cost that can't be one; it isn't kept");
+        }
+        seconds
+    };
+    RunCost {
+        analyze_seconds: known("analyze_seconds", ANALYZE_SECONDS_HEADER),
+        cpu_seconds: known("cpu_seconds", CPU_SECONDS_HEADER),
+    }
 }
 
 /// What `Api::lineage_reads` read for a task.

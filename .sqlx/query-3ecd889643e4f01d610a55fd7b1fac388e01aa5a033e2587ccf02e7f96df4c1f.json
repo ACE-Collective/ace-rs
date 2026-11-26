@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pass, completed_at FROM queue.root_completions\n         WHERE root_id = $1 ORDER BY pass DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pass",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.root_completions",
+            "name": "pass"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "completed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.root_completions",
+            "name": "completed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "3ecd889643e4f01d610a55fd7b1fac388e01aa5a033e2587ccf02e7f96df4c1f"
+}

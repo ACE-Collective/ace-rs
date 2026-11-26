@@ -23,7 +23,7 @@ use common::{Core, TOKEN, root_with_tasks, task_of, wait_until_idle};
 
 /// Collects what tracing writes.
 #[derive(Clone, Default)]
-struct Logs(Arc<Mutex<Vec<u8>>>);
+pub(crate) struct Logs(pub(crate) Arc<Mutex<Vec<u8>>>);
 
 impl std::io::Write for Logs {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {

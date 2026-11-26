@@ -35,13 +35,29 @@ systems see the same world, as tests/e2e/run gives ace-rs:
 
     tools/ace3/trees/make-trees                     every sample
     tools/ace3/trees/make-trees ace-rs/email/e2e...   the samples named, by path under samples/
+    tools/ace3/trees/make-trees --timings DIR [...]   the trees, and each sample's timings in DIR
 
 The trees go to tools/ace3/trees/reference/<sample>.json, with index.json naming ace3's commit.
+--timings DIR also writes DIR/<sample>.json (PLAN.md 3.6, run_module.py --timings), which leaves
+the trees as they are:
+
+    {"sample": <path under samples/>, "ace3_commit": ...,
+     "process": {"wall_seconds", "cpu_seconds", "children_cpu_seconds"},
+     "modules": {<module>: {"executor_runs", "executor_seconds", "runs", "analyze_seconds", "cpu_seconds"}}}
+
+`process` is the run's python process from its start to the engine's end, a floor for what a root
+costs ace3, since the cli mode has no queue, database or lock; its children are the tools modules
+run. Per module, executor_runs and executor_seconds are the executor's own total_exec_count and
+total_analysis_time, summed over the run's execution contexts (null with none), whose time includes
+its snapshots of the root around the module; runs, analyze_seconds and cpu_seconds time each call of
+the module's analyze, a declining one included, and its CPU is the process's and its children's
+during the call. Modules go by their config names, as ENABLE names them.
 The comparison follows the newest ace3 (PLAN.md decision 14), so rerun this after ace3 moves.
 Everything runs under the container's /tmp/ace-rs-dumps; nothing is written under /opt/ace. Samples
 under samples/local/ are git-ignored, so make them or copy them in first.
 """
 
+import argparse
 import importlib.machinery
 import importlib.util
 import json
@@ -193,7 +209,7 @@ def stop_fake():
     docker("exec", CONTAINER, "sh", "-c", f'kill "$(cat {FAKE}/pid)" 2>/dev/null || true', check=False)
 
 
-def run(sample):
+def run(sample, commit, timings):
     work = f"{REMOTE}/runs/trees/{sample['path']}"
     command = [
         "docker", "exec", "-i", "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", "SAQ_SKIP_LOCAL_SAQ_YAML=1",
@@ -213,6 +229,8 @@ def run(sample):
         "--detections", f"{REMOTE}/trees-detections.json", "--export-detections",
         "--observable-tags", f"{REMOTE}/trees-observable_tags.json",
     ]
+    if timings:
+        command.append("--timings")
     for tag in sample["meta_tags"]:
         command += ["--meta-tag", tag]
     for module in ENABLE:
@@ -224,6 +242,13 @@ def run(sample):
     target = OUT / f"{sample['path']}.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(docker("exec", CONTAINER, "cat", f"{work}/tree.json").stdout)
+    if timings:
+        measured = json.loads(docker("exec", CONTAINER, "cat", f"{work}/timings.json").stdout)
+        target = timings / f"{sample['path']}.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(
+            {"sample": sample["path"], "ace3_commit": commit} | measured, indent=2,
+        ) + "\n")
     docker("exec", CONTAINER, "rm", "-rf", work)
 
 
@@ -257,8 +282,13 @@ def ace3_commit():
 
 
 def main():
+    parser = argparse.ArgumentParser(prog="make-trees")
+    parser.add_argument("--timings", metavar="DIR", type=Path, help="also write each sample's timings under DIR")
+    parser.add_argument("samples", nargs="*", help="the samples to run, by path under samples/; every one if none")
+    args = parser.parse_args()
+    timings = args.timings.resolve() if args.timings else None
     manifest = json.loads((REPO / "samples" / "manifest.json").read_text())
-    wanted = sys.argv[1:]
+    wanted = args.samples
     samples = [s for s in manifest["samples"] if not wanted or s["path"] in wanted]
     missing = set(wanted) - {s["path"] for s in samples}
     if missing:
@@ -295,7 +325,7 @@ def main():
         with dumps.fake_dns(f"{FAKE}/dns"):
             for sample in samples:
                 print(sample["path"], flush=True)
-                run(sample)
+                run(sample, commit, timings)
     finally:
         stop_fake()
     save_dns_recording(docker("exec", CONTAINER, "cat", f"{FAKE}/dns/dns.json", check=False).stdout)

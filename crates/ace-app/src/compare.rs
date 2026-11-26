@@ -112,7 +112,32 @@
 //! # The report
 //!
 //! `report.md` is for reading: totals, each module, the unexplained differences by category, each
-//! sample, each row. `report.json` has every difference, with the two values.
+//! sample, each row. `report.json` has every difference, with the two values, and each sample's
+//! `timings` (PLAN.md 3.6), read from its root's last pass as its metrics events are
+//! (`ace_core::metrics::read_last_pass`):
+//!
+//! ```text
+//! "timings": {"root": {"pass_open_seconds": 4.1, "runs": 12, "run_seconds": 9.8,
+//!                      "analyze_seconds": 6.2, "cpu_seconds": 5.9},
+//!             "modules": {"<module>": {"runs": 1, "run_seconds": 0.8, "analyze_seconds": 0.5,
+//!                                      "cpu_seconds": 0.6, "cache_hits": 0}, ...}}
+//! ```
+//!
+//! A module is there when it ran in the pass or the analysis cache answered for it. `run_seconds` is
+//! the time pools' slots were held for its runs, `analyze_seconds` its `analyze` alone, and
+//! `cpu_seconds` the CPU of its task processes and their tools, which a lookup doesn't have, since
+//! its process is shared: either is null where no run of it reported one. The root's are the sums
+//! over its modules, null only when every one is. `pass_open_seconds` is how long the pass was open,
+//! waits included. Under `tests/e2e/run` the analysis cache is off (`tests/e2e/site/overlay.yaml`), so
+//! `cache_hits` is 0 there; against a stack whose cache is on, a module the cache answered for has
+//! hits and fewer runs, and its numbers are of the runs alone.
+//!
+//! For timings that aren't of runs side by side, give the parser and sandbox pools one slot each and
+//! run one sample at a time; the lookup pool's tasks share its process either way:
+//!
+//! ```text
+//! ACE_RS_PARSERS_CONCURRENCY=1 ACE_RS_SANDBOX_CONCURRENCY=1 tests/e2e/run --compare --jobs 1
+//! ```
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
@@ -122,6 +147,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use ace_core::db::{Db, DbConfig};
+use ace_core::metrics::{RootMetrics, read_last_pass};
 use ace_core::normal::{FORM, normal_form};
 use ace_core::queue::{FailedTask, failed_tasks, root_is_idle};
 use ace_results::differences::{Difference, Listed, ListedDifferences, diff, glob, path_matches};
@@ -263,6 +289,8 @@ struct SampleResult {
     /// Results compared, by module: how many ace3's tree has and how many ace-rs's.
     compared: BTreeMap<String, (u64, u64)>,
     failed_tasks: Vec<FailedTask>,
+    /// The root's last pass's metrics events, for its timings: None when no pass of it completed.
+    timings: Option<RootMetrics>,
 }
 
 /// Counts of differences by class.
@@ -862,6 +890,7 @@ impl Outcome {
                     "root": result.root,
                     "seconds": result.seconds,
                     "skipped": result.skipped,
+                    "timings": timings_json(result.timings.as_ref()),
                     "failed_tasks": result.failed_tasks.iter().map(|t| json!({
                         "module": t.module, "observable": t.observable, "error": t.error,
                     })).collect::<Vec<_>>(),
@@ -1303,6 +1332,7 @@ pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
                 )?;
                 result.root = Some(ran.root);
                 result.failed_tasks = ran.failed_tasks;
+                result.timings = ran.timings;
                 Ok(result)
             });
             came_to[i] = Some(match compared {
@@ -1388,6 +1418,7 @@ struct Ran {
     ace3: Value,
     ace_rs: Value,
     failed_tasks: Vec<FailedTask>,
+    timings: Option<RootMetrics>,
 }
 
 /// Runs what `start` gives for each of `count` places, in their order, with at most `jobs` running
@@ -1445,11 +1476,67 @@ async fn run_through(
     let failed_tasks = failed_tasks(&stack.db, root)
         .await
         .with_context(|| format!("reading root {root}'s failed tasks"))?;
+    let timings = tokio::time::timeout(READ_TIMEOUT, read_last_pass(&stack.db, root))
+        .await
+        .with_context(|| format!("reading root {root}'s timings took too long"))?
+        .with_context(|| format!("reading root {root}'s timings"))?;
     Ok(Ran {
         root,
         ace3,
         ace_rs,
         failed_tasks,
+        timings,
+    })
+}
+
+/// `a + b` where None is a number nobody knows, not a reason the sum is unknown: None only when
+/// both are, as `queue.add_known` sums a task's runs.
+fn add_known(a: Option<f64>, b: Option<f64>) -> Option<f64> {
+    match (a, b) {
+        (Some(a), Some(b)) => Some(a + b),
+        (a, None) => a,
+        (None, b) => b,
+    }
+}
+
+/// A sample's `timings` in `report.json` (PLAN.md 3.6): for each module that ran in the root's last
+/// pass or had a cache hit in it, its runs, their run time, `analyze` time and CPU, and its cache
+/// hits; and for the root, how long the pass was open and the sums of the modules' numbers. A run
+/// time is the slot a pool held, an `analyze` time the module's own work, and CPU that of the task's
+/// process and its tools', null for a lookup (`ace_core::metrics`). The core's hooks count as a
+/// module, `core_hooks`, as in the metrics events.
+fn timings_json(metrics: Option<&RootMetrics>) -> Value {
+    let mut modules = Map::new();
+    let (mut runs, mut run_seconds, mut analyze, mut cpu) = (0_i64, 0.0_f64, None, None);
+    for module in metrics.iter().flat_map(|m| &m.modules) {
+        let cache_hits = module.cache.as_ref().map_or(0, |c| c.cache_hit_count);
+        if module.exec_count == 0 && cache_hits == 0 {
+            continue;
+        }
+        runs += module.exec_count;
+        run_seconds += module.analysis_time_seconds;
+        analyze = add_known(analyze, module.analyze_seconds);
+        cpu = add_known(cpu, module.cpu_seconds);
+        modules.insert(
+            module.module.clone(),
+            json!({
+                "runs": module.exec_count,
+                "run_seconds": module.analysis_time_seconds,
+                "analyze_seconds": module.analyze_seconds,
+                "cpu_seconds": module.cpu_seconds,
+                "cache_hits": cache_hits,
+            }),
+        );
+    }
+    json!({
+        "root": {
+            "pass_open_seconds": metrics.and_then(|m| m.pass_open_seconds),
+            "runs": runs,
+            "run_seconds": run_seconds,
+            "analyze_seconds": analyze,
+            "cpu_seconds": cpu,
+        },
+        "modules": modules,
     })
 }
 
@@ -1880,6 +1967,7 @@ mod tests {
         assert_eq!(report["modules"]["archive"]["explained"], 1);
         assert_eq!(report["modules"][TREE]["unexplained"], 1);
         assert_eq!(report["skipped"]["file_type"], 1);
+        assert_eq!(report["samples"][0]["timings"], timings_json(None));
         assert_eq!(report["failed"][0]["sample"], "ace3/stuck");
         assert_eq!(report["absent"][0], "local/x");
         let text = outcome.to_markdown().expect("writes");
@@ -1889,6 +1977,117 @@ mod tests {
             text.contains("/observables/file:*/results/archive/details/y"),
             "{text}"
         );
+    }
+
+    fn module_metrics(
+        module: &str,
+        runs: i64,
+        run_seconds: f64,
+        analyze_seconds: Option<f64>,
+        cpu_seconds: Option<f64>,
+        cache: Option<(i64, i64)>,
+    ) -> ace_core::metrics::ModuleMetrics {
+        ace_core::metrics::ModuleMetrics {
+            event_type: ace_core::metrics::EVENT_TYPE_MODULE,
+            timestamp: chrono::DateTime::UNIX_EPOCH,
+            root_uuid: Uuid::nil(),
+            pass: 1,
+            module: module.to_owned(),
+            analysis_time_seconds: run_seconds,
+            percentage: 0.0,
+            exec_count: runs,
+            analyze_seconds,
+            cpu_seconds,
+            cache: cache.map(|(hits, misses)| ace_core::metrics::CacheMetrics {
+                cache_hit_count: hits,
+                cache_miss_count: misses,
+                cache_write_count_insert: 0,
+                cache_write_bytes_compressed_sum: 0,
+                cache_lookup_ms_sum: 0.0,
+                cache_lookup_ms_max: 0.0,
+            }),
+        }
+    }
+
+    fn root_metrics(modules: Vec<ace_core::metrics::ModuleMetrics>) -> RootMetrics {
+        RootMetrics {
+            event_type: ace_core::metrics::EVENT_TYPE_ROOT,
+            timestamp: chrono::DateTime::UNIX_EPOCH,
+            root_uuid: Uuid::nil(),
+            pass: 1,
+            total_analysis_time_seconds: modules.iter().map(|m| m.analysis_time_seconds).sum(),
+            pass_open_seconds: Some(4.5),
+            alert_type: None,
+            is_alert: false,
+            queue: "default".to_owned(),
+            observable_count: 0,
+            observable_type_counts: BTreeMap::new(),
+            task_count: 0,
+            failed_task_count: 0,
+            outcome: ace_core::metrics::OUTCOME_COMPLETED,
+            modules,
+        }
+    }
+
+    #[test]
+    fn a_samples_timings_have_each_module_that_ran_or_hit_and_the_roots_sums() {
+        let metrics = root_metrics(vec![
+            // a parser: its own process, so its CPU
+            module_metrics("archive", 2, 1.5, Some(1.0), Some(0.75), None),
+            // a lookup: a shared process, so no CPU
+            module_metrics("rdap_analyzer", 1, 0.5, Some(0.25), None, Some((0, 1))),
+            // answered by the cache alone
+            module_metrics("qrcode", 0, 0.0, None, None, Some((2, 0))),
+            // looked up and missed, and its task never ran: neither ran nor hit
+            module_metrics("ocr", 0, 0.0, None, None, Some((0, 1))),
+        ]);
+        let timings = timings_json(Some(&metrics));
+        assert_eq!(
+            timings,
+            json!({
+                "root": {
+                    "pass_open_seconds": 4.5, "runs": 3, "run_seconds": 2.0,
+                    "analyze_seconds": 1.25, "cpu_seconds": 0.75,
+                },
+                "modules": {
+                    "archive": {"runs": 2, "run_seconds": 1.5, "analyze_seconds": 1.0,
+                                "cpu_seconds": 0.75, "cache_hits": 0},
+                    "rdap_analyzer": {"runs": 1, "run_seconds": 0.5, "analyze_seconds": 0.25,
+                                      "cpu_seconds": null, "cache_hits": 0},
+                    "qrcode": {"runs": 0, "run_seconds": 0.0, "analyze_seconds": null,
+                               "cpu_seconds": null, "cache_hits": 2},
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn a_roots_sum_is_null_only_when_every_modules_is() {
+        let lookups = root_metrics(vec![
+            module_metrics("rdap_analyzer", 1, 0.5, Some(0.25), None, None),
+            // from a pool that sent no cost
+            module_metrics("dns_analyzer", 1, 0.5, None, None, None),
+        ]);
+        let timings = timings_json(Some(&lookups));
+        assert_eq!(timings["root"]["cpu_seconds"], Value::Null);
+        assert_eq!(timings["root"]["analyze_seconds"], 0.25);
+        assert_eq!(
+            timings["modules"]["dns_analyzer"]["analyze_seconds"],
+            Value::Null
+        );
+        // a root no pass of which completed has the same shape, with nothing in it
+        assert_eq!(
+            timings_json(None),
+            json!({
+                "root": {"pass_open_seconds": null, "runs": 0, "run_seconds": 0.0,
+                         "analyze_seconds": null, "cpu_seconds": null},
+                "modules": {},
+            })
+        );
+        assert_eq!(add_known(None, None), None);
+        assert_eq!(add_known(Some(1.0), None), Some(1.0));
+        assert_eq!(add_known(None, Some(2.0)), Some(2.0));
+        assert_eq!(add_known(Some(1.0), Some(2.0)), Some(3.0));
     }
 
     #[test]

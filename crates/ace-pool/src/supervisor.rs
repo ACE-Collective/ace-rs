@@ -19,6 +19,10 @@
 //! directories: `scratch`, which it may write, for the files it hands a tool, and `results`, which
 //! it may read, where each run's output lands.
 //!
+//! The supervisor reaps each task process itself (`crate::reap`), and the task's end carries the
+//! user and system CPU of the process and of the tools it had run (PLAN.md 3.6), with the time of
+//! its module's `analyze`, which the process wrote with its end.
+//!
 //! The task process's exit code says which side failed (#847): 0 and 20 put the task's end on
 //! stdout (20 when the module failed), 10 is a setup failure before the module ran, 101 is a
 //! panic, and a signal is a crash or a limit, such as SIGSYS for a blocked call or SIGXCPU for
@@ -41,8 +45,9 @@ use tokio_util::sync::CancellationToken;
 use crate::client::{ClientError, LeaseClient};
 use crate::commands::{CommandConfig, run_commands};
 use crate::containment::SandboxProfile;
-use crate::modules::{Modules, ModulesHandle};
+use crate::modules::{Modules, ModulesHandle, TimedEnd};
 use crate::pool::{PoolStats, Runner, SHUTDOWN_GRACE, lease_loop};
+use crate::reap::{CpuTally, OwnedChild};
 use crate::run::{
     LeaseKeeper, TaskDir, fetch_email_parts, fetch_input, fetch_scan_output, fetch_tree_files,
     finish,
@@ -296,6 +301,7 @@ pub async fn run_task_process(
         scan_output,
     };
     let deadline = manifest.resources.timeout;
+    let tool_cpu = CpuTally::default();
     let host = match tool_dirs {
         Some(dirs) => {
             let (ours, theirs) = std::os::unix::net::UnixStream::pair()?;
@@ -308,6 +314,7 @@ pub async fn run_task_process(
                 program: config.program.clone(),
                 args: config.tool_args.clone(),
                 deadline: std::time::Instant::now() + deadline,
+                cpu: tool_cpu.clone(),
             };
             let socket = tokio::net::UnixStream::from_std(ours)?;
             let serving = tokio::spawn(async move { host.serve(socket).await });
@@ -321,7 +328,8 @@ pub async fn run_task_process(
     };
     let ran = run_process(config, &request, keeper.token(), deadline, socket).await;
     if let Some(serving) = serving {
-        // the task process is gone, so its socket is closed; a run still going is killed
+        // the task process is gone, so its socket is closed; a run still going is killed, and
+        // the abort has dropped it once the await returns, so the tally knows it was cut off
         serving.abort();
         if let Err(e) = serving.await
             && !e.is_cancelled()
@@ -329,18 +337,66 @@ pub async fn run_task_process(
             tracing::warn!("serving the task's tools: {e}");
         }
     }
-    let mut end = match ran {
-        Ok(end) => end,
-        Err(e) => TaskEnd::Failed {
+    let mut timed = match ran {
+        Ok(Finished { mut end, cpu, wall }) => {
+            // the tools' runs are over: the task process is gone, and a run still going was
+            // dropped with the serving above, which left the tools' CPU unknown
+            end.cost.cpu_seconds = task_cpu(&task, cpu, tool_cpu.total());
+            end.cost.analyze_seconds = analyze_within(&task, end.cost.analyze_seconds, wall);
+            end
+        }
+        Err(e) => TimedEnd::untimed(TaskEnd::Failed {
             error: format!("the task process didn't run: {e}"),
-        },
+        }),
     };
-    crate::cache::attach(&mut end, &task.module, &config.cache_probes);
+    crate::cache::attach(&mut timed.end, &task.module, &config.cache_probes);
     let outputs = LocalFileStore::new(dir.outputs())?;
     // the lease stays kept until the end lands: a result's uploads can outlast it
-    finish(client, &task, &outputs, &end, shutdown).await?;
+    finish(client, &task, &outputs, &timed, shutdown).await?;
     drop(keeper);
-    Ok(end)
+    Ok(timed.end)
+}
+
+/// The task's CPU in seconds: its process's and its tools', or None when either couldn't be read,
+/// which is logged with the task's identifiers, since the end then goes without it.
+pub fn task_cpu(
+    task: &LeasedTask,
+    process: std::io::Result<Duration>,
+    tools: Result<Duration, String>,
+) -> Option<f64> {
+    let why = match (process, tools) {
+        (Ok(process), Ok(tools)) => return Some((process + tools).as_secs_f64()),
+        (Err(e), _) => format!("its process's rusage: {e}"),
+        (_, Err(e)) => format!("a tool's rusage: {e}"),
+    };
+    tracing::warn!(
+        task = task.id,
+        root = %task.root,
+        module = %task.module,
+        observable = %task.observable.value,
+        "the task's CPU couldn't be read, so its end goes without it: {why}"
+    );
+    None
+}
+
+/// The `analyze` time the task process wrote, if it is no more than the process's own wall time,
+/// which this measured. The process may be a hostile file's, and a time it couldn't have taken is
+/// dropped, logged with the task's identifiers.
+pub fn analyze_within(task: &LeasedTask, analyze: Option<f64>, wall: Duration) -> Option<f64> {
+    let analyze = analyze?;
+    if analyze >= 0.0 && analyze <= wall.as_secs_f64() {
+        return Some(analyze);
+    }
+    tracing::warn!(
+        task = task.id,
+        root = %task.root,
+        module = %task.module,
+        observable = %task.observable.value,
+        analyze_seconds = analyze,
+        wall_seconds = wall.as_secs_f64(),
+        "the task process's analyze time is more than it ran for, so its end goes without it"
+    );
+    None
 }
 
 /// Lets the task's user read the task's directory and input and write its outputs.
@@ -359,17 +415,27 @@ pub(crate) fn open_to_task_user(
     Ok(())
 }
 
+/// How a task process ended: the task's end, with its `analyze` time when the process wrote one,
+/// the process's CPU, or why it couldn't be read, and how long it ran, from its start to its reap.
+struct Finished {
+    end: TimedEnd,
+    cpu: std::io::Result<Duration>,
+    wall: Duration,
+}
+
 /// Starts the task process, hands it the request and reads how the task ended. Cancelling
 /// `cancel` kills it, and so does running past `deadline` (PLAN.md 2.19), which fails the task;
-/// the task's row keeps its input hashes for replay.
+/// the task's row keeps its input hashes for replay. The process is reaped here, killed or not,
+/// for its CPU.
 async fn run_process(
     config: &SupervisorConfig,
     request: &TaskRequest,
     cancel: &CancellationToken,
     deadline: Duration,
     tools: Option<std::os::unix::net::UnixStream>,
-) -> std::io::Result<TaskEnd> {
-    let mut command = tokio::process::Command::new(&config.program);
+) -> std::io::Result<Finished> {
+    // std's, which this reaps itself (`crate::reap`): tokio's would reap it without its rusage
+    let mut command = std::process::Command::new(&config.program);
     command
         .args(&config.args)
         // the task gets nothing from the supervisor's environment, its token included
@@ -380,23 +446,31 @@ async fn run_process(
         )
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true);
+        .stderr(Stdio::piped());
     if let Some((uid, gid)) = config.user {
         // std drops the supplementary groups when it sets the uid as root
-        command.uid(uid).gid(gid);
+        std::os::unix::process::CommandExt::uid(&mut command, uid);
+        std::os::unix::process::CommandExt::gid(&mut command, gid);
     }
     if let Some(socket) = &tools {
         // only this task process gets the socket
-        crate::tools::pass_as_tool_fd(command.as_std_mut(), socket);
+        crate::tools::pass_as_tool_fd(&mut command, socket);
     }
-    let mut child = command.spawn()?;
+    let started = std::time::Instant::now();
+    let mut spawned = command.spawn()?;
+    // killed and reaped if this returns early or is dropped, as tokio's kill_on_drop did
+    let mut child = OwnedChild::new(&spawned)?;
     drop(tools);
-    let (Some(mut stdin), Some(mut stdout), Some(mut stderr)) =
-        (child.stdin.take(), child.stdout.take(), child.stderr.take())
-    else {
+    let (Some(stdin), Some(stdout), Some(stderr)) = (
+        spawned.stdin.take(),
+        spawned.stdout.take(),
+        spawned.stderr.take(),
+    ) else {
         return Err(std::io::Error::other("the task process has no pipes"));
     };
+    let mut stdin = tokio::process::ChildStdin::from_std(stdin)?;
+    let mut stdout = tokio::process::ChildStdout::from_std(stdout)?;
+    let mut stderr = tokio::process::ChildStderr::from_std(stderr)?;
     let id = request.task.id;
     let bytes = serde_json::to_vec(request).map_err(std::io::Error::other)?;
     let writer = tokio::spawn(async move {
@@ -417,18 +491,24 @@ async fn run_process(
         Cancelled,
         PastDeadline,
     }
-    let ended = tokio::select! {
-        status = child.wait() => Ended::Exited(status?),
+    // a wait is cancel-safe (`OwnedChild::wait`): one the kill cut short starts again below, and
+    // the killed process ends, so it is bounded
+    let (ended, reaped) = tokio::select! {
+        reaped = child.wait() => {
+            let reaped = reaped?;
+            (Ended::Exited(reaped.status), reaped)
+        }
         () = cancel.cancelled() => {
-            child.kill().await?;
-            Ended::Cancelled
+            child.kill()?;
+            (Ended::Cancelled, child.wait().await?)
         }
         () = tokio::time::sleep(deadline) => {
-            child.kill().await?;
+            child.kill()?;
             tracing::error!(task = id, ?deadline, "killed the task process at its deadline");
-            Ended::PastDeadline
+            (Ended::PastDeadline, child.wait().await?)
         }
     };
+    let wall = started.elapsed();
     // a task process that died early may never have read its request
     if let Ok(Ok(Err(e))) = tokio::time::timeout(PIPE_TIMEOUT, writer).await {
         tracing::debug!("writing the task's request: {e}");
@@ -447,15 +527,20 @@ async fn run_process(
     for line in stderr.lines() {
         tracing::info!(task = id, "task process: {line}");
     }
-    Ok(match ended {
+    let end = match ended {
         Ended::Exited(status) => end_of(status, &stdout, &stderr),
-        Ended::Cancelled => TaskEnd::Cancelled,
-        Ended::PastDeadline => TaskEnd::Failed {
+        Ended::Cancelled => TimedEnd::untimed(TaskEnd::Cancelled),
+        Ended::PastDeadline => TimedEnd::untimed(TaskEnd::Failed {
             error: format!(
                 "the task process ran past its deadline of {} and was killed",
                 seconds(deadline)
             ),
-        },
+        }),
+    };
+    Ok(Finished {
+        end,
+        cpu: reaped.cpu,
+        wall,
     })
 }
 
@@ -463,34 +548,29 @@ fn seconds(duration: Duration) -> String {
     format!("{}s", duration.as_secs_f64())
 }
 
-/// How a task ended, from its process's exit status and output.
-pub fn end_of(status: ExitStatus, stdout: &[u8], stderr: &str) -> TaskEnd {
+/// How a task ended, from its process's exit status and output: the end the process wrote, with
+/// its `analyze` time, or a failure with no time, since the module didn't answer.
+pub fn end_of(status: ExitStatus, stdout: &[u8], stderr: &str) -> TimedEnd {
     let tail = || last_lines(stderr, 5);
+    let failed = |error: String| TimedEnd::untimed(TaskEnd::Failed { error });
     match status.code() {
         Some(EXIT_DONE | EXIT_MODULE) => match serde_json::from_slice(stdout) {
             Ok(end) => end,
-            Err(e) => TaskEnd::Failed {
-                error: format!("the task process's reply doesn't read ({e}): {}", tail()),
-            },
+            Err(e) => failed(format!(
+                "the task process's reply doesn't read ({e}): {}",
+                tail()
+            )),
         },
-        Some(EXIT_SETUP) => TaskEnd::Failed {
-            error: format!("the task process couldn't set up: {}", tail()),
-        },
-        Some(EXIT_PANIC) => TaskEnd::Failed {
-            error: format!("the module panicked: {}", panic_message(stderr)),
-        },
-        Some(code) => TaskEnd::Failed {
-            error: format!("the task process exited {code}: {}", tail()),
-        },
+        Some(EXIT_SETUP) => failed(format!("the task process couldn't set up: {}", tail())),
+        Some(EXIT_PANIC) => failed(format!("the module panicked: {}", panic_message(stderr))),
+        Some(code) => failed(format!("the task process exited {code}: {}", tail())),
         None => {
             let signal = status.signal().unwrap_or_default();
-            TaskEnd::Failed {
-                error: format!(
-                    "the task process was killed by {}: {}",
-                    signal_name(signal),
-                    tail()
-                ),
-            }
+            failed(format!(
+                "the task process was killed by {}: {}",
+                signal_name(signal),
+                tail()
+            ))
         }
     }
 }
@@ -521,5 +601,162 @@ pub fn signal_name(signal: i32) -> String {
         libc::SIGABRT => "SIGABRT".to_owned(),
         libc::SIGSEGV => "SIGSEGV".to_owned(),
         other => format!("signal {other}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ace_results::ObservableKind;
+    use ace_sdk::wire::TaskObservable;
+    use std::sync::Mutex;
+
+    fn task() -> LeasedTask {
+        LeasedTask {
+            id: 41,
+            root: uuid::Uuid::from_u128(7),
+            module: "pdf_analyzer".to_owned(),
+            attempts: 1,
+            lease_expires_at: chrono::Utc::now(),
+            lease_seconds: 1.0,
+            observable: TaskObservable {
+                kind: ObservableKind::File,
+                value: "invoice.pdf".to_owned(),
+                time: None,
+                directives: Vec::new(),
+                file: None,
+                redirection: None,
+                relationships: Vec::new(),
+            },
+            delayed: None,
+            input_hashes: Vec::new(),
+            carrying_email: None,
+            emails_pending: false,
+            yara_rules_below: Vec::new(),
+            lists: Vec::new(),
+            dependency_results: Default::default(),
+            dependency_errors: Default::default(),
+            observables_below: Vec::new(),
+            added_by: Vec::new(),
+            related_tags: Vec::new(),
+            tree: None,
+            scan: None,
+            gate: Default::default(),
+            at_root: false,
+            event_time: None,
+        }
+    }
+
+    /// What `f` logs, as text.
+    fn logged(f: impl FnOnce()) -> String {
+        #[derive(Clone, Default)]
+        struct Buffer(Arc<Mutex<Vec<u8>>>);
+        impl std::io::Write for Buffer {
+            fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+                self.0.lock().expect("the buffer").extend_from_slice(bytes);
+                Ok(bytes.len())
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        let buffer = Buffer::default();
+        let writer = buffer.clone();
+        let subscriber = tracing_subscriber::fmt()
+            .with_writer(move || writer.clone())
+            .with_ansi(false)
+            .finish();
+        tracing::subscriber::with_default(subscriber, f);
+        let bytes = buffer.0.lock().expect("the buffer").clone();
+        String::from_utf8(bytes).expect("UTF-8")
+    }
+
+    /// PLAN.md 3.6: a task's CPU is its process's and its tools', and when either couldn't be read
+    /// the end goes without it, null rather than a number that leaves part out, and the log says
+    /// which task and why.
+    #[test]
+    fn a_tasks_cpu_is_its_processs_and_its_tools_or_none_logged_when_one_isnt_read() {
+        let task = task();
+        let mut cpu = None;
+        let quiet = logged(|| {
+            cpu = task_cpu(
+                &task,
+                Ok(Duration::from_millis(1500)),
+                Ok(Duration::from_millis(500)),
+            );
+        });
+        assert_eq!(cpu, Some(2.0));
+        assert!(quiet.is_empty(), "{quiet}");
+
+        let process = std::io::Error::from_raw_os_error(libc::ECHILD);
+        let log = logged(|| cpu = task_cpu(&task, Err(process), Ok(Duration::ZERO)));
+        assert_eq!(cpu, None);
+        for wanted in [
+            "WARN",
+            "task=41",
+            "root=00000000-0000-0000-0000-000000000007",
+            "module=pdf_analyzer",
+            "observable=invoice.pdf",
+            "its process's rusage",
+        ] {
+            assert!(log.contains(wanted), "{wanted} in {log}");
+        }
+
+        let log = logged(|| {
+            cpu = task_cpu(
+                &task,
+                Ok(Duration::from_secs(1)),
+                Err("No child processes (os error 10)".to_owned()),
+            );
+        });
+        assert_eq!(cpu, None, "a tool's CPU unread leaves the sum unknown");
+        assert!(log.contains("a tool's rusage"), "{log}");
+    }
+
+    /// A task process may be a hostile file's, so the `analyze` time it wrote is kept only when it
+    /// fits in the time the process ran, and one that doesn't is dropped with a WARN naming the task.
+    #[test]
+    fn an_analyze_time_longer_than_the_process_ran_is_dropped_and_logged() {
+        let task = task();
+        let wall = Duration::from_secs(2);
+        let mut kept = None;
+        let quiet = logged(|| kept = analyze_within(&task, Some(1.5), wall));
+        assert_eq!(kept, Some(1.5));
+        assert!(quiet.is_empty(), "{quiet}");
+        assert_eq!(analyze_within(&task, None, wall), None);
+        for sent in [2.5, f64::MAX, f64::NAN, -1.0] {
+            let log = logged(|| kept = analyze_within(&task, Some(sent), wall));
+            assert_eq!(kept, None, "{sent}");
+            for wanted in [
+                "WARN",
+                "task=41",
+                "root=00000000-0000-0000-0000-000000000007",
+                "module=pdf_analyzer",
+                "observable=invoice.pdf",
+                "wall_seconds=2",
+            ] {
+                assert!(log.contains(wanted), "{sent}: {wanted} in {log}");
+            }
+        }
+    }
+
+    /// A task process that wrote its end has its `analyze` time; one that died before has none.
+    #[test]
+    fn a_processs_end_keeps_the_analyze_time_it_wrote() {
+        let written = TimedEnd {
+            cost: ace_sdk::wire::RunCost {
+                analyze_seconds: Some(0.75),
+                cpu_seconds: None,
+            },
+            end: TaskEnd::Cancelled,
+        };
+        let stdout = serde_json::to_vec(&written).expect("serializes");
+        assert_eq!(end_of(ExitStatus::from_raw(0), &stdout, ""), written);
+        let panicked = end_of(ExitStatus::from_raw(EXIT_PANIC << 8), b"", "");
+        assert_eq!(panicked.cost, ace_sdk::wire::RunCost::default());
+        assert!(
+            matches!(panicked.end, TaskEnd::Failed { .. }),
+            "{panicked:?}"
+        );
     }
 }

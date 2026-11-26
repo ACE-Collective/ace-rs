@@ -2,8 +2,9 @@
 //! in its `task` mode.
 //!
 //! It reads a `TaskRequest` from stdin, builds the one module the request names, contains itself,
-//! runs the module on one thread and writes the task's end as JSON to stdout. Its exit code is
-//! one of the supervisor's (`EXIT_DONE`, `EXIT_SETUP`, `EXIT_MODULE`).
+//! runs the module on one thread and writes the task's end as JSON to stdout, with how long the
+//! module's `analyze` took (`crate::modules::TimedEnd`, PLAN.md 3.6). Its exit code is one of the
+//! supervisor's (`EXIT_DONE`, `EXIT_SETUP`, `EXIT_MODULE`).
 //!
 //! The module is built before containment, so its setup, such as loading a ruleset or reading
 //! libmagic's database, can read files the contained process can't. It is built from the request's
@@ -92,7 +93,7 @@ pub fn main(registry: &Registry, secrets: TaskSecrets<'_>) -> ExitCode {
         Ok(contained) => eprintln!("contained: {contained:?}"),
         Err(e) => return setup_failed(format!("containment: {e}")),
     }
-    let end = parser.run(Run {
+    let timed = parser.run(Run {
         task: &request.task,
         input: request.input.as_deref(),
         email_parts: &request.email_parts,
@@ -108,7 +109,7 @@ pub fn main(registry: &Registry, secrets: TaskSecrets<'_>) -> ExitCode {
         // a parser's tools have its scratch directory
         task_dir: None,
     });
-    let reply = match serde_json::to_vec(&end) {
+    let reply = match serde_json::to_vec(&timed) {
         Ok(reply) => reply,
         Err(e) => return setup_failed(format!("the reply doesn't serialize: {e}")),
     };
@@ -117,7 +118,7 @@ pub fn main(registry: &Registry, secrets: TaskSecrets<'_>) -> ExitCode {
         eprintln!("writing the reply: {e}");
         return exit(EXIT_SETUP);
     }
-    match end {
+    match timed.end {
         TaskEnd::Failed { .. } | TaskEnd::Unavailable { .. } => exit(EXIT_MODULE),
         _ => ExitCode::SUCCESS,
     }

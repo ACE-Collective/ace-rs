@@ -75,6 +75,7 @@ use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 use crate::containment::{ToolProfile, contain_tool};
+use crate::reap::{CpuTally, OwnedChild};
 
 /// The task process's descriptor for its supervisor's tools, and a `tool` process's for its
 /// supervisor.
@@ -653,6 +654,8 @@ pub struct ToolHost {
     pub args: Vec<String>,
     /// No run goes past the task's own deadline.
     pub deadline: Instant,
+    /// The CPU of the task's runs, added up for its end (PLAN.md 3.6).
+    pub cpu: CpuTally,
 }
 
 impl ToolHost {
@@ -807,6 +810,7 @@ impl ToolHost {
             &exec,
             timeout,
             Some(keeping),
+            &self.cpu,
         )
         .await;
         if let Err(e) = fs::remove_dir_all(&workdir) {
@@ -852,7 +856,8 @@ pub struct Keeping<'a> {
 /// Starts `program`'s `tool` mode as `user`, has it contain itself and exec `exec`'s tool, and
 /// waits for the tool, killing it at `timeout`, at too much output or at a second exec. When it
 /// ran to its end, or `keeping` says so anyway, what that names is moved from its working directory.
-/// An `Err` is a tool that couldn't start.
+/// An `Err` is a tool that couldn't start. The runner's CPU goes into `cpu` when it is reaped, an
+/// `Err` or not (`OwnedChild::counted_in`).
 pub async fn execute_keeping(
     program: &Path,
     args: &[String],
@@ -860,34 +865,43 @@ pub async fn execute_keeping(
     exec: &ToolExec,
     timeout: Duration,
     keep: Option<Keeping<'_>>,
+    cpu: &CpuTally,
 ) -> Result<Ran, String> {
     let (ours, theirs) = UnixStream::pair().map_err(|e| format!("a socket: {e}"))?;
-    let mut command = tokio::process::Command::new(program);
+    // std's, which this reaps itself for its CPU (`crate::reap`)
+    let mut command = std::process::Command::new(program);
     command
         .args(args)
         .arg("tool")
         .env_clear()
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true);
+        .stderr(Stdio::piped());
     if let Some((uid, gid)) = user {
-        command.uid(uid).gid(gid);
+        std::os::unix::process::CommandExt::uid(&mut command, uid);
+        std::os::unix::process::CommandExt::gid(&mut command, gid);
     }
-    pass_as_tool_fd(command.as_std_mut(), &theirs);
-    let mut child = command
+    pass_as_tool_fd(&mut command, &theirs);
+    let mut spawned = command
         .spawn()
         .map_err(|e| format!("the tool runner: {e}"))?;
+    // killed and reaped if this returns early, as tokio's kill_on_drop did
+    let mut child = OwnedChild::new(&spawned)
+        .map_err(|e| e.to_string())?
+        .counted_in(cpu);
     drop(theirs);
-    let pid = child
-        .id()
-        .and_then(|pid| libc::pid_t::try_from(pid).ok())
-        .ok_or("the tool runner has no pid")?;
-    let (Some(mut stdin), Some(stdout), Some(stderr)) =
-        (child.stdin.take(), child.stdout.take(), child.stderr.take())
-    else {
+    let pid = child.pid();
+    let (Some(stdin), Some(stdout), Some(stderr)) = (
+        spawned.stdin.take(),
+        spawned.stdout.take(),
+        spawned.stderr.take(),
+    ) else {
         return Err("the tool runner has no pipes".to_owned());
     };
+    let pipe = |e: io::Error| format!("the tool runner's pipes: {e}");
+    let mut stdin = tokio::process::ChildStdin::from_std(stdin).map_err(pipe)?;
+    let stdout = tokio::process::ChildStdout::from_std(stdout).map_err(pipe)?;
+    let stderr = tokio::process::ChildStderr::from_std(stderr).map_err(pipe)?;
     let request = serde_json::to_vec(exec).map_err(|e| e.to_string())?;
     stdin
         .write_all(&request)
@@ -903,8 +917,10 @@ pub async fn execute_keeping(
         Ok(pair) => pair,
         Err(why) => {
             // how the runner ended and what it said, which is all there is to learn why from
-            child.kill().await.ok();
-            let status = child.wait().await.ok();
+            if let Err(e) = child.kill() {
+                tracing::debug!("killing a tool runner that didn't contain itself: {e}");
+            }
+            let status = child.wait().await.ok().map(|reaped| reaped.status);
             let said = read_capped(stderr, Arc::new(AtomicBool::new(false))).await;
             let said = String::from_utf8_lossy(&said[..said.len().min(2000)]).into_owned();
             let ended = status.map_or_else(|| "unknown".to_owned(), |status| status.to_string());
@@ -941,13 +957,16 @@ pub async fn execute_keeping(
         Output,
     }
     let ended = tokio::select! {
-        status = child.wait() => Ended::Exited(status.map_err(|e| e.to_string())?),
-        () = tokio::time::sleep(timeout) => Ended::Timeout,
-        () = killed_for_output => Ended::Output,
+        reaped = child.wait() => Ended::Exited(reaped.map_err(|e| e.to_string())?.status),
+        () = tokio::time::sleep(timeout) => {
+            kill_and_reap(&mut child).await?;
+            Ended::Timeout
+        }
+        () = killed_for_output => {
+            kill_and_reap(&mut child).await?;
+            Ended::Output
+        }
     };
-    if !matches!(ended, Ended::Exited(_)) {
-        child.kill().await.ok();
-    }
     done.store(true, Ordering::Relaxed);
     if watcher.join().is_err() {
         tracing::warn!("the exec watcher panicked");
@@ -989,6 +1008,15 @@ pub async fn execute_keeping(
         stderr,
         kept,
     })
+}
+
+/// Kills a tool that is past its bounds and reaps it. The wait is bounded by SIGKILL: the tool can't
+/// have children of its own to keep it.
+async fn kill_and_reap(child: &mut OwnedChild) -> Result<(), String> {
+    if let Err(e) = child.kill() {
+        tracing::debug!("killing a tool past its bounds: {e}");
+    }
+    child.wait().await.map(|_| ()).map_err(|e| e.to_string())
 }
 
 /// Has the process `command` starts hold `socket` as its descriptor [`TOOL_FD`], and nowhere else:
@@ -1483,6 +1511,7 @@ mod tests {
             program: PathBuf::new(),
             args: Vec::new(),
             deadline: Instant::now(),
+            cpu: CpuTally::default(),
         };
         assert_eq!(
             host.task_path(Path::new("/tmp/task/input")).unwrap(),

@@ -1,0 +1,85 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.tasks\n                               SET state = CASE WHEN cancel_requested\n                                                THEN 'cancelled'::queue.task_state\n                                                ELSE 'queued'::queue.task_state END,\n                                   run_after = now() + make_interval(secs => LEAST(\n                                       $4 * power(2, GREATEST(attempts - 1, 0)), $5)),\n                                   error = $3, lease_owner = NULL, lease_expires_at = NULL,\n                                   updated_at = now(),\n                                   run_seconds = CASE WHEN run_pass = $6 THEN run_seconds ELSE 0 END\n                                       + GREATEST(COALESCE(\n                                           EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),\n                                   runs = CASE WHEN run_pass = $6 THEN runs ELSE 0 END + 1,\n                                   analyze_seconds = queue.add_known(\n                                       CASE WHEN run_pass = $6 THEN analyze_seconds END, $7),\n                                   cpu_seconds = queue.add_known(\n                                       CASE WHEN run_pass = $6 THEN cpu_seconds END, $8),\n                                   run_pass = $6\n                               WHERE id = $1 AND lease_owner = $2 AND state = 'running'\n                                 AND attempts < max_attempts\n                               RETURNING run_after, state AS \"state: TaskState\", module, attempts",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "run_after",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "run_after"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "state: TaskState",
+        "type_info": {
+          "Custom": {
+            "name": "queue.task_state",
+            "kind": {
+              "Enum": [
+                "queued",
+                "delayed",
+                "running",
+                "done",
+                "failed",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "module",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "attempts"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Float8",
+        "Float8",
+        "Int4",
+        "Float8",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1104e41dc01ef10352599ab94d4d892ba283dee5786e5126e4f3b4353660b264"
+}

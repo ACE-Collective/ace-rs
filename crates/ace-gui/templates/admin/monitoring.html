@@ -107,6 +107,8 @@
       <tr><td><code>analysis_time_seconds</code></td><td>The run times of the module's tasks in the pass, added up.</td></tr>
       <tr><td><code>percentage</code></td><td>That as a share of the root's <code>total_analysis_time_seconds</code>.</td></tr>
       <tr><td><code>exec_count</code></td><td>The module's runs in the pass.</td></tr>
+      <tr><td><code>analyze_seconds</code></td><td>How long the module's own work took in its runs in the pass, as the pools that ran it timed it, added up. Left out when no run sent one, as from a pool built before it did.</td></tr>
+      <tr><td><code>cpu_seconds</code></td><td>The CPU its runs used in the pass, their task processes' and their tools', added up. Left out when no run of the module had one: a lookup, whose process is its pool's, so it has no CPU of its own, or a run whose CPU couldn't be read.</td></tr>
       <tr><td><code>cache_hit_count</code></td><td>For a module whose results the analysis cache keeps, when it looked any up in the pass: the results it took from the cache, each in place of a task.</td></tr>
       <tr><td><code>cache_miss_count</code></td><td>The lookups that found none, after which a task was queued.</td></tr>
       <tr><td><code>cache_write_count_insert</code></td><td>The module's results the pass kept for later alerts.</td></tr>

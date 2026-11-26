@@ -1,0 +1,46 @@
+{
+  "sample": "ace3/files/a.bin",
+  "ace3_commit": "141a60a2",
+  "process": {
+    "wall_seconds": 6,
+    "cpu_seconds": 2.0,
+    "children_cpu_seconds": 1.0
+  },
+  "modules": {
+    "file_type": {
+      "executor_runs": 1,
+      "executor_seconds": 0.1,
+      "runs": 1,
+      "analyze_seconds": 0.02,
+      "cpu_seconds": 0.016
+    },
+    "rdap_analyzer": {
+      "executor_runs": null,
+      "executor_seconds": null,
+      "runs": 2,
+      "analyze_seconds": 1.0,
+      "cpu_seconds": 0.04
+    },
+    "yara_scanner_v3_4": {
+      "executor_runs": 1,
+      "executor_seconds": 0.8,
+      "runs": 1,
+      "analyze_seconds": 0.6,
+      "cpu_seconds": 0.6
+    },
+    "olevba_v1_2": {
+      "executor_runs": 1,
+      "executor_seconds": 0.4,
+      "runs": 1,
+      "analyze_seconds": 0.2,
+      "cpu_seconds": 0.2
+    },
+    "ocr": {
+      "executor_runs": 0,
+      "executor_seconds": 0,
+      "runs": 0,
+      "analyze_seconds": 0,
+      "cpu_seconds": 0
+    }
+  }
+}

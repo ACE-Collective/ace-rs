@@ -1624,9 +1624,11 @@ fn a_site_s_parser_is_built_alone_in_its_task_process() {
     let dir = tempfile::tempdir().expect("a directory");
     let module = "example_ticket_file";
     let text = b"see TICKET-42 and CASE-9, then TICKET-7 and TICKET-42 again";
-    // the task's end as JSON: this process hasn't the site's observable types, which the
-    // result's new observables are of
-    let end = |stdout: &[u8]| serde_json::from_slice::<Value>(stdout).expect("a task's end");
+    // the task's end as JSON, beside its cost: this process hasn't the site's observable types,
+    // which the result's new observables are of
+    let end = |stdout: &[u8]| {
+        serde_json::from_slice::<Value>(stdout).expect("a task's end")["end"].take()
+    };
 
     // on its defaults, as itself
     let (code, stdout, stderr) =

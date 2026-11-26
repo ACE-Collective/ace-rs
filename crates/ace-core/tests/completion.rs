@@ -526,8 +526,10 @@ async fn assert_module_events_add_up(
     let total = event["total_analysis_time_seconds"]
         .as_f64()
         .expect("a number");
-    let rows: Vec<(String, f64, i64)> = sqlx::query_as(
-        "SELECT module, sum(run_seconds), sum(runs)::int8 FROM queue.tasks
+    type Row = (String, f64, i64, Option<f64>, Option<f64>);
+    let rows: Vec<Row> = sqlx::query_as(
+        "SELECT module, sum(run_seconds), sum(runs)::int8, sum(analyze_seconds), sum(cpu_seconds)
+         FROM queue.tasks
          WHERE root_id = $1 AND run_pass = $2 AND runs > 0 GROUP BY module ORDER BY module",
     )
     .bind(root)
@@ -537,20 +539,25 @@ async fn assert_module_events_add_up(
     .expect("reads the runs");
     assert_eq!(modules.len(), rows.len(), "{modules:?} against {rows:?}");
     let (mut seconds, mut share) = (0.0, 0.0);
-    for (module, (name, run_seconds, runs)) in modules.iter().zip(&rows) {
-        assert_eq!(
-            module,
-            &json!({
-                "event_type": "module",
-                "timestamp": event["timestamp"],
-                "root_uuid": root,
-                "pass": pass,
-                "module": name,
-                "analysis_time_seconds": run_seconds,
-                "percentage": module["percentage"],
-                "exec_count": runs,
-            })
-        );
+    for (module, (name, run_seconds, runs, analyze, cpu)) in modules.iter().zip(&rows) {
+        let mut expected = json!({
+            "event_type": "module",
+            "timestamp": event["timestamp"],
+            "root_uuid": root,
+            "pass": pass,
+            "module": name,
+            "analysis_time_seconds": run_seconds,
+            "percentage": module["percentage"],
+            "exec_count": runs,
+        });
+        // what the runs cost in their pools, when any sent it (PLAN.md 3.6)
+        if let Some(analyze) = analyze {
+            expected["analyze_seconds"] = json!(analyze);
+        }
+        if let Some(cpu) = cpu {
+            expected["cpu_seconds"] = json!(cpu);
+        }
+        assert_eq!(module, &expected);
         assert!(*run_seconds > 0.0, "{module}");
         seconds += run_seconds;
         share += module["percentage"].as_f64().expect("a number");
@@ -852,6 +859,202 @@ async fn a_tasks_run_time_is_from_each_claim_to_its_end_in_the_pass() {
             .await
             .expect("reads");
     assert_eq!(row, (Some(2), 1));
+}
+
+/// What a run cost in its pool (PLAN.md 3.6, migration 0088): each run's end or delay adds the
+/// `analyze` time and CPU its pool sent to the task's, for the pass it ended in, as its run time is;
+/// a run that sent none adds nothing, so a sum is of the runs that sent one and null when none did;
+/// a later pass starts them over; and the module events carry the sums, which `read_last_pass` reads
+/// back after the fact.
+#[tokio::test]
+async fn a_runs_cost_in_its_pool_adds_up_per_pass_and_null_is_unknown() {
+    use ace_sdk::wire::RunCost;
+
+    emitted::capture();
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, ids) = root_with(db, "analysis", &[(ObservableKind::Fqdn, "example.com")]).await;
+    assert_eq!(
+        ace_core::metrics::read_last_pass(db, root)
+            .await
+            .expect("reads"),
+        None,
+        "no pass of it has completed"
+    );
+    queue_all(
+        &test_db,
+        root,
+        &ids,
+        &["parser", "lookup", "silent", "mixed", "retried"],
+    )
+    .await;
+    let lease = Duration::from_secs(60);
+    let cost = |analyze: Option<f64>, cpu: Option<f64>| RunCost {
+        analyze_seconds: analyze,
+        cpu_seconds: cpu,
+    };
+    let claim = |worker: &Worker| {
+        let worker = worker.clone();
+        async move { worker.claim().await.expect("claims").expect("a task") }
+    };
+    let row = |task: queue::TaskId| async move {
+        sqlx::query_as::<_, (Option<f64>, Option<f64>, i32)>(
+            "SELECT analyze_seconds, cpu_seconds, runs FROM queue.tasks WHERE id = $1",
+        )
+        .bind(task.0)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads")
+    };
+
+    // a parser's two runs, a delay and an end, each with both
+    let parser = worker(&test_db, "parser", &["parser"], lease).await;
+    let task = claim(&parser).await;
+    let parser_task = task.id;
+    parser
+        .clone()
+        .with_cost(cost(Some(0.5), Some(0.25)))
+        .delay(task.id, Duration::ZERO, &json!({}))
+        .await
+        .expect("delays");
+    assert_eq!(row(parser_task).await, (Some(0.5), Some(0.25), 1));
+    let task = claim(&parser).await;
+    parser
+        .clone()
+        .with_cost(cost(Some(0.25), Some(0.5)))
+        .complete(task.id)
+        .await
+        .expect("completes");
+    // a lookup's: an analyze time and no CPU
+    let lookup = worker(&test_db, "lookup", &["lookup"], lease).await;
+    let task = claim(&lookup).await;
+    lookup
+        .with_cost(cost(Some(0.125), None))
+        .complete(task.id)
+        .await
+        .expect("completes");
+    // a pool that sent nothing
+    let silent = worker(&test_db, "silent", &["silent"], lease).await;
+    let task = claim(&silent).await;
+    silent.complete(task.id).await.expect("completes");
+    // a run that sent nothing, then one that sent an analyze time
+    let mixed = worker(&test_db, "mixed", &["mixed"], lease).await;
+    let task = claim(&mixed).await;
+    mixed
+        .delay(task.id, Duration::ZERO, &json!({}))
+        .await
+        .expect("delays");
+    let task = claim(&mixed).await;
+    mixed
+        .clone()
+        .with_cost(cost(Some(0.5), None))
+        .fail(task.id, "it failed")
+        .await
+        .expect("fails");
+    // a run whose peer was unavailable goes back to the queue with its cost added, and on its
+    // last attempt fails with both runs' costs
+    let retried = worker(&test_db, "retried", &["retried"], lease).await;
+    let task = claim(&retried).await;
+    let retried_task = task.id;
+    sqlx::query("UPDATE queue.tasks SET max_attempts = 2 WHERE id = $1")
+        .bind(retried_task.0)
+        .execute(db.pool())
+        .await
+        .expect("two attempts");
+    let requeued = retried
+        .clone()
+        .with_cost(cost(Some(0.25), Some(0.25)))
+        .retry_later(task.id, "unavailable")
+        .await
+        .expect("ends");
+    assert!(requeued.is_some(), "it had an attempt left");
+    assert_eq!(row(retried_task).await, (Some(0.25), Some(0.25), 1));
+    sqlx::query("UPDATE queue.tasks SET run_after = now() WHERE id = $1")
+        .bind(retried_task.0)
+        .execute(db.pool())
+        .await
+        .expect("due now");
+    let task = claim(&retried).await;
+    assert_eq!(task.id, retried_task);
+    let requeued = retried
+        .with_cost(cost(Some(0.5), Some(0.125)))
+        .retry_later(task.id, "unavailable")
+        .await
+        .expect("ends");
+    assert_eq!(requeued, None, "its last attempt failed it");
+    assert_eq!(row(retried_task).await, (Some(0.75), Some(0.375), 2));
+
+    let modules = emitted::modules_of(root);
+    let sums = |module: &str| {
+        let event = modules
+            .iter()
+            .find(|event| event["module"] == module)
+            .unwrap_or_else(|| panic!("{module}'s event in {modules:?}"));
+        (
+            event.get("analyze_seconds").and_then(Value::as_f64),
+            event.get("cpu_seconds").and_then(Value::as_f64),
+            event["exec_count"].as_i64().expect("a count"),
+        )
+    };
+    assert_eq!(sums("parser"), (Some(0.75), Some(0.75), 2));
+    assert_eq!(sums("lookup"), (Some(0.125), None, 1));
+    assert_eq!(sums("silent"), (None, None, 1));
+    assert_eq!(sums("mixed"), (Some(0.5), None, 2));
+    assert_eq!(sums("retried"), (Some(0.75), Some(0.375), 2));
+    // a null is left out of the event, as ace3 has no such field to fill
+    let silent_event = modules
+        .iter()
+        .find(|e| e["module"] == "silent")
+        .expect("its event");
+    assert!(
+        silent_event.get("analyze_seconds").is_none(),
+        "{silent_event}"
+    );
+    assert!(silent_event.get("cpu_seconds").is_none(), "{silent_event}");
+    let events = emitted::of(root);
+    assert_module_events_add_up(db, root, 1, &events[0], &modules).await;
+
+    // read after the fact, the same numbers
+    let read = ace_core::metrics::read_last_pass(db, root)
+        .await
+        .expect("reads")
+        .expect("the pass");
+    assert_eq!(read.pass, 1);
+    let parser_read = read
+        .modules
+        .iter()
+        .find(|m| m.module == "parser")
+        .expect("the parser");
+    assert_eq!(
+        (parser_read.analyze_seconds, parser_read.cpu_seconds),
+        (Some(0.75), Some(0.75))
+    );
+
+    // a second pass starts the parser's over: an analyze time alone, and its first pass's CPU gone
+    let mut tx = db.begin().await.expect("begins");
+    assert!(
+        queue::requeue_ended(&mut tx, parser_task)
+            .await
+            .expect("requeues")
+    );
+    tx.commit().await.expect("commits");
+    let task = claim(&parser).await;
+    parser
+        .with_cost(cost(Some(0.125), None))
+        .complete(task.id)
+        .await
+        .expect("completes");
+    assert_eq!(row(parser_task).await, (Some(0.125), None, 1));
+    let read = ace_core::metrics::read_last_pass(db, root)
+        .await
+        .expect("reads")
+        .expect("the pass");
+    assert_eq!(read.pass, 2);
+    assert_eq!(read.modules.len(), 1, "{:?}", read.modules);
+    assert_eq!(
+        (read.modules[0].analyze_seconds, read.modules[0].cpu_seconds),
+        (Some(0.125), None)
+    );
 }
 
 /// The measurement of `docs/measurements/root-metrics.md`: what the event adds to the transaction

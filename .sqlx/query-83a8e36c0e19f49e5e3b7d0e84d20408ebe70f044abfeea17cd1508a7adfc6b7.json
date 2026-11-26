@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE queue.tasks\n             SET state = $3, error = $4, lease_owner = NULL, lease_expires_at = NULL,\n                 updated_at = now(), incomplete = false,\n                 run_seconds = CASE WHEN run_pass = $5 THEN run_seconds ELSE 0 END\n                     + GREATEST(COALESCE(EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),\n                 runs = CASE WHEN run_pass = $5 THEN runs ELSE 0 END + 1,\n                 run_pass = $5\n             WHERE id = $1 AND lease_owner = $2 AND state = 'running'\n             RETURNING module, declined, observable_id",
+  "query": "UPDATE queue.tasks\n             SET state = $3, error = $4, lease_owner = NULL, lease_expires_at = NULL,\n                 updated_at = now(), incomplete = false,\n                 run_seconds = CASE WHEN run_pass = $5 THEN run_seconds ELSE 0 END\n                     + GREATEST(COALESCE(EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),\n                 runs = CASE WHEN run_pass = $5 THEN runs ELSE 0 END + 1,\n                 analyze_seconds = queue.add_known(\n                     CASE WHEN run_pass = $5 THEN analyze_seconds END, $6),\n                 cpu_seconds = queue.add_known(CASE WHEN run_pass = $5 THEN cpu_seconds END, $7),\n                 run_pass = $5\n             WHERE id = $1 AND lease_owner = $2 AND state = 'running'\n             RETURNING module, declined, observable_id",
   "describe": {
     "columns": [
       {
@@ -57,7 +57,9 @@
           }
         },
         "Text",
-        "Int4"
+        "Int4",
+        "Float8",
+        "Float8"
       ]
     },
     "nullable": [
@@ -66,5 +68,5 @@
       false
     ]
   },
-  "hash": "82e59edcd5295bb6f98fcab7e487cff85f751c929280d2d0bc3179a97e2a2821"
+  "hash": "83a8e36c0e19f49e5e3b7d0e84d20408ebe70f044abfeea17cd1508a7adfc6b7"
 }

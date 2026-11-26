@@ -543,6 +543,89 @@ async fn the_snort_module_reads_its_rule_through_the_lease_api() {
             .expect("a summary")
             .starts_with("Signature Analysis - (9000001 rev 3) alert http"),
     );
+    // its end said how long its analyze took, and no CPU, since a lookup shares its process
+    let (analyze, cpu) = run_cost(&core, root, "snort_signature_analysis_v1").await;
+    assert!(analyze.is_some_and(|s| s >= 0.0), "{analyze:?}");
+    assert_eq!(cpu, None);
+}
+
+/// What a task's runs cost in its pool, as its row keeps them (PLAN.md 3.6).
+async fn run_cost(core: &Core, root: uuid::Uuid, module: &str) -> (Option<f64>, Option<f64>) {
+    sqlx::query_as(
+        "SELECT analyze_seconds, cpu_seconds FROM queue.tasks WHERE root_id = $1 AND module = $2",
+    )
+    .bind(root)
+    .bind(module)
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("the task")
+}
+
+/// A task's end carries what its run cost in its request's headers, beside a body that is the end
+/// alone, and the core keeps each number that can be one: a negative time is a pool's bug, and one
+/// past a day a hostile process's, so it's dropped and the end still lands, with a WARN naming the
+/// task and the number.
+#[tokio::test]
+async fn an_ends_run_cost_is_kept_and_one_that_cant_be_a_time_is_dropped() {
+    let logs = crate::secrets::Logs::default();
+    let writer = logs.clone();
+    let subscriber = tracing_subscriber::fmt()
+        .with_writer(move || writer.clone())
+        .with_ansi(false)
+        .finish();
+    // the core serves on this test's one thread, so its log is caught here too
+    let _logging = tracing::subscriber::set_default(subscriber);
+    let core = reads_core(snort_rules()).await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let skipped = || ace_sdk::wire::TaskEnd::Skipped {
+        reason: "nothing to do".to_owned(),
+        writes: Vec::new(),
+    };
+    for (analyze, cpu, kept) in [
+        (Some(0.5), Some(0.25), (Some(0.5), Some(0.25))),
+        (Some(-1.0), Some(0.25), (None, Some(0.25))),
+        (None, None, (None, None)),
+        // a hostile task process's, which float8 sums would overflow; a day is the most kept
+        (Some(f64::MAX), Some(86_400.5), (None, None)),
+        (Some(86_400.0), Some(f64::MAX), (Some(86_400.0), None)),
+    ] {
+        let root = snort_root(&core, &["1:9000001:3"], "snort_signature_analysis_v1").await;
+        let task = client
+            .lease(&[], Duration::ZERO)
+            .await
+            .expect("leases")
+            .expect("a task");
+        let cost = ace_sdk::wire::RunCost {
+            analyze_seconds: analyze,
+            cpu_seconds: cpu,
+        };
+        client
+            .end_timed(task.id, &skipped(), cost)
+            .await
+            .expect("ends");
+        let (state, _) = common::task_of(&core, root, "snort_signature_analysis_v1").await;
+        assert_eq!(state, "done");
+        assert_eq!(
+            run_cost(&core, root, "snort_signature_analysis_v1").await,
+            kept,
+            "{analyze:?} {cpu:?}"
+        );
+        let log = std::mem::take(&mut *logs.0.lock().expect("the log"));
+        let log = String::from_utf8(log).expect("text");
+        for (field, sent, kept) in [
+            ("analyze_seconds", analyze, kept.0),
+            ("cpu_seconds", cpu, kept.1),
+        ] {
+            let warned = log.lines().any(|line| {
+                line.contains("WARN")
+                    // the event's own field, not the request span's
+                    && line.contains(&format!("task={}", ace_core::queue::TaskId(task.id)))
+                    && line.contains(&format!("field=\"{field}\""))
+            });
+            assert_eq!(warned, sent.is_some() && kept.is_none(), "{field}: {log}");
+        }
+    }
 }
 
 /// The refusals every read shares, which the core makes before it reads anything: an unknown token

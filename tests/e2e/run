@@ -147,6 +147,9 @@ Usage: tests/e2e/run [--keep] [--no-build] [--compare] [--jobs N] [--only CHECKS
 A change is checked in full, with every check and the whole sample set, by a run without --only or
 a selection of samples, which is what `make test-all` runs.
 
+ACE_RS_E2E_COMPARE_TIMEOUT and ACE_RS_E2E_SAMPLE_TIMEOUT, in seconds, pass `ace compare` its --timeout
+(3600 without it) and --sample-timeout (300), which a run with one slot per pool needs.
+
 With ACE_RS_TAKES_AUDIT=1 in the environment, the stack's core audits the modules' declarations of what
 they take rather than applying them (PLAN.md decision 23): it queues every task and marks the ones a
 declaration declines. After the comparison the test then fails if a marked task stored a result or
@@ -2417,6 +2420,11 @@ def compare_with_ace3(threshold=False, jobs=None, samples=None):
     ]
     if jobs:
         command += ["--jobs", str(jobs)]
+    # a run with one slot per pool (PLAN.md 3.6) outlasts the comparison's own limits
+    for variable, flag in (("ACE_RS_E2E_COMPARE_TIMEOUT", "--timeout"),
+                           ("ACE_RS_E2E_SAMPLE_TIMEOUT", "--sample-timeout")):
+        if os.environ.get(variable):
+            command += [flag, os.environ[variable]]
     for sample in samples or ():
         command += ["--only", sample]
     if threshold and samples is None:

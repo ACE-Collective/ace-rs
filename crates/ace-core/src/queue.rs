@@ -8,7 +8,8 @@
 //! out can't overwrite what the task's next owner does. The claim records when it took the lease
 //! (`claimed_at`), and the statement that ends the task or delays it adds that run, from the claim
 //! to its own transaction's start, to the task's run time in the root's pass (`run_seconds`, `runs`,
-//! `run_pass`), which the pass's metrics events read (`crate::metrics`).
+//! `run_pass`), with what its pool said the run cost (`analyze_seconds`, `cpu_seconds`,
+//! `Worker::with_cost`), which the pass's metrics events read (`crate::metrics`).
 //!
 //! A worker with nothing to claim waits on `LISTEN ace_rs_tasks` (`Wakeups`), which a trigger
 //! notifies whenever a task becomes claimable, with a bounded wait as the fallback in case a
@@ -43,6 +44,7 @@ use std::time::Duration;
 
 use ace_results::ObservableKind;
 use ace_sdk::DelayedRun;
+use ace_sdk::wire::RunCost;
 use chrono::{DateTime, Utc};
 use sqlx::postgres::PgListener;
 use tokio::task::JoinHandle;
@@ -542,6 +544,9 @@ pub struct Worker {
     /// What follows a task's end (`TaskEnded`); None for a worker whose ends need nothing, such
     /// as a test's.
     ended: Option<std::sync::Arc<dyn TaskEnded>>,
+    /// What the run that this worker ends next cost in its pool, which its end adds to the task's
+    /// (`with_cost`). Unknown for a worker the core runs itself.
+    cost: RunCost,
 }
 
 impl std::fmt::Debug for Worker {
@@ -564,12 +569,21 @@ impl Worker {
             modules,
             lease,
             ended: None,
+            cost: RunCost::default(),
         }
     }
 
     /// This worker, calling `ended` as its tasks end (`TaskEnded`).
     pub fn with_ended(mut self, ended: std::sync::Arc<dyn TaskEnded>) -> Self {
         self.ended = Some(ended);
+        self
+    }
+
+    /// This worker, adding `cost` to the run of each task it ends or delays (PLAN.md 3.6,
+    /// `crate::metrics`): what a pool said the run cost, for the worker the lease API makes for that
+    /// task's end.
+    pub fn with_cost(mut self, cost: RunCost) -> Self {
+        self.cost = cost;
         self
     }
 
@@ -870,6 +884,9 @@ impl Worker {
                    run_seconds = CASE WHEN run_pass = $5 THEN run_seconds ELSE 0 END
                        + GREATEST(COALESCE(EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),
                    runs = CASE WHEN run_pass = $5 THEN runs ELSE 0 END + 1,
+                   analyze_seconds = queue.add_known(
+                       CASE WHEN run_pass = $5 THEN analyze_seconds END, $6),
+                   cpu_seconds = queue.add_known(CASE WHEN run_pass = $5 THEN cpu_seconds END, $7),
                    run_pass = $5
                WHERE id = $1 AND lease_owner = $2 AND state = 'running'
                RETURNING run_after, state AS "state: TaskState""#,
@@ -878,6 +895,8 @@ impl Worker {
             after.as_secs_f64(),
             state,
             pass,
+            self.cost.analyze_seconds,
+            self.cost.cpu_seconds,
         )
         .fetch_optional(tx.conn())
         .await?
@@ -1039,6 +1058,10 @@ impl Worker {
                                        + GREATEST(COALESCE(
                                            EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),
                                    runs = CASE WHEN run_pass = $6 THEN runs ELSE 0 END + 1,
+                                   analyze_seconds = queue.add_known(
+                                       CASE WHEN run_pass = $6 THEN analyze_seconds END, $7),
+                                   cpu_seconds = queue.add_known(
+                                       CASE WHEN run_pass = $6 THEN cpu_seconds END, $8),
                                    run_pass = $6
                                WHERE id = $1 AND lease_owner = $2 AND state = 'running'
                                  AND attempts < max_attempts
@@ -1049,6 +1072,8 @@ impl Worker {
                         RETRY_AFTER_UNAVAILABLE.as_secs_f64(),
                         RETRY_AFTER_UNAVAILABLE_MAX.as_secs_f64(),
                         pass,
+                        self.cost.analyze_seconds,
+                        self.cost.cpu_seconds,
                     )
                     .fetch_optional(tx.conn())
                     .await?;
@@ -1150,6 +1175,9 @@ impl Worker {
                  run_seconds = CASE WHEN run_pass = $5 THEN run_seconds ELSE 0 END
                      + GREATEST(COALESCE(EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),
                  runs = CASE WHEN run_pass = $5 THEN runs ELSE 0 END + 1,
+                 analyze_seconds = queue.add_known(
+                     CASE WHEN run_pass = $5 THEN analyze_seconds END, $6),
+                 cpu_seconds = queue.add_known(CASE WHEN run_pass = $5 THEN cpu_seconds END, $7),
                  run_pass = $5
              WHERE id = $1 AND lease_owner = $2 AND state = 'running'
              RETURNING module, declined, observable_id",
@@ -1158,6 +1186,8 @@ impl Worker {
             state as TaskState,
             error,
             pass,
+            self.cost.analyze_seconds,
+            self.cost.cpu_seconds,
         )
         .fetch_optional(tx.conn())
         .await?;

@@ -1,0 +1,32 @@
+{
+  "sample": "ace3/files/b.bin",
+  "ace3_commit": "141a60a2",
+  "process": {
+    "wall_seconds": 9,
+    "cpu_seconds": 6.0,
+    "children_cpu_seconds": 3.0
+  },
+  "modules": {
+    "file_type": {
+      "executor_runs": 1,
+      "executor_seconds": 9,
+      "runs": 1,
+      "analyze_seconds": 9,
+      "cpu_seconds": 9
+    },
+    "exif": {
+      "executor_runs": 1,
+      "executor_seconds": 0.6,
+      "runs": 1,
+      "analyze_seconds": 0.3,
+      "cpu_seconds": 0.15
+    },
+    "rdap_analyzer": {
+      "executor_runs": 1,
+      "executor_seconds": 9,
+      "runs": 1,
+      "analyze_seconds": 9,
+      "cpu_seconds": 9
+    }
+  }
+}

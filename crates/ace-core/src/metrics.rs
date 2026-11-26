@@ -68,17 +68,32 @@
 //! `analyze`; and writing its result and its files and sending them to the core. That is the right
 //! thing to call a task's run time, for three reasons. It is the time a pool's slot was held for the
 //! task, which is what bounds how much a pool can do, so it is what a run time is for when sizing
-//! pools. It is what ace3's module time also is: the time from just before a module's `analyze` to
-//! after its results were processed and the root saved, overhead included. And it is measured by one
-//! clock that the core already writes at both ends, so it needs no clock in a pool, nothing new on the
-//! wire and no statement more. A task that ends at its lease, before any pool has it (its file isn't
-//! in the bucket, its root was cancelled), counts a run of the core's time alone; ace3 would count
-//! none, since its module never started.
+//! pools. It is what ace3's module time also is, overhead included: its executor's clock
+//! (`saq/engine/executor.py`, `module_start_time` to `module_end_time`) starts before the snapshot of
+//! the tree it takes ahead of the module's `analyze`, and stops after the snapshot after it, the
+//! delta's record and the cache's write, the root's save where the analysis mode's
+//! `root_save_frequency` asks for one, and the processing of what the module added; for a module
+//! that raised, after its crash report is written instead. The root is saved there only in modes that
+//! set that frequency, ace3's alert modes at most once every 5 seconds: in the `cli` mode `make-trees`
+//! runs and in ace3's default, it is saved only at the pass's end, outside any module's time. And it
+//! is measured by one clock that the core already writes at both ends, so it needs no clock in a
+//! pool. A task that ends at its lease, before any pool has it (its file isn't in the bucket, its root
+//! was cancelled), counts a run of the core's time alone; ace3 would count none, since its module
+//! never started.
 //!
-//! The module's own time could be separated cheaply: the pool already times `analyze` in its `task`
-//! span (`ace_sdk::task_span`), and could send that duration with the task's end, which the end's
-//! statement would store in a column beside `run_seconds`. That changes the wire, so it isn't done
-//! here. Until then the span is the module's own time, in the traces the collector receives.
+//! **What a run cost in its pool** (PLAN.md 3.6). A run's time says how long a slot was held, not
+//! what the module did with it, so a pool also sends two numbers with the task's end or its delay
+//! (`ace_sdk::wire::RunCost`), which the same statements add to the task's `analyze_seconds` and
+//! `cpu_seconds` (migration 0088), for the same pass. `analyze_seconds` is the module's `analyze`
+//! with the checks before it that can skip the task, timed in the process that ran it, which the
+//! `task` span (`ace_sdk::task_span`) also covers. `cpu_seconds` is the user and system CPU of the
+//! task's process and of the tool processes it had run, read from their rusage when the supervisor
+//! reaped them (`ace_pool::reap`): a parser's process, and the sandbox pool's, is the task's own from
+//! its start, so it includes the process's start, its containment and its module's setup. A lookup
+//! shares its pool's process with the others running beside it, so its CPU is unknown, not 0. Each is
+//! null where nobody knows it: a task the core ends itself, a pool built before these, a task process
+//! that died before it answered (no `analyze` time), or a rusage that couldn't be read (no CPU, and
+//! the supervisor logs why). A pass's sum is over the runs that sent one, and null when none did.
 //!
 //! **The module events.** ace3 emits one event for each module that did anything in the work item
 //! (`event_type` `module`), after the root's, with the same `root_uuid` and `timestamp`, which join
@@ -97,6 +112,8 @@
 //! | `analysis_time_seconds`, the module's run time in the work item | `analysis_time_seconds`, the module's run time in the pass | the sum of its tasks' `run_seconds` in the pass |
 //! | `percentage`, `analysis_time_seconds` as a percentage of the work item's `total_time_seconds`, 0 when that is 0 | `percentage`, `analysis_time_seconds` as a percentage of `total_analysis_time_seconds`, 0 when that is 0 | ace3's share is of the engine's time, which its modules ran one after another in; here tasks run side by side and the pass's open time includes waits, so a share of it could pass 100 and would move with the queue. A share of the run times is the module's share of the work, and the events of a pass add up to 100 |
 //! | `exec_count`, the module's `analyze` calls, a delayed module's resumptions included | `exec_count` | the sum of its tasks' `runs` in the pass |
+//! | none | `analyze_seconds`, absent when null | the sum of its tasks' `analyze_seconds` in the pass (*What a run cost in its pool*, above) |
+//! | none | `cpu_seconds`, absent when null | the sum of its tasks' `cpu_seconds` in the pass |
 //! | `cache_hit_count`, `cache_miss_count`, `cache_write_count_insert` | the same, for a module the cache did anything for in the pass, as ace3 leaves them out otherwise | `cache.activity` (migration 0072, `crate::cache::count`): a lookup where a task would have been queued counts its hit or its miss; a lookup at a lease, for a task whose files waited for its path, counts only its hit, since its miss was counted when the task was queued; a task's end that kept its result counts a write |
 //! | `cache_write_bytes_compressed_sum` | the same | the kept results' JSON, deflated, which is what the 1 MiB limit is of; ace3's is zstd's |
 //! | `cache_lookup_ms_sum`, `cache_lookup_ms_max` | the same, over hits and misses as ace3's since 2026-06-10 | each lookup timed from making its key to its hit or miss; a lookup at a lease isn't timed |
@@ -116,7 +133,7 @@
 //! its observables by type, and reads its tasks through their index by root once, grouped by module,
 //! for the counts and the run times; the other reads the pass's rows of `cache.activity` by their key.
 //! Nothing for a task's end that leaves the pass open, but the cache's own upsert of its counts. The lease
-//! sets one column more, and a task's end and its delay three, in statements they already ran; the
+//! sets one column more, and a task's end and its delay five, in statements they already ran; the
 //! root's lock they already took returns the pass. `docs/measurements/root-metrics.md` has the
 //! measurements. The statement is a read: if it fails, the transaction fails as it would on any
 //! statement's error, and the task's end is tried again as any is.
@@ -127,7 +144,7 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::db::{DbError, Tx};
+use crate::db::{Db, DbError, Tx};
 
 /// The log target the events are emitted under.
 pub const TARGET: &str = "ace_metrics";
@@ -194,6 +211,14 @@ pub struct ModuleMetrics {
     pub percentage: f64,
     /// The module's runs in the pass.
     pub exec_count: i64,
+    /// The sum of its runs' `analyze` times in the pass, as its pools timed them (PLAN.md 3.6). None
+    /// when no run sent one, as from a pool built before it did, or none ran.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub analyze_seconds: Option<f64>,
+    /// The sum of its runs' CPU in the pass, their task processes' and their tools', from their
+    /// rusage. None when no run had one: a lookup's process is shared, so it has none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cpu_seconds: Option<f64>,
     /// What the analysis cache did for the module in the pass (PLAN.md decision 26), ace3's fields,
     /// when it did anything, as ace3 attaches them only then.
     #[serde(flatten, skip_serializing_if = "Option::is_none")]
@@ -241,7 +266,8 @@ pub async fn read(
                       AS pass_open_seconds,
                   o.types AS "types!", o.counts AS "counts!",
                   t.tasks AS "tasks!", t.failed AS "failed!",
-                  t.modules AS "modules!", t.seconds AS "seconds!", t.runs AS "runs!"
+                  t.modules AS "modules!", t.seconds AS "seconds!", t.runs AS "runs!",
+                  t.analyze AS "analyze!: Vec<Option<f64>>", t.cpu AS "cpu!: Vec<Option<f64>>"
            FROM analysis.roots r,
                 LATERAL (SELECT COALESCE(array_agg(c.type ORDER BY c.type), '{}') AS types,
                                 COALESCE(array_agg(c.n ORDER BY c.type), '{}') AS counts
@@ -256,13 +282,21 @@ pub async fn read(
                                 COALESCE(array_agg(m.seconds ORDER BY m.module)
                                          FILTER (WHERE m.runs > 0), '{}') AS seconds,
                                 COALESCE(array_agg(m.runs ORDER BY m.module)
-                                         FILTER (WHERE m.runs > 0), '{}') AS runs
+                                         FILTER (WHERE m.runs > 0), '{}') AS runs,
+                                COALESCE(array_agg(m.analyze ORDER BY m.module)
+                                         FILTER (WHERE m.runs > 0), '{}') AS analyze,
+                                COALESCE(array_agg(m.cpu ORDER BY m.module)
+                                         FILTER (WHERE m.runs > 0), '{}') AS cpu
                          FROM (SELECT module, count(*) AS tasks,
                                       count(*) FILTER (WHERE state = 'failed') AS failed,
                                       COALESCE(sum(run_seconds) FILTER (WHERE run_pass = $4),
                                                0)::float8 AS seconds,
                                       COALESCE(sum(runs) FILTER (WHERE run_pass = $4), 0)::int8
-                                          AS runs
+                                          AS runs,
+                                      -- null when no run in the pass sent one (migration 0088)
+                                      sum(analyze_seconds) FILTER (WHERE run_pass = $4)::float8
+                                          AS analyze,
+                                      sum(cpu_seconds) FILTER (WHERE run_pass = $4)::float8 AS cpu
                                FROM queue.tasks WHERE root_id = r.id GROUP BY module) m) t
            WHERE r.id = $1"#,
         root,
@@ -281,21 +315,26 @@ pub async fn read(
             .into_iter()
             .zip(row.seconds)
             .zip(row.runs)
-            .map(|((module, seconds), runs)| ModuleMetrics {
-                event_type: EVENT_TYPE_MODULE,
-                timestamp: completed_at,
-                root_uuid: root,
-                pass,
-                module,
-                analysis_time_seconds: seconds,
-                percentage: if total > 0.0 {
-                    seconds / total * 100.0
-                } else {
-                    0.0
+            .zip(row.analyze.into_iter().zip(row.cpu))
+            .map(
+                |(((module, seconds), runs), (analyze, cpu))| ModuleMetrics {
+                    event_type: EVENT_TYPE_MODULE,
+                    timestamp: completed_at,
+                    root_uuid: root,
+                    pass,
+                    module,
+                    analysis_time_seconds: seconds,
+                    percentage: if total > 0.0 {
+                        seconds / total * 100.0
+                    } else {
+                        0.0
+                    },
+                    exec_count: runs,
+                    analyze_seconds: analyze,
+                    cpu_seconds: cpu,
+                    cache: None,
                 },
-                exec_count: runs,
-                cache: None,
-            })
+            )
             .collect();
         RootMetrics {
             event_type: EVENT_TYPE_ROOT,
@@ -352,6 +391,8 @@ pub async fn read(
                 analysis_time_seconds: 0.0,
                 percentage: 0.0,
                 exec_count: 0,
+                analyze_seconds: None,
+                cpu_seconds: None,
                 cache: Some(cache),
             }),
         }
@@ -410,6 +451,25 @@ impl ModuleMetrics {
             "{MODULE_MESSAGE_PREFIX}{}",
             self.to_json()
         );
+    }
+}
+
+/// The events of the root's last completed pass, read after the fact, as `ace compare` reads a
+/// sample's timings: None while no pass of it has completed. Its tasks' run times are the last
+/// pass's, since a later pass starts them over, so this reads the pass the root was last idle after.
+pub async fn read_last_pass(db: &Db, root: Uuid) -> Result<Option<RootMetrics>, DbError> {
+    // only read: dropping the transaction rolls it back
+    let mut tx = db.begin().await?;
+    let last = sqlx::query!(
+        "SELECT pass, completed_at FROM queue.root_completions
+         WHERE root_id = $1 ORDER BY pass DESC LIMIT 1",
+        root,
+    )
+    .fetch_optional(tx.conn())
+    .await?;
+    match last {
+        Some(last) => read(&mut tx, root, last.pass, last.completed_at).await,
+        None => Ok(None),
     }
 }
 

@@ -1,0 +1,413 @@
+#!/usr/bin/env python3
+"""Joins ace-rs's and ace3's module timings by sample and module (PLAN.md 3.6, item 8).
+
+Each REPORT is the report.json of one `ace compare` run, and each ACE3_DIR the directory one run of
+`tools/ace3/trees/make-trees --timings DIR` wrote. Several of each are several runs: every figure is
+the median over a side's runs, with the range beside it.
+
+    tools/timings/compare --ace-rs A/report.json --ace-rs B/report.json --ace-rs C/report.json \\
+        --ace3 T1 --ace3 T2 --ace3 T3 [--json PATH]
+
+For each module that ran on both sides it gives its totals over the samples counted for it: the
+`analyze` time, the slot time (ace-rs's `run_seconds`, the lease, the process's start and the
+result's write included; ace3's executor time, its snapshots and cache write included) and the CPU,
+with how many runs each side made and ace-rs's cache hits, and the ratios of the totals. Totals,
+not time per run: ace3 calls `analyze` on nearly every observable and most calls decline at once,
+where ace-rs's declarations keep the core from queueing them, so a per-run average on ace3's side
+is mostly of declines. The per-run figures follow in a table of their own, for reading beside the
+run counts, with no ratios.
+
+A figure no counted sample had is n/a: ace-rs's CPU for a lookup module, whose process is shared,
+or ace3's slot time when its executor gave none. A figure some samples had and some didn't is
+"partial", with no total and no ratio, since a sum of a part would pass for the whole.
+
+For the whole sample set and for each root it gives the CPU and the summed `analyze` time on each
+side. ace-rs's CPU leaves out its lookup tasks, and ace3's is its whole cli process, a floor for
+what a root costs it.
+
+A sample counts for a module only if every ace-rs run compared it with no unexplained difference
+and no failed task of that module, so a port that does less isn't counted as faster; a root counts
+only if none of its modules, nor the tree, had either. A sample one side's run lacks counts nowhere.
+What was left out is listed with the reason.
+
+ace-rs names a module by ace3's configuration name (compare's results keys are ace3's tree keys), so
+the two sides join on the name as it is.
+"""
+
+import argparse
+import json
+import statistics
+import sys
+from pathlib import Path
+
+TREE = "(tree)"
+
+
+def load_ace_rs(path):
+    """One ace-rs run: {sample: entry}, with the absent and failed ones apart."""
+    report = json.loads(Path(path).read_text())
+    samples = {s["sample"]: s for s in report["samples"]}
+    missing = set(report.get("absent", [])) | {f["sample"] for f in report.get("failed", [])}
+    return {"path": str(path), "ace3_commit": report.get("ace3_commit"), "samples": samples,
+            "missing": missing}
+
+
+def load_ace3(directory):
+    """One ace3 run: {sample: timing file}."""
+    directory = Path(directory)
+    samples = {}
+    for file in sorted(directory.rglob("*.json")):
+        timing = json.loads(file.read_text())
+        name = timing.get("sample") or str(file.relative_to(directory).with_suffix(""))
+        samples[name] = timing
+    if not samples:
+        raise SystemExit(f"{directory} holds no timing files")
+    return {"path": str(directory), "samples": samples,
+            "ace3_commit": next(iter(samples.values())).get("ace3_commit")}
+
+
+def spread(values):
+    """The median and range of the values that exist; None when none does."""
+    values = [v for v in values if v is not None]
+    if not values:
+        return None
+    return {"median": statistics.median(values), "min": min(values), "max": max(values),
+            "runs": len(values)}
+
+
+def per_run(pairs):
+    """Σ value / Σ runs over the (value, runs) pairs whose value exists, so a null value takes its
+    runs out of the denominator too; None when no run is left."""
+    pairs = [(v, n) for v, n in pairs if v is not None and n]
+    runs = sum(n for _, n in pairs)
+    return sum(v for v, _ in pairs) / runs if runs else None
+
+
+def ratio(a, b):
+    if a is None or b is None or not b["median"]:
+        return None
+    return a["median"] / b["median"]
+
+
+def rs_modules(entry):
+    return (entry.get("timings") or {}).get("modules") or {}
+
+
+def unexplained_modules(entry):
+    modules = {d["module"] for d in entry.get("differences", []) if d["class"] == "unexplained"}
+    modules |= {m for m, counts in (entry.get("modules") or {}).items() if counts.get("unexplained")}
+    return modules
+
+
+def failed_modules(entry):
+    return {t["module"] for t in entry.get("failed_tasks", [])}
+
+
+FIGURES = ("analyze", "slot", "cpu")
+ACE_RS_FIELDS = {"analyze": "analyze_seconds", "slot": "run_seconds", "cpu": "cpu_seconds"}
+ACE3_FIELDS = {"analyze": "analyze_seconds", "slot": "executor_seconds", "cpu": "cpu_seconds"}
+
+
+def total(pairs):
+    """Σ value over the (value, runs) pairs that ran, with how many of them had no value. A total
+    with some values missing would pass for the whole, so it is None then, and the count says why."""
+    ran = [v for v, n in pairs if n]
+    nulls = sum(1 for v in ran if v is None)
+    return (None if nulls else sum(ran)), nulls, len(ran)
+
+
+def module_run(rows, fields):
+    """One run's figures for a module over the counted samples' rows: totals and per run."""
+    rows = [r for r in rows if r]
+    out = {"runs": sum(r.get("runs", 0) for r in rows),
+           "cache_hits": sum(r.get("cache_hits", 0) for r in rows)}
+    for figure, field in fields.items():
+        pairs = [(r.get(field), r.get("runs", 0)) for r in rows]
+        out[f"total_{figure}"], out[f"nulls_{figure}"], out[f"ran_{figure}"] = total(pairs)
+        out[f"per_run_{figure}"] = per_run(pairs)
+    return out
+
+
+def side_spread(per_runs):
+    side = {"runs": spread([r["runs"] for r in per_runs]),
+            "cache_hits": spread([r["cache_hits"] for r in per_runs]),
+            "total": {}, "per_run": {}, "nulls": {}}
+    for figure in FIGURES:
+        side["total"][figure] = spread([r[f"total_{figure}"] for r in per_runs])
+        side["per_run"][figure] = spread([r[f"per_run_{figure}"] for r in per_runs])
+        # the samples that ran with no value, and those that ran, in the run with most of them
+        worst = max(per_runs, key=lambda r: r[f"nulls_{figure}"])
+        side["nulls"][figure] = {"samples": worst[f"nulls_{figure}"], "of": worst[f"ran_{figure}"]}
+    return side
+
+
+def compare(ace_rs_runs, ace3_runs):
+    rs_seen = set().union(*(set(r["samples"]) | r["missing"] for r in ace_rs_runs))
+    ace3_seen = set().union(*(set(r["samples"]) for r in ace3_runs))
+    in_all_rs = set.intersection(*(set(r["samples"]) for r in ace_rs_runs))
+    in_all_ace3 = set.intersection(*(set(r["samples"]) for r in ace3_runs))
+    both = sorted(in_all_rs & in_all_ace3)
+    left_out_samples = {
+        "missing from an ace-rs run": sorted((rs_seen | ace3_seen) - in_all_rs),
+        "missing from an ace3 run": sorted((rs_seen | ace3_seen) - in_all_ace3),
+    }
+
+    # a module's exclusion holds if any ace-rs run had it, so every run counts the same samples
+    unexplained, failed = {}, {}
+    for sample in both:
+        for run in ace_rs_runs:
+            entry = run["samples"][sample]
+            for module in unexplained_modules(entry):
+                unexplained.setdefault(module, set()).add(sample)
+            for module in failed_modules(entry):
+                failed.setdefault(module, set()).add(sample)
+
+    modules = set()
+    for sample in both:
+        for run in ace_rs_runs:
+            modules |= set(rs_modules(run["samples"][sample]))
+        for run in ace3_runs:
+            modules |= set(run["samples"][sample].get("modules", {}))
+
+    on_both, one_side = [], []
+    for module in sorted(modules):
+        excluded_unexplained = sorted(unexplained.get(module, set()))
+        excluded_failed = sorted(failed.get(module, set()) - unexplained.get(module, set()))
+        counted = [s for s in both
+                   if s not in unexplained.get(module, set()) and s not in failed.get(module, set())]
+        # the samples where the module did anything, on either side, in any run
+        touched = [s for s in counted
+                   if any(rs_modules(r["samples"][s]).get(module) for r in ace_rs_runs)
+                   or any(r["samples"][s].get("modules", {}).get(module) for r in ace3_runs)]
+        rs_per_run = [module_run([rs_modules(r["samples"][s]).get(module) for s in counted], ACE_RS_FIELDS)
+                      for r in ace_rs_runs]
+        ace3_per_run = [module_run([r["samples"][s].get("modules", {}).get(module) for s in counted], ACE3_FIELDS)
+                        for r in ace3_runs]
+        rs, ace3 = side_spread(rs_per_run), side_spread(ace3_per_run)
+        row = {
+            "module": module,
+            "samples": len(touched),
+            "left_out": {"unexplained difference": excluded_unexplained, "failed task": excluded_failed},
+            "ace_rs": rs,
+            "ace3": ace3,
+        }
+        rs_ran = bool(rs["runs"] and rs["runs"]["max"])
+        ace3_ran = bool(ace3["runs"] and ace3["runs"]["max"])
+        if rs_ran and ace3_ran:
+            row["ratio"] = {f: ratio(rs["total"][f], ace3["total"][f]) for f in ("analyze", "cpu")}
+            on_both.append(row)
+        elif rs_ran or ace3_ran or (rs["cache_hits"] and rs["cache_hits"]["max"]):
+            row["ran_on"] = "ace-rs" if rs_ran else "ace3" if ace3_ran else "neither"
+            one_side.append(row)
+
+    roots, left_out_roots = [], {}
+    for sample in both:
+        why = set()
+        for run in ace_rs_runs:
+            entry = run["samples"][sample]
+            if unexplained_modules(entry):
+                why.add("unexplained difference")
+            if failed_modules(entry):
+                why.add("failed task")
+        if why:
+            left_out_roots[sample] = sorted(why)
+            continue
+        rs_roots = [(run["samples"][sample].get("timings") or {}).get("root") or {} for run in ace_rs_runs]
+        ace3_files = [run["samples"][sample] for run in ace3_runs]
+        rs_modules_here = set().union(*(set(rs_modules(r["samples"][sample])) for r in ace_rs_runs))
+        ace3_modules_here = set().union(*(set(t.get("modules", {})) for t in ace3_files))
+        roots.append({
+            "sample": sample,
+            "ace_rs": {
+                "cpu": [r.get("cpu_seconds") for r in rs_roots],
+                "analyze": [r.get("analyze_seconds") for r in rs_roots],
+            },
+            "ace3": {
+                "cpu": [t["process"]["cpu_seconds"] + t["process"]["children_cpu_seconds"] for t in ace3_files],
+                "analyze": [sum(m.get("analyze_seconds") or 0 for m in t.get("modules", {}).values())
+                            for t in ace3_files],
+            },
+            "ace3_only_modules": sorted(ace3_modules_here - rs_modules_here),
+        })
+
+    def summed(side, key, run_count):
+        # a root with no value in a run (all its tasks lookups, say) adds nothing to that run's sum
+        totals = []
+        for i in range(run_count):
+            values = [root[side][key][i] for root in roots if root[side][key][i] is not None]
+            totals.append(sum(values) if values else None)
+        return spread(totals)
+
+    root_totals = {
+        "roots": len(roots),
+        "ace_rs": {k: summed("ace_rs", k, len(ace_rs_runs)) for k in ("cpu", "analyze")},
+        "ace3": {k: summed("ace3", k, len(ace3_runs)) for k in ("cpu", "analyze")},
+        "ace_rs_roots_without_cpu": sum(1 for r in roots if all(v is None for v in r["ace_rs"]["cpu"])),
+    }
+    for root in roots:
+        for side in ("ace_rs", "ace3"):
+            root[side] = {k: spread(v) for k, v in root[side].items()}
+
+    return {
+        "ace_rs_runs": [r["path"] for r in ace_rs_runs],
+        "ace3_runs": [r["path"] for r in ace3_runs],
+        "ace3_commits": sorted({str(r["ace3_commit"]) for r in ace3_runs}),
+        "trees_ace3_commits": sorted({str(r["ace3_commit"]) for r in ace_rs_runs}),
+        "samples_on_both_sides": len(both),
+        "left_out_samples": left_out_samples,
+        "modules": on_both,
+        "one_side_modules": one_side,
+        "roots": roots,
+        "root_totals": root_totals,
+        "left_out_roots": left_out_roots,
+    }
+
+
+def fmt(value, digits=4):
+    if value is None:
+        return "n/a"
+    return f"{value:.{digits}g}"
+
+
+def fmt_spread(s, integer=False):
+    if s is None:
+        return "n/a"
+    f = (lambda v: f"{v:g}") if integer else fmt
+    if s["min"] == s["max"]:
+        return f(s["median"])
+    return f"{f(s['median'])} [{f(s['min'])}, {f(s['max'])}]"
+
+
+def total_cell(side, figure):
+    nulls = side["nulls"][figure]
+    if 0 < nulls["samples"] < nulls["of"]:
+        return f"partial ({nulls['samples']} of {nulls['of']} null)"
+    return fmt_spread(side["total"][figure])
+
+
+def plural(count, noun):
+    return f"{count} {noun}" + ("" if count == 1 else "s")
+
+
+def names(samples, limit=5):
+    shown = ", ".join(f"`{s}`" for s in samples[:limit])
+    return shown + (f" and {len(samples) - limit} more" if len(samples) > limit else "")
+
+
+def markdown(result):
+    out = []
+    w = out.append
+    w("# Module timings, ace-rs and ace3\n")
+    w(f"ace-rs: {len(result['ace_rs_runs'])} runs ({', '.join(result['ace_rs_runs'])}). "
+      f"ace3: {len(result['ace3_runs'])} runs ({', '.join(result['ace3_runs'])}), "
+      f"at {', '.join(result['ace3_commits'])}.\n")
+    if result["ace3_commits"] != result["trees_ace3_commits"]:
+        w(f"The trees ace-rs compared with are of ace3 at {', '.join(result['trees_ace3_commits'])}, "
+          "not the commit timed.\n")
+    w(f"{result['samples_on_both_sides']} samples are in every run on both sides. "
+      "Each figure is the median over a side's runs, with the range in brackets when the runs differ.\n")
+    for why, samples in result["left_out_samples"].items():
+        if samples:
+            w(f"- {plural(len(samples), 'sample')} left out, {why}: {names(samples)}")
+    w("")
+
+    totals = result["root_totals"]
+    w("## The whole sample set\n")
+    w(f"Over the {plural(totals['roots'], 'counted root')}: ace-rs's CPU "
+      f"{fmt_spread(totals['ace_rs']['cpu'])} s and `analyze` {fmt_spread(totals['ace_rs']['analyze'])} s; "
+      f"ace3's process CPU, its children's included, {fmt_spread(totals['ace3']['cpu'])} s and `analyze` "
+      f"{fmt_spread(totals['ace3']['analyze'])} s. CPU ratio {fmt(ratio(totals['ace_rs']['cpu'], totals['ace3']['cpu']), 3)}, "
+      f"`analyze` ratio {fmt(ratio(totals['ace_rs']['analyze'], totals['ace3']['analyze']), 3)} (ace-rs over ace3).\n")
+    w("ace-rs's CPU is its task processes' own, its lookups left out, since a lookup shares its "
+      "process; ace3's is its whole cli process, everything included.")
+    if totals["ace_rs_roots_without_cpu"]:
+        w(f" Roots with no ace-rs CPU, every task of theirs a lookup, add nothing to its total: "
+          f"{totals['ace_rs_roots_without_cpu']}.")
+    w("")
+
+    w("## Modules that ran on both sides\n")
+    w("Each module's totals over the samples counted for it, in seconds. The runs are its calls: ace3 "
+      "calls `analyze` on nearly every observable and most calls decline at once, where ace-rs's "
+      "declarations keep the core from queueing them, so the two sides' runs can differ by thousands.\n")
+    w("| Module | Samples | Runs ace-rs | Runs ace3 | Cache hits | Analyze ace-rs | Analyze ace3 | "
+      "Slot ace-rs | Slot ace3 | CPU ace-rs | CPU ace3 | Analyze ratio | CPU ratio |")
+    w("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    for row in result["modules"]:
+        rs, ace3 = row["ace_rs"], row["ace3"]
+        w(f"| `{row['module']}` | {row['samples']} | {fmt_spread(rs['runs'], True)} | "
+          f"{fmt_spread(ace3['runs'], True)} | {fmt_spread(rs['cache_hits'], True)} | "
+          + " | ".join(total_cell(side, f) for f in FIGURES[:2] for side in (rs, ace3)) + " | "
+          + f"{total_cell(rs, 'cpu')} | {total_cell(ace3, 'cpu')} | "
+          f"{fmt(row['ratio']['analyze'], 3)} | {fmt(row['ratio']['cpu'], 3)} |")
+    w("\nThe ratios are ace-rs's median total over ace3's. n/a is a figure no run had: ace-rs's CPU "
+      "for a lookup module, whose process is shared, or ace3's slot with no executor figures. "
+      "\"partial\" is a figure some of the counted samples lacked, so no total is given and no ratio "
+      "made of it; the JSON has the counts.\n")
+
+    w("### Per run\n")
+    w("The same figures over each side's runs. They aren't comparable where the run counts differ: "
+      "ace3's average takes in every call that declined at once, ace-rs's only the calls its "
+      "declarations let through. A sample with no value for a figure takes its runs out of that "
+      "figure's average.\n")
+    w("| Module | Runs ace-rs | Runs ace3 | Analyze ace-rs | Analyze ace3 | Slot ace-rs | Slot ace3 | "
+      "CPU ace-rs | CPU ace3 |")
+    w("|---|---:|---:|---:|---:|---:|---:|---:|---:|")
+    for row in result["modules"]:
+        rs, ace3 = row["ace_rs"], row["ace3"]
+        w(f"| `{row['module']}` | {fmt_spread(rs['runs'], True)} | {fmt_spread(ace3['runs'], True)} | "
+          + " | ".join(fmt_spread(side["per_run"][f]) for f in FIGURES for side in (rs, ace3)) + " |")
+    w("")
+
+    if result["one_side_modules"]:
+        w("## Modules with runs on one side only\n")
+        w("| Module | Ran on | Samples | Runs ace-rs | Runs ace3 | Cache hits |")
+        w("|---|---|---:|---:|---:|---:|")
+        for row in result["one_side_modules"]:
+            w(f"| `{row['module']}` | {row['ran_on']} | {row['samples']} | "
+              f"{fmt_spread(row['ace_rs']['runs'], True)} | {fmt_spread(row['ace3']['runs'], True)} | "
+              f"{fmt_spread(row['ace_rs']['cache_hits'], True)} |")
+        w("")
+
+    w("## Roots\n")
+    w("| Sample | CPU ace-rs | CPU ace3 | Analyze ace-rs | Analyze ace3 | Modules only in ace3 |")
+    w("|---|---:|---:|---:|---:|---|")
+    for root in result["roots"]:
+        w(f"| `{root['sample']}` | {fmt_spread(root['ace_rs']['cpu'])} | {fmt_spread(root['ace3']['cpu'])} | "
+          f"{fmt_spread(root['ace_rs']['analyze'])} | {fmt_spread(root['ace3']['analyze'])} | "
+          f"{', '.join(root['ace3_only_modules']) or '-'} |")
+    w("")
+
+    left = [(row["module"], why, samples) for row in result["modules"] + result["one_side_modules"]
+            for why, samples in row["left_out"].items() if samples]
+    if left or result["left_out_roots"]:
+        w("## Left out\n")
+        for module, why, samples in left:
+            article = "an" if why[0] in "aeiou" else "a"
+            w(f"- `{module}`: {plural(len(samples), 'sample')} with {article} {why}: {names(samples)}")
+        if result["left_out_roots"]:
+            by_why = {}
+            for sample, whys in result["left_out_roots"].items():
+                by_why.setdefault(", ".join(whys), []).append(sample)
+            for why, samples in by_why.items():
+                w(f"- {plural(len(samples), 'root')} left out ({why}): {names(samples)}")
+        w("")
+    return "\n".join(out)
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--ace-rs", action="append", required=True, metavar="REPORT",
+                        help="an `ace compare` run's report.json; give one per run")
+    parser.add_argument("--ace3", action="append", required=True, metavar="ACE3_DIR",
+                        help="a `make-trees --timings` run's directory; give one per run")
+    parser.add_argument("--json", metavar="PATH", help="also write the figures as JSON here")
+    args = parser.parse_args(argv)
+    result = compare([load_ace_rs(p) for p in args.ace_rs], [load_ace3(d) for d in args.ace3])
+    print(markdown(result))
+    if args.json:
+        Path(args.json).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
