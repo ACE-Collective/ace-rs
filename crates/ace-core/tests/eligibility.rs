@@ -1122,8 +1122,8 @@ async fn a_task_held_back_for_the_others_is_due_when_the_last_of_them_ends() {
 }
 
 /// A task of a module that runs last that hasn't asked yet isn't marked as held back, so it counts as
-/// another module's and the others' wait stands; a task's end, or the lease when it holds that one
-/// back for a task below it (`queue::wake_held_back_now`), wakes them then. A cancelled root's tasks
+/// another module's and the others' wait stands; a task's end, or its hold when the lease holds that
+/// one back for a task below it (`Worker::hold`), wakes them then. A cancelled root's tasks
 /// stay cancelled.
 #[tokio::test]
 async fn a_task_that_has_not_asked_yet_puts_the_wake_off_until_it_has() {
@@ -1151,14 +1151,15 @@ async fn a_task_that_has_not_asked_yet_puts_the_wake_off_until_it_has() {
     let minute = Duration::from_secs(60);
     let held_back = |by| Some(ace_core::queue::HeldBackWait { by, step: 0 });
     let last = worker(&test_db, "last", &["xlmdeobfuscator"], lease).await;
+    // held back for the last other task
     queue(ids[1], "xlmdeobfuscator").await;
+    queue(ids[0], "archive").await;
     let first = last.claim().await.expect("claims").expect("the task");
     last.hold(first.id, minute, held_back(tree::HeldBack::ByOthers))
         .await
         .expect("holds");
-    // one that hasn't asked, and the last other task
+    // and one that hasn't asked
     queue(ids[0], "xlmdeobfuscator").await;
-    queue(ids[0], "archive").await;
     let archive = worker(&test_db, "archive", &["archive"], lease).await;
     let task = archive.claim().await.expect("claims").expect("the task");
     archive.complete(task.id).await.expect("completes");
@@ -1176,20 +1177,11 @@ async fn a_task_that_has_not_asked_yet_puts_the_wake_off_until_it_has() {
     last.hold(fresh.id, minute, held_back(tree::HeldBack::ByLastBelow))
         .await
         .expect("holds");
-    assert_eq!(
-        ace_core::queue::wake_held_back_now(db, root)
-            .await
-            .expect("wakes"),
-        1
-    );
     let woken = last.claim().await.expect("claims").expect("the first");
     assert_eq!(woken.id, first.id);
-    assert_eq!(
-        ace_core::queue::wake_held_back_now(db, root)
-            .await
-            .expect("wakes"),
-        0,
-        "none is left waiting for the others"
+    assert!(
+        last.claim().await.expect("claims").is_none(),
+        "the one held back for a task below keeps its wait"
     );
 
     // a cancelled root: its held tasks are cancelled, and an end wakes none of them
@@ -1220,6 +1212,72 @@ async fn a_task_that_has_not_asked_yet_puts_the_wake_off_until_it_has() {
             ("xlmdeobfuscator".to_owned(), file, "cancelled".to_owned()),
         ]
     );
+}
+
+/// The core's wait for a task that runs last. One held back by the others waits the whole 32 s at
+/// once, since their last end wakes it (`queue::check_completion`); asking again sooner only asks
+/// what the wake answers. One held back by a task below it, which nothing wakes, starts at 250 ms
+/// and doubles to 32 s while that holds it back, and starts low again when the reason changes.
+#[test]
+fn a_task_held_back_by_the_others_waits_for_their_wake() {
+    use ace_core::queue::HeldBackWait;
+    use tree::HeldBack::{ByLastBelow, ByOthers};
+    let ms = Duration::from_millis;
+    let mut before = None;
+    for _ in 0..3 {
+        let (wait, after) = HeldBackWait::next(before, ByOthers);
+        assert_eq!(
+            after,
+            ms(32_000),
+            "held back by the others, {before:?} before"
+        );
+        before = Some(wait);
+    }
+    let mut waits = Vec::new();
+    for _ in 0..9 {
+        let (wait, after) = HeldBackWait::next(before, ByLastBelow);
+        waits.push(after);
+        before = Some(wait);
+    }
+    assert_eq!(
+        waits,
+        [250, 500, 1000, 2000, 4000, 8000, 16_000, 32_000, 32_000].map(ms),
+        "below it: from 250 ms, as the others' wait ended"
+    );
+    assert_eq!(
+        HeldBackWait::next(before, ByOthers).1,
+        ms(32_000),
+        "the others again, after a long wait below"
+    );
+}
+
+/// The others' last task can end between the lease's read that they're pending and its hold, while
+/// the task held back is still running and unmarked, so that end wakes nothing. The hold then wakes
+/// it itself, under the root's lock both take, so it doesn't sit out its 32 s.
+#[tokio::test]
+async fn a_hold_after_the_others_last_end_is_due_at_once() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let file = "a".repeat(64);
+    let (root, ids) = root_with(db, "test", &[(ObservableKind::File, file.as_str())]).await;
+    for module in ["xlmdeobfuscator", "archive"] {
+        let mut tx = db.begin().await.expect("begins");
+        ace_core::queue::enqueue(&mut tx, root, ids[0], module)
+            .await
+            .expect("queues");
+        tx.commit().await.expect("commits");
+    }
+    let lease = Duration::from_secs(30);
+    let last = worker(&test_db, "last", &["xlmdeobfuscator"], lease).await;
+    let archive = worker(&test_db, "archive", &["archive"], lease).await;
+    let task = last.claim().await.expect("claims").expect("the task");
+    // the lease read the archive task as pending; it ends before the hold
+    let other = archive.claim().await.expect("claims").expect("the task");
+    archive.complete(other.id).await.expect("completes");
+    let (wait, after) = ace_core::queue::HeldBackWait::next(None, tree::HeldBack::ByOthers);
+    last.hold(task.id, after, Some(wait)).await.expect("holds");
+    let again = last.claim().await.expect("claims");
+    assert_eq!(again.map(|t| t.id), Some(task.id), "due at once");
 }
 
 /// A task that runs last whose module delays it after the core held it back waits for its module's

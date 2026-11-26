@@ -287,18 +287,20 @@ pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>
 
 /// Makes the root's tasks that wait for every other module due now, once nothing is left but tasks
 /// the core holds back, and returns how many. They are the tasks of modules that run last
-/// (`Module::RUNS_LAST`), which the lease holds back with a wait that doubles to 32 s
-/// (`Api::leased`, `Worker::hold`), so without this one sat out the rest of its wait after the root
-/// went quiet.
+/// (`Module::RUNS_LAST`), which the lease holds back for 32 s (`HeldBackWait::next`,
+/// `Worker::hold`), so this is what makes them run once the root goes quiet. Every end runs it
+/// (`check_completion`), and so does every hold: the others' last end may come while the task is
+/// still leased and unmarked, or every other module may have finished when one is held back for a
+/// task below it, and no end may follow to say so.
 ///
 /// It changes only when such a task next asks. Whether it runs is still decided where it's leased,
 /// by `tree::held_back`, so one woken too early is held back again, and one this misses, as when a
-/// pool dies holding the last other task, comes back when its wait ends, as before. A task that
-/// waits for one below it (`tree::HeldBack::ByLastBelow`) keeps its wait, which starts low.
+/// pool dies holding the last other task, comes back when its wait ends. A task that waits for one
+/// below it (`tree::HeldBack::ByLastBelow`) keeps its wait, which starts low.
 ///
 /// What isn't marked counts as another module's task here: a task of a module that runs last that
 /// hasn't asked yet, or that its own module delayed. That only puts this off until that task ends
-/// or is held back in its turn (`wake_held_back_now`). Call it with the root locked.
+/// or is held back in its turn. Call it with the root locked.
 async fn wake_held_back(tx: &mut Tx<'_>, root: Uuid) -> Result<u64, QueueError> {
     Ok(sqlx::query!(
         "UPDATE queue.tasks SET run_after = now()
@@ -314,19 +316,6 @@ async fn wake_held_back(tx: &mut Tx<'_>, root: Uuid) -> Result<u64, QueueError> 
     .execute(tx.conn())
     .await?
     .rows_affected())
-}
-
-/// `wake_held_back` in a transaction of its own, for the lease, when a task that runs last is held
-/// back by one below it: every other module has finished then, and no task's end may follow to say
-/// so, so the tasks still waiting for that are woken here.
-pub async fn wake_held_back_now(db: &Db, root: Uuid) -> Result<u64, QueueError> {
-    db.transaction(Isolation::ReadCommitted, |tx| {
-        Box::pin(async move {
-            lock_root(tx, root).await?;
-            wake_held_back(tx, root).await
-        })
-    })
-    .await
 }
 
 /// Queues the root's hooks task (`crate::hooks`), on its first observable: a new one, or the one that
@@ -508,7 +497,36 @@ pub struct HeldBackWait {
     pub step: u32,
 }
 
+/// The longest the core holds back a task that runs last before it asks again.
+const HELD_BACK_MAX: Duration = Duration::from_secs(32);
+
+/// How long a task that runs last and waits for one below it first waits, doubling up to
+/// `HELD_BACK_MAX` while that holds it back. Nothing wakes it, so this is how soon it asks again,
+/// and it starts low: what's below is usually done in a moment.
+const LAST_BELOW_DELAY: Duration = Duration::from_millis(250);
+
 impl HeldBackWait {
+    /// The wait for a task that `by` holds back, after the one it was held back with last, and how
+    /// long it is. One that waits for the others waits `HELD_BACK_MAX` at once: their last end wakes
+    /// it (`wake_held_back`), so asking sooner only asks what the wake answers, and the wait is the
+    /// fallback for a wake that's missed, as when a pool dies holding the last other task.
+    pub fn next(
+        before: Option<HeldBackWait>,
+        by: crate::tree::HeldBack,
+    ) -> (HeldBackWait, Duration) {
+        let step = match before {
+            Some(before) if before.by == by => before.step.saturating_add(1),
+            _ => 0,
+        };
+        let after = match by {
+            crate::tree::HeldBack::ByOthers => HELD_BACK_MAX,
+            crate::tree::HeldBack::ByLastBelow => LAST_BELOW_DELAY
+                .saturating_mul(2u32.saturating_pow(step.min(7)))
+                .min(HELD_BACK_MAX),
+        };
+        (HeldBackWait { by, step }, after)
+    }
+
     /// The wait a task's row records, if any. A mark this build doesn't know reads as none, so the
     /// next wait starts low.
     fn of_row(by: Option<String>, step: Option<i32>) -> Option<HeldBackWait> {
@@ -832,7 +850,7 @@ impl Worker {
     /// Sends a task the worker owns back to the queue until `after` from now, before its module
     /// has seen it: the core holds it, as it holds a file's first task until its path is settled
     /// (`tree::choose_analysis_file`) and a task that runs last until the rest of its root is done
-    /// (`held_back`, which `wake_held_back` finds it by). Unlike a module's `delay`, the module never
+    /// (`held_back`, which `wake_held_back` finds it by, and runs for here). Unlike a module's `delay`, the module never
     /// learns of it: its delay state, count and first delay stay as they were, no run is counted
     /// (`crate::metrics`), and the claim isn't an attempt.
     pub async fn hold(
@@ -872,6 +890,8 @@ impl Worker {
                     .ok_or(QueueError::LeaseLost(task))?;
                     if state == TaskState::Cancelled {
                         check_completion(tx, root).await?;
+                    } else if held_back.is_some() {
+                        wake_held_back(tx, root).await?;
                     }
                     Ok::<_, QueueError>(())
                 })

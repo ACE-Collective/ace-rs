@@ -119,13 +119,6 @@ const SCAN_PREFIX: &str = "@scan/";
 /// The header a task-scoped request names its worker in.
 pub const WORKER_HEADER: &str = "x-ace-rs-worker";
 
-/// How long a task that runs last first waits for the rest of its root, doubling up to 32 s while the
-/// same thing holds it back (`tree::HeldBack`). Every file has one, so it starts low: most roots are
-/// done in a moment. A task that waits for every other module is also woken when the last of them
-/// ends (`queue::check_completion`), so this is how soon it asks again while they run, and the
-/// fallback when nothing wakes it.
-const OTHERS_PENDING_DELAY: Duration = Duration::from_millis(250);
-
 /// A held task waits half as long again as its file has, within these bounds, so a quick root
 /// goes on at once and a slow one isn't polled for nothing.
 const PATH_HOLD_MIN: Duration = Duration::from_millis(100);
@@ -1162,9 +1155,9 @@ impl Api {
         // ace3's execute_final_analysis: what's below this file has all been found and scanned.
         // Modules that run last wait for each other only on the files below their observable, which
         // they read and the other can add to (`tree::held_back`); ace3 reruns its final analysis
-        // until nothing more is added, and this runs each once. The wait doubles while the same
-        // thing holds it back and starts low again when that changes, so a wait for xlmdeobfuscator
-        // below, and then for what it added, isn't as long as the wait for the whole root was.
+        // until nothing more is added, and this runs each once. A wait for the rest of the root is
+        // long and cut short by its last end; a wait for one below, which nothing wakes, starts low
+        // and doubles while the same one holds it back (`HeldBackWait::next`).
         if runs_last {
             let last: Vec<String> = catalog
                 .iter()
@@ -1175,25 +1168,10 @@ impl Api {
                 tree::held_back(self.inner.db.pool(), task.root, task.observable.id, &last).await;
             times.last = lap(&mut clock);
             if let Some(held) = held? {
-                let step = match task.held_back {
-                    Some(before) if before.by == held => before.step.saturating_add(1),
-                    _ => 0,
-                };
-                let after = OTHERS_PENDING_DELAY.saturating_mul(2u32.saturating_pow(step.min(7)));
+                let (wait, after) = HeldBackWait::next(task.held_back, held);
                 // a hold, not a delay: no pool saw this claim, so it's no run of the module, and the
                 // module's own delay, its timeout and its state, aren't this wait's
-                worker
-                    .hold(task.id, after, Some(HeldBackWait { by: held, step }))
-                    .await?;
-                // every other module has finished, and this task's hold isn't an end that would
-                // wake the ones still waiting for that (`queue::check_completion`). They come back
-                // when their waits end if this fails, so it doesn't fail the lease.
-                if held == tree::HeldBack::ByLastBelow
-                    && let Err(e) =
-                        crate::queue::wake_held_back_now(&self.inner.db, task.root).await
-                {
-                    tracing::warn!(task = %task.id, "couldn't wake the tasks held back: {e}");
-                }
+                worker.hold(task.id, after, Some(wait)).await?;
                 times.last = times.last.saturating_add(lap(&mut clock));
                 return Ok(None);
             }

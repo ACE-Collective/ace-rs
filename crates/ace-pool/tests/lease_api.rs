@@ -5997,7 +5997,7 @@ async fn the_capture_write_is_refused_unless_it_s_the_task_s_own_file_s_matches(
 }
 
 /// A task of a module that runs last is held back while another module's task is left in its root,
-/// with a wait that doubles to 32 seconds. The end of the last of them makes it due and wakes the
+/// for 32 seconds at once. The end of the last of them makes it due and wakes the
 /// pool waiting for it, so the rest of its wait isn't sat out. The module never hears of the wait.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_task_that_runs_last_is_leased_when_the_last_other_task_ends() {
@@ -6027,19 +6027,17 @@ async fn a_task_that_runs_last_is_leased_when_the_last_other_task_ends() {
             .is_none(),
         "held back: the archive task is left"
     );
-    // as after its seventh ask: half a minute to the next
-    let held = sqlx::query(
-        "UPDATE queue.tasks
-         SET run_after = now() + interval '30 seconds', held_back_step = 6
-         WHERE root_id = $1 AND module = 'email_thread_analyzer' AND state = 'delayed'
-           AND held_back_by = 'others'",
+    // the whole wait at once, for the others' end to cut short
+    let wait: (Option<String>, f64) = sqlx::query_as(
+        "SELECT held_back_by, EXTRACT(EPOCH FROM run_after - updated_at)::float8
+         FROM queue.tasks
+         WHERE root_id = $1 AND module = 'email_thread_analyzer' AND state = 'delayed'",
     )
     .bind(root)
-    .execute(core.test_db.db().pool())
+    .fetch_one(core.test_db.db().pool())
     .await
-    .expect("updates")
-    .rows_affected();
-    assert_eq!(held, 1);
+    .expect("reads");
+    assert_eq!(wait, (Some("others".to_owned()), 32.0));
     let archive = client
         .lease(&["archive".to_owned()], Duration::ZERO)
         .await
