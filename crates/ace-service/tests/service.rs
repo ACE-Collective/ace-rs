@@ -44103,6 +44103,26 @@ mod svs_attribution_tests {
             assert_eq!(row.details["reopened"], true);
             assert_eq!(row.before.expect("a before")["disposition"], "SIMULATED");
             assert_eq!(row.after.expect("an after")["disposition"], "OPEN");
+            // ace3's comment on the reopened alert, which names the person, as ACE's own
+            let Actor::User { name, .. } = &a.f.admin else {
+                panic!("a user")
+            };
+            let comment: (Option<Uuid>, Value, String) = sqlx::query_as(
+                "SELECT author_id, created_by::jsonb, comment FROM analysis.alert_comments
+                 WHERE root_id = $1 ORDER BY id DESC LIMIT 1",
+            )
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("a comment");
+            assert_eq!(
+                comment,
+                (
+                    None,
+                    json!({"kind": "internal", "id": "svs"}),
+                    format!("disassociated from SVS test run {} by {name}", run.uuid)
+                )
+            );
         }
 
         /// `test_an_analyst_who_takes_the_reopened_alert_keeps_it`: here nothing is given up when an
@@ -44533,6 +44553,25 @@ mod svs_attribution_tests {
                 format!("closed with SVS test run {}", run.uuid)
             );
             assert_eq!(row.1["alerts_closed"], json!(both));
+            // and the comment is on each alert, ACE's own, by the timers' component (PLAN.md 5.15)
+            for alert in [by_marker, by_context] {
+                let comments: Vec<(Option<Uuid>, Value, String)> = sqlx::query_as(
+                    "SELECT author_id, created_by::jsonb, comment FROM analysis.alert_comments
+                     WHERE root_id = $1",
+                )
+                .bind(alert)
+                .fetch_all(db.pool())
+                .await
+                .expect("reads");
+                assert_eq!(
+                    comments,
+                    [(
+                        None,
+                        json!({"kind": "internal", "id": "scheduler:svs_run_timers"}),
+                        format!("closed with SVS test run {}", run.uuid)
+                    )]
+                );
+            }
             assert!(!needs_attention(db, run.uuid).await);
             // an analyst can't change a frozen alert
             assert!(matches!(
@@ -53777,6 +53816,8 @@ mod work_tests {
 //   test_a_rule_whose_sweep_fails_is_logged_and_the_service_goes_on:
 //     a_rule_whose_sweep_fails_is_logged_and_the_others_go_on.
 // test_cli.py (4): none; ace-rs has no `ace alert-automation` (PLAN.md 7.22).
+// The `comments(alert_uuid)` checks of test_rules.py are the alert_comments checks here: the enforce
+// case's two comments, ACE's own, and a dry run's none.
 mod alert_automation_tests {
     use super::*;
     use ace_core::actions::ActionCatalog;
@@ -54195,6 +54236,20 @@ mod alert_automation_tests {
         assert_eq!(
             recorded[2]["detail"]["comment"],
             format!("rule {RULE} acted on {root}")
+        );
+        // ace3's `comments(alert_uuid)`: both are on the alert as ACE's own, where ace3 writes them as
+        // its automation user (PLAN.md decision 71)
+        let added = alert_comments(db, root).await;
+        assert_eq!(
+            added,
+            [
+                (None, automator_json(), comment.to_owned()),
+                (
+                    None,
+                    automator_json(),
+                    format!("rule {RULE} acted on {root}")
+                ),
+            ]
         );
         for action in ["disposition", "remediate", "comment"] {
             let logged = records.one(&format!(
@@ -54921,12 +54976,19 @@ mod alert_automation_tests {
 
         assert_eq!(swept.left_alone, 1);
         assert_eq!(runs(db, root).await[0].2, "pending");
+        assert!(alert_comments(db, root).await.is_empty());
 
         other.rollback().await.expect("lets it go");
+        sweep(&service).await;
         sweep(&service).await;
 
         assert_eq!(runs(db, root).await[0].2, "done");
         assert_eq!(runs(db, root).await[0].4[0]["detail"]["comment"], "once");
+        // ace3's `comments(alert_uuid) == [(_automation(), "once")]`: once, however often it's swept
+        assert_eq!(
+            alert_comments(db, root).await,
+            [(None, automator_json(), "once".to_owned())]
+        );
     }
 
     #[tokio::test]
@@ -55031,9 +55093,22 @@ mod alert_automation_tests {
             runs[0].4[0]["detail"],
             json!({"comment": format!("rule {RULE} acted")})
         );
-        // the run's audit row, and no change to the alert
+        // the run's audit row, and no change to the alert: no comment either
         assert_eq!(audit_rows(db).await.len(), audits + 1);
         assert_eq!(state(db, root).await, (None, None, None));
+        assert!(alert_comments(db, root).await.is_empty());
+    }
+
+    /// The alert's comments as (author, the actor that wrote it, text), oldest first.
+    async fn alert_comments(db: &Db, root: Uuid) -> Vec<(Option<Uuid>, Value, String)> {
+        sqlx::query_as(
+            "SELECT author_id, created_by::jsonb, comment FROM analysis.alert_comments
+             WHERE root_id = $1 ORDER BY id",
+        )
+        .bind(root)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
     }
 
     #[tokio::test]

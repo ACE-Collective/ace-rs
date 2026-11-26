@@ -586,7 +586,7 @@ struct RootSnapshot {
     title: String,
     event_time: Option<DateTime<Utc>>,
     root_created_at: DateTime<Utc>,
-    /// Why: the analyst's comment, which is on the alert too (PLAN.md 5.15), or ACE's own for SVS.
+    /// Why: the comment added to the alert with it (PLAN.md 5.15), an analyst's or ACE's own.
     #[serde(skip_serializing_if = "Option::is_none")]
     comment: Option<String>,
     /// The analyst the alert was taken from, when the disposition took it (PLAN.md 7.17).
@@ -817,16 +817,9 @@ impl Service {
         self.gate
             .write(actor, "disposition", &ALERT_WRITE, &|tx| {
                 Box::pin(async move {
-                    let author = comment
-                        .map(|_| observable_comments::author_of(actor))
-                        .transpose()?;
                     let (dispositioned, change) = self
                         .disposition_in(tx, root, disposition, actor, comment, take_from)
                         .await?;
-                    if let Some(comment) = comment {
-                        alert_comments::insert_comments(tx.conn(), author, actor, &[root], comment)
-                            .await?;
-                    }
                     Ok(Audited::changed(dispositioned, change))
                 })
             })
@@ -837,9 +830,10 @@ impl Service {
     /// which `disposition` and SVS (closing a run's and a maintenance window's alerts, and giving a
     /// disassociated alert back, `svs_association`) share. `by` is who the alert's row names: the actor, or
     /// the component that acts for them. From an analyst it refuses a frozen alert (`Conflict`). `comment`
-    /// says why, in the audit row: an analyst's is also added to the alert, by
-    /// `disposition`, and ACE's own is in the audit row alone, where ace3 adds it to the
-    /// alert as its automation user. An analyst's disposition
+    /// says why: it's added to the alert (PLAN.md 5.15) and named in the audit row, as ace3's
+    /// `set_dispositions` adds it. An analyst's is by them, and one an actor that isn't a person sends is
+    /// `Forbidden`; ACE's own, from a component, has no author and is shown as ACE's, where ace3 writes it
+    /// as its automation user (PLAN.md decision 71). A comment that normalizes to nothing is none. An analyst's disposition
     /// checks and takes ownership (`disposition`'s docs), `take_from` being who they confirmed taking the
     /// alert from; a component's does neither, and its callers pick alerts nobody owns. Returns what the
     /// analysis did and the audit row's change, which the caller's write records.
@@ -852,6 +846,12 @@ impl Service {
         comment: Option<&str>,
         take_from: Option<UserId>,
     ) -> Result<(Dispositioned, Change), ServiceError> {
+        // a comment is a person's, or ACE's own, with no author, when a component writes it: its
+        // components are no user (migration 0056)
+        let author = match comment {
+            Some(_) if dispositions::is_analyst(by) => Some(observable_comments::author_of(by)?),
+            _ => None,
+        };
         // Locks first, so `before` is what this write replaces. The title is capped here,
         // not by the column: it's whatever the alert's sender wrote.
         let found = sqlx::query!(
@@ -930,6 +930,14 @@ impl Service {
         )
         .fetch_one(tx.conn())
         .await?;
+        let comment = comment
+            .map(observable_comments::normalize_comment)
+            .filter(|comment| !comment.is_empty())
+            .map(|comment| observable_comments::checked(&comment))
+            .transpose()?;
+        if let Some(comment) = &comment {
+            alert_comments::insert_comments(tx.conn(), author, by, &[root], comment).await?;
+        }
         let change = Change::updated(
             Target::root(root),
             &DispositionState {
@@ -949,7 +957,7 @@ impl Service {
             title: found.title,
             event_time: found.event_time,
             root_created_at: found.created_at,
-            comment: comment.map(str::to_owned),
+            comment,
             taken_from: taken_from.map(|owner| owner.id.0),
         })?;
         Ok((dispositioned, change))

@@ -49,8 +49,8 @@
 //!   attributions and then moves the alert.
 //! - An alert's owner is a user (`analysis.roots.owner_id`). ACE's components own nothing, so a SIMULATED
 //!   alert has no owner to give up when it's reopened, where ace3's automation user owned it.
-//! - ace3 adds a comment to an alert it closes or reopens; ace-rs's alerts have no comments, so a closing's
-//!   text is in the timers' audit row, and a reopening is in the association's (`reopened`).
+//! - ace3 adds a comment to an alert it closes or reopens as its automation user; here it's ACE's own
+//!   comment, with no author, written by the component that dispositions it (PLAN.md 5.15, decision 71).
 //! - A detection is its row's id, not a content hash.
 //! - The test queue isn't a setting (`ace_core::svs::SVS_QUEUE`).
 
@@ -583,7 +583,13 @@ impl Service {
         if disposition.as_deref() == Some(SIMULATED) {
             // an analyst can't change a frozen alert, so ACE's component writes it; the association's
             // audit row names the person and says the alert was reopened
-            self.disposition_in(tx, alert, OPEN, &svs_component(), None, None)
+            // ace3's comment, which names the person
+            let comment = format!(
+                "disassociated from SVS test run {} by {}",
+                run.run.uuid,
+                crate::detection::actor_name(actor)
+            );
+            self.disposition_in(tx, alert, OPEN, &svs_component(), Some(&comment), None)
                 .await?;
             reopened = true;
         }

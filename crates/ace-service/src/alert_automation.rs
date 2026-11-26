@@ -35,9 +35,10 @@
 //!   latest removal covers it (`ace_core::actions::removal_covers`) isn't queued again. An observable no
 //!   remediator acts on means there is no backstop for it, which is logged at ERROR. An alert with nothing
 //!   to remediate skips the action.
-//! - `comment` records its rendered text. ace-rs's alerts have no comments of their own, so this comment
-//!   and the disposition's are kept in the run's record and the step's audit row, as SVS keeps the comment
-//!   ace3 adds when it closes an alert (PLAN.md decision 71).
+//! - `comment` adds its rendered text to the alert (PLAN.md 5.15) in enforce, and records it in dry_run,
+//!   as the disposition's comment is added with the disposition. Both are ACE's own: a comment with no
+//!   author, written by this sweep's component and shown as `ACE`, where ace3 writes them as its
+//!   automation user (PLAN.md decision 71). The run's record and the step's audit row name it too.
 //!
 //! **The guards**, which a rule can't turn off: the alert exists, nobody owns it, and its disposition is
 //! OPEN (so a frozen one, SIMULATED, is never touched). Once one of a run's actions has finished the alert
@@ -1064,15 +1065,32 @@ impl Service {
                     Outcome::Done(detail, None)
                 }
             }
-            Action::Comment { comment } => Outcome::Done(
-                Detail {
-                    comment: Some(crate::observable_comments::normalize_comment(
-                        &comment.render(&rule.name, item.root, &item.evidence),
-                    )),
-                    ..Detail::default()
-                },
-                None,
-            ),
+            Action::Comment { comment } => {
+                let comment = crate::observable_comments::normalize_comment(&comment.render(
+                    &rule.name,
+                    item.root,
+                    &item.evidence,
+                ));
+                if rule.mode == Mode::Enforce {
+                    // ACE's own comment, with no author, as ace3 writes it as its automation user
+                    let comment = crate::observable_comments::checked(&comment)?;
+                    crate::alert_comments::insert_comments(
+                        tx.conn(),
+                        None,
+                        actor,
+                        &[item.root],
+                        &comment,
+                    )
+                    .await?;
+                }
+                Outcome::Done(
+                    Detail {
+                        comment: Some(comment),
+                        ..Detail::default()
+                    },
+                    None,
+                )
+            }
             Action::Remediate { targets } => {
                 self.remediate_in(tx, actor, rule, item, *targets, &mut remediations)
                     .await?

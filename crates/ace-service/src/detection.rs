@@ -250,8 +250,8 @@ pub fn default_detection_expiry(kind: ObservableKind, now: DateTime<Utc>) -> Opt
     (!never).then(|| now + Duration::days(DEFAULT_DETECTION_LIFETIME_DAYS))
 }
 
-/// The name an actor goes by, for a detection's default context.
-fn actor_name(actor: &Actor) -> String {
+/// The name an actor goes by, for a detection's default context and an SVS reopening's comment.
+pub(crate) fn actor_name(actor: &Actor) -> String {
     match actor {
         Actor::User { name, .. } | Actor::ApiKey { name, .. } => name.clone(),
         Actor::Internal { id } => id.as_str().to_owned(),
