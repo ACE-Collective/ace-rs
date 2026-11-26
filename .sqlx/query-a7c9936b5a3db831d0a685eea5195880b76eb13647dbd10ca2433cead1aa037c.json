@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.alert_comments SET comment = $2, edited_at = now()\n                         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a7c9936b5a3db831d0a685eea5195880b76eb13647dbd10ca2433cead1aa037c"
+}

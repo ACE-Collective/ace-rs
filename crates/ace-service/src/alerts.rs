@@ -40,7 +40,7 @@ pub const MAX_ALERTS_PAGE: u32 = 1000;
 pub const MAX_OBSERVABLES_PAGE: u32 = 500;
 
 /// An actor as a row recorded it: its identity and the name it had then.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecordedActor {
     pub kind: String,
     pub id: String,
@@ -111,6 +111,10 @@ pub struct AlertSummary {
     pub owner: Option<crate::AlertOwner>,
     /// When they took it, ace3's `owner_time`.
     pub owned_at: Option<DateTime<Utc>>,
+    /// Its comments (PLAN.md 5.15), its latest `MAX_SHOWN_COMMENTS` oldest first. None when the read
+    /// didn't look: the AI API's database role can't read them (migration 0064), as ace3's AI export has
+    /// none.
+    pub comments: Option<Vec<crate::AlertComment>>,
 }
 
 /// One page of the alert list, the cursor for the next, None on the last, and how many alerts the filters
@@ -472,6 +476,7 @@ impl AlertRow {
             svs: None,
             owner: None,
             owned_at: None,
+            comments: None,
         })
     }
 }
@@ -1040,6 +1045,9 @@ impl Service {
                         );
                     }
                     with_svs(tx.conn(), &mut alerts).await?;
+                    if self.reads_comments() {
+                        crate::alert_comments::with_comments(tx.conn(), &mut alerts).await?;
+                    }
                     let next = match alerts.last() {
                         Some(last) if more => Some(
                             AlertCursor {
@@ -1064,9 +1072,10 @@ impl Service {
 
     /// One alert, with how many observables, files and detections it has.
     pub async fn alert(&self, actor: &crate::Actor, id: Uuid) -> Result<Alert, ServiceError> {
+        let comments = self.reads_comments();
         self.gate
             .read(actor, "alert", &ALERT_READ, &|tx| {
-                Box::pin(async move { alert_in(tx, id).await })
+                Box::pin(async move { alert_in(tx, id, comments).await })
             })
             .await
     }
@@ -1258,10 +1267,11 @@ fn links(stored: Value) -> Vec<ace_results::PivotLink> {
     serde_json::from_value(stored).unwrap_or_default()
 }
 
-/// One alert and its counts, in a read's transaction.
+/// One alert and its counts, in a read's transaction, with its comments when `comments` says to.
 pub(crate) async fn alert_in(
     tx: &mut ace_core::db::Tx<'_>,
     id: Uuid,
+    comments: bool,
 ) -> Result<Alert, ServiceError> {
     let row = sqlx::query_as!(
         AlertRow,
@@ -1283,6 +1293,9 @@ pub(crate) async fn alert_in(
     .ok_or_else(|| no_alert(id))?;
     let mut summary = [row.summary()?];
     with_svs(tx.conn(), &mut summary).await?;
+    if comments {
+        crate::alert_comments::with_comments(tx.conn(), &mut summary).await?;
+    }
     let [summary] = summary;
     let counts = sqlx::query!(
         r#"SELECT

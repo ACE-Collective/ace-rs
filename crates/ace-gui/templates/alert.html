@@ -46,6 +46,11 @@
       <option value="{{ name }}"{% if name.as_str() == disposition.as_str() %} selected{% endif %}>{{ name }}</option>
       {%- endfor %}
     </select>
+    <details class="bulk-comment">
+      <summary>with a comment</summary>
+      <label for="alert-disposition-comment">Comment, added to the alert with the disposition</label>
+      <textarea id="alert-disposition-comment" name="comment" rows="2" maxlength="16384"></textarea>
+    </details>
     <button type="submit" class="primary">Set Disposition</button>
   </form>
   {%- endif %}
@@ -121,6 +126,39 @@
     </section>
     {%- endif %}
   </div>
+  {#- the alert's comments (PLAN.md 5.15), ace3's Comment rows of its alert details: each by who wrote
+      it and when, the viewer's own with their edit and delete, and Add Comment for alert:write -#}
+  <section class="section alert-comments" id="comments" aria-labelledby="comments-title">
+    <h2 id="comments-title">Comments</h2>
+    {%- for comment in comments %}
+    <div class="comment" id="comment-{{ comment.id }}">
+      <p class="muted"><b>{{ comment.author }}</b> at {{ comment.when }}{% if let Some(edited) = comment.edited %} (edited {{ edited }}){% endif %}</p>
+      <p class="comment-text">{{ comment.text }}</p>
+      {%- if comment.own %}
+      <details class="comment-edit">
+        <summary>Edit</summary>
+        <form method="post" action="{{ comment.action }}">
+          <label for="comment-text-{{ comment.id }}">Your comment</label>
+          <textarea id="comment-text-{{ comment.id }}" name="comment" rows="3" maxlength="16384" required>{{ comment.text }}</textarea>
+          <button type="submit">Save</button>
+        </form>
+      </details>
+      <form method="post" action="{{ comment.action }}" class="inline">
+        <button type="submit" name="delete" value="1" class="quiet">Delete</button>
+      </form>
+      {%- endif %}
+    </div>
+    {%- else %}
+    <p class="muted">No comments.</p>
+    {%- endfor %}
+    {%- if let Some(action) = add_comment %}
+    <form method="post" action="{{ action }}" class="add-comment">
+      <label for="new-comment">Add Comment</label>
+      <textarea id="new-comment" name="comment" rows="2" maxlength="16384" required></textarea>
+      <button type="submit">Add Comment</button>
+    </form>
+    {%- endif %}
+  </section>
   {%- if let Some(svs) = svs %}
   {%- include "alert_svs.html" %}
   {%- endif %}

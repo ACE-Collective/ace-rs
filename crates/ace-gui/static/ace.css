@@ -1666,6 +1666,49 @@ span.cached {
   margin: 0;
 }
 
+/* An alert's comments (PLAN.md 5.15): on its page, under a title in the list and on an event's page. */
+.alert-comments .comment {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.alert-comments .comment p {
+  margin: 0;
+}
+
+.comment-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.alert-comments form:not(.inline),
+.comment-edit form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: var(--prose-width);
+  margin-top: var(--space-2);
+}
+
+.row-comments {
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.row-comments li {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bulk-comment textarea {
+  display: block;
+  min-width: 18rem;
+  margin: var(--space-1) 0;
+}
+
 /* The alert list (PLAN.md 5.10), with what ace3's manage page had inline. */
 .actions-bar {
   display: flex;

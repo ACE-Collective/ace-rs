@@ -845,6 +845,16 @@
           "analysis_mode": {
             "type": "string"
           },
+          "comments": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AlertCommentBody"
+            },
+            "description": "Its comments (PLAN.md 5.15), its latest 100 oldest first. Not given by the AI API, which reads\nnone, as ace3's AI export has none."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -949,6 +959,63 @@
           "title": {
             "type": "string",
             "description": "The submission's description, as its sender wrote it. Show it as text."
+          }
+        }
+      },
+      "AlertCommentBody": {
+        "type": "object",
+        "description": "A comment on an alert, ace3's `AlertCommentRead`.",
+        "required": [
+          "id",
+          "alert",
+          "author_name",
+          "created_by",
+          "comment",
+          "created_at"
+        ],
+        "properties": {
+          "alert": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "author": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AuthorBody",
+                "description": "The user it's by, as they're called now; null for one ACE itself wrote, which `created_by` names."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "author_name": {
+            "type": "string",
+            "description": "What a page calls the author: their display name, else their username, else `ACE`. Show it as\ntext."
+          },
+          "comment": {
+            "type": "string",
+            "description": "The text, with LF line breaks. Show it as text."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/ActorBody",
+            "description": "The actor that wrote it: the author, one of their keys, or one of ACE's components."
+          },
+          "edited_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the text last changed; null if it never has."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -1135,6 +1202,29 @@
           "complete",
           "cancelled"
         ]
+      },
+      "AuthorBody": {
+        "type": "object",
+        "description": "The user a comment is by, as they're called now.",
+        "required": [
+          "id",
+          "username"
+        ],
+        "properties": {
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
       },
       "BackendBody": {
         "type": "object",

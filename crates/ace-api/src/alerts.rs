@@ -1,5 +1,6 @@
 //! `/api/alerts/v1`: the alert list with its filters, sorts and exports, one alert, its observables, its
-//! relationship graph, a file's download, the disposition and the owner, and the site's dispositions.
+//! relationship graph, a file's download, the disposition, the owner and a comment's edit, and the site's
+//! dispositions.
 //!
 //! `PUT /api/alerts/v1/owner` is ace3's `PUT /api/v2/alerts/owner` (PLAN.md 7.17): take, assign or
 //! unassign alerts, leaving alone those another analyst owns unless `take_owned` confirms taking them.
@@ -19,6 +20,12 @@
 //! `POST /api/alerts/v1/commonalities` is ace3's `POST /api/v2/alerts/commonalities` (PLAN.md 7.23):
 //! a page's alerts grouped by the observable values they share. ace3's `alert_uuids` are `alerts` here,
 //! as in the owner's route, and a request outside its bounds is 400 where ace3's is 422.
+//!
+//! An alert's comments (PLAN.md 5.15) are on it, `comments`, in the list, its exports (one line each in
+//! the CSV's `comments`, as ace3's) and `GET .../alerts/{id}`, as ace3's list rows carry them, and
+//! `PATCH .../alerts/{id}/comments/{comment}` is ace3's edit of one, by its author. ace3's API has no
+//! route that adds or deletes one: its GUI does both, and so does this one's. `PUT .../disposition` takes
+//! the comment ace3's GUI sends with a disposition.
 //!
 //! `GET /api/alerts/v1/dispositions` has no ace3 route: ace3's clients read `dispositions:` from its
 //! config. It's the site's set in order with each disposition's metadata (the owner's decision of
@@ -49,6 +56,7 @@ use crate::Web;
 use crate::auth::Authenticated;
 use crate::error::{ApiError, ErrorBody};
 use crate::export::{self, EXPORT_PAGE, ExportRow, Format, time_cell};
+use crate::observable_comments::{AuthorBody, EditCommentRequest};
 use crate::params::Params;
 
 /// The password of a download's zip, as ace3's. It's there so that a scanner on the analyst's machine
@@ -133,6 +141,44 @@ pub(crate) struct AlertBody {
     pub(crate) owner_name: Option<String>,
     /// When they took it.
     owned_at: Option<DateTime<Utc>>,
+    /// Its comments (PLAN.md 5.15), its latest 100 oldest first. Not given by the AI API, which reads
+    /// none, as ace3's AI export has none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) comments: Option<Vec<AlertCommentBody>>,
+}
+
+/// A comment on an alert, ace3's `AlertCommentRead`.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct AlertCommentBody {
+    id: i64,
+    alert: Uuid,
+    /// The user it's by, as they're called now; null for one ACE itself wrote, which `created_by` names.
+    author: Option<AuthorBody>,
+    /// What a page calls the author: their display name, else their username, else `ACE`. Show it as
+    /// text.
+    author_name: String,
+    /// The actor that wrote it: the author, one of their keys, or one of ACE's components.
+    created_by: ActorBody,
+    /// The text, with LF line breaks. Show it as text.
+    comment: String,
+    created_at: DateTime<Utc>,
+    /// When the text last changed; null if it never has.
+    edited_at: Option<DateTime<Utc>>,
+}
+
+impl From<ace_service::AlertComment> for AlertCommentBody {
+    fn from(comment: ace_service::AlertComment) -> Self {
+        AlertCommentBody {
+            author_name: comment.author_name(),
+            id: comment.id,
+            alert: comment.alert,
+            author: comment.author.map(AuthorBody::from),
+            created_by: comment.created_by.into(),
+            comment: comment.comment,
+            created_at: comment.created_at,
+            edited_at: comment.edited_at,
+        }
+    }
 }
 
 impl From<AlertSummary> for AlertBody {
@@ -149,6 +195,9 @@ impl From<AlertSummary> for AlertBody {
             owner,
             owner_name,
             owned_at: alert.owned_at,
+            comments: alert
+                .comments
+                .map(|comments| comments.into_iter().map(AlertCommentBody::from).collect()),
             tags: alert.tags,
             svs_status,
             svs_runs,
@@ -193,6 +242,7 @@ impl ExportRow for AlertBody {
         "svs_runs",
         "owner",
         "owned_at",
+        "comments",
     ];
 
     fn cells(&self) -> Vec<String> {
@@ -230,6 +280,13 @@ impl ExportRow for AlertBody {
                 .join(" "),
             self.owner_name.clone().unwrap_or_default(),
             time_cell(self.owned_at),
+            // ace3's: each comment's text on its own line, oldest first
+            self.comments
+                .iter()
+                .flatten()
+                .map(|comment| comment.comment.as_str())
+                .collect::<Vec<_>>()
+                .join("\n"),
         ]
     }
 }
@@ -650,6 +707,10 @@ pub(crate) struct DispositionRequest {
     /// alert another analyst owns is changed only with it, and the caller then owns the alert.
     #[serde(default)]
     take_from: Option<Uuid>,
+    /// A comment added to the alert with the disposition, ace3's `user_comment`, by the caller's user;
+    /// one that's only whitespace is none.
+    #[serde(default)]
+    comment: Option<String>,
 }
 
 /// An owner that's required and may be null, so leaving it out never quietly unassigns.
@@ -1224,8 +1285,9 @@ pub(crate) async fn dispositions(
 /// Records an analyst's verdict on the alert. Its analysis is cancelled and it moves to the
 /// dispositioned mode. A later disposition replaces the earlier one and who made it. A root that no
 /// detection made an alert can be dispositioned too, as the service allows. The disposition is one of
-/// the site's, and one only ACE sets is refused, as is a change to an alert that has one. The caller, a
-/// user or a key of one, becomes the owner of an alert nobody owns. An alert another analyst owns is left
+/// the site's, and one only ACE sets is refused, as is a change to an alert that has one. `comment` is
+/// added to the alert with it, by the caller's user. The caller, a user or a key of one, becomes the
+/// owner of an alert nobody owns. An alert another analyst owns is left
 /// alone, unless `take_from` names that analyst or their account is disabled, and is then the caller's.
 #[utoipa::path(
     put,
@@ -1237,7 +1299,7 @@ pub(crate) async fn dispositions(
         (status = 200, description = "The disposition is recorded", body = DispositionedBody),
         (status = 400, description = "Not one of the site's dispositions, one only ACE sets, or a body that isn't one", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
-        (status = 403, description = "The actor doesn't hold alert:write, or a session's request came from another site", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold alert:write, sent a comment without being a person or a person's key, or a session's request came from another site", body = ErrorBody),
         (status = 404, description = "No such root", body = ErrorBody),
         (status = 409, description = "The alert's disposition is one only ACE sets, which an analyst can't change, or another analyst owns the alert and `take_from` doesn't name them", body = ErrorBody),
         (status = 413, description = "The body is too large", body = ErrorBody),
@@ -1257,6 +1319,7 @@ pub(crate) async fn disposition(
             id,
             &body.disposition,
             body.take_from.map(ace_service::UserId),
+            body.comment.as_deref(),
         )
         .await?;
     Ok(Json(DispositionedBody {
@@ -1264,6 +1327,42 @@ pub(crate) async fn disposition(
         stopped: done.cancelled.signalled.len(),
         queued: done.queued.len(),
     }))
+}
+
+/// Edits the text of a comment on the alert, ace3's `PATCH /api/v2/alerts/{uuid}/comments/{id}`. Only
+/// the comment's author may (403). Text whose line breaks and ends are all that differ from what's stored
+/// is no change: the comment isn't marked edited.
+#[utoipa::path(
+    patch,
+    path = "/api/alerts/v1/alerts/{id}/comments/{comment}",
+    tag = "alerts",
+    params(
+        ("id" = Uuid, Path, description = "The alert's id"),
+        ("comment" = i64, Path, description = "The comment's id"),
+    ),
+    request_body = EditCommentRequest,
+    responses(
+        (status = 200, description = "The comment as it is now", body = AlertCommentBody),
+        (status = 400, description = "An id that isn't one, a comment that's empty or too long, or a body that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold alert:write, isn't the comment's author, or a session's request came from another site", body = ErrorBody),
+        (status = 404, description = "No such comment on this alert", body = ErrorBody),
+        (status = 413, description = "The body is too large", body = ErrorBody),
+    )
+)]
+pub(crate) async fn edit_comment(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    path: Result<Path<(Uuid, i64)>, PathRejection>,
+    body: Result<Json<EditCommentRequest>, JsonRejection>,
+) -> Result<Json<AlertCommentBody>, ApiError> {
+    let Path((id, comment)) = path?;
+    let Json(body) = body?;
+    let edited = web
+        .service
+        .edit_alert_comment(&actor, id, comment, &body.comment)
+        .await?;
+    Ok(Json(AlertCommentBody::from(edited)))
 }
 
 /// A directive an analyst may add, and what it asks for.

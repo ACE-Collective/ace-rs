@@ -157,8 +157,7 @@ fn the_chunks_are_ace3_s() {
 // is rows of the tree: a root, its observables, the results that hold its text (an email's analysis
 // with its body in the bucket, a command line's, a QR code's), its detections and its tags. ace3's
 // `alert_type` filter is the Queue filter here, since a root has no alert type: the EDR alert is in
-// the queue `edr`. The vendor alert's comment is handed to the indexer as a comment document, since
-// ace-rs's alerts have no comments yet.
+// the queue `edr`. The vendor alert's comment is a row of `analysis.alert_comments`, by the analyst.
 // ---------------------------------------------------------------------------------------------------
 
 use std::collections::BTreeMap;
@@ -199,8 +198,6 @@ struct Corpus {
     qdrant: Option<QdrantIndex>,
     side: Side,
     alerts: BTreeMap<&'static str, Uuid>,
-    /// The comment document of the alert that has one.
-    comments: BTreeMap<Uuid, Vec<Document>>,
 }
 
 impl Corpus {
@@ -213,10 +210,9 @@ impl Corpus {
 
     async fn index(&self, name: &str) -> usize {
         let root = self.alerts[name];
-        let given = self.comments.get(&root).cloned().unwrap_or_default();
         let indexed = match &self.qdrant {
-            Some(qdrant) => qdrant.index_alert(root, &given).await,
-            None => self.pg.index_alert(root, &given).await,
+            Some(qdrant) => qdrant.index_alert(root).await,
+            None => self.pg.index_alert(root).await,
         }
         .expect("indexed");
         assert!(
@@ -405,6 +401,41 @@ async fn insert_alert(
     root
 }
 
+/// A user, made once by name, with a display name or none.
+async fn insert_user(db: &ace_core::Db, username: &str, display_name: Option<&str>) -> Uuid {
+    sqlx::query_scalar(
+        "INSERT INTO service.users (id, username, display_name, password_hash, created_by)
+         VALUES (gen_random_uuid(), $1, $2, '$argon2id$none', '{\"kind\": \"internal\", \"id\": \"test\"}')
+         ON CONFLICT (username) DO UPDATE SET display_name = EXCLUDED.display_name
+         RETURNING id",
+    )
+    .bind(username)
+    .bind(display_name)
+    .fetch_one(db.pool())
+    .await
+    .expect("a user")
+}
+
+/// A comment on the alert by the user `author`, or by ACE itself with none, as `ace_service` writes
+/// them (PLAN.md 5.15). Returns its id.
+async fn insert_comment(db: &ace_core::Db, root: Uuid, author: Option<Uuid>, text: &str) -> i64 {
+    let by = match author {
+        Some(id) => json!({"kind": "user", "id": id, "name": "someone"}),
+        None => json!({"kind": "internal", "id": "scheduler:alert_automation"}),
+    };
+    sqlx::query_scalar(
+        "INSERT INTO analysis.alert_comments (root_id, author_id, created_by, comment)
+         VALUES ($1, $2, $3, $4) RETURNING id",
+    )
+    .bind(root)
+    .bind(author)
+    .bind(by)
+    .bind(text)
+    .fetch_one(db.pool())
+    .await
+    .expect("a comment")
+}
+
 /// ace3's `_email`.
 async fn email(
     db: &ace_core::Db,
@@ -507,7 +538,6 @@ async fn corpus(side: Side) -> Corpus {
     };
 
     let mut alerts = BTreeMap::new();
-    let mut comments = BTreeMap::new();
 
     let root = insert_alert(
         &db,
@@ -615,17 +645,13 @@ async fn corpus(side: Side) -> Corpus {
     )
     .await;
     insert_observable(&db, root, "fqdn", "mailer.example.net", &[]).await;
-    comments.insert(
+    insert_comment(
+        &db,
         root,
-        vec![
-            Document::comment(
-                "1",
-                Some("analyst"),
-                "confirmed false positive, this is the vendor mailer we whitelisted last month",
-            )
-            .expect("a comment"),
-        ],
-    );
+        Some(id.0),
+        "confirmed false positive, this is the vendor mailer we whitelisted last month",
+    )
+    .await;
     alerts.insert("vendor", root);
 
     let root = insert_alert(
@@ -658,7 +684,6 @@ async fn corpus(side: Side) -> Corpus {
         qdrant,
         side,
         alerts,
-        comments,
     };
     let names: Vec<&'static str> = corpus.alerts.keys().copied().collect();
     for name in names {
@@ -1557,7 +1582,7 @@ impl Tree {
         root: Uuid,
         bounds: &crate::documents::Bounds,
     ) -> crate::documents::Extracted {
-        crate::documents::extract(&self.db, Some(&self.bucket), root, &[], bounds)
+        crate::documents::extract(&self.db, Some(&self.bucket), root, bounds)
             .await
             .expect("extracted")
     }
@@ -1642,19 +1667,34 @@ async fn documents_cases() {
         (comment.kind, comment.key.as_str(), comment.text.as_str()),
         ("comment", "7", "a comment")
     );
-    let with = crate::documents::extract(
-        db,
-        Some(bucket),
-        root,
-        std::slice::from_ref(&comment),
-        &bounds,
-    )
-    .await
-    .expect("extracted");
+    // the alert's comments, each its own document by its id and titled by its author, ACE's own by
+    // ACE, after the header and before the detections
+    let alice = insert_user(db, "alice", None).await;
+    let first = insert_comment(db, root, Some(alice), " a  comment ").await;
+    let by_ace = insert_comment(db, root, None, "closed by a rule").await;
+    let with = t.documents(root, &bounds).await;
+    let comments: Vec<_> = with.documents[1..3]
+        .iter()
+        .map(|d| (d.kind, d.key.clone(), d.title.clone(), d.text.clone()))
+        .collect();
     assert_eq!(
-        with.documents[1], comment,
-        "after the header, before the detections"
+        comments,
+        vec![
+            (
+                "comment",
+                first.to_string(),
+                Some("alice".to_owned()),
+                "a comment".to_owned()
+            ),
+            (
+                "comment",
+                by_ace.to_string(),
+                Some("ACE".to_owned()),
+                "closed by a rule".to_owned()
+            ),
+        ]
     );
+    assert_eq!(with.documents[3].kind, "detection");
 
     // test_email_extractor: the headers an analyst searches by, then the plain body, titled by its subject
     let root = insert_alert(db, "an email", "phish", "default", 2).await;
@@ -2206,7 +2246,7 @@ async fn index_cases() {
 
     // test_payload_and_vectors: each chunk with its text, its title, where it came from, an embedding of
     // the model's size at unit length, and its terms
-    let indexed = t.pg.index_alert(root, &[]).await.expect("indexed");
+    let indexed = t.pg.index_alert(root).await.expect("indexed");
     assert_eq!(
         (
             indexed.documents,
@@ -2261,7 +2301,7 @@ async fn index_cases() {
     assert_eq!(stored, (3, 3, 0, "all-MiniLM-L6-v2".to_owned()));
 
     // indexing again writes the same rows
-    let again = t.pg.index_alert(root, &[]).await.expect("indexed");
+    let again = t.pg.index_alert(root).await.expect("indexed");
     assert_eq!(again.chunks, 3);
     assert_eq!(t.chunk_rows(root).await, rows);
     // test_upsert_before_delete_of_stale_points: a document the alert no longer has goes, and one that
@@ -2276,11 +2316,9 @@ async fn index_cases() {
         .execute(db.pool())
         .await
         .expect("renamed");
-    let comment = Document::comment("1", Some("alice"), "confirmed phish").expect("a comment");
-    let changed =
-        t.pg.index_alert(root, std::slice::from_ref(&comment))
-            .await
-            .expect("indexed");
+    let alice = insert_user(db, "alice", None).await;
+    insert_comment(db, root, Some(alice), "confirmed phish").await;
+    let changed = t.pg.index_alert(root).await.expect("indexed");
     assert_eq!(changed.chunks, 3);
     let rows = t.chunk_rows(root).await;
     assert_eq!(
@@ -2311,7 +2349,7 @@ async fn index_cases() {
         max_chunks_per_document: 5,
         ..Bounds::default()
     });
-    let indexed = tight.index_alert(long, &[]).await.expect("indexed");
+    let indexed = tight.index_alert(long).await.expect("indexed");
     assert_eq!(
         (indexed.documents, indexed.chunks),
         (2, 6),
@@ -2335,7 +2373,7 @@ async fn index_cases() {
         max_chunks: 3,
         ..Bounds::default()
     });
-    let indexed = tighter.index_alert(long, &[]).await.expect("indexed");
+    let indexed = tighter.index_alert(long).await.expect("indexed");
     assert_eq!(indexed.chunks, 3);
     assert!(indexed.left_out > 0);
     assert_eq!(
@@ -2352,16 +2390,13 @@ async fn index_cases() {
         .execute(db.pool())
         .await
         .expect("unalerted");
-    let skipped = t.pg.index_alert(long, &[]).await.expect("indexed");
+    let skipped = t.pg.index_alert(long).await.expect("indexed");
     assert_eq!(
         (skipped.chunks, skipped.skipped.as_deref()),
         (0, Some("alert not found"))
     );
     assert!(t.chunk_rows(long).await.is_empty());
-    let missing =
-        t.pg.index_alert(Uuid::new_v4(), &[])
-            .await
-            .expect("indexed");
+    let missing = t.pg.index_alert(Uuid::new_v4()).await.expect("indexed");
     assert_eq!(
         (missing.chunks, missing.skipped.as_deref()),
         (0, Some("alert not found"))

@@ -6,7 +6,7 @@
 //! | `alert` | `header` | the description, and what the submitter said of the alert type, the tool and the instructions |
 //! | `detection` | `detections` | every distinct detection description |
 //! | `analysis` | the result's id | one for each result that holds text, by its analysis type |
-//! | `comment`, `context` | the caller's | only what a caller hands in (`Document`) |
+//! | `comment` | the comment's id | one for each of the alert's comments (PLAN.md 5.15), titled by its author |
 //!
 //! Nothing is made for the observables: an identifier is found exactly by the lexical lane, and a
 //! sentence encoder can't tell `1.2.3.4` from `1.2.3.5`.
@@ -23,8 +23,8 @@
 //!
 //! # What differs from ace3
 //!
-//! - ace-rs's alerts have no comments and its modules attach no `llm_context_documents`, so nothing here
-//!   makes a `comment` or a `context` document. The index keeps both kinds for when they come.
+//! - ace-rs's modules attach no `llm_context_documents`, so nothing makes a `context` document. The
+//!   index keeps the kind for when they come.
 //! - A root has no alert type, tool, instructions or summary details of its own. The header reads the
 //!   first three from what its submitter recorded (`analysis.roots.origin`), when it's there.
 //! - An email's HTML body becomes text by dropping its tags, scripts and styles, where ace3 runs
@@ -97,7 +97,7 @@ pub struct Document {
 }
 
 impl Document {
-    /// An analyst's comment on an alert, for a caller that has one: ace3's comment document.
+    /// A comment on the alert (PLAN.md 5.15), titled by who wrote it: ace3's comment document.
     pub fn comment(key: &str, author: Option<&str>, text: &str) -> Option<Document> {
         let text = normalize_text(text);
         (!text.is_empty()).then(|| Document {
@@ -516,13 +516,12 @@ async fn file_text(bucket: Option<&Bucket>, sha256: &str, max_bytes: usize) -> S
     }
 }
 
-/// Every document of the alert `root`, in a stable order: its header, the `given` ones, its
-/// detections, then its results' in the order they were written. ace3's `extract_documents`.
+/// Every document of the alert `root`, in a stable order: its header, its comments, its detections,
+/// then its results' in the order they were written. ace3's `extract_documents`.
 pub async fn extract(
     db: &Db,
     bucket: Option<&Bucket>,
     root: Uuid,
-    given: &[Document],
     bounds: &Bounds,
 ) -> Result<Extracted, DbError> {
     let max_details = i32::try_from(bounds.max_document_bytes).unwrap_or(i32::MAX);
@@ -551,6 +550,20 @@ pub async fn extract(
                 )
                 .fetch_all(tx.conn())
                 .await?;
+                // its comments (PLAN.md 5.15), each by who wrote it as a page shows them: ACE's own
+                // are by `ACE`, which ace3 writes as its automation user
+                let comments = sqlx::query!(
+                    r#"SELECT c.id, c.comment,
+                              COALESCE(u.display_name, u.username::text, 'ACE') AS "author!"
+                       FROM analysis.alert_comments c LEFT JOIN service.users u ON u.id = c.author_id
+                       WHERE c.root_id = $1 ORDER BY c.created_at, c.id LIMIT 1000"#,
+                    root,
+                )
+                .fetch_all(tx.conn())
+                .await?
+                .into_iter()
+                .filter_map(|row| Document::comment(&row.id.to_string(), Some(&row.author), &row.comment))
+                .collect::<Vec<_>>();
                 let results = sqlx::query!(
                     r#"SELECT x.id, x.observable_id, x.analysis_type, x.details AS "details: Value",
                               o.value
@@ -608,11 +621,11 @@ pub async fn extract(
                         )
                     })
                     .collect();
-                Ok(Some((alert.description, alert.origin, detections, results)))
+                Ok(Some((alert.description, alert.origin, comments, detections, results)))
             })
         })
         .await?;
-    let Some((description, origin, detections, results)) = read else {
+    let Some((description, origin, comments, detections, results)) = read else {
         return Ok(Extracted {
             documents: Vec::new(),
             left_out: 0,
@@ -649,7 +662,7 @@ pub async fn extract(
             observable_id: None,
         });
     }
-    documents.extend(given.iter().cloned());
+    documents.extend(comments);
     let mut seen = BTreeSet::new();
     let described: Vec<String> = detections
         .iter()

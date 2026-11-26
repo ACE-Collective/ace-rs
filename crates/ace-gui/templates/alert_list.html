@@ -4,7 +4,7 @@
     uuid. Filters the service refused (an Observable Pattern past its bounds) list nothing and say why
     here, which the refresh draws again, and so is the Commonalities panel while the URL shows it
     (PLAN.md 7.23). A description has its marks beside it: what SVS makes of the alert, and its root's tags (PLAN.md
-    7.10 batch 7b). -#}
+    7.10 batch 7b), and its comments under it (PLAN.md 5.15), the first few and the rest behind a fold. -#}
 <div id="alert-list">
   {%- if let Some(panel) = list.panel %}
   {% include "commonalities.html" %}
@@ -32,7 +32,9 @@
                    data-on:change="$_sel = $_sel.filter(id => id !== el.value).concat(el.checked ? [el.value] : [])"
                    data-effect="el.checked = $_sel.includes(el.value)"></td>
         {%- for cell in row.cells %}
-        <td data-col-id="{{ cell.id }}"{% if let Some(title) = cell.title %} title="{{ title }}"{% endif %}>{% if let Some(href) = cell.href %}<a href="{{ href }}"{% if let Some(badge) = cell.badge %} class="badge disposition-{{ badge }}"{% endif %}>{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}{% for mark in cell.marks %} {% if let Some(href) = mark.href %}<a href="{{ href }}" class="badge {{ mark.class }}"{% if let Some(title) = mark.title %} title="{{ title }}"{% endif %}>{{ mark.text }}</a>{% else %}<span class="badge {{ mark.class }}"{% if let Some(title) = mark.title %} title="{{ title }}"{% endif %}>{{ mark.text }}</span>{% endif %}{% endfor %}</td>
+        <td data-col-id="{{ cell.id }}"{% if let Some(title) = cell.title %} title="{{ title }}"{% endif %}>{% if let Some(href) = cell.href %}<a href="{{ href }}"{% if let Some(badge) = cell.badge %} class="badge disposition-{{ badge }}"{% endif %}>{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}{% for mark in cell.marks %} {% if let Some(href) = mark.href %}<a href="{{ href }}" class="badge {{ mark.class }}"{% if let Some(title) = mark.title %} title="{{ title }}"{% endif %}>{{ mark.text }}</a>{% else %}<span class="badge {{ mark.class }}"{% if let Some(title) = mark.title %} title="{{ title }}"{% endif %}>{{ mark.text }}</span>{% endif %}{% endfor %}
+          {%- if !cell.comments.is_empty() %}<ul class="row-comments">{% for comment in cell.comments %}<li>{{ comment }}</li>{% endfor %}</ul>{% endif %}
+          {%- if !cell.more_comments.is_empty() %}<details class="row-comments"><summary>{{ cell.more_comments.len() }} more comment{% if cell.more_comments.len() != 1 %}s{% endif %}</summary><ul class="row-comments">{% for comment in cell.more_comments %}<li>{{ comment }}</li>{% endfor %}</ul></details>{% endif %}</td>
         {%- endfor %}
       </tr>
       {%- endfor %}

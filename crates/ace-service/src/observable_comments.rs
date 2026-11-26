@@ -151,7 +151,7 @@ struct CommentOn<'a> {
 impl Recorded for CommentOn<'_> {}
 
 /// The user a comment by this actor is by.
-fn author_of(actor: &Actor) -> Result<UserId, ServiceError> {
+pub(crate) fn author_of(actor: &Actor) -> Result<UserId, ServiceError> {
     match actor {
         Actor::User { id, .. } => Ok(*id),
         Actor::ApiKey {
@@ -185,7 +185,7 @@ pub(crate) fn normalize_comment(text: &str) -> String {
 }
 
 /// The comment normalized, or why it can't be stored.
-fn checked(text: &str) -> Result<String, ServiceError> {
+pub(crate) fn checked(text: &str) -> Result<String, ServiceError> {
     let text = normalize_comment(text);
     if text.is_empty() {
         return Err(ServiceError::InvalidRequest(

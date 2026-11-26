@@ -93,7 +93,7 @@ impl Service {
         self.gate
             .read(actor, "alert_work", &ALERT_READ, &|tx| {
                 Box::pin(async move {
-                    alert_in(tx, id).await?;
+                    alert_in(tx, id, false).await?;
                     let times = sqlx::query!(
                         r#"SELECT r.completed_pass,
                                   CASE WHEN r.pass > r.completed_pass THEN

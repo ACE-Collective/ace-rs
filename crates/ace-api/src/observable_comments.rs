@@ -26,6 +26,16 @@ pub(crate) struct AuthorBody {
     display_name: Option<String>,
 }
 
+impl From<ace_service::CommentAuthor> for AuthorBody {
+    fn from(author: ace_service::CommentAuthor) -> Self {
+        AuthorBody {
+            id: author.id.0,
+            username: author.username,
+            display_name: author.display_name,
+        }
+    }
+}
+
 /// A comment on an observable, which applies to it in every alert.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct CommentBody {
@@ -50,11 +60,7 @@ impl From<ObservableComment> for CommentBody {
             id: comment.id,
             kind: comment.kind,
             value: comment.value,
-            author: AuthorBody {
-                id: comment.author.id.0,
-                username: comment.author.username,
-                display_name: comment.author.display_name,
-            },
+            author: AuthorBody::from(comment.author),
             created_by: ActorBody::from(comment.created_by),
             comment: comment.comment,
             created_at: comment.created_at,
@@ -95,7 +101,7 @@ pub(crate) struct NewCommentRequest {
 #[serde(deny_unknown_fields)]
 pub(crate) struct EditCommentRequest {
     /// 1 to 16384 characters, not all whitespace.
-    comment: String,
+    pub(crate) comment: String,
 }
 
 /// The comments on an observable, oldest first, whichever alerts hold it.

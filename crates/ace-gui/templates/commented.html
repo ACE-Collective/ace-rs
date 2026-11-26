@@ -1,0 +1,22 @@
+{#- What a bulk Add Comment did when some of the ticked alerts weren't there to take it (PLAN.md 5.15):
+    the comment went on the others. ace3 flashes a count instead, and adds a comment to any uuid. -#}
+{% extends "base.html" %}
+{% block title %}Add Comment · ACE{% endblock %}
+{% block content %}
+<section class="bulk-result">
+  <h1>Add Comment</h1>
+  <p>The comment was added to {{ added.len() }} alert{% if added.len() != 1 %}s{% endif %}; {{ not_alerts.len() }} {% if not_alerts.len() == 1 %}is{% else %}are{% endif %} no longer an alert.</p>
+  <ul class="done">
+    {%- for id in added %}
+    <li><a href="/alerts/{{ id }}">{{ id }}</a></li>
+    {%- endfor %}
+  </ul>
+  <h2>Not commented</h2>
+  <ul class="failed">
+    {%- for id in not_alerts %}
+    <li>{{ id }}</li>
+    {%- endfor %}
+  </ul>
+  <p><a href="{{ next }}">Back</a></p>
+</section>
+{% endblock %}

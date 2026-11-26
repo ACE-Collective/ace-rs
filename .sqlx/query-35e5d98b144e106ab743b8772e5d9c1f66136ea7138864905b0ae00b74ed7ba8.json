@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.comment,\n                              COALESCE(u.display_name, u.username::text, 'ACE') AS \"author!\"\n                       FROM analysis.alert_comments c LEFT JOIN service.users u ON u.id = c.author_id\n                       WHERE c.root_id = $1 ORDER BY c.created_at, c.id LIMIT 1000",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.alert_comments",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "comment",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.alert_comments",
+            "name": "comment"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "author!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "35e5d98b144e106ab743b8772e5d9c1f66136ea7138864905b0ae00b74ed7ba8"
+}

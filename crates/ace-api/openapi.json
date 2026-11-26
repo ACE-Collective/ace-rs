@@ -405,6 +405,109 @@
         }
       }
     },
+    "/api/alerts/v1/alerts/{id}/comments/{comment}": {
+      "patch": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Edits the text of a comment on the alert, ace3's `PATCH /api/v2/alerts/{uuid}/comments/{id}`. Only\nthe comment's author may (403). Text whose line breaks and ends are all that differ from what's stored\nis no change: the comment isn't marked edited.",
+        "operationId": "edit_comment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "comment",
+            "in": "path",
+            "description": "The comment's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The comment as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertCommentBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one, a comment that's empty or too long, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:write, isn't the comment's author, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such comment on this alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/alerts/v1/alerts/{id}/detections/confirm": {
       "post": {
         "tags": [
@@ -697,7 +800,7 @@
         "tags": [
           "alerts"
         ],
-        "summary": "Records an analyst's verdict on the alert. Its analysis is cancelled and it moves to the\ndispositioned mode. A later disposition replaces the earlier one and who made it. A root that no\ndetection made an alert can be dispositioned too, as the service allows. The disposition is one of\nthe site's, and one only ACE sets is refused, as is a change to an alert that has one. The caller, a\nuser or a key of one, becomes the owner of an alert nobody owns. An alert another analyst owns is left\nalone, unless `take_from` names that analyst or their account is disabled, and is then the caller's.",
+        "summary": "Records an analyst's verdict on the alert. Its analysis is cancelled and it moves to the\ndispositioned mode. A later disposition replaces the earlier one and who made it. A root that no\ndetection made an alert can be dispositioned too, as the service allows. The disposition is one of\nthe site's, and one only ACE sets is refused, as is a change to an alert that has one. `comment` is\nadded to the alert with it, by the caller's user. The caller, a user or a key of one, becomes the\nowner of an alert nobody owns. An alert another analyst owns is left\nalone, unless `take_from` names that analyst or their account is disabled, and is then the caller's.",
         "operationId": "disposition",
         "parameters": [
           {
@@ -753,7 +856,7 @@
             }
           },
           "403": {
-            "description": "The actor doesn't hold alert:write, or a session's request came from another site",
+            "description": "The actor doesn't hold alert:write, sent a comment without being a person or a person's key, or a session's request came from another site",
             "content": {
               "application/json": {
                 "schema": {
@@ -20505,6 +20608,16 @@
           "analysis_mode": {
             "type": "string"
           },
+          "comments": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AlertCommentBody"
+            },
+            "description": "Its comments (PLAN.md 5.15), its latest 100 oldest first. Not given by the AI API, which reads\nnone, as ace3's AI export has none."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -20609,6 +20722,63 @@
           "title": {
             "type": "string",
             "description": "The submission's description, as its sender wrote it. Show it as text."
+          }
+        }
+      },
+      "AlertCommentBody": {
+        "type": "object",
+        "description": "A comment on an alert, ace3's `AlertCommentRead`.",
+        "required": [
+          "id",
+          "alert",
+          "author_name",
+          "created_by",
+          "comment",
+          "created_at"
+        ],
+        "properties": {
+          "alert": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "author": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AuthorBody",
+                "description": "The user it's by, as they're called now; null for one ACE itself wrote, which `created_by` names."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "author_name": {
+            "type": "string",
+            "description": "What a page calls the author: their display name, else their username, else `ACE`. Show it as\ntext."
+          },
+          "comment": {
+            "type": "string",
+            "description": "The text, with LF line breaks. Show it as text."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/ActorBody",
+            "description": "The actor that wrote it: the author, one of their keys, or one of ACE's components."
+          },
+          "edited_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the text last changed; null if it never has."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -23348,6 +23518,13 @@
           "disposition"
         ],
         "properties": {
+          "comment": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A comment added to the alert with the disposition, ace3's `user_comment`, by the caller's user;\none that's only whitespace is none."
+          },
           "disposition": {
             "type": "string",
             "description": "One of the site's dispositions, such as `FALSE_POSITIVE`. The set is the site overlay's\n`dispositions` over ace3's, so it's a string here, not an enum; `GET /api/filters/v1/screens/alerts`\nlists it as the `Disposition` filter's options. An analyst's must be one an analyst may choose."

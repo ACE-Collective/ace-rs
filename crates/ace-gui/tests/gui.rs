@@ -1440,6 +1440,7 @@ fn summary(id: uuid::Uuid, title: &str) -> AlertSummary {
         svs: None,
         owner: None,
         owned_at: None,
+        comments: None,
     }
 }
 
@@ -3124,7 +3125,7 @@ async fn an_open_alert_page_is_told_when_its_owner_changes() {
     // a disposition that takes the alert: jane confirms taking it from alice
     stack
         .service
-        .disposition(&jane, root, "FALSE_POSITIVE", Some(alice_id))
+        .disposition(&jane, root, "FALSE_POSITIVE", Some(alice_id), None)
         .await
         .expect("dispositions and takes it");
     let (told, _) = read_stream(&mut stream, within, |text| text.contains("\n\n")).await;
@@ -19437,6 +19438,7 @@ fn the_ownership_views_draw_owners_as_text() {
     let bulk = drawn_safely(&BulkPage {
         layout: layout(),
         disposition: "FALSE_POSITIVE".to_owned(),
+        comment: String::new(),
         done: vec![uuid::Uuid::from_u128(3)],
         failed: Vec::new(),
         left_alone: Some(left.clone()),
@@ -19461,6 +19463,7 @@ fn the_ownership_views_draw_owners_as_text() {
     let plain = drawn_safely(&BulkPage {
         layout: layout(),
         disposition: "FALSE_POSITIVE".to_owned(),
+        comment: String::new(),
         done: vec![one],
         failed: Vec::new(),
         left_alone: None,
@@ -23479,4 +23482,483 @@ async fn the_list_shows_which_alerts_potentially_relate() {
         .await
         .expect("answered");
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+/// The comments of an alert, as its read gives them (PLAN.md 5.15).
+async fn alert_comments_of(stack: &Stack, root: uuid::Uuid) -> Vec<ace_service::AlertComment> {
+    stack
+        .service
+        .alert(&bootstrap_alert_reader(stack).await, root)
+        .await
+        .expect("reads")
+        .summary
+        .comments
+        .expect("read")
+}
+
+/// A component that may read alerts, to look at what a page wrote.
+async fn bootstrap_alert_reader(stack: &Stack) -> Actor {
+    let reader = Actor::Internal {
+        id: ace_service::Component::new("comment_reader").expect("a name"),
+    };
+    stack
+        .service
+        .grant(
+            &bootstrap(),
+            &Holder::Component(ace_service::Component::new("comment_reader").expect("a name")),
+            &PermissionPattern::new("alert", "read").expect("a pattern"),
+            Effect::Allow,
+        )
+        .await
+        .expect("granted");
+    reader
+}
+
+/// PLAN.md 5.15 through the server, ace3's `test_comment.py` and `test_index.py`'s
+/// `test_index_marks_edited_comments`: the alert page shows its comments, by whom and when, the edited
+/// mark, and for a viewer with `alert:write` Add Comment and, on their own, Edit and Delete. Each post
+/// goes back to the comments, and what the service refuses, another analyst's comment among it, is the
+/// refusal's page and changes nothing.
+#[tokio::test]
+async fn alert_comments_are_added_edited_and_deleted_from_the_alert_page() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    let bob = user(&stack, "bob").await;
+    let carol = user(&stack, "carol").await;
+    for actor in [&alice, &bob, &carol] {
+        grant_alert_read(&stack, actor).await;
+    }
+    for actor in [&alice, &bob] {
+        grant_to(&stack, actor, "alert", "write").await;
+    }
+    let (root, _) = splunk_alert(&stack).await;
+    let (alices, bobs, carols) = (
+        session_of(&stack, "alice").await,
+        session_of(&stack, "bob").await,
+        session_of(&stack, "carol").await,
+    );
+    let page_of = |session: String| {
+        let request = stack
+            .get(&format!("/alerts/{root}"))
+            .header("cookie", cookie(&session));
+        async move {
+            request
+                .send()
+                .await
+                .expect("answered")
+                .text()
+                .await
+                .expect("a page")
+        }
+    };
+    let add = format!("/alerts/{root}/comments");
+
+    // a reader sees the section and no form
+    let page = page_of(carols.clone()).await;
+    assert!(
+        page.contains(r#"<h2 id="comments-title">Comments</h2>"#),
+        "{page}"
+    );
+    assert!(
+        page.contains(r#"<p class="muted">No comments.</p>"#),
+        "{page}"
+    );
+    assert!(!page.contains(&format!(r#"action="{add}""#)), "{page}");
+    let page = page_of(alices.clone()).await;
+    assert!(
+        page.contains(&format!(
+            r#"<form method="post" action="{add}" class="add-comment">"#
+        )),
+        "{page}"
+    );
+
+    // alice adds one, stored with LF line breaks and shown as text
+    let audits = stack.audit_count().await;
+    let added = stack
+        .post(&add, &[("comment", "seen <b>before</b>\r\nline 2\r\n")])
+        .header("cookie", cookie(&alices))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(added.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&added), format!("/alerts/{root}#comments"));
+    assert_eq!(stack.audit_count().await, audits + 1);
+    let comments = alert_comments_of(&stack, root).await;
+    assert_eq!(comments.len(), 1);
+    assert_eq!(comments[0].comment, "seen <b>before</b>\nline 2");
+    let id = comments[0].id;
+    let change = format!("/alerts/{root}/comments/{id}");
+    let page = page_of(alices.clone()).await;
+    assert!(inline_free(&page), "{page}");
+    contains_all(
+        &page,
+        &[
+            r#"<p class="comment-text">seen &#60;b&#62;before&#60;/b&#62;
+line 2</p>"#,
+            "<b>alice</b> at ",
+            r#"<details class="comment-edit">"#,
+            &format!(r#"<form method="post" action="{change}">"#),
+            r#"<button type="submit" name="delete" value="1" class="quiet">Delete</button>"#,
+        ],
+    );
+    assert!(!page.contains("(edited "), "{page}");
+    // bob sees it and has nothing to change it with
+    let page = page_of(bobs.clone()).await;
+    assert!(page.contains("<b>alice</b> at "), "{page}");
+    assert!(!page.contains(&format!(r#"action="{change}""#)), "{page}");
+
+    // alice edits it, and the page says so
+    let edited = stack
+        .post(&change, &[("comment", "seen before")])
+        .header("cookie", cookie(&alices))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(edited.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&edited), format!("/alerts/{root}#comments"));
+    let page = page_of(bobs.clone()).await;
+    assert!(
+        page.contains(r#"<p class="comment-text">seen before</p>"#),
+        "{page}"
+    );
+    assert!(page.contains(" (edited "), "{page}");
+
+    // what's refused: bob's edit and delete of hers, carol's add, an empty comment, and ids that aren't
+    let audits = stack.audit_count().await;
+    for (session, path, form, status) in [
+        (
+            &bobs,
+            change.clone(),
+            vec![("comment", "mine")],
+            StatusCode::FORBIDDEN,
+        ),
+        (
+            &bobs,
+            change.clone(),
+            vec![("delete", "1")],
+            StatusCode::FORBIDDEN,
+        ),
+        (
+            &carols,
+            add.clone(),
+            vec![("comment", "x")],
+            StatusCode::FORBIDDEN,
+        ),
+        (
+            &alices,
+            add.clone(),
+            vec![("comment", "  \r\n")],
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            &alices,
+            add.clone(),
+            vec![("other", "x")],
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            &alices,
+            "/alerts/x/comments".to_owned(),
+            vec![("comment", "x")],
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            &alices,
+            format!("/alerts/{root}/comments/x"),
+            vec![("comment", "x")],
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            &alices,
+            format!("/alerts/{root}/comments/999999"),
+            vec![("comment", "x")],
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            &alices,
+            format!("/alerts/{}/comments/{id}", uuid::Uuid::new_v4()),
+            vec![("delete", "1")],
+            StatusCode::NOT_FOUND,
+        ),
+    ] {
+        let response = stack
+            .post(&path, &form)
+            .header("cookie", cookie(session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(response.status(), status, "{path} {form:?}");
+    }
+    // another site's page can't comment with alice's cookie
+    let cross = stack
+        .http
+        .post(format!("{}{add}", stack.url))
+        .header("origin", "https://evil.example")
+        .header("cookie", cookie(&alices))
+        .form(&[("comment", "x")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, audits);
+    assert_eq!(alert_comments_of(&stack, root).await.len(), 1);
+
+    // the page's Set Disposition takes a comment, which goes on the alert
+    let set = stack
+        .post(
+            "/alerts/disposition",
+            &[
+                ("alert", root.to_string().as_str()),
+                ("disposition", "FALSE_POSITIVE"),
+                ("comment", "the vendor's mailer"),
+                ("next", &format!("/alerts/{root}")),
+            ],
+        )
+        .header("cookie", cookie(&alices))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(set.status(), StatusCode::OK);
+    let comments = alert_comments_of(&stack, root).await;
+    assert_eq!(
+        comments
+            .iter()
+            .map(|c| c.comment.as_str())
+            .collect::<Vec<_>>(),
+        ["seen before", "the vendor's mailer"]
+    );
+
+    // alice deletes hers
+    let deleted = stack
+        .post(&change, &[("delete", "1")])
+        .header("cookie", cookie(&alices))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(deleted.status(), StatusCode::SEE_OTHER);
+    let page = page_of(alices.clone()).await;
+    assert!(!page.contains("seen before"), "{page}");
+    assert!(page.contains("the vendor&#39;s mailer"), "{page}");
+}
+
+/// PLAN.md 5.15 on the alert list, ace3's `_manage_columns.html` and its Add Comment of the ticked alerts
+/// (`test_add_comment_multiple_uuids`, `test_add_comment_manage_redirect`): a row shows its comments
+/// under the title, the first few and the rest behind a fold, and the bulk form's Add Comment comments on
+/// each ticked alert and goes back, saying which were no longer alerts; Set Disposition takes the same box.
+#[tokio::test]
+async fn the_lists_bulk_add_comment_comments_on_the_ticked_alerts() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    grant_to(&stack, &alice, "alert", "write").await;
+    let carol = user(&stack, "carol").await;
+    grant_alert_read(&stack, &carol).await;
+    let (alices, carols) = (
+        session_of(&stack, "alice").await,
+        session_of(&stack, "carol").await,
+    );
+    let one = list_alert(&stack, "first <one>", "2026-05-01T10:00:00Z", None).await;
+    let two = list_alert(&stack, "second one", "2026-05-01T11:00:00Z", None).await;
+    let three = list_alert(&stack, "third one", "2026-05-01T12:00:00Z", None).await;
+    let page = stack
+        .get("/")
+        .header("cookie", cookie(&alices))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    contains_all(
+        &page,
+        &[
+            r#"<textarea id="bulk-comment" name="comment" rows="2" maxlength="16384"></textarea>"#,
+            r#"<button type="submit" formaction="/alerts/comment">Add Comment</button>"#,
+        ],
+    );
+    let post = |session: &str, form: Vec<(&'static str, String)>| {
+        let request = stack
+            .http
+            .post(format!("{}/alerts/comment", stack.url))
+            .header("origin", &stack.url)
+            .header("cookie", cookie(session))
+            .form(&form);
+        async move { request.send().await.expect("answered") }
+    };
+    let ticked = |ids: &[uuid::Uuid], comment: &str| {
+        let mut form = vec![
+            ("comment", comment.to_owned()),
+            ("next", "/?f=disposition:OPEN".to_owned()),
+        ];
+        form.extend(ids.iter().map(|id| ("alert", id.to_string())));
+        form
+    };
+    let audits = stack.audit_count().await;
+    let done = post(&alices, ticked(&[one, two], "both <phish>\r\n")).await;
+    assert_eq!(done.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&done), "/?f=disposition:OPEN");
+    assert_eq!(stack.audit_count().await, audits + 1, "one write for both");
+    for root in [one, two] {
+        let comments = alert_comments_of(&stack, root).await;
+        assert_eq!(
+            comments
+                .iter()
+                .map(|c| c.comment.as_str())
+                .collect::<Vec<_>>(),
+            ["both <phish>"]
+        );
+    }
+    assert!(alert_comments_of(&stack, three).await.is_empty());
+    for n in 1..=4 {
+        post(&alices, ticked(&[one], &format!("note {n}"))).await;
+    }
+    let fragment = stack
+        .get("/alerts/list")
+        .header("cookie", cookie(&alices))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a fragment");
+    assert!(inline_free(&fragment), "{fragment}");
+    contains_all(
+        &fragment,
+        &[
+            r#"<ul class="row-comments"><li>(alice) both &#60;phish&#62;</li><li>(alice) note 1</li><li>(alice) note 2</li></ul>"#,
+            r#"<details class="row-comments"><summary>2 more comments</summary><ul class="row-comments"><li>(alice) note 3</li><li>(alice) note 4</li></ul></details>"#,
+        ],
+    );
+
+    // an alert gone since it was ticked is said, and the others get the comment
+    let gone = uuid::Uuid::new_v4();
+    let partly = post(&alices, ticked(&[three, gone], "one of two")).await;
+    assert_eq!(partly.status(), StatusCode::OK);
+    let page = partly.text().await.expect("a page");
+    assert!(inline_free(&page), "{page}");
+    contains_all(
+        &page,
+        &[
+            "<p>The comment was added to 1 alert; 1 is no longer an alert.</p>",
+            &format!(r#"<li><a href="/alerts/{three}">{three}</a></li>"#),
+            &format!("<li>{gone}</li>"),
+            r#"<a href="/?f=disposition:OPEN">Back</a>"#,
+        ],
+    );
+
+    // what's refused changes nothing
+    let audits = stack.audit_count().await;
+    for (session, form, status) in [
+        (&carols, ticked(&[one], "x"), StatusCode::FORBIDDEN),
+        (&alices, ticked(&[], "x"), StatusCode::BAD_REQUEST),
+        (&alices, ticked(&[one], "  "), StatusCode::BAD_REQUEST),
+        (&alices, ticked(&[gone], "x"), StatusCode::NOT_FOUND),
+        (
+            &alices,
+            vec![("comment", "x".to_owned()), ("alert", "x".to_owned())],
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            &alices,
+            ticked(&vec![one; ace_gui::list::MAX_BULK + 1], "x"),
+            StatusCode::BAD_REQUEST,
+        ),
+    ] {
+        let response = post(session, form.clone()).await;
+        assert_eq!(response.status(), status, "{form:?}");
+    }
+    assert_eq!(stack.audit_count().await, audits);
+
+    // Set Disposition sends the box too: each alert it dispositions gets the comment
+    let set = stack
+        .http
+        .post(format!("{}/alerts/disposition", stack.url))
+        .header("origin", &stack.url)
+        .header("cookie", cookie(&alices))
+        .form(&[
+            ("disposition", "FALSE_POSITIVE"),
+            ("comment", "closed together"),
+            ("alert", &two.to_string()),
+            ("alert", &three.to_string()),
+            ("next", "/"),
+        ])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(set.status(), StatusCode::OK);
+    for root in [two, three] {
+        let comments = alert_comments_of(&stack, root).await;
+        assert_eq!(
+            comments.last().map(|c| c.comment.as_str()),
+            Some("closed together")
+        );
+    }
+}
+
+/// PLAN.md 5.15 on an event's page, ace3's `event_alerts.html` and its bulk Add Comment
+/// (`test_event_page_shows_alerts_and_comments_without_loading_them`, `test_bulk_add_comment_success`,
+/// `test_bulk_add_comment_normalizes_line_breaks`, `test_bulk_add_comment_empty_rejected`): each alert's
+/// comments are under its title, and the ticked alerts' Add Comment goes back to the event.
+#[tokio::test]
+async fn an_events_page_shows_its_alerts_comments_and_comments_on_the_ticked() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    grant_to(&stack, &alice, "alert", "write").await;
+    grant_to(&stack, &alice, "event", "read").await;
+    let session = session_of(&stack, "alice").await;
+    let one = list_alert(&stack, "in the event", "2026-05-01T10:00:00Z", None).await;
+    let two = list_alert(&stack, "also in it", "2026-05-01T11:00:00Z", None).await;
+    let event = gui_event(&stack, "commented event", "2026-05-01", "OPEN").await;
+    for root in [one, two] {
+        sqlx::query("INSERT INTO events.event_alerts (event_id, root_id) VALUES ($1, $2)")
+            .bind(event)
+            .bind(root)
+            .execute(stack.test_db.db().pool())
+            .await
+            .expect("adds");
+    }
+    let here = format!("/events/{event}");
+    let added = stack
+        .post(
+            "/alerts/comment",
+            &[
+                ("alert", one.to_string().as_str()),
+                ("alert", two.to_string().as_str()),
+                ("comment", "  seen in the <campaign>\r\nagain\r\n"),
+                ("next", &here),
+            ],
+        )
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(added.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&added), here);
+    let page = stack
+        .get(&here)
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(inline_free(&page), "{page}");
+    contains_all(
+        &page,
+        &[
+            r#"<textarea id="event-comment" name="comment" rows="2" maxlength="16384"></textarea>"#,
+            r#"<button type="submit" formaction="/alerts/comment">Add Comment</button>"#,
+        ],
+    );
+    assert_eq!(
+        page.matches(
+            r#"<ul class="row-comments"><li>(alice) seen in the &#60;campaign&#62;
+again</li></ul>"#
+        )
+        .count(),
+        2,
+        "{page}"
+    );
 }

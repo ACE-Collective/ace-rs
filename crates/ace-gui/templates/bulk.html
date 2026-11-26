@@ -36,6 +36,9 @@
     <input type="hidden" name="alert" value="{{ alert.0 }}">
     {%- endfor %}
     <input type="hidden" name="disposition" value="{{ disposition }}">
+    {%- if !comment.is_empty() %}
+    <input type="hidden" name="comment" value="{{ comment }}">
+    {%- endif %}
     <input type="hidden" name="take_owned" value="{{ left.take_owned }}">
     <input type="hidden" name="next" value="{{ next }}">
     <button type="submit" title="Each becomes yours. One that changed hands since this page was drawn is left alone again.">Take them and set {{ disposition }}</button>

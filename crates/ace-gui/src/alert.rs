@@ -248,6 +248,26 @@ pub struct CommentView {
     pub when: String,
 }
 
+/// A comment on the alert itself (PLAN.md 5.15), as its page shows it: ace3's alert details row.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlertCommentView {
+    pub id: i64,
+    pub author: String,
+    pub when: String,
+    /// When its text last changed, ace3's `(edited ...)`.
+    pub edited: Option<String>,
+    pub text: String,
+    /// The viewer wrote it and may change the alert, so the page offers its edit and delete.
+    pub own: bool,
+    /// Where its edit and delete post.
+    pub action: String,
+}
+
+/// How a comment's time is shown, as an observable comment's is.
+fn comment_time(at: chrono::DateTime<chrono::Utc>) -> String {
+    at.format("%Y-%m-%d %H:%M:%S UTC").to_string()
+}
+
 /// An observable where the tree shows it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObservableNode {
@@ -488,10 +508,7 @@ pub fn tree_view_drawn(
                     .clone()
                     .unwrap_or_else(|| comment.author.username.clone()),
                 text: comment.comment.clone(),
-                when: comment
-                    .created_at
-                    .format("%Y-%m-%d %H:%M:%S UTC")
-                    .to_string(),
+                when: comment_time(comment.created_at),
             });
     }
 
@@ -1273,6 +1290,10 @@ pub struct AlertPage {
     pub work: WorkPanel,
     /// The panel's version, a hash of it, which the stream starts from as it does the tree's.
     pub work_version: String,
+    /// The alert's comments, oldest first (PLAN.md 5.15).
+    pub comments: Vec<AlertCommentView>,
+    /// Where Add Comment posts, for a viewer with `alert:write`; None draws no form.
+    pub add_comment: Option<String>,
 }
 
 /// ace3's Take Ownership and Assign Ownership buttons of the alert page (`analysis/index.html`): forms
@@ -1608,7 +1629,34 @@ impl AlertPage {
                 .and_then(|timeline| RemediationPanel::of(summary.id, timeline)),
             work: WorkPanel::default(),
             work_version: String::new(),
+            comments: Vec::new(),
+            add_comment: None,
         })
+    }
+
+    /// The page with the alert's comments, the viewer's own with their edit and delete when `writes`,
+    /// the viewer holding `alert:write`, which also gives the page its Add Comment form.
+    pub fn with_comments(
+        mut self,
+        comments: &[ace_service::AlertComment],
+        viewer: &ace_service::Actor,
+        writes: bool,
+    ) -> Self {
+        let href = format!("/alerts/{}/comments", self.id);
+        self.comments = comments
+            .iter()
+            .map(|comment| AlertCommentView {
+                id: comment.id,
+                author: comment.author_name(),
+                when: comment_time(comment.created_at),
+                edited: comment.edited_at.map(comment_time),
+                text: comment.comment.clone(),
+                own: writes && comment.is_by(viewer),
+                action: format!("{href}/{}", comment.id),
+            })
+            .collect();
+        self.add_comment = writes.then_some(href);
+        self
     }
 
     /// The page with its analysis panel.
@@ -1816,6 +1864,8 @@ pub(crate) async fn page(
         bodies: &bodies,
         alert_actions: &alert_actions,
     };
+    // the forms that change the alert are for a viewer with `alert:write`, whom Assign has users for
+    let writes = ownership.is_some();
     let dispositions = if ownership.is_some() {
         gui.service.dispositions().selectable()
     } else {
@@ -1835,6 +1885,11 @@ pub(crate) async fn page(
                 .with_svs(svs)
                 .with_ownership(ownership)
                 .with_dispositions(dispositions)
+                .with_comments(
+                    tree.alert.summary.comments.as_deref().unwrap_or_default(),
+                    actor,
+                    writes,
+                )
                 .with_work(work),
         ),
         Err(error) => {

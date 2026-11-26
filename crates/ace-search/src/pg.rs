@@ -46,7 +46,7 @@ use ace_service::search::{
 use uuid::Uuid;
 
 use crate::chunks::{self, Embedded};
-use crate::documents::{self, Bounds, Document};
+use crate::documents::{self, Bounds};
 use crate::model::{MODEL_NAME, Model};
 use crate::sparse;
 
@@ -145,10 +145,9 @@ impl PgIndex {
     pub async fn embedded(
         &self,
         root: Uuid,
-        given: &[Document],
     ) -> Result<(Vec<Embedded>, usize, usize, Option<String>), IndexError> {
         let extracted =
-            documents::extract(&self.db, self.bucket.as_ref(), root, given, &self.bounds).await?;
+            documents::extract(&self.db, self.bucket.as_ref(), root, &self.bounds).await?;
         let count = extracted.documents.len();
         let (model, bounds) = (self.model.clone(), self.bounds.clone());
         let (embedded, cut) = tokio::task::spawn_blocking(move || {
@@ -160,10 +159,10 @@ impl PgIndex {
         Ok((embedded, count, extracted.left_out + cut, extracted.skipped))
     }
 
-    /// Indexes one alert: ace3's `index_alert`. `given` are documents a caller adds to the alert's
-    /// own, such as its comments. A root that is gone or isn't an alert is skipped, not an error.
-    pub async fn index_alert(&self, root: Uuid, given: &[Document]) -> Result<Indexed, IndexError> {
-        let (embedded, documents, left_out, skipped) = self.embedded(root, given).await?;
+    /// Indexes one alert: ace3's `index_alert`. A root that is gone or isn't an alert is skipped, not
+    /// an error.
+    pub async fn index_alert(&self, root: Uuid) -> Result<Indexed, IndexError> {
+        let (embedded, documents, left_out, skipped) = self.embedded(root).await?;
         let chunks = embedded.len();
         let embedded = &embedded;
         let gone = skipped.is_some();
@@ -484,7 +483,7 @@ impl PgIndex {
         else {
             return Ok(None);
         };
-        match self.index_alert(due.root_id, &[]).await {
+        match self.index_alert(due.root_id).await {
             Ok(indexed) => {
                 sqlx::query!(
                     "DELETE FROM search.due WHERE root_id = $1 AND version = $2",

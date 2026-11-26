@@ -444,6 +444,26 @@ pub struct Cell {
     pub href: Option<String>,
     /// What stands beside the text: the Description cell's SVS status and the root's tags.
     pub marks: Vec<Mark>,
+    /// What stands under it: the Description cell's comments on the alert (PLAN.md 5.15), ace3's
+    /// `(author) text`, oldest first, the first `SHOWN_ROW_COMMENTS` and then the rest behind a fold.
+    pub comments: Vec<String>,
+    pub more_comments: Vec<String>,
+}
+
+/// How many of an alert's comments its row shows before the fold, where ace3 folds them at a height.
+pub const SHOWN_ROW_COMMENTS: usize = 3;
+
+/// An alert's comments as its row shows them, before and behind the fold.
+pub(crate) fn row_comments(
+    comments: Option<&[ace_service::AlertComment]>,
+) -> (Vec<String>, Vec<String>) {
+    let mut lines: Vec<String> = comments
+        .unwrap_or_default()
+        .iter()
+        .map(|comment| format!("({}) {}", comment.author_name(), comment.comment))
+        .collect();
+    let more = lines.split_off(lines.len().min(SHOWN_ROW_COMMENTS));
+    (lines, more)
 }
 
 /// A word beside a cell's text.
@@ -709,15 +729,22 @@ fn row(
                 title: Some(alert.alerted_at.to_rfc3339()),
                 href: None,
                 marks: Vec::new(),
+                comments: Vec::new(),
+                more_comments: Vec::new(),
             },
-            "description" => Cell {
-                id: "description",
-                text: alert.title.clone(),
-                badge: None,
-                title: None,
-                href: Some(format!("/alerts/{}", alert.id)),
-                marks: marks(alert),
-            },
+            "description" => {
+                let (comments, more_comments) = row_comments(alert.comments.as_deref());
+                Cell {
+                    id: "description",
+                    text: alert.title.clone(),
+                    badge: None,
+                    title: None,
+                    href: Some(format!("/alerts/{}", alert.id)),
+                    marks: marks(alert),
+                    comments,
+                    more_comments,
+                }
+            }
             "queue" => Cell {
                 id: "queue",
                 href: Some(query.with_filters(&overlaid(&query.filters, "Queue", &alert.queue))),
@@ -725,6 +752,8 @@ fn row(
                 badge: None,
                 title: None,
                 marks: Vec::new(),
+                comments: Vec::new(),
+                more_comments: Vec::new(),
             },
             // ace3's owner cell: a click narrows the list to that owner's alerts
             "owner" => Cell {
@@ -742,6 +771,8 @@ fn row(
                     .owned_at
                     .map(|at| format!("since {}", at.to_rfc3339())),
                 marks: Vec::new(),
+                comments: Vec::new(),
+                more_comments: Vec::new(),
             },
             "disposition" => Cell {
                 id: "disposition",
@@ -754,6 +785,8 @@ fn row(
                 badge: Some(dispositions.css(Some(&disposition)).to_owned()),
                 title: None,
                 marks: Vec::new(),
+                comments: Vec::new(),
+                more_comments: Vec::new(),
             },
             _ => Cell {
                 id: "status",
@@ -762,6 +795,8 @@ fn row(
                 title: None,
                 href: None,
                 marks: Vec::new(),
+                comments: Vec::new(),
+                more_comments: Vec::new(),
             },
         })
         .collect();
@@ -1068,6 +1103,8 @@ impl LeftAlone {
 pub struct BulkPage {
     pub layout: Layout,
     pub disposition: String,
+    /// The comment sent with it, which the form that takes the alerts left alone sends again.
+    pub comment: String,
     pub done: Vec<Uuid>,
     pub failed: Vec<(Uuid, String)>,
     /// The alerts left with the analysts who own them, and the form that takes them.
@@ -1247,7 +1284,8 @@ fn next_of(form: &[(String, String)]) -> String {
         .to_owned()
 }
 
-/// `POST /alerts/disposition`: ace3's bulk "Set Disposition", each alert through the service.
+/// `POST /alerts/disposition`: ace3's bulk "Set Disposition", each alert through the service, with the
+/// comment the form sent, if any.
 pub(crate) async fn bulk_disposition(
     State(gui): State<Gui>,
     viewer: SignedIn,
@@ -1275,6 +1313,8 @@ pub(crate) async fn bulk_disposition(
     }
     // ace3's take_owned: the alerts the analyst agreed to take, each with who owned it then
     let takes = ace_service::confirmed_takes(one(&form, "take_owned").unwrap_or(""));
+    // ace3's comment with the disposition, added to each alert it dispositions (PLAN.md 5.15)
+    let comment = one(&form, "comment");
     let mut done = Vec::new();
     let mut failed = Vec::new();
     let mut skipped = Vec::new();
@@ -1288,7 +1328,13 @@ pub(crate) async fn bulk_disposition(
         }
         match gui
             .service
-            .disposition(&viewer.actor, id, &disposition, takes.get(&id).copied())
+            .disposition(
+                &viewer.actor,
+                id,
+                &disposition,
+                takes.get(&id).copied(),
+                comment,
+            )
             .await
         {
             Ok(_) => done.push(id),
@@ -1328,6 +1374,7 @@ pub(crate) async fn bulk_disposition(
     let mut response = render(&BulkPage {
         layout: viewer.layout,
         disposition,
+        comment: comment.unwrap_or("").to_owned(),
         done,
         failed,
         left_alone: LeftAlone::of(&skipped),

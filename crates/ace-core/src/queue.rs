@@ -269,20 +269,28 @@ pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>
         )
         .execute(tx.conn())
         .await?;
-        // an alert's text is indexed for search on its completion (PLAN.md 7.11, `ace_search`): a new
-        // request, or the one waiting made new, so an indexing under way doesn't count for this pass
-        sqlx::query!(
-            "INSERT INTO search.due (root_id)
-             SELECT id FROM analysis.roots WHERE id = $1 AND alerted_at IS NOT NULL
-             ON CONFLICT (root_id) DO UPDATE
-                 SET due_at = now(), version = search.due.version + 1, attempts = 0,
-                     claimed_until = NULL, failed_at = NULL, error = NULL",
-            root,
-        )
-        .execute(tx.conn())
-        .await?;
+        // an alert's text is indexed for search on its completion (PLAN.md 7.11, `ace_search`)
+        index_again(tx.conn(), &[root]).await?;
     }
     Ok(pass)
+}
+
+/// Asks for the search index's documents of those of `roots` that are alerts to be made again (PLAN.md
+/// 7.11, `ace_search`): when an alert's analysis pass completes, and when its comments change. A new
+/// request, or the one waiting made new, so an indexing under way doesn't count for this change.
+pub async fn index_again(conn: &mut sqlx::PgConnection, roots: &[Uuid]) -> Result<(), DbError> {
+    sqlx::query!(
+        "INSERT INTO search.due (root_id)
+         SELECT id FROM analysis.roots WHERE id = ANY ($1) AND alerted_at IS NOT NULL
+         ORDER BY id
+         ON CONFLICT (root_id) DO UPDATE
+             SET due_at = now(), version = search.due.version + 1, attempts = 0,
+                 claimed_until = NULL, failed_at = NULL, error = NULL",
+        roots,
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
 }
 
 /// Makes the root's tasks that wait for every other module due now, once nothing is left but tasks

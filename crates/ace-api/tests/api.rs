@@ -741,6 +741,7 @@ const QA_RECORD: &str = "/api/yara-qa/v1/matches/{id}/record";
 const QA_MATCH_DOWNLOAD: &str = "/api/yara-qa/v1/matches/{id}/download";
 const COMMENTS: &str = "/api/observables/v1/comments";
 const COMMENT: &str = "/api/observables/v1/comments/{id}";
+const ALERT_COMMENT: &str = "/api/alerts/v1/alerts/{id}/comments/{comment}";
 const DETECTIONS: &str = "/api/alerts/v1/detections";
 const VERDICT: &str = "/api/alerts/v1/alerts/{id}/detections/{detection}/verdict";
 const CONFIRM: &str = "/api/alerts/v1/alerts/{id}/detections/confirm";
@@ -961,6 +962,7 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
         .replace("{screen}", "alerts")
         .replace("{event}", &id.to_string())
         .replace("{backend}", "fake")
+        .replace("{comment}", &observable.to_string())
 }
 
 /// A route with `{id}` and `{user}` filled.
@@ -1009,7 +1011,7 @@ fn good_body(route: &str) -> Send {
         MY_PASSWORD => Send::Json(json!({"current": PASSWORD, "new": OTHER_PASSWORD})),
         QA_PURGE => Send::Json(json!({"match_ids": [1]})),
         COMMENTS => Send::Json(json!({"type": "fqdn", "value": "a.example", "comment": "x"})),
-        COMMENT => Send::Json(json!({"comment": "x"})),
+        COMMENT | ALERT_COMMENT => Send::Json(json!({"comment": "x"})),
         PREFERENCE => Send::Json(json!({"mode": "dark"})),
         ENCODE => Send::Json(json!({"filters": []})),
         SEARCH_ALERTS | AI_SEARCH => Send::Json(json!({"query": "docusign"})),
@@ -1082,7 +1084,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 251, "{routes:?}");
+    assert_eq!(routes.len(), 252, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -5641,6 +5643,190 @@ async fn comments(client: &mut Client<'_>, file_alert: Uuid, file_bytes: &[u8]) 
         .await;
 }
 
+/// Alert comments (PLAN.md 5.15): ace3's `TestUpdateAlertComment` (its author edits one, another user
+/// can't, one on another alert or none at all is 404, an id that isn't one is 400, an empty comment is
+/// refused) and `test_list.py`'s `test_comments_oldest_first` and
+/// `test_csv_puts_each_comment_on_its_own_line`: the list's rows and its exports carry them, and a
+/// disposition takes one.
+async fn alert_comments(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let json = Send::Json;
+    let stack = client.stack;
+    let grants = ["alert:read", "alert:write"];
+    let (alice, alices) = session_of(stack, "alert-commenter", &grants).await;
+    let (_, bobs) = session_of(stack, "other-alert-commenter", &grants).await;
+    let (a, b) = (Some(alices.as_str()), Some(bobs.as_str()));
+    let alice_actor = Actor::User {
+        id: ace_service::UserId(alice),
+        name: "alert-commenter".to_owned(),
+    };
+    let commented = alert(stack, "commented on", &[]).await;
+    let quiet = alert(stack, "not commented on", &[]).await;
+    for text in ["first", "second, with a comma"] {
+        stack
+            .service
+            .add_alert_comment(&alice_actor, &[commented], text)
+            .await
+            .expect("comments");
+    }
+    let one = ONE.replace("{id}", &commented.to_string());
+    let read = client
+        .json(M::GET, ONE, &one, a, Send::Nothing, S::OK)
+        .await;
+    let comments = &read["alert"]["comments"];
+    assert_eq!(comments[0]["comment"], "first");
+    assert_eq!(comments[1]["comment"], "second, with a comma");
+    assert_eq!(comments[0]["author"]["id"], json!(alice));
+    assert_eq!(comments[0]["author_name"], "alert-commenter");
+    assert_eq!(comments[0]["created_by"]["kind"], "user");
+    assert_eq!(comments[0]["edited_at"], Value::Null);
+    let id = comments[0]["id"].as_i64().expect("an id");
+    let quiet_one = ONE.replace("{id}", &quiet.to_string());
+    let read = client
+        .json(M::GET, ONE, &quiet_one, a, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(read["alert"]["comments"], json!([]));
+    let (status, _, csv) = client
+        .text(
+            ALERT_CSV,
+            &format!("{ALERT_CSV}?f=description:commented%20on&f=!description:not"),
+            alices.as_str(),
+        )
+        .await;
+    assert_eq!(status, S::OK, "{csv}");
+    assert!(
+        csv.ends_with(",\"first\nsecond, with a comma\"\r\n"),
+        "each comment on its own line: {csv:?}"
+    );
+
+    // its author edits it, with LF line breaks, and it's marked edited
+    let path = ALERT_COMMENT
+        .replace("{id}", &commented.to_string())
+        .replace("{comment}", &id.to_string());
+    let rows = audit_count(stack).await;
+    let edited = client
+        .json(
+            M::PATCH,
+            ALERT_COMMENT,
+            &path,
+            a,
+            json(json!({"comment": "  edited\r\ncomment\n"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(edited["id"], id);
+    assert_eq!(edited["alert"], json!(commented));
+    assert_eq!(edited["comment"], "edited\ncomment");
+    assert!(edited["edited_at"].is_string(), "{edited}");
+    assert_eq!(audit_count(stack).await, rows + 1);
+    // the same text again isn't an edit
+    let same = client
+        .json(
+            M::PATCH,
+            ALERT_COMMENT,
+            &path,
+            a,
+            json(json!({"comment": "edited\r\ncomment"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(same["edited_at"], edited["edited_at"]);
+    assert_eq!(audit_count(stack).await, rows + 1);
+
+    // another user can't; on another alert, or none, it's not found; and what isn't a comment or an id
+    let error = client
+        .json(
+            M::PATCH,
+            ALERT_COMMENT,
+            &path,
+            b,
+            json(json!({"comment": "mine now"})),
+            S::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(
+        error["error"],
+        "only a comment's author can change or delete it"
+    );
+    for missing in [
+        ALERT_COMMENT
+            .replace("{id}", &quiet.to_string())
+            .replace("{comment}", &id.to_string()),
+        ALERT_COMMENT
+            .replace("{id}", &commented.to_string())
+            .replace("{comment}", "999999999"),
+    ] {
+        client
+            .json(
+                M::PATCH,
+                ALERT_COMMENT,
+                &missing,
+                a,
+                json(json!({"comment": "x"})),
+                S::NOT_FOUND,
+            )
+            .await;
+    }
+    for bad in [
+        ALERT_COMMENT
+            .replace("{id}", "not-a-uuid")
+            .replace("{comment}", &id.to_string()),
+        ALERT_COMMENT
+            .replace("{id}", &commented.to_string())
+            .replace("{comment}", "x"),
+    ] {
+        client
+            .json(
+                M::PATCH,
+                ALERT_COMMENT,
+                &bad,
+                a,
+                json(json!({"comment": "x"})),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    for body in [json!({"comment": "   \n"}), json!({})] {
+        client
+            .json(
+                M::PATCH,
+                ALERT_COMMENT,
+                &path,
+                a,
+                json(body),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    let response = client
+        .call(M::PATCH, ALERT_COMMENT, &path, a, too_large())
+        .await;
+    assert_eq!(response.status(), S::PAYLOAD_TOO_LARGE);
+    assert_eq!(audit_count(stack).await, rows + 1);
+
+    // a disposition with a comment adds it, by the caller
+    let disposition = DISPOSITION.replace("{id}", &quiet.to_string());
+    client
+        .json(
+            M::PUT,
+            DISPOSITION,
+            &disposition,
+            a,
+            json(json!({"disposition": "FALSE_POSITIVE", "comment": "the vendor's mailer"})),
+            S::OK,
+        )
+        .await;
+    let read = client
+        .json(M::GET, ONE, &quiet_one, a, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        read["alert"]["comments"][0]["comment"],
+        "the vendor's mailer"
+    );
+    assert_eq!(read["alert"]["comments"][0]["author"]["id"], json!(alice));
+}
+
 /// A component that may read alerts, for a service call the API has no route for yet.
 async fn bootstrap_reader(stack: &Stack) -> Actor {
     let reader = Actor::Internal {
@@ -5900,6 +6086,7 @@ async fn every_documented_status_is_tested() {
     commands(&mut client).await;
     yara_qa(&mut client, &token, id, file, &bytes).await;
     comments(&mut client, id, &bytes).await;
+    alert_comments(&mut client).await;
     preferences(&mut client).await;
     filters_and_exports(&mut client, &token).await;
     saved_filters(&mut client).await;
@@ -6502,16 +6689,16 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
     // the queue, then what SVS and the core say of the alert (PLAN.md 7.10 batch 7b), then who owns it
     // and since when (7.17): nothing, here
     assert!(
-        lines[0].ends_with(",analysis,queue,tags,svs_status,svs_runs,owner,owned_at"),
+        lines[0].ends_with(",analysis,queue,tags,svs_status,svs_runs,owner,owned_at,comments"),
         "{csv}"
     );
     // a queue that starts a formula is guarded as a title is
     assert!(
-        lines[2].ends_with(",'=cmd|' /C calc'!A0,,,,,")
-            || lines[2].ends_with(r#","'=cmd|' /C calc'!A0",,,,,"#),
+        lines[2].ends_with(",'=cmd|' /C calc'!A0,,,,,,")
+            || lines[2].ends_with(r#","'=cmd|' /C calc'!A0",,,,,,"#),
         "{csv}"
     );
-    assert!(lines[1].ends_with(",night.shift 2,,,,,"), "{csv}");
+    assert!(lines[1].ends_with(",night.shift 2,,,,,,"), "{csv}");
     assert!(
         lines[1].contains(r#","'+plain, ""quoted""","#)
             || lines[1].contains(r#""'+plain, ""quoted""""#),
@@ -20014,7 +20201,7 @@ async fn a_key_scoped_to_the_ai_api_reaches_nothing_else() {
         );
         checked += 1;
     }
-    assert_eq!(checked, 247, "every other route was swept");
+    assert_eq!(checked, 248, "every other route was swept");
     assert_eq!(
         (audit_count(&stack).await, root_count(&stack).await),
         before,

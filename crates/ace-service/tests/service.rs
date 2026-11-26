@@ -496,7 +496,7 @@ async fn every_kind_of_actor_writes_through_the_same_function() {
         assert_eq!(row(db, root).await.by, None);
 
         let dispositioned = service
-            .disposition(&actor, root, "FALSE_POSITIVE", None)
+            .disposition(&actor, root, "FALSE_POSITIVE", None, None)
             .await
             .expect("dispositions");
 
@@ -542,12 +542,12 @@ async fn a_later_disposition_replaces_the_earlier_one_and_its_actor() {
     .await;
 
     service
-        .disposition(&component("svs:maintenance"), root, "IGNORE", None)
+        .disposition(&component("svs:maintenance"), root, "IGNORE", None, None)
         .await
         .expect("dispositions");
     let alice = user(UserId(Uuid::from_u128(1)));
     service
-        .disposition(&alice, root, "FALSE_POSITIVE", None)
+        .disposition(&alice, root, "FALSE_POSITIVE", None, None)
         .await
         .expect("dispositions again");
 
@@ -582,7 +582,7 @@ async fn an_actor_that_can_t_be_stored_leaves_the_alert_as_it_was() {
         name: "al\0ice".to_owned(),
     };
     service
-        .disposition(&actor, root, "FALSE_POSITIVE", None)
+        .disposition(&actor, root, "FALSE_POSITIVE", None, None)
         .await
         .expect_err("refused");
 
@@ -608,7 +608,7 @@ async fn a_missing_root_is_an_error() {
     )
     .await;
     let error = service(db)
-        .disposition(&component("scheduler"), missing, "IGNORE", None)
+        .disposition(&component("scheduler"), missing, "IGNORE", None, None)
         .await
         .expect_err("refused");
     assert!(
@@ -997,7 +997,7 @@ async fn an_actor_with_no_grants_is_refused_every_write() {
         );
         for missing_or_not in [root, Uuid::from_u128(9)] {
             let error = service
-                .disposition(&actor, missing_or_not, "IGNORE", None)
+                .disposition(&actor, missing_or_not, "IGNORE", None, None)
                 .await
                 .expect_err("refused");
             assert!(
@@ -1076,14 +1076,14 @@ async fn a_disposition_follows_its_actor_s_grants() {
     // a permission for something else doesn't do
     grant(db, &Holder::User(alice), "alert", "read", Effect::Allow).await;
     service
-        .disposition(&actor, root, "IGNORE", None)
+        .disposition(&actor, root, "IGNORE", None, None)
         .await
         .expect_err("refused");
 
     // a mixed-case wildcard does
     grant(db, &Holder::User(alice), "ALERT", "*", Effect::Allow).await;
     service
-        .disposition(&actor, root, "IGNORE", None)
+        .disposition(&actor, root, "IGNORE", None, None)
         .await
         .expect("dispositions");
     assert_eq!(row(db, root).await.disposition.as_deref(), Some("IGNORE"));
@@ -1091,7 +1091,7 @@ async fn a_disposition_follows_its_actor_s_grants() {
     // and a deny takes it back at the next write
     grant(db, &Holder::User(alice), "Alert", "Write", Effect::Deny).await;
     let error = service
-        .disposition(&actor, root, "FALSE_POSITIVE", None)
+        .disposition(&actor, root, "FALSE_POSITIVE", None, None)
         .await
         .expect_err("refused");
     assert!(
@@ -1324,7 +1324,7 @@ async fn a_row_the_type_can_t_read_fails_the_check() {
     .expect("breaks the rule");
 
     let error = service(db)
-        .disposition(&user(alice), alert(db).await, "IGNORE", None)
+        .disposition(&user(alice), alert(db).await, "IGNORE", None, None)
         .await
         .expect_err("refused");
     assert!(
@@ -1705,6 +1705,9 @@ async fn every_write_function_has_an_audit_test_in_turn() {
         svs_attribution_tests::association::review::review_svs_run_records_its_row(db).await,
         ai_tests::ai_record_records_its_row(db).await,
         alert_automation_tests::run_alert_automation_records_its_row(db).await,
+        alert_comment_tests::add_alert_comment_records_its_row(db).await,
+        alert_comment_tests::edit_alert_comment_records_its_row(db).await,
+        alert_comment_tests::delete_alert_comment_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3513,7 +3516,7 @@ async fn disposition_records_its_row(db: &Db) -> String {
     .await;
 
     service
-        .disposition(&alice, root, "FALSE_POSITIVE", None)
+        .disposition(&alice, root, "FALSE_POSITIVE", None, None)
         .await
         .expect("dispositions");
     let first = last_audit(db).await;
@@ -3561,7 +3564,7 @@ async fn disposition_records_its_row(db: &Db) -> String {
 
     // a later disposition says what it replaced, even when the disposition is the same
     service
-        .disposition(&scheduler, root, "FALSE_POSITIVE", None)
+        .disposition(&scheduler, root, "FALSE_POSITIVE", None, None)
         .await
         .expect("dispositions again");
     let second = last_audit(db).await;
@@ -3837,6 +3840,7 @@ async fn every_write_fails_when_its_audit_fails_in_turn() {
     let lists_before = list_rows(db).await;
     let commands_before = command_rows(db).await;
     let ai = ai_tests::before_the_audit_breaks(db).await;
+    let alert_comment = alert_comment_tests::before_the_audit_breaks(&service, &actor, root).await;
     let before = (
         row(db, root).await,
         tasks(db, root).await,
@@ -3865,8 +3869,9 @@ async fn every_write_fails_when_its_audit_fails_in_turn() {
     let attempts = [
         (
             "disposition",
+            // with a comment, which fails with it (PLAN.md 5.15)
             service
-                .disposition(&actor, root, "IGNORE", None)
+                .disposition(&actor, root, "IGNORE", None, Some("after"))
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -4799,6 +4804,10 @@ async fn every_write_fails_when_its_audit_fails_in_turn() {
     );
     attempts.extend(ai_tests::attempts_with_the_audit_broken(&ai).await);
     attempts.extend(alert_automation_tests::attempts_with_the_audit_broken(&automation).await);
+    attempts.extend(
+        alert_comment_tests::attempts_with_the_audit_broken(&service, &actor, root, alert_comment)
+            .await,
+    );
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
         assert!(error.to_string().contains("broken"), "{function}: {error}");
@@ -4914,7 +4923,7 @@ async fn only_a_change_that_committed_has_a_row() {
     let every = pattern("*", "*");
 
     service
-        .disposition(&outsider, root, "IGNORE", None)
+        .disposition(&outsider, root, "IGNORE", None, None)
         .await
         .expect_err("refused");
     service
@@ -4926,7 +4935,7 @@ async fn only_a_change_that_committed_has_a_row() {
         .await
         .expect_err("refused");
     service
-        .disposition(&actor, Uuid::from_u128(9), "IGNORE", None)
+        .disposition(&actor, Uuid::from_u128(9), "IGNORE", None, None)
         .await
         .expect_err("no such root");
     assert!(
@@ -4972,7 +4981,7 @@ async fn concurrent_dispositions_each_record_what_they_replaced() {
         let (service, actor) = (service.clone(), actor.clone());
         tokio::spawn(async move {
             service
-                .disposition(&actor, root, disposition, None)
+                .disposition(&actor, root, disposition, None, None)
                 .await
                 .expect("dispositions");
         })
@@ -5058,7 +5067,7 @@ async fn a_row_outlives_what_it_describes() {
         .expect("creates");
     tx.commit().await.expect("commits");
     service
-        .disposition(&actor, new_root.id, "IGNORE", None)
+        .disposition(&actor, new_root.id, "IGNORE", None, None)
         .await
         .expect("dispositions");
     let group = group_of(db, Uuid::from_u128(7), UserId(Uuid::from_u128(8))).await;
@@ -5105,7 +5114,7 @@ async fn untrusted_text_is_data_and_no_credential_reaches_a_row() {
     tx.commit().await.expect("commits");
 
     service(db)
-        .disposition(&actor, new_root.id, "IGNORE", None)
+        .disposition(&actor, new_root.id, "IGNORE", None, None)
         .await
         .expect("dispositions");
 
@@ -5149,7 +5158,7 @@ async fn one_query_finds_what_an_identity_did() {
     ] {
         let root = alert(db).await;
         service
-            .disposition(&actor, root, "IGNORE", None)
+            .disposition(&actor, root, "IGNORE", None, None)
             .await
             .expect("dispositions");
     }
@@ -5281,7 +5290,7 @@ async fn a_session_and_an_api_key_reach_the_service_layer_as_their_actors() {
     for actor in [&from_session, &from_owned, &from_unowned] {
         assert!(
             matches!(
-                service.disposition(actor, root, "IGNORE", None).await,
+                service.disposition(actor, root, "IGNORE", None, None).await,
                 Err(ServiceError::PermissionDenied { .. })
             ),
             "{actor}"
@@ -5291,7 +5300,7 @@ async fn a_session_and_an_api_key_reach_the_service_layer_as_their_actors() {
     // Alice's grant reaches her session and not yet her key, which needs its own as well.
     grant(db, &Holder::User(alice), "alert", "write", Effect::Allow).await;
     service
-        .disposition(&from_session, root, "FALSE_POSITIVE", None)
+        .disposition(&from_session, root, "FALSE_POSITIVE", None, None)
         .await
         .expect("a session dispositions");
     let by_session = last_audit(db).await;
@@ -5301,13 +5310,15 @@ async fn a_session_and_an_api_key_reach_the_service_layer_as_their_actors() {
         json!({"kind": "user", "id": alice.0, "name": "alice"})
     );
     assert!(matches!(
-        service.disposition(&from_owned, root, "IGNORE", None).await,
+        service
+            .disposition(&from_owned, root, "IGNORE", None, None)
+            .await,
         Err(ServiceError::PermissionDenied { .. })
     ));
 
     grant(db, &Holder::ApiKey(owned.id), "alert", "*", Effect::Allow).await;
     service
-        .disposition(&from_owned, root, "IGNORE", None)
+        .disposition(&from_owned, root, "IGNORE", None, None)
         .await
         .expect("a key dispositions");
     let by_key = last_audit(db).await;
@@ -5335,7 +5346,9 @@ async fn a_session_and_an_api_key_reach_the_service_layer_as_their_actors() {
         .await
         .expect("still authenticates");
     assert!(matches!(
-        service.disposition(&still, root, "IGNORE", None).await,
+        service
+            .disposition(&still, root, "IGNORE", None, None)
+            .await,
         Err(ServiceError::PermissionDenied { .. })
     ));
 }
@@ -6297,7 +6310,7 @@ async fn deleting_a_user_removes_what_they_could_do_and_not_what_they_did() {
     }
     let root = alert(db).await;
     service
-        .disposition(&session.actor, root, "IGNORE", None)
+        .disposition(&session.actor, root, "IGNORE", None, None)
         .await
         .expect("dispositions");
     // Alice grants something to Bob, so a row of someone else's names her as its maker.
@@ -8114,7 +8127,9 @@ fn the_catalog_lists_every_permission_checked() {
 /// Every comment row, whole.
 async fn comment_rows(db: &Db) -> Vec<String> {
     sqlx::query_scalar(
-        "SELECT row_to_json(c)::text FROM analysis.observable_comments c ORDER BY id",
+        "SELECT * FROM (SELECT row_to_json(c)::text FROM analysis.observable_comments c ORDER BY id) o
+         UNION ALL
+         SELECT * FROM (SELECT row_to_json(c)::text FROM analysis.alert_comments c ORDER BY id) a",
     )
     .fetch_all(db.pool())
     .await
@@ -11216,7 +11231,7 @@ async fn events_are_read_as_ace3_serves_them() {
         .await
         .expect("alerts");
     service
-        .disposition(&boss, first, "DELIVERY", None)
+        .disposition(&boss, first, "DELIVERY", None, None)
         .await
         .expect("dispositions");
     sqlx::query("UPDATE analysis.observables SET tags = '{zeta, Alpha}' WHERE root_id = $1")
@@ -12052,11 +12067,11 @@ async fn the_event_list_filters_sorts_and_pages_as_ace3_does() {
         .await
         .expect("runs");
     service
-        .disposition(&boss, damage, "DAMAGE", None)
+        .disposition(&boss, damage, "DAMAGE", None, None)
         .await
         .expect("dispositions");
     service
-        .disposition(&boss, false_positive, "FALSE_POSITIVE", None)
+        .disposition(&boss, false_positive, "FALSE_POSITIVE", None, None)
         .await
         .expect("dispositions");
     // a disposition can start a pass, so the two dispositioned ones are made idle after
@@ -13950,6 +13965,7 @@ fn graph_tree(
                 svs: None,
                 owner: None,
                 owned_at: None,
+                comments: None,
             },
             observables: i64::try_from(observables.len()).expect("a count"),
             files: 0,
@@ -17925,7 +17941,7 @@ async fn the_disposition_write_takes_the_sites_set() {
     .await;
     let root = alert(db).await;
     service
-        .disposition(&analyst, root, "SITE_OWN", None)
+        .disposition(&analyst, root, "SITE_OWN", None, None)
         .await
         .expect("the site's own");
     assert_eq!(row(db, root).await.disposition.as_deref(), Some("SITE_OWN"));
@@ -17937,24 +17953,29 @@ async fn the_disposition_write_takes_the_sites_set() {
         ("SIMULATED", "only ACE sets the disposition SIMULATED"),
         ("SITE_SWEEP", "only ACE sets the disposition SITE_SWEEP"),
     ] {
-        match service.disposition(&analyst, root, disposition, None).await {
+        match service
+            .disposition(&analyst, root, disposition, None, None)
+            .await
+        {
             Err(ServiceError::InvalidRequest(why)) => assert!(why.starts_with(said), "{why}"),
             other => panic!("{disposition}: {other:?}"),
         }
     }
     // ace3's default isn't taken from ACE either when the site doesn't have it
     assert!(matches!(
-        service.disposition(&ace, root, "MALICIOUS", None).await,
+        service
+            .disposition(&ace, root, "MALICIOUS", None, None)
+            .await,
         Err(ServiceError::InvalidRequest(_))
     ));
     assert_eq!(row(db, root).await.disposition.as_deref(), Some("SITE_OWN"));
     // ACE sets one only it sets, and then an analyst can't change the alert, but ACE can
     service
-        .disposition(&ace, root, "SITE_SWEEP", None)
+        .disposition(&ace, root, "SITE_SWEEP", None, None)
         .await
         .expect("ACE sets it");
     match service
-        .disposition(&analyst, root, "FALSE_POSITIVE", None)
+        .disposition(&analyst, root, "FALSE_POSITIVE", None, None)
         .await
     {
         Err(ServiceError::Conflict(why)) => assert!(why.contains("SITE_SWEEP"), "{why}"),
@@ -17965,11 +17986,11 @@ async fn the_disposition_write_takes_the_sites_set() {
         Some("SITE_SWEEP")
     );
     service
-        .disposition(&ace, root, "IGNORE", None)
+        .disposition(&ace, root, "IGNORE", None, None)
         .await
         .expect("ACE changes it");
     service
-        .disposition(&analyst, root, "FALSE_POSITIVE", None)
+        .disposition(&analyst, root, "FALSE_POSITIVE", None, None)
         .await
         .expect("an analyst can again");
     // a disposition the site has stopped configuring stays on its alert, and an analyst can replace it
@@ -17979,7 +18000,7 @@ async fn the_disposition_write_takes_the_sites_set() {
         .await
         .expect("an old value");
     service
-        .disposition(&analyst, root, "DELIVERY", None)
+        .disposition(&analyst, root, "DELIVERY", None, None)
         .await
         .expect("replaces it");
 }
@@ -17999,7 +18020,7 @@ async fn an_override_survives_an_fp_round_trip() {
         ("DELIVERY", VerdictSource::Explicit),
     ] {
         service
-            .disposition(&actor, root, disposition, None)
+            .disposition(&actor, root, disposition, None, None)
             .await
             .expect("dispositions");
         let first = verdict_rows(&service, &actor, root).await.remove(0);
@@ -18615,7 +18636,7 @@ async fn verdict_filters_match_what_they_say() {
     );
     let since = Utc::now();
     service
-        .disposition(&actor, open, "DELIVERY", None)
+        .disposition(&actor, open, "DELIVERY", None, None)
         .await
         .expect("dispositions");
     assert_eq!(listed(Vec::new(), Some(since)).await, set(&open_ids));
@@ -26256,7 +26277,7 @@ mod routing_tests {
         .await;
         for disposition in ["FALSE_POSITIVE", "OPEN"] {
             service
-                .disposition(&component("svs"), root, disposition, None)
+                .disposition(&component("svs"), root, disposition, None, None)
                 .await
                 .expect("dispositions");
         }
@@ -26327,7 +26348,7 @@ mod routing_tests {
         // SIMULATED is ACE's own, and only a component can give the alert back
         for disposition in ["SIMULATED", "OPEN"] {
             service
-                .disposition(&component("svs"), root, disposition, None)
+                .disposition(&component("svs"), root, disposition, None, None)
                 .await
                 .expect("dispositions");
         }
@@ -26400,7 +26421,7 @@ mod routing_tests {
         complete_pass(db, root).await;
         route_all(&service).await;
         service
-            .disposition(&admin(db).await, root, "FALSE_POSITIVE", None)
+            .disposition(&admin(db).await, root, "FALSE_POSITIVE", None, None)
             .await
             .expect("dispositions");
         if due(db).await.is_empty() {
@@ -43854,7 +43875,7 @@ mod svs_attribution_tests {
 
             let root = alert(&a, db, "srv-01", None).await;
             a.service
-                .disposition(&a.f.admin, root, "FALSE_POSITIVE", None)
+                .disposition(&a.f.admin, root, "FALSE_POSITIVE", None, None)
                 .await
                 .expect("dispositions");
             let result = associate(&a, &a.f.admin, run.uuid, root).await;
@@ -44055,7 +44076,9 @@ mod svs_attribution_tests {
             assert_eq!(disposition_of(db, root).await.as_deref(), Some("SIMULATED"));
             // an analyst can't reopen it themselves
             assert!(matches!(
-                a.service.disposition(&a.f.admin, root, "OPEN", None).await,
+                a.service
+                    .disposition(&a.f.admin, root, "OPEN", None, None)
+                    .await,
                 Err(ServiceError::Conflict(_))
             ));
 
@@ -44514,7 +44537,7 @@ mod svs_attribution_tests {
             // an analyst can't change a frozen alert
             assert!(matches!(
                 a.service
-                    .disposition(&a.f.admin, by_marker, "FALSE_POSITIVE", None)
+                    .disposition(&a.f.admin, by_marker, "FALSE_POSITIVE", None, None)
                     .await,
                 Err(ServiceError::Conflict(_))
             ));
@@ -44537,7 +44560,7 @@ mod svs_attribution_tests {
                 .expect("bob takes it");
             let dispositioned = alert(&a, db, "win10-01", Some(&run.marker)).await;
             a.service
-                .disposition(&a.f.admin, dispositioned, "FALSE_POSITIVE", None)
+                .disposition(&a.f.admin, dispositioned, "FALSE_POSITIVE", None, None)
                 .await
                 .expect("dispositions");
             let plain = alert(&a, db, "win10-01", Some(&run.marker)).await;
@@ -47621,7 +47644,7 @@ mod ownership_tests {
         let audits = audit_rows(db).await.len();
 
         let refused = service
-            .disposition(&other.0, owned, "FALSE_POSITIVE", None)
+            .disposition(&other.0, owned, "FALSE_POSITIVE", None, None)
             .await
             .expect_err("left alone");
         assert!(
@@ -47640,7 +47663,7 @@ mod ownership_tests {
         assert_eq!(audit_rows(db).await.len(), audits, "nothing was recorded");
 
         service
-            .disposition(&other.0, unowned, "FALSE_POSITIVE", None)
+            .disposition(&other.0, unowned, "FALSE_POSITIVE", None, None)
             .await
             .expect("dispositions");
         assert_eq!(
@@ -47659,7 +47682,7 @@ mod ownership_tests {
                 .await
                 .expect("reads");
         service
-            .disposition(&other.0, unowned, "IGNORE", None)
+            .disposition(&other.0, unowned, "IGNORE", None, None)
             .await
             .expect("dispositions again");
         let still: chrono::DateTime<Utc> =
@@ -47687,7 +47710,7 @@ mod ownership_tests {
 
         // agreed to take it from someone who no longer has it: left alone
         let stale = service
-            .disposition(&other.0, alert, "FALSE_POSITIVE", Some(other.1))
+            .disposition(&other.0, alert, "FALSE_POSITIVE", Some(other.1), None)
             .await
             .expect_err("left alone");
         assert!(
@@ -47696,7 +47719,7 @@ mod ownership_tests {
         );
 
         service
-            .disposition(&other.0, alert, "FALSE_POSITIVE", Some(owner.1))
+            .disposition(&other.0, alert, "FALSE_POSITIVE", Some(owner.1), None)
             .await
             .expect("takes it");
         let stored = row(db, alert).await;
@@ -47731,7 +47754,7 @@ mod ownership_tests {
         disable(db, owner.1).await;
 
         service
-            .disposition(&other.0, alert, "FALSE_POSITIVE", None)
+            .disposition(&other.0, alert, "FALSE_POSITIVE", None, None)
             .await
             .expect("takes it");
         assert_eq!(
@@ -47755,12 +47778,12 @@ mod ownership_tests {
         } = two_analysts(db).await;
         let alert = new_alert(db, "worked").await;
         service
-            .disposition(&owner.0, alert, "FALSE_POSITIVE", None)
+            .disposition(&owner.0, alert, "FALSE_POSITIVE", None, None)
             .await
             .expect("dispositions");
 
         let refused = service
-            .disposition(&other.0, alert, "IGNORE", None)
+            .disposition(&other.0, alert, "IGNORE", None, None)
             .await
             .expect_err("left alone");
         assert!(
@@ -47798,7 +47821,7 @@ mod ownership_tests {
         owned_by(db, alert, owner.1).await;
 
         let refused = service
-            .disposition(&other.0, alert, "FALSE_POSITIVE", Some(owner.1))
+            .disposition(&other.0, alert, "FALSE_POSITIVE", Some(owner.1), None)
             .await
             .expect_err("frozen");
         assert!(matches!(refused, ServiceError::Conflict(_)), "{refused}");
@@ -47834,12 +47857,12 @@ mod ownership_tests {
         }
         let alert = new_alert(db, "by a key").await;
         service
-            .disposition(&their_key, alert, "FALSE_POSITIVE", None)
+            .disposition(&their_key, alert, "FALSE_POSITIVE", None, None)
             .await
             .expect("dispositions");
         assert_eq!(owner_of(db, alert).await.0, Some(other.1.0));
         service
-            .disposition(&other.0, alert, "IGNORE", None)
+            .disposition(&other.0, alert, "IGNORE", None, None)
             .await
             .expect("their own");
 
@@ -47847,14 +47870,14 @@ mod ownership_tests {
         // take it confirmed leaves the alert with nobody
         let free = new_alert(db, "nobody's").await;
         service
-            .disposition(&lone_key, free, "FALSE_POSITIVE", None)
+            .disposition(&lone_key, free, "FALSE_POSITIVE", None, None)
             .await
             .expect("dispositions");
         assert_eq!(owner_of(db, free).await, (None, false));
         let owned = new_alert(db, "owned").await;
         owned_by(db, owned, owner.1).await;
         let refused = service
-            .disposition(&lone_key, owned, "FALSE_POSITIVE", None)
+            .disposition(&lone_key, owned, "FALSE_POSITIVE", None, None)
             .await
             .expect_err("left alone");
         assert!(
@@ -47862,7 +47885,7 @@ mod ownership_tests {
             "{refused}"
         );
         service
-            .disposition(&lone_key, owned, "FALSE_POSITIVE", Some(owner.1))
+            .disposition(&lone_key, owned, "FALSE_POSITIVE", Some(owner.1), None)
             .await
             .expect("confirmed");
         assert_eq!(owner_of(db, owned).await, (None, false));
@@ -47874,7 +47897,7 @@ mod ownership_tests {
         let component = Actor::Internal { id: closer };
         for alert in [theirs, unowned] {
             service
-                .disposition(&component, alert, "IGNORE", None)
+                .disposition(&component, alert, "IGNORE", None, None)
                 .await
                 .expect("ACE's own");
         }
@@ -51851,7 +51874,7 @@ mod directive_tests {
             Some("queued")
         );
         service
-            .disposition(&actor, root, "FALSE_POSITIVE", None)
+            .disposition(&actor, root, "FALSE_POSITIVE", None, None)
             .await
             .expect("dispositions");
         assert_eq!(mode_of(db, root).await, "dispositioned");
@@ -55942,5 +55965,699 @@ mod commonalities_tests {
             turned.reverse();
             assert_eq!(grouped(turned), first, "rows turned by {turn}");
         }
+    }
+}
+
+mod alert_comment_tests {
+    //! Alert comments (PLAN.md 5.15). ace3 `c55f15a2`'s cases, and where each is here:
+    //!
+    //! - `tests/app/analysis/views/edit/test_comment.py` (13): `test_add_comment_success`,
+    //!   `test_add_comment_multiple_uuids` and `test_add_comment_normalizes_line_breaks` are
+    //!   `add_alert_comment_records_its_row` and `a_comment_goes_on_each_alert_named`;
+    //!   `test_add_comment_empty_comment` is `a_comment_the_service_wont_take_changes_nothing`;
+    //!   `test_delete_comment_success`, `test_delete_comment_nonexistent_comment` and
+    //!   `test_delete_comment_wrong_user` are `delete_alert_comment_records_its_row` and
+    //!   `only_its_author_edits_or_deletes_a_comment`; the form's cases
+    //!   (`test_add_comment_missing_form_fields`, `test_add_comment_invalid_redirect`,
+    //!   `test_add_comment_manage_redirect`, `test_delete_comment_missing_comment_id`) are `ace-gui`'s
+    //!   `alert_comments_are_added_edited_and_deleted_from_the_alert_page` and
+    //!   `the_lists_bulk_add_comment_comments_on_the_ticked_alerts`;
+    //!   `test_comment_add_and_delete_rotate_alert_version` has none, since an ace-rs alert has no version
+    //!   (`ace_service`'s `alert_comments` docs), and is `a_comment_change_asks_for_its_alerts_search_documents_again`
+    //!   for what the version is for: the change reaching what reads the alert.
+    //! - `tests/aceapi_v2/alerts/test_router.py`'s `TestUpdateAlertComment` (10): `test_update_comment`,
+    //!   `test_unchanged_comment_is_not_a_change`, `test_line_endings_alone_are_not_a_change`,
+    //!   `test_edit_is_stored_with_lf_line_breaks`, `test_author_only`, `test_comment_on_another_alert`
+    //!   and `test_unknown_comment` are `edit_alert_comment_records_its_row` and
+    //!   `only_its_author_edits_or_deletes_a_comment`; `test_requires_auth`, `test_requires_alert_write`,
+    //!   `test_invalid_uuid` and `test_empty_comment_rejected` are `ace-api`'s
+    //!   `an_alerts_comment_is_edited_by_its_author`. `test_download_includes_comments` has none: ace-rs
+    //!   has no download of a whole alert.
+    //! - `tests/aceapi_v2/alerts/test_list.py`'s `test_comments_oldest_first` is
+    //!   `an_alerts_reads_carry_its_comments_oldest_first`, and `test_csv_puts_each_comment_on_its_own_line`
+    //!   `ace-api`'s `an_alerts_comment_is_edited_by_its_author`.
+    //! - `tests/aceapi_ai/test_export.py`'s `test_alert_comments_are_not_exported` is
+    //!   `the_ai_apis_reads_carry_no_comments`.
+    //! - `tests/saq/database/util/test_alert.py`'s `test_set_dispositions_normalizes_comment`, and
+    //!   `tests/app/analysis/views/edit/test_disposition.py`'s `test_set_disposition_empty_comment_stripped`
+    //!   and `test_set_disposition_special_characters_in_comment`, are
+    //!   `a_disposition_with_a_comment_adds_it_to_the_alert`; the review's comment
+    //!   (`test_set_disposition_reviews_normalizes_comment` and the bulk review's) has no counterpart, since
+    //!   no step ports Review Disposition (PLAN.md 5.10).
+    //! - `tests/app/analysis/views/test_index.py`'s `test_index_marks_edited_comments`,
+    //!   `tests/app/events/test_index.py`'s `test_event_page_shows_alerts_and_comments_without_loading_them`
+    //!   and `test_manage.py`'s `test_manage_event_details_shows_alert_comments`, and
+    //!   `tests/app/events/test_bulk.py`'s `test_bulk_add_comment_success`,
+    //!   `test_bulk_add_comment_normalizes_line_breaks` and `test_bulk_add_comment_empty_rejected`, are
+    //!   `ace-gui`'s, with `alert_comments` here for the event page's read.
+    //! - `tests/saq/search/test_documents.py`'s `test_comment_documents_skip_empty` is `ace-search`'s
+    //!   documents test, which now reads the comments from their table.
+    use super::*;
+    use ace_service::{AlertComment, MAX_COMMENTED_ALERTS, MAX_SHOWN_COMMENTS};
+
+    /// A user with `alert:write`, as the actor `user` makes them.
+    async fn writer(db: &Db, id: u128) -> Actor {
+        let id = UserId(Uuid::from_u128(id));
+        grant(db, &Holder::User(id), "alert", "write", Effect::Allow).await;
+        grant(db, &Holder::User(id), "alert", "read", Effect::Allow).await;
+        user(id)
+    }
+
+    /// The comments the alert's own read gives.
+    async fn comments_on(db: &Db, root: Uuid) -> Vec<AlertComment> {
+        service(db)
+            .alert(&admin(db).await, root)
+            .await
+            .expect("reads")
+            .summary
+            .comments
+            .expect("read")
+    }
+
+    pub(super) async fn add_alert_comment_records_its_row(db: &Db) -> String {
+        let actor = admin(db).await;
+        let first = an_alert(db).await;
+        let second = an_alert(db).await;
+        let added = service(db)
+            .add_alert_comment(&actor, &[first, second], "  <b>phish</b>\r\nreported\r\n")
+            .await
+            .expect("comments");
+        assert!(added.not_alerts.is_empty());
+        let ids: Vec<i64> = added.added.iter().map(|(_, id)| *id).collect();
+        assert_eq!(
+            added
+                .added
+                .iter()
+                .map(|(root, _)| *root)
+                .collect::<Vec<_>>(),
+            [first, second]
+        );
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "add_alert_comment".to_owned(),
+                target: (
+                    "alert_comments".to_owned(),
+                    format!("{},{}", ids[0], ids[1])
+                ),
+                before: None,
+                after: Some(json!({
+                    "alerts": [first, second],
+                    "author": Uuid::from_u128(0xAD),
+                    // stored with its line breaks normalized, and otherwise as it was sent
+                    "comment": "<b>phish</b>\nreported",
+                })),
+                details: json!({}),
+            }
+        );
+
+        // one that's no alert is left out and said
+        let not_alert = alert(db).await;
+        let added = service(db)
+            .add_alert_comment(&actor, &[first, not_alert], "again")
+            .await
+            .expect("comments");
+        assert_eq!(added.not_alerts, [not_alert]);
+        let row = last_audit(db).await;
+        assert_eq!(row.details, json!({"not_alerts": [not_alert]}));
+        row.action
+    }
+
+    pub(super) async fn edit_alert_comment_records_its_row(db: &Db) -> String {
+        let actor = admin(db).await;
+        let root = an_alert(db).await;
+        let added = service(db)
+            .add_alert_comment(&actor, &[root], "first\r\nthought")
+            .await
+            .expect("comments");
+        let id = added.added[0].1;
+        let before = comments_on(db, root).await.remove(0);
+        assert_eq!(before.edited_at, None);
+        let edited = service(db)
+            .edit_alert_comment(&actor, root, id, "  second\r\nthought\n")
+            .await
+            .expect("edits");
+        assert_eq!(edited.comment, "second\nthought");
+        // the edit is timed, and the comment keeps the time it was made
+        assert!(edited.edited_at.is_some_and(|at| at >= before.created_at));
+        assert_eq!(edited.created_at, before.created_at);
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "edit_alert_comment".to_owned(),
+                target: ("alert_comment".to_owned(), id.to_string()),
+                before: Some(json!({"comment": "first\nthought"})),
+                after: Some(json!({"comment": "second\nthought"})),
+                details: json!({"alert": root, "author": Uuid::from_u128(0xAD)}),
+            }
+        );
+        row.action
+    }
+
+    pub(super) async fn delete_alert_comment_records_its_row(db: &Db) -> String {
+        let actor = admin(db).await;
+        let root = an_alert(db).await;
+        let added = service(db)
+            .add_alert_comment(&actor, &[root], "to go")
+            .await
+            .expect("comments");
+        let id = added.added[0].1;
+        let made = comments_on(db, root).await.remove(0);
+        service(db)
+            .delete_alert_comment(&actor, root, id)
+            .await
+            .expect("deletes");
+        assert!(comments_on(db, root).await.is_empty());
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "delete_alert_comment".to_owned(),
+                target: ("alert_comment".to_owned(), id.to_string()),
+                before: Some(json!({
+                    "alert": root,
+                    "author": Uuid::from_u128(0xAD),
+                    "comment": "to go",
+                    "created_by": boss_json(),
+                    "created_at": made.created_at,
+                    "edited_at": null,
+                })),
+                after: None,
+                details: json!({}),
+            }
+        );
+        row.action
+    }
+
+    /// A comment on `root` for the audit's failure to leave alone.
+    pub(super) async fn before_the_audit_breaks(
+        service: &Service,
+        actor: &Actor,
+        root: Uuid,
+    ) -> i64 {
+        service
+            .add_alert_comment(actor, &[root], "before")
+            .await
+            .expect("comments")
+            .added[0]
+            .1
+    }
+
+    /// Each write here with the audit broken, which `every_write_fails_when_its_audit_fails` checks
+    /// failed and left the comments as they were. A disposition's comment fails with its disposition, there.
+    pub(super) async fn attempts_with_the_audit_broken(
+        service: &Service,
+        actor: &Actor,
+        root: Uuid,
+        comment: i64,
+    ) -> Vec<(&'static str, ServiceError)> {
+        vec![
+            (
+                "add_alert_comment",
+                service
+                    .add_alert_comment(actor, &[root], "after")
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+            ),
+            (
+                "edit_alert_comment",
+                service
+                    .edit_alert_comment(actor, root, comment, "after")
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+            ),
+            (
+                "delete_alert_comment",
+                service
+                    .delete_alert_comment(actor, root, comment)
+                    .await
+                    .expect_err("refused"),
+            ),
+        ]
+    }
+
+    /// ace3's `test_add_comment_multiple_uuids`: one comment, a row on each alert, each alert's in order;
+    /// an id named twice gets one.
+    #[tokio::test]
+    async fn a_comment_goes_on_each_alert_named() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let alice = writer(db, 0xA11CE).await;
+        let alerts = [an_alert(db).await, an_alert(db).await, an_alert(db).await];
+        let added = service(db)
+            .add_alert_comment(
+                &alice,
+                &[alerts[0], alerts[1], alerts[2], alerts[0]],
+                "Multi",
+            )
+            .await
+            .expect("comments");
+        assert_eq!(added.added.len(), 3);
+        for root in alerts {
+            let comments = comments_on(db, root).await;
+            assert_eq!(comments.len(), 1, "{root}");
+            assert_eq!(comments[0].comment, "Multi");
+            assert_eq!(
+                comments[0].author_name(),
+                format!("u{}", Uuid::from_u128(0xA11CE).simple())
+            );
+            assert!(comments[0].is_by(&alice));
+        }
+        // the key of a user writes as that user, as ace3 records a key's user
+        let key_id = ApiKeyId(Uuid::from_u128(0x4E1));
+        exists(db, &Holder::ApiKey(key_id)).await;
+        for permission in ["write", "read"] {
+            grant(
+                db,
+                &Holder::ApiKey(key_id),
+                "alert",
+                permission,
+                Effect::Allow,
+            )
+            .await;
+        }
+        let as_key = key(key_id, Some(UserId(Uuid::from_u128(0xA11CE))));
+        service(db)
+            .add_alert_comment(&as_key, &[alerts[0]], "from a script")
+            .await
+            .expect("comments");
+        let comments = comments_on(db, alerts[0]).await;
+        assert_eq!(
+            comments[1].author.as_ref().map(|a| a.id),
+            Some(UserId(Uuid::from_u128(0xA11CE)))
+        );
+        assert_eq!(comments[1].created_by.kind, "api_key");
+        assert!(comments[1].is_by(&alice) && comments[1].is_by(&as_key));
+    }
+
+    /// ace3's `test_add_comment_empty_comment`, and what ace3 takes that this doesn't: a refusal, an empty
+    /// or oversized comment, none or too many alerts, no alert at all, and a writer that isn't a person
+    /// change nothing and have no row.
+    #[tokio::test]
+    async fn a_comment_the_service_wont_take_changes_nothing() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let root = an_alert(db).await;
+        let actor = admin(db).await;
+        let reader = UserId(Uuid::from_u128(0xC0));
+        grant(db, &Holder::User(reader), "alert", "read", Effect::Allow).await;
+        let rows = audit_rows(db).await.len();
+        assert!(matches!(
+            service(db).add_alert_comment(&user(reader), &[root], "x").await,
+            Err(ServiceError::PermissionDenied { ref permission, .. })
+                if permission.to_string() == "alert:write"
+        ));
+        for bad in ["", "   ", " \r\n\t", "nul\0"] {
+            assert!(
+                matches!(
+                    service(db).add_alert_comment(&actor, &[root], bad).await,
+                    Err(ServiceError::InvalidRequest(_))
+                ),
+                "{bad:?}"
+            );
+        }
+        let long = "x".repeat(ace_service::MAX_COMMENT_CHARS + 1);
+        assert!(matches!(
+            service(db).add_alert_comment(&actor, &[root], &long).await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+        assert!(matches!(
+            service(db).add_alert_comment(&actor, &[], "x").await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+        let many: Vec<Uuid> = (0..=MAX_COMMENTED_ALERTS as u128)
+            .map(Uuid::from_u128)
+            .collect();
+        assert!(matches!(
+            service(db).add_alert_comment(&actor, &many, "x").await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+        let not_alert = alert(db).await;
+        assert!(matches!(
+            service(db)
+                .add_alert_comment(&actor, &[not_alert], "x")
+                .await,
+            Err(ServiceError::NotFound(_))
+        ));
+        assert!(matches!(
+            service(db)
+                .add_alert_comment(&actor, &[not_alert, Uuid::from_u128(9)], "x")
+                .await,
+            Err(ServiceError::NotFound(_))
+        ));
+        // a key nobody owns, and one of ACE's components, have no person to be the author
+        let key_id = ApiKeyId(Uuid::from_u128(0x4E2));
+        exists(db, &Holder::ApiKey(key_id)).await;
+        grant(db, &Holder::ApiKey(key_id), "alert", "write", Effect::Allow).await;
+        let scheduler = Holder::Component(Component::new("scheduler").expect("valid"));
+        grant(db, &scheduler, "alert", "write", Effect::Allow).await;
+        let rows_before = audit_rows(db).await.len();
+        for nobody in [key(key_id, None), component("scheduler")] {
+            assert!(
+                matches!(
+                    service(db).add_alert_comment(&nobody, &[root], "x").await,
+                    Err(ServiceError::Forbidden(_))
+                ),
+                "{nobody}"
+            );
+        }
+        assert_eq!(audit_rows(db).await.len(), rows_before);
+        assert!(comments_on(db, root).await.is_empty());
+        // the grants above are the only rows
+        assert_eq!(rows_before - rows, 2);
+    }
+
+    /// ace3's `test_author_only`, `test_delete_comment_wrong_user`, `test_comment_on_another_alert`,
+    /// `test_unknown_comment`, `test_unchanged_comment_is_not_a_change`,
+    /// `test_line_endings_alone_are_not_a_change` and `test_edit_is_stored_with_lf_line_breaks`.
+    #[tokio::test]
+    async fn only_its_author_edits_or_deletes_a_comment() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let alice = writer(db, 0xA11CE).await;
+        let bob = writer(db, 0xB0B).await;
+        let admin = admin(db).await;
+        let root = an_alert(db).await;
+        let other = an_alert(db).await;
+        let id = service(db)
+            .add_alert_comment(&alice, &[root], "first line\r\nsecond line")
+            .await
+            .expect("comments")
+            .added[0]
+            .1;
+        let rows = audit_rows(db).await.len();
+        for not_hers in [&bob, &admin] {
+            assert!(matches!(
+                service(db)
+                    .edit_alert_comment(not_hers, root, id, "mine now")
+                    .await,
+                Err(ServiceError::Forbidden(_))
+            ));
+            assert!(matches!(
+                service(db).delete_alert_comment(not_hers, root, id).await,
+                Err(ServiceError::Forbidden(_))
+            ));
+        }
+        // on another alert, and no such comment
+        assert!(matches!(
+            service(db)
+                .edit_alert_comment(&alice, other, id, "edited")
+                .await,
+            Err(ServiceError::NotFound(_))
+        ));
+        assert!(matches!(
+            service(db).delete_alert_comment(&alice, other, id).await,
+            Err(ServiceError::NotFound(_))
+        ));
+        assert!(matches!(
+            service(db)
+                .edit_alert_comment(&alice, root, 999_999, "edited")
+                .await,
+            Err(ServiceError::NotFound(_))
+        ));
+        // an edit that differs only by its line breaks and ends isn't one
+        for sent in ["first line\r\nsecond line", " first line\nsecond line\r\n"] {
+            let same = service(db)
+                .edit_alert_comment(&alice, root, id, sent)
+                .await
+                .expect("changes nothing");
+            assert_eq!(same.edited_at, None, "{sent:?}");
+        }
+        assert!(matches!(
+            service(db)
+                .edit_alert_comment(&alice, root, id, " \n")
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+        assert_eq!(audit_rows(db).await.len(), rows);
+        let comments = comments_on(db, root).await;
+        assert_eq!(comments[0].comment, "first line\nsecond line");
+        assert_eq!(comments[0].edited_at, None);
+        assert!(comments_on(db, other).await.is_empty());
+        // its author edits it with LF line breaks, and deletes it
+        let edited = service(db)
+            .edit_alert_comment(&alice, root, id, "first\r\nsecond")
+            .await
+            .expect("edits");
+        assert_eq!(edited.comment, "first\nsecond");
+        service(db)
+            .delete_alert_comment(&alice, root, id)
+            .await
+            .expect("deletes");
+        assert!(matches!(
+            service(db).delete_alert_comment(&alice, root, id).await,
+            Err(ServiceError::NotFound(_))
+        ));
+    }
+
+    /// ace3's `test_comments_oldest_first`: the list's rows, an alert's read and its tree carry its
+    /// comments oldest first, an alert without any an empty list, and a read gives the latest
+    /// `MAX_SHOWN_COMMENTS` of each. `alert_comments` reads those of several alerts, for an event's page.
+    #[tokio::test]
+    async fn an_alerts_reads_carry_its_comments_oldest_first() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = admin(db).await;
+        let commented = an_alert(db).await;
+        let quiet = an_alert(db).await;
+        let service = service(db);
+        for text in ["first", "second, with a comma"] {
+            service
+                .add_alert_comment(&actor, &[commented], text)
+                .await
+                .expect("comments");
+        }
+        let texts = |comments: &[AlertComment]| {
+            comments
+                .iter()
+                .map(|c| c.comment.clone())
+                .collect::<Vec<_>>()
+        };
+        let page = service
+            .alerts(&actor, &AlertQuery::default(), None, None)
+            .await
+            .expect("lists");
+        let of = |id: Uuid| {
+            page.alerts
+                .iter()
+                .find(|alert| alert.id == id)
+                .and_then(|alert| alert.comments.clone())
+                .expect("read")
+        };
+        assert_eq!(texts(&of(commented)), ["first", "second, with a comma"]);
+        assert!(of(quiet).is_empty());
+        let tree = service.alert_tree(&actor, commented).await.expect("reads");
+        assert_eq!(
+            texts(tree.alert.summary.comments.as_deref().expect("read")),
+            ["first", "second, with a comma"]
+        );
+        let both = service
+            .alert_comments(&actor, &[commented, quiet])
+            .await
+            .expect("reads");
+        assert_eq!(texts(&both[&commented]), ["first", "second, with a comma"]);
+        assert!(!both.contains_key(&quiet));
+        assert!(matches!(
+            service
+                .alert_comments(&actor, &vec![quiet; MAX_COMMENTED_ALERTS + 1])
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+        let reader = UserId(Uuid::from_u128(0xC1));
+        exists(db, &Holder::User(reader)).await;
+        assert!(matches!(
+            service.alert_comments(&user(reader), &[commented]).await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
+
+        // past the bound, the latest, oldest first
+        let shown = usize::try_from(MAX_SHOWN_COMMENTS).expect("small");
+        for n in 0..shown {
+            service
+                .add_alert_comment(&actor, &[quiet], &format!("note {n}"))
+                .await
+                .expect("comments");
+        }
+        let comments = comments_on(db, quiet).await;
+        assert_eq!(comments.len(), shown);
+        assert_eq!(comments[0].comment, "note 0");
+        service
+            .add_alert_comment(&actor, &[quiet], "the newest")
+            .await
+            .expect("comments");
+        let comments = comments_on(db, quiet).await;
+        assert_eq!(comments.len(), shown);
+        assert_eq!(comments[0].comment, "note 1");
+        assert_eq!(comments[shown - 1].comment, "the newest");
+    }
+
+    /// ace3's `test_alert_comments_are_not_exported`: the AI API's process reads as a role that can't read
+    /// comments (migration 0064), so a service with the AI surface gives its alerts none.
+    #[tokio::test]
+    async fn the_ai_apis_reads_carry_no_comments() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = admin(db).await;
+        let root = an_alert(db).await;
+        service(db)
+            .add_alert_comment(&actor, &[root], "an analyst's note")
+            .await
+            .expect("comments");
+        let ai = service(db).with_ai(ace_service::ai::AiSurface::new(Arc::new(
+            ace_service::ai::PgLimiter::new(db.clone()),
+        )));
+        assert_eq!(
+            ai.alert(&actor, root)
+                .await
+                .expect("reads")
+                .summary
+                .comments,
+            None
+        );
+        let page = ai
+            .alerts(&actor, &AlertQuery::default(), None, None)
+            .await
+            .expect("lists");
+        assert!(page.alerts.iter().all(|alert| alert.comments.is_none()));
+        // the role can't read the table at all
+        let granted: bool = sqlx::query_scalar(
+            "SELECT has_table_privilege('ace_rs_ai', 'analysis.alert_comments', 'SELECT')",
+        )
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+        assert!(!granted);
+    }
+
+    /// ace3's `test_set_dispositions_normalizes_comment`, `test_set_disposition_empty_comment_stripped` and
+    /// `test_set_disposition_special_characters_in_comment`: an analyst's disposition with a comment adds
+    /// it to the alert, normalized, in the disposition's transaction and named in its row; a blank one is
+    /// none; one from an actor that isn't a person, or with a disposition that's refused, leaves nothing.
+    #[tokio::test]
+    async fn a_disposition_with_a_comment_adds_it_to_the_alert() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let alice = writer(db, 0xA11CE).await;
+        let root = an_alert(db).await;
+        let service = service(db);
+        service
+            .disposition(
+                &alice,
+                root,
+                "FALSE_POSITIVE",
+                None,
+                Some("  it's <the> vendor's & \"mailer\"\r\n"),
+            )
+            .await
+            .expect("dispositions");
+        let comments = comments_on(db, root).await;
+        assert_eq!(
+            comments
+                .iter()
+                .map(|c| c.comment.as_str())
+                .collect::<Vec<_>>(),
+            ["it's <the> vendor's & \"mailer\""]
+        );
+        assert!(comments[0].is_by(&alice));
+        let audit = last_audit(db).await;
+        assert_eq!(audit.action, "disposition");
+        assert_eq!(audit.details["comment"], "it's <the> vendor's & \"mailer\"");
+
+        // a blank comment is none
+        service
+            .disposition(&alice, root, "WEAPONIZATION", None, Some(" \r\n "))
+            .await
+            .expect("dispositions");
+        assert_eq!(comments_on(db, root).await.len(), 1);
+        assert!(last_audit(db).await.details.get("comment").is_none());
+
+        // one that's too long, from a key nobody owns, and with a disposition that's refused
+        let rows = audit_rows(db).await.len();
+        let long = "x".repeat(ace_service::MAX_COMMENT_CHARS + 1);
+        assert!(matches!(
+            service
+                .disposition(&alice, root, "DELIVERY", None, Some(&long))
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+        let key_id = ApiKeyId(Uuid::from_u128(0x4E3));
+        exists(db, &Holder::ApiKey(key_id)).await;
+        grant(db, &Holder::ApiKey(key_id), "alert", "write", Effect::Allow).await;
+        let rows = rows + 1;
+        assert!(matches!(
+            service
+                .disposition(&key(key_id, None), root, "DELIVERY", None, Some("x"))
+                .await,
+            Err(ServiceError::Forbidden(_))
+        ));
+        assert!(matches!(
+            service
+                .disposition(&alice, root, "NOT_ONE", None, Some("x"))
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+        assert_eq!(
+            row(db, root).await.disposition.as_deref(),
+            Some("WEAPONIZATION")
+        );
+        assert_eq!(comments_on(db, root).await.len(), 1);
+        assert_eq!(audit_rows(db).await.len(), rows);
+    }
+
+    /// What ace3's version rotation and index task are for: a change to a comment reaches what reads the
+    /// alert. Each add, edit and delete asks for its search documents again.
+    #[tokio::test]
+    async fn a_comment_change_asks_for_its_alerts_search_documents_again() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = admin(db).await;
+        let root = an_alert(db).await;
+        let not_alert = alert(db).await;
+        let due = || async {
+            sqlx::query_scalar::<_, i64>("SELECT version FROM search.due WHERE root_id = $1")
+                .bind(root)
+                .fetch_optional(db.pool())
+                .await
+                .expect("reads")
+        };
+        sqlx::query("DELETE FROM search.due")
+            .execute(db.pool())
+            .await
+            .expect("empties");
+        let id = service(db)
+            .add_alert_comment(&actor, &[root, not_alert], "first")
+            .await
+            .expect("comments")
+            .added[0]
+            .1;
+        assert_eq!(due().await, Some(1));
+        service(db)
+            .edit_alert_comment(&actor, root, id, "first")
+            .await
+            .expect("changes nothing");
+        assert_eq!(due().await, Some(1), "no edit, no request");
+        service(db)
+            .edit_alert_comment(&actor, root, id, "second")
+            .await
+            .expect("edits");
+        assert_eq!(due().await, Some(2));
+        service(db)
+            .delete_alert_comment(&actor, root, id)
+            .await
+            .expect("deletes");
+        assert_eq!(due().await, Some(3));
+        let others: i64 = sqlx::query_scalar("SELECT count(*) FROM search.due WHERE root_id <> $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("counts");
+        assert_eq!(others, 0, "a root that isn't an alert isn't indexed");
     }
 }

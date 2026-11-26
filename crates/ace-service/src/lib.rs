@@ -48,7 +48,8 @@
 //! of the files as a read, and purges matches as a write.
 //!
 //! `observable_comments` keeps analysts' comments on an observable by its type and value, across alerts,
-//! for 5.6's `observable_comments` router, and reads an alert's for 5.8's alert view.
+//! for 5.6's `observable_comments` router, and reads an alert's for 5.8's alert view. `alert_comments`
+//! keeps their comments on an alert itself (PLAN.md 5.15), which the alert's reads carry.
 //!
 //! `events` reads events, adds alerts to them, sets their status, edits them, takes alerts out and tags
 //! them, and keeps the threat types and malware's threats, for 5.11's events area and ace3's `events`,
@@ -114,6 +115,7 @@
 mod actor;
 pub mod ai;
 mod alert_automation;
+mod alert_comments;
 mod alert_graph;
 mod alert_view;
 mod alert_work;
@@ -207,6 +209,9 @@ pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
 pub use alert_automation::{
     ActionRecord, ActionStatus, AlertAutomation, AutomationSweep, Confirmation, Detail, Evidence,
     Rule as AutomationRule, RunStatus,
+};
+pub use alert_comments::{
+    AddedAlertComments, AlertComment, MAX_COMMENTED_ALERTS, MAX_SHOWN_COMMENTS,
 };
 pub use alert_graph::{
     AlertGraph, GraphEdge, GraphEdgeKind, GraphNode, GraphNodeKind, MAX_GRAPH_EDGES,
@@ -581,7 +586,7 @@ struct RootSnapshot {
     title: String,
     event_time: Option<DateTime<Utc>>,
     root_created_at: DateTime<Utc>,
-    /// Why, when ACE made the disposition for SVS: ace3 adds it to the alert as a comment.
+    /// Why: the analyst's comment, which is on the alert too (PLAN.md 5.15), or ACE's own for SVS.
     #[serde(skip_serializing_if = "Option::is_none")]
     comment: Option<String>,
     /// The analyst the alert was taken from, when the disposition took it (PLAN.md 7.17).
@@ -769,13 +774,25 @@ impl Service {
     /// unless `take_from` is that analyst, the caller's confirmation that they take it, or the owner's
     /// account is disabled; the caller then becomes its owner. The frozen check comes first, so a frozen
     /// alert is never taken.
+    ///
+    /// `comment` is the analyst's, ace3's `user_comment`: added to the alert in the disposition's
+    /// transaction, by the person who dispositions it, as `add_alert_comment` adds one (PLAN.md 5.15),
+    /// and named in the disposition's audit row. A comment that's only whitespace is none, as ace3's
+    /// `if user_comment` has it; one from an actor that isn't a person is `Forbidden` and leaves the
+    /// disposition unmade.
     pub async fn disposition(
         &self,
         actor: &Actor,
         root: Uuid,
         disposition: &str,
         take_from: Option<UserId>,
+        comment: Option<&str>,
     ) -> Result<Dispositioned, ServiceError> {
+        let comment = comment
+            .filter(|text| !observable_comments::normalize_comment(text).is_empty())
+            .map(observable_comments::checked)
+            .transpose()?;
+        let comment = comment.as_deref();
         if !is_disposition_name(disposition) {
             return Err(ServiceError::InvalidRequest(
                 "a disposition is up to 64 uppercase ASCII letters, digits and _, starting with a letter"
@@ -800,9 +817,16 @@ impl Service {
         self.gate
             .write(actor, "disposition", &ALERT_WRITE, &|tx| {
                 Box::pin(async move {
+                    let author = comment
+                        .map(|_| observable_comments::author_of(actor))
+                        .transpose()?;
                     let (dispositioned, change) = self
-                        .disposition_in(tx, root, disposition, actor, None, take_from)
+                        .disposition_in(tx, root, disposition, actor, comment, take_from)
                         .await?;
+                    if let Some(comment) = comment {
+                        alert_comments::insert_comments(tx.conn(), author, actor, &[root], comment)
+                            .await?;
+                    }
                     Ok(Audited::changed(dispositioned, change))
                 })
             })
@@ -813,7 +837,9 @@ impl Service {
     /// which `disposition` and SVS (closing a run's and a maintenance window's alerts, and giving a
     /// disassociated alert back, `svs_association`) share. `by` is who the alert's row names: the actor, or
     /// the component that acts for them. From an analyst it refuses a frozen alert (`Conflict`). `comment`
-    /// says why, in the audit row, where ace3 adds a comment to the alert. An analyst's disposition
+    /// says why, in the audit row: an analyst's is also added to the alert, by
+    /// `disposition`, and ACE's own is in the audit row alone, where ace3 adds it to the
+    /// alert as its automation user. An analyst's disposition
     /// checks and takes ownership (`disposition`'s docs), `take_from` being who they confirmed taking the
     /// alert from; a component's does neither, and its callers pick alerts nobody owns. Returns what the
     /// analysis did and the audit row's change, which the caller's write records.

@@ -22,7 +22,6 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use serde_json::{Value, json};
 use uuid::Uuid;
 
-use crate::documents::Document;
 use crate::pg::PgIndex;
 
 /// ace3's index in Qdrant.
@@ -198,8 +197,8 @@ impl QdrantIndex {
     }
 
     /// Indexes one alert: ace3's `index_alert`, an upsert and then a delete of what's stale.
-    pub async fn index_alert(&self, root: Uuid, given: &[Document]) -> Result<Indexed, IndexError> {
-        let (embedded, documents, left_out, skipped) = self.pg.embedded(root, given).await?;
+    pub async fn index_alert(&self, root: Uuid) -> Result<Indexed, IndexError> {
+        let (embedded, documents, left_out, skipped) = self.pg.embedded(root).await?;
         let metadata = self.metadata(root).await?.unwrap_or_else(|| json!({}));
         let mut ids = Vec::with_capacity(embedded.len());
         let points: Vec<Value> = embedded

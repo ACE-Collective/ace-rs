@@ -145,6 +145,15 @@
       <button type="submit" class="primary">Set Disposition</button>
       <button type="submit" formaction="/events/add" formmethod="get">Add to Event</button>
       </span>
+      {#- ace3's Add Comment of the ticked alerts and its disposition's comment (PLAN.md 5.15): one box,
+          which Set Disposition sends too -#}
+      <details class="bulk-group bulk-comment">
+        <summary title="Add a comment to the ticked alerts, alone or with Set Disposition">Comment</summary>
+        <label for="bulk-comment">Comment on the ticked alerts</label>
+        <textarea id="bulk-comment" name="comment" rows="2" maxlength="16384"></textarea>
+        <button type="submit" formaction="/alerts/comment">Add Comment</button>
+        <span class="muted">Set Disposition adds it too.</span>
+      </details>
       {%- if view.can_own %}
       {#- ace3's Take Ownership and Assign Ownership of the ticked alerts (PLAN.md 7.17) -#}
       <span class="bulk-group">

@@ -219,10 +219,11 @@ impl Service {
         actor: &crate::Actor,
         id: Uuid,
     ) -> Result<AlertTree, ServiceError> {
+        let comments = self.reads_comments();
         self.gate
             .read(actor, "alert_tree", &ALERT_READ, &|tx| {
                 Box::pin(async move {
-                    let alert = alert_in(tx, id).await?;
+                    let alert = alert_in(tx, id, comments).await?;
                     let (observables, truncated) =
                         observables_in(tx, id, None, MAX_TREE_OBSERVABLES, true).await?;
                     let additions = sqlx::query_as!(

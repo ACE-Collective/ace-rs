@@ -759,6 +759,10 @@ impl Web {
                 put(alerts::disposition).layer(json_limit),
             )
             .route(
+                "/api/alerts/v1/alerts/{id}/comments/{comment}",
+                patch(alerts::edit_comment).layer(json_limit),
+            )
+            .route(
                 "/api/alerts/v1/alerts/{id}/detections/{detection}/verdict",
                 put(detection_points::set_verdict)
                     .delete(detection_points::clear_verdict)
@@ -1404,6 +1408,7 @@ impl Web {
         alerts::graph,
         alerts::file,
         alerts::disposition,
+        alerts::edit_comment,
         alerts::dispositions,
         alerts::directives,
         alerts::add_directives,

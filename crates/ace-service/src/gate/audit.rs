@@ -179,6 +179,22 @@ impl Target {
         }
     }
 
+    /// A comment on an alert, by its id (PLAN.md 5.15).
+    pub(crate) fn alert_comment(id: i64) -> Self {
+        Target {
+            kind: "alert_comment",
+            id: id.to_string(),
+        }
+    }
+
+    /// The comments one write added to alerts, one an alert, by their ids in order.
+    pub(crate) fn alert_comments(ids: &[i64]) -> Self {
+        Target {
+            kind: "alert_comments",
+            id: ids.iter().map(i64::to_string).collect::<Vec<_>>().join(","),
+        }
+    }
+
     /// An SVS test host, by its id (PLAN.md 7.10).
     pub(crate) fn test_host(id: i64) -> Self {
         Target {

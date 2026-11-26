@@ -85,11 +85,14 @@
 //! - `events.bulk_set_disposition`, the event page's Set Disposition of the ticked alerts, is the alert
 //!   list's bulk form's own route, `POST /alerts/disposition` (5.10), each alert through
 //!   `Service::disposition` under `alert:write`, with the event's page as where it goes back to. It's
-//!   offered to a viewer with `alert:write`, as ace3 offers it. ace3's comment with a disposition is left
-//!   out, as on the alert list, since alerts have no comments yet. Its menu offers the site's dispositions
+//!   offered to a viewer with `alert:write`, as ace3 offers it, with ace3's comment, which goes on each
+//!   alert it dispositions (PLAN.md 5.15). Its menu offers the site's dispositions
 //!   an analyst may choose (`ace_service::Dispositions`), and the event list's Disposition filter all of
 //!   them, in their order. A disposition, the event's rolled-up one and each alert's, is a badge in its
 //!   `css`, as ace3's.
+//! - `events.bulk_add_comment`, the event page's Add Comment of the ticked alerts, is the alert list's
+//!   `POST /alerts/comment` (`crate::alert_comments`), for a viewer with `alert:write`, back to the event's
+//!   page, and each alert's comments are under its title, as ace3's `event_alerts.html` has them.
 //!
 //! Every page here needs `event:read`, which the service checks, and the add page, Close Event, the edit,
 //! Remove Alert(s) and Add Tag(s) `event:write` too; a visitor who isn't signed in goes to the login. Everything an event brings, its
@@ -884,6 +887,8 @@ pub struct EventAlertRow {
     pub status: &'static str,
     /// Its remediation coverage badge (PLAN.md 7.9), for a viewer with `remediation:read`.
     pub coverage: Option<crate::remediation::CoverageBadge>,
+    /// Its comments (PLAN.md 5.15), ace3's `(author) text` under the title, oldest first.
+    pub comments: Vec<String>,
 }
 
 /// An alert's analysis as ace3's alert `status` names it, as the alert list does.
@@ -1011,6 +1016,7 @@ pub fn event_view(event: &Event, may: EventMay, dispositions: &Dispositions) -> 
                 disposition_badge: dispositions.css(alert.disposition.as_deref()).to_owned(),
                 status: analysis_status(alert.analysis),
                 coverage: None,
+                comments: Vec::new(),
             })
             .collect(),
         close: (can_write && event.status != CLOSED_STATUS).then(|| format!("{href}/close")),
@@ -1030,6 +1036,20 @@ pub fn event_view(event: &Event, may: EventMay, dispositions: &Dispositions) -> 
 
 /// Adds each alert's remediation coverage badge, ace3's `analysis/_remediation_badge.html`, and the link
 /// to the alerts' remediation targets, to an event's view (PLAN.md 7.9).
+/// The view with each alert's comments under its title (PLAN.md 5.15), ace3's `event_alerts.html`.
+pub fn with_comments(
+    mut view: EventView,
+    comments: &std::collections::HashMap<Uuid, Vec<ace_service::AlertComment>>,
+) -> EventView {
+    for alert in &mut view.alerts {
+        let (mut shown, more) =
+            crate::list::row_comments(comments.get(&alert.id).map(Vec::as_slice));
+        shown.extend(more);
+        alert.comments = shown;
+    }
+    view
+}
+
 pub fn with_coverage(
     mut view: EventView,
     coverage: &std::collections::BTreeMap<Uuid, ace_service::Coverage>,
@@ -1256,6 +1276,20 @@ pub(crate) async fn event_page(
         disposition: holds(&gui, &viewer, &ALERT_WRITE).await,
     };
     let mut view = event_view(&event, may, gui.service.dispositions());
+    // ace3 reads the alerts' comments with the page; a failure to read them leaves them out, since the
+    // rest of the page is still right
+    let alerts: Vec<Uuid> = view
+        .alerts
+        .iter()
+        .take(ace_service::MAX_COMMENTED_ALERTS)
+        .map(|a| a.id)
+        .collect();
+    match gui.service.alert_comments(&viewer.actor, &alerts).await {
+        Ok(comments) => view = with_comments(view, &comments),
+        Err(error) => {
+            tracing::warn!(actor = %viewer.actor, "reading an event's alerts' comments failed: {error}");
+        }
+    }
     // ace3 shows the badges to whoever sees the event; here they read remediations, which need their own
     if holds(&gui, &viewer, &ace_service::REMEDIATION_READ).await {
         let alerts: Vec<Uuid> = view

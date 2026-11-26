@@ -33,6 +33,8 @@
 //!   observable (PLAN.md decision 31).
 //! - `list`: the alert list at `/` (5.10), ace3's manage page, with its filters, saved filters, columns,
 //!   sorts, bulk disposition and refresh, and taking and assigning ownership (7.17).
+//! - `alert_comments`: comments on an alert (5.15): the alert page's Add Comment and its author's edit
+//!   and delete, and the bulk Add Comment of the alert list and an event's page.
 //! - `analyze`: the Analyze page (7.18), ace3's Manual Analysis: a form of observables and uploaded
 //!   files that makes an alert, or one per observable, through `Service::submit_manual`.
 //! - `saved_filters`: the saved filters' forms and their manage page (5.10, and 5.11's saved_filters
@@ -112,6 +114,7 @@ pub mod actions;
 pub mod admin;
 pub mod alert;
 pub mod alert_actions;
+pub mod alert_comments;
 pub mod analysis;
 pub mod analyze;
 mod assets;
@@ -287,8 +290,27 @@ impl Gui {
             .route("/analyze/row", get(analyze::row))
             .route(
                 "/alerts/disposition",
-                post(list::bulk_disposition)
-                    .layer(DefaultBodyLimit::max(list::MAX_BULK_FORM_BYTES)),
+                post(list::bulk_disposition).layer(DefaultBodyLimit::max(
+                    alert_comments::MAX_COMMENT_FORM_BYTES,
+                )),
+            )
+            .route(
+                "/alerts/comment",
+                post(alert_comments::bulk).layer(DefaultBodyLimit::max(
+                    alert_comments::MAX_COMMENT_FORM_BYTES,
+                )),
+            )
+            .route(
+                "/alerts/{id}/comments",
+                post(alert_comments::add).layer(DefaultBodyLimit::max(
+                    alert_comments::MAX_COMMENT_FORM_BYTES,
+                )),
+            )
+            .route(
+                "/alerts/{id}/comments/{comment}",
+                post(alert_comments::change).layer(DefaultBodyLimit::max(
+                    alert_comments::MAX_COMMENT_FORM_BYTES,
+                )),
             )
             .route(
                 "/alerts/owner",
