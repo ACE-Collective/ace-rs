@@ -26,6 +26,7 @@ use ace_mod_oletools::py::is_space;
 use ace_results::FileRole;
 use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
 use ace_results::{AnalysisType, Detection, ObservableKind, ResultEnvelope};
+use ace_sdk::takes::{Condition, Takes, TypeFact};
 use ace_sdk::{
     CarryingEmail, Delay, EmailBodyPart, Manifest, Module, ModuleError, Outcome, Parser, Resources,
     TaskContext,
@@ -100,6 +101,13 @@ impl Module for MsofficeEncryption {
 
     fn init(_: &MsofficeEncryptionSettings) -> Result<Self, ModuleError> {
         Ok(MsofficeEncryption)
+    }
+
+    fn takes(_: &MsofficeEncryptionSettings) -> Takes {
+        // msoffcrypto's OfficeFile opens a zip as plain OOXML, never encrypted, since an encrypted
+        // Office file is always an OLE container; only an OLE file can get past analyze's
+        // is_encrypted. From the file's type (PLAN.md decision 25).
+        Takes::everything().and(Condition::type_fact(TypeFact::IsOleFile), "not an OLE file")
     }
 }
 
@@ -431,6 +439,41 @@ mod tests {
 
     fn harness() -> Harness<MsofficeEncryption> {
         Harness::new().expect("a harness")
+    }
+
+    /// The type step's OLE fact, which is all the declaration reads.
+    fn typed(_: &str, local: &Path) -> Option<ace_results::types::file_type::TypeFacts> {
+        let data = std::fs::read(local).ok()?;
+        Some(ace_results::types::file_type::TypeFacts {
+            is_ole_file: ace_mod_oletools::ole::has_magic(&data),
+            ..Default::default()
+        })
+    }
+
+    #[test]
+    fn only_an_ole_file_is_taken() {
+        let harness = harness().with_typer(typed);
+        let samples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../samples");
+        // a plain OOXML zip is never encrypted
+        let docx = harness
+            .file("doc.docx", samples.join("ace3/office/doc.docx"), &[])
+            .expect("a file");
+        assert!(matches!(
+            harness.run_parser(docx).expect("runs"),
+            Outcome::Skipped(why) if why == "not an OLE file"
+        ));
+        // an encrypted OOXML document is an OLE container, and is taken
+        let encrypted = harness
+            .file(
+                "encrypted_agile.docx",
+                samples.join("ace-rs/office/encrypted_agile.docx"),
+                &[],
+            )
+            .expect("a file");
+        assert!(!matches!(
+            harness.run_parser(encrypted).expect("runs"),
+            Outcome::Skipped(why) if why == "not an OLE file"
+        ));
     }
 
     /// An email with these body parts, each its bytes and whether it is HTML.

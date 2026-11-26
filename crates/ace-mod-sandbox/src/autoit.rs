@@ -11,6 +11,7 @@ use ace_mod_files::checks::is_pe_file;
 use ace_results::FileRole;
 use ace_results::types::executables::AutoItAnalysis;
 use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
+use ace_sdk::takes::{Case, Condition, Takes, Text, TypeFact};
 use ace_sdk::tools::{ToolOutput, ToolRun, ToolStop};
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 
@@ -35,6 +36,22 @@ impl Module for AutoItAnalyzer {
 
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(AutoItAnalyzer)
+    }
+
+    fn takes(_: &()) -> Takes {
+        // is_autoit's first test, from the file's type (PLAN.md decision 25), so the core queues
+        // it for a PE file or an .au3 and no other: about 20 tasks over the sample set where it was
+        // 4,072 (docs/measurements/module-timings.md). The marker can be anywhere in the file, so
+        // reading for it stays in analyze.
+        Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            .and(
+                Condition::Any(vec![
+                    Condition::type_fact(TypeFact::IsPeFile),
+                    Condition::Name(Text::ends_with(".au3", Case::Lower)),
+                ]),
+                "neither a PE file nor named .au3",
+            )
     }
 }
 
@@ -183,6 +200,48 @@ fn summary(details: &AutoItAnalysis, error: Option<&String>) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Whether the declaration takes a file of this path, size and type (None: its type step failed).
+    fn takes(path: &str, size: u64, pe: Option<bool>) -> bool {
+        let type_facts = pe.map(|is_pe_file| ace_results::types::file_type::TypeFacts {
+            is_pe_file,
+            ..Default::default()
+        });
+        let results = std::collections::BTreeMap::new();
+        let facts = ace_sdk::takes::Facts {
+            kind: ObservableKind::File,
+            directives: &[],
+            directive_sources: &[],
+            relationships: &[],
+            redirected: false,
+            added_by: &[],
+            at_root: false,
+            mode: None,
+            file: Some(ace_sdk::takes::FileFacts {
+                path,
+                size: Some(size),
+                facts: type_facts.as_ref(),
+                role: None,
+                yara_meta: Some(&[]),
+            }),
+            results: &results,
+            origins: None,
+        };
+        AutoItAnalyzer::takes(&()).check(&facts).is_ok()
+    }
+
+    #[test]
+    fn it_takes_a_pe_file_or_an_au3_and_nothing_else() {
+        assert!(takes("dropper.bin", 10, Some(true)));
+        assert!(takes("dir/x.au3", 10, Some(false)));
+        assert!(takes("dir/X.AU3", 10, Some(false)));
+        assert!(!takes("dir/x.txt", 10, Some(false)));
+        assert!(!takes("dir/x.au3.txt", 10, Some(false)));
+        // as is_autoit, an empty file never is one
+        assert!(!takes("x.exe", 0, Some(true)));
+        // a file whose type step failed isn't declined by its type
+        assert!(takes("x.bin", 10, None));
+    }
 
     #[test]
     fn the_marker_is_found_across_a_chunk_boundary() {

@@ -24,6 +24,7 @@ use ace_mod_archive::extracted_name;
 use ace_mod_archive::formats::{self, Format};
 use ace_results::types::encrypted::ZipEncryptionAnalysis;
 use ace_results::{AnalysisType, NewFile, ObservableKind, ResultEnvelope};
+use ace_sdk::takes::{Condition, Takes, TypeFact};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use zip::extra_fields::ExtraField;
 
@@ -59,6 +60,12 @@ impl Module for ZipEncryptionAnalyzer {
 
     fn init(_: &ArchiveSettings) -> Result<Self, ModuleError> {
         Ok(ZipEncryptionAnalyzer)
+    }
+
+    fn takes(_: &ArchiveSettings) -> Takes {
+        // ace3's zipfile has to open it and list an encrypted entry; the type step's IsZipFile is
+        // that same zipfile listing at least one name (PLAN.md decision 25)
+        Takes::everything().and(Condition::type_fact(TypeFact::IsZipFile), "not a zip file")
     }
 }
 
@@ -356,6 +363,28 @@ impl Parser for ZipEncryptionAnalyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_a_zip_file_is_taken() {
+        let harness = ace_testkit::Harness::<ZipEncryptionAnalyzer>::new()
+            .expect("a harness")
+            .with_typer(ace_mod_files::file_type::type_of);
+        let dir = tempfile::tempdir().unwrap();
+        let text = dir.path().join("notes.txt");
+        std::fs::write(&text, b"not a zip").unwrap();
+        let text = harness.file("notes.txt", &text, &[]).expect("a file");
+        assert!(matches!(
+            harness.run_parser(text).expect("runs"),
+            Outcome::Skipped(why) if why == "not a zip file"
+        ));
+        let zip = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tools/ace3/dumps/fixtures/encrypted/zip/zipcrypto.zip");
+        let zip = harness.file("zipcrypto.zip", &zip, &[]).expect("a file");
+        assert!(!matches!(
+            harness.run_parser(zip).expect("runs"),
+            Outcome::Skipped(why) if why == "not a zip file"
+        ));
+    }
 
     fn fixture(name: &str) -> zip::ZipArchive<BufReader<File>> {
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
