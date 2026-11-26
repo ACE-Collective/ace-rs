@@ -16,6 +16,10 @@
 //! one route takes any of the binary's list for one observable, under `observable:write` as ace3's
 //! observable actions are.
 //!
+//! `POST /api/alerts/v1/commonalities` is ace3's `POST /api/v2/alerts/commonalities` (PLAN.md 7.23):
+//! a page's alerts grouped by the observable values they share. ace3's `alert_uuids` are `alerts` here,
+//! as in the owner's route, and a request outside its bounds is 400 where ace3's is 422.
+//!
 //! `GET /api/alerts/v1/dispositions` has no ace3 route: ace3's clients read `dispositions:` from its
 //! config. It's the site's set in order with each disposition's metadata (the owner's decision of
 //! 2026-11-14), under `alert:read`.
@@ -1362,4 +1366,130 @@ pub(crate) async fn add_directives(
         directives: done.directives,
         queued: done.queued,
     }))
+}
+
+/// Which alerts to compare.
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CommonalitiesRequest {
+    /// 1 to 500 alerts, in the order the page lists them.
+    #[schema(min_items = 1, max_items = 500)]
+    alerts: Vec<Uuid>,
+    /// Up to 100 observables, each `type:value`, to leave out of the grouping.
+    #[serde(default)]
+    #[schema(max_items = 100)]
+    ignore: Vec<String>,
+}
+
+/// A group of alerts that potentially relate.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct CommonalityGroupBody {
+    /// The group's alerts, the most strongly linked first.
+    alerts: Vec<Uuid>,
+    /// 0 to 1: how much the group's alerts have in common, from its size and how many observable values
+    /// its pairs of alerts share.
+    intensity: f64,
+    /// How many observable values every alert of the group has.
+    shared: usize,
+    /// The most observable values any alert of the group has.
+    total: usize,
+    /// Every pair of the group's alerts shares at least 90% of the values of the one with more.
+    near_identical: bool,
+}
+
+/// One observable value two or more of the alerts have. They may have it under more than one type (an
+/// address as both the sender and the return path): `types` lists them, most useful first, and `type`
+/// is the first.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct CommonalityObservableBody {
+    #[serde(rename = "type")]
+    kind: String,
+    types: Vec<String>,
+    value: String,
+    /// The requested alerts that have it.
+    alerts: Vec<Uuid>,
+    /// The index in `groups` of the first group with an alert that has it.
+    group: usize,
+    /// The indexes of every group with an alert that has it; more than one means it links groups.
+    groups: Vec<usize>,
+}
+
+/// The requested alerts grouped by the observable values they share. Alerts sharing two or more are
+/// grouped together; alerts sharing only one are grouped only with alerts no stronger group took.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct CommonalitiesBody {
+    groups: Vec<CommonalityGroupBody>,
+    /// Every observable value two or more of the alerts have, ordered by group and, within one, most
+    /// useful first: values that link groups, then by type (the overlay's
+    /// `gui.commonalities_priority_types`), then by how many of the group's alerts have it.
+    observables: Vec<CommonalityObservableBody>,
+    /// Each alert sharing anything -> how many other requested alerts share at least one value with it.
+    related: std::collections::BTreeMap<Uuid, usize>,
+    /// How many of the requested alerts share nothing with any other.
+    unrelated: usize,
+    /// Each type in `observables` -> the types it extends, nearest first (`email_from` ->
+    /// `[email_address]`), so a type without a color of its own can take its parent's.
+    type_ancestors: std::collections::BTreeMap<String, Vec<String>>,
+}
+
+impl From<ace_service::commonalities::Commonalities> for CommonalitiesBody {
+    fn from(found: ace_service::commonalities::Commonalities) -> Self {
+        CommonalitiesBody {
+            groups: found
+                .groups
+                .into_iter()
+                .map(|group| CommonalityGroupBody {
+                    alerts: group.alerts,
+                    intensity: group.intensity,
+                    shared: group.shared,
+                    total: group.total,
+                    near_identical: group.near_identical,
+                })
+                .collect(),
+            observables: found
+                .observables
+                .into_iter()
+                .map(|o| CommonalityObservableBody {
+                    kind: o.kind,
+                    types: o.kinds,
+                    value: o.value,
+                    alerts: o.alerts,
+                    group: o.group,
+                    groups: o.groups,
+                })
+                .collect(),
+            related: found.related,
+            unrelated: found.unrelated,
+            type_ancestors: found.type_ancestors,
+        }
+    }
+}
+
+/// Groups the alerts by the observable values they share, so an analyst sees which alerts on a page
+/// are potentially the same activity (the alert list's Commonalities panel). An id that isn't an alert
+/// is left out. A POST because the list of alerts can be long; nothing is changed.
+#[utoipa::path(
+    post,
+    path = "/api/alerts/v1/commonalities",
+    tag = "alerts",
+    request_body = CommonalitiesRequest,
+    responses(
+        (status = 200, description = "The alerts' groups and the values they share", body = CommonalitiesBody),
+        (status = 400, description = "No alerts or more than 500, more than 100 to ignore, queries that ran past their 10 s, or a body that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold alert:read, or a session's request came from another site", body = ErrorBody),
+        (status = 413, description = "The body is too large", body = ErrorBody),
+    )
+)]
+pub(crate) async fn commonalities(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    body: Result<Json<CommonalitiesRequest>, JsonRejection>,
+) -> Result<Json<CommonalitiesBody>, ApiError> {
+    let Json(body) = body?;
+    let found = web
+        .service
+        .alert_commonalities(&actor, &body.alerts, &body.ignore)
+        .await?;
+    Ok(Json(found.into()))
 }

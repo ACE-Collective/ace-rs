@@ -224,6 +224,19 @@ pub struct Overlay {
     /// The alert automation rules (PLAN.md 7.22, `crate::alert_automation`), ace3's
     /// `alert_automation_rule_<name>` blocks, by rule name. `ace serve` reads it; nothing else does.
     pub alert_automation: crate::alert_automation::AlertAutomationSection,
+    /// ace3's `gui:` settings that ace-rs's GUI reads. `ace serve` reads it; nothing else does.
+    pub gui: GuiSection,
+}
+
+/// What the overlay says about the GUI (`Overlay::gui`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct GuiSection {
+    /// ace3's `gui.commonalities_priority_types`: the observable types the alert list's Commonalities
+    /// panel lists first, most useful first (`ace_service::commonalities`). A type ranks as its nearest
+    /// listed ancestor (`email_from` as `email_address`), and an unlisted one comes last. Left out, it is
+    /// ace3's list; given, it replaces it, as in ace3.
+    pub commonalities_priority_types: Option<Vec<String>>,
 }
 
 /// What the overlay says about one analysis mode (`Overlay::analysis_modes`).
@@ -1695,6 +1708,8 @@ impl Overlay {
             exports: BTreeMap::new(),
             // `ace serve` sweeps the rules
             alert_automation: crate::alert_automation::AlertAutomationSection::default(),
+            // `ace serve` draws the GUI
+            gui: GuiSection::default(),
         }
     }
 
@@ -2054,6 +2069,32 @@ mod tests {
 
     fn manifests() -> Vec<Manifest> {
         vec![LINE_COUNTER, RESOLVER]
+    }
+
+    /// ace3's `gui.commonalities_priority_types`: left out, none is given and the service takes
+    /// ace3's list; given, it is the site's, in its order; a key the section doesn't have stops the
+    /// overlay with its path.
+    #[test]
+    fn the_gui_section_ranks_the_commonalities_types_a_site_lists() {
+        let left_out = Overlay::from_yaml("modules: {}\n").expect("reads");
+        assert_eq!(left_out.gui.commonalities_priority_types, None);
+        let ranked = Overlay::from_yaml(
+            "gui:\n  commonalities_priority_types: [made_up_address, user, made_up_host]\n",
+        )
+        .expect("reads");
+        assert_eq!(
+            ranked.gui.commonalities_priority_types.as_deref(),
+            Some(
+                &[
+                    "made_up_address".to_owned(),
+                    "user".to_owned(),
+                    "made_up_host".to_owned()
+                ][..]
+            )
+        );
+        let error = Overlay::from_yaml("gui:\n  commonalities_priority: [user]\n")
+            .expect_err("an unknown key");
+        assert!(format!("{error}").contains("gui"), "{error}");
     }
 
     fn components(yaml: &str) -> Result<Vec<Component>, OverlayError> {

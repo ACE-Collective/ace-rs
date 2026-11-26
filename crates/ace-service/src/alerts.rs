@@ -564,17 +564,21 @@ pub(crate) const SET_LIST_TIMEOUT: &str = "SET LOCAL statement_timeout = '10s'";
 
 /// A query cancelled by its timeout as a filter to narrow; anything else as it is.
 pub(crate) fn timed_out(error: sqlx::Error) -> ServiceError {
-    let cancelled = error
-        .as_database_error()
-        .and_then(|error| error.code())
-        .is_some_and(|code| code == "57014");
-    if cancelled {
+    if cancelled(&error) {
         ServiceError::InvalidRequest(format!(
             "the list took longer than {LIST_TIMEOUT} to read: narrow its filters"
         ))
     } else {
         error.into()
     }
+}
+
+/// Whether a query was cancelled by its statement timeout.
+pub(crate) fn cancelled(error: &sqlx::Error) -> bool {
+    error
+        .as_database_error()
+        .and_then(|error| error.code())
+        .is_some_and(|code| code == "57014")
 }
 
 pub(crate) fn no_alert(id: Uuid) -> ServiceError {

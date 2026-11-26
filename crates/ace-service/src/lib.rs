@@ -121,6 +121,7 @@ mod alerts;
 mod auth;
 mod collection;
 mod commands;
+pub mod commonalities;
 mod crashes;
 mod detection;
 mod detection_points;
@@ -652,6 +653,9 @@ pub struct Service {
     pattern_refusals: std::sync::Arc<filters::patterns::Refusals>,
     /// The overlay's alert automation rules (PLAN.md 7.22), `alert_automation`'s docs. None by default.
     automation: std::sync::Arc<alert_automation::AlertAutomation>,
+    /// The types the Commonalities panel lists first (PLAN.md 7.23), the overlay's
+    /// `gui.commonalities_priority_types`.
+    ranking: std::sync::Arc<commonalities::Ranking>,
 }
 
 impl Service {
@@ -677,6 +681,7 @@ impl Service {
             directives: std::sync::Arc::default(),
             pattern_refusals: std::sync::Arc::default(),
             automation: std::sync::Arc::default(),
+            ranking: std::sync::Arc::default(),
         }
     }
 

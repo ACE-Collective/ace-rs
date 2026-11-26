@@ -238,8 +238,17 @@ async fn serve(app: &App) -> Result<ExitCode> {
         ace_service::AlertAutomation::load(&overlay.alert_automation, &dispositions, &actions)
             .map_err(anyhow::Error::msg)
             .context("the overlay's alert_automation section")?;
+    // the types the alert list's Commonalities panel lists first (PLAN.md 7.23)
+    let ranking =
+        ace_service::commonalities::Ranking::new(overlay.gui.commonalities_priority_types.clone());
+    for name in ranking.types() {
+        if name.parse::<ace_results::ObservableKind>().is_err() {
+            tracing::warn!(r#type = %name, "gui.commonalities_priority_types names a type this node doesn't have, which ranks nothing until a types file adds it");
+        }
+    }
     let service = ace_service::Service::new(db.clone(), orchestrator.clone())
         .with_alert_automation(automation)
+        .with_commonality_ranking(ranking)
         .with_actions(actions)
         .with_dispositions(dispositions)
         .with_log_search(log_search)

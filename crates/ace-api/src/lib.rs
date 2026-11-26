@@ -699,6 +699,10 @@ impl Web {
             .route("/api/alerts/v1/dispositions", get(alerts::dispositions))
             .route("/api/alerts/v1/directives", get(alerts::directives))
             .route("/api/alerts/v1/owner", put(alerts::owner).layer(json_limit))
+            .route(
+                "/api/alerts/v1/commonalities",
+                post(alerts::commonalities).layer(json_limit),
+            )
             .route("/api/alerts/v1/alerts/export/csv", get(alerts::export_csv))
             .route(
                 "/api/alerts/v1/alerts/export/ndjson",
@@ -1404,6 +1408,7 @@ impl Web {
         alerts::directives,
         alerts::add_directives,
         alerts::owner,
+        alerts::commonalities,
         alerts::export_csv,
         alerts::export_ndjson,
         detection_points::list,

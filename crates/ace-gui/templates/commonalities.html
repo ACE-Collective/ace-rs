@@ -1,0 +1,111 @@
+{#- The alert list's Commonalities panel (PLAN.md 7.23, src/commonalities.rs), ace3's manage_commonalities.js
+    grid, in the list's fragment so the refresh draws it again. A group's box and a value's Select fold the
+    ids in their data-ids, which the server writes as JSON of uuids, into $_sel, the list's ticked ids; the
+    expressions hold no other value. Every other control is a link. -#}
+<section id="commonality-panel" class="commonality-panel" aria-label="Commonalities">
+  <header class="commonality-head">
+    <h2>Commonalities on this page{% if panel.error.is_none() && !panel.empty_page %} <span class="count">{{ panel.groups.len() }} group{% if panel.groups.len() != 1 %}s{% endif %}</span>{% endif %}</h2>
+    <a href="{{ panel.hide }}">Hide</a>
+  </header>
+  {%- if !panel.ignored.is_empty() %}
+  <div class="commonality-ignored">
+    <span class="muted">Ignored when grouping ({{ panel.ignored.len() }} of {{ panel.max_ignored }}):</span>
+    {%- for (chip, href) in panel.ignored %}
+    <span class="commonality-chip hue-{{ chip.hue }}" title="{{ chip.title }}"><span class="commonality-chip-type">{{ chip.label }}</span><span class="commonality-chip-value">{{ chip.value }}</span></span><a class="commonality-unignore" href="{{ href }}" title="Group by it again" aria-label="Group by it again">✕</a>
+    {%- endfor %}
+  </div>
+  {%- endif %}
+  {%- if let Some(error) = panel.error %}
+  <p class="error">{{ error }}</p>
+  {%- else if panel.empty_page %}
+  <p class="muted commonality-empty">No alerts on this page.</p>
+  {%- else %}
+  <div class="commonality-body">
+    <div class="commonality-grid-wrap">
+      {%- if panel.groups.is_empty() %}
+      <p class="muted commonality-empty">No two alerts on this page have an observable in common.</p>
+      {%- else %}
+      <table class="commonality-grid">
+        <thead>
+          <tr>
+            <th></th>
+            {%- for column in panel.columns %}
+            {%- if let Some(value) = column.value %}
+            <th class="commonality-colh">
+              <details class="commonality-menu">
+                <summary class="commonality-lbl"><span class="commonality-chip hue-{{ value.chip.hue }}" title="{{ value.chip.title }}"><span class="commonality-chip-type">{{ value.chip.label }}</span><span class="commonality-chip-value">{{ value.chip.value }}</span></span>{% if value.groups > 1 %}<span class="commonality-link" title="links {{ value.groups }} groups">⇄</span>{% endif %}</summary>
+                <div class="commonality-menu-items">
+                  <p class="commonality-menu-head"><span class="commonality-chip hue-{{ value.chip.hue }}"><span class="commonality-chip-type">{{ value.chip.label }}</span><span class="commonality-chip-value">{{ value.chip.value }}</span></span>
+                    <span class="muted">in {{ value.count }} alert{% if value.count != 1 %}s{% endif %} on this page{% if value.groups > 1 %}, across {{ value.groups }} groups{% endif %}</span></p>
+                  <button type="button" data-ids="{{ value.ids }}"
+                          data-on:click="$_sel = $_sel.filter(id => !JSON.parse(el.dataset.ids).includes(id)).concat(JSON.parse(el.dataset.ids))">Select the {{ value.count }} alert{% if value.count != 1 %}s{% endif %} that have it</button>
+                  {%- if let Some(href) = value.ignore %}
+                  <a href="{{ href }}">Ignore it when grouping<small>The alerts stay in the list. They just aren't grouped by this observable any more.</small></a>
+                  {%- else %}
+                  <span class="muted">Not ignored: at most {{ panel.max_ignored }} can be. Group by one of those ignored again (✕) to make room.</span>
+                  {%- endif %}
+                  {%- if let Some((href, filter)) = value.filter_out %}
+                  <a href="{{ href }}">Filter out: <b>{{ filter }}</b><small>Adds this filter to the alert list, which removes the {{ value.count }} alert{% if value.count != 1 %}s{% endif %} that have it.</small></a>
+                  {%- endif %}
+                </div>
+              </details>
+              <span class="commonality-tick"></span>
+            </th>
+            {%- else if let Some(more) = column.more %}
+            <th class="commonality-colh more"><div class="commonality-lbl"><a class="commonality-chip commonality-more" href="{{ more.href }}" title="Show them">{{ more.label }}</a></div><span class="commonality-tick"></span></th>
+            {%- endif %}
+            {%- endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {%- for group in panel.groups %}
+          <tr class="commonality-ghead" id="{{ group.anchor }}">
+            <td colspan="{{ panel.columns.len() + 1 }}">
+              <label><input type="checkbox" class="commonality-group-check" title="Tick these alerts" data-ids="{{ group.ids }}"
+                     data-on:change="$_sel = $_sel.filter(id => !JSON.parse(el.dataset.ids).includes(id)).concat(el.checked ? JSON.parse(el.dataset.ids) : [])"
+                     data-effect="el.checked = JSON.parse(el.dataset.ids).every(id => $_sel.includes(id)); el.indeterminate = !el.checked && JSON.parse(el.dataset.ids).some(id => $_sel.includes(id))"><span class="commonality-swatch heat-{{ group.heat }}"></span><b>{{ group.title }}</b>{{ group.detail }}</label>
+              {%- if let Some((href, text)) = group.toggle %} <a class="commonality-toggle" href="{{ href }}">{{ text }}</a>{% endif %}
+              {%- if !group.links.is_empty() %}
+              <span class="commonality-xlinks">⇄ {% for (text, value) in group.links %}{{ text }} <b>{{ value }}</b>{% if !loop.last %}; {% endif %}{% endfor %}</span>
+              {%- endif %}
+            </td>
+          </tr>
+          {%- for row in group.rows %}
+          <tr class="commonality-row">
+            <td class="commonality-rowh" title="{{ row.description }}"><a href="/alerts/{{ row.id }}">{{ row.description }}</a></td>
+            {%- for square in row.squares %}
+            <td class="commonality-cell{% if square.stripe %} stripe{% endif %}">{% if !square.look.is_empty() %}<div class="commonality-sq {{ square.look }} heat-{{ group.heat }}" title="{{ square.title }}">{{ square.text }}</div>{% endif %}</td>
+            {%- endfor %}
+          </tr>
+          {%- endfor %}
+          {%- endfor %}
+          <tr>
+            <td class="commonality-cntlabel">Alerts that have it</td>
+            {%- for column in panel.columns %}
+            <td class="commonality-cnt{% if column.stripe %} stripe{% endif %}">{% if let Some(value) = column.value %}{{ value.count }}{% endif %}</td>
+            {%- endfor %}
+          </tr>
+        </tbody>
+      </table>
+      {%- if panel.cut > 0 %}
+      <p class="muted">{{ panel.cut }} more value{% if panel.cut != 1 %}s{% endif %} are in their groups' "+N more" columns: a grid draws at most {{ panel.max_shown }} of them.</p>
+      {%- endif %}
+      {%- endif %}
+    </div>
+    <div class="commonality-legend">
+      <dl>
+        <dt>Row</dt><dd>An alert that has at least one observable in common with another alert on this page.</dd>
+        <dt>Column</dt><dd>An observable value found in two or more of them, colored by type (+1 when the alerts have it as more than one type). Hover over a square to see what it is. Click a label to select its alerts, ignore it when grouping, or filter it out.</dd>
+        <dt>Filled square</dt><dd>The alert has that observable.</dd>
+        <dt>Square color</dt><dd>How much the group's alerts have in common: one observable <span class="commonality-ramp"></span> many</dd>
+        {%- if panel.links %}
+        <dt>⇄ Outlined square</dt><dd>An observable that links the alert to another group.</dd>
+        {%- endif %}
+        <dt>+N more</dt><dd>A group shows its {{ panel.max_columns }} most useful observables, and a near-identical group (each pair shares 90% or more) shows none; the number in the wide square is how many of the rest the alert has. Click its label to show them.</dd>
+        <dt>Group checkbox</dt><dd>Ticks the group's alerts in the list below, for the bulk actions.</dd>
+      </dl>
+      <p class="commonality-alone"><span class="commonality-alone-n">{{ panel.unrelated }}</span>unrelated alert{% if panel.unrelated != 1 %}s{% endif %}: nothing in common with any other alert on this page. Not shown in the grid.</p>
+    </div>
+  </div>
+  {%- endif %}
+</section>

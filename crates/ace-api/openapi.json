@@ -1417,6 +1417,77 @@
         }
       }
     },
+    "/api/alerts/v1/commonalities": {
+      "post": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Groups the alerts by the observable values they share, so an analyst sees which alerts on a page\nare potentially the same activity (the alert list's Commonalities panel). An id that isn't an alert\nis left out. A POST because the list of alerts can be long; nothing is changed.",
+        "operationId": "commonalities",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommonalitiesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The alerts' groups and the values they share",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommonalitiesBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No alerts or more than 500, more than 100 to ignore, queries that ran past their 10 s, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/alerts/v1/detections": {
       "get": {
         "tags": [
@@ -21824,6 +21895,177 @@
             "items": {
               "$ref": "#/components/schemas/CommentBody"
             }
+          }
+        }
+      },
+      "CommonalitiesBody": {
+        "type": "object",
+        "description": "The requested alerts grouped by the observable values they share. Alerts sharing two or more are\ngrouped together; alerts sharing only one are grouped only with alerts no stronger group took.",
+        "required": [
+          "groups",
+          "observables",
+          "related",
+          "unrelated",
+          "type_ancestors"
+        ],
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommonalityGroupBody"
+            }
+          },
+          "observables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommonalityObservableBody"
+            },
+            "description": "Every observable value two or more of the alerts have, ordered by group and, within one, most\nuseful first: values that link groups, then by type (the overlay's\n`gui.commonalities_priority_types`), then by how many of the group's alerts have it."
+          },
+          "related": {
+            "type": "object",
+            "description": "Each alert sharing anything -> how many other requested alerts share at least one value with it.",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "propertyNames": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "type_ancestors": {
+            "type": "object",
+            "description": "Each type in `observables` -> the types it extends, nearest first (`email_from` ->\n`[email_address]`), so a type without a color of its own can take its parent's.",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "unrelated": {
+            "type": "integer",
+            "description": "How many of the requested alerts share nothing with any other.",
+            "minimum": 0
+          }
+        }
+      },
+      "CommonalitiesRequest": {
+        "type": "object",
+        "description": "Which alerts to compare.",
+        "required": [
+          "alerts"
+        ],
+        "properties": {
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "1 to 500 alerts, in the order the page lists them.",
+            "maxItems": 500,
+            "minItems": 1
+          },
+          "ignore": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Up to 100 observables, each `type:value`, to leave out of the grouping.",
+            "maxItems": 100
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommonalityGroupBody": {
+        "type": "object",
+        "description": "A group of alerts that potentially relate.",
+        "required": [
+          "alerts",
+          "intensity",
+          "shared",
+          "total",
+          "near_identical"
+        ],
+        "properties": {
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The group's alerts, the most strongly linked first."
+          },
+          "intensity": {
+            "type": "number",
+            "format": "double",
+            "description": "0 to 1: how much the group's alerts have in common, from its size and how many observable values\nits pairs of alerts share."
+          },
+          "near_identical": {
+            "type": "boolean",
+            "description": "Every pair of the group's alerts shares at least 90% of the values of the one with more."
+          },
+          "shared": {
+            "type": "integer",
+            "description": "How many observable values every alert of the group has.",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "description": "The most observable values any alert of the group has.",
+            "minimum": 0
+          }
+        }
+      },
+      "CommonalityObservableBody": {
+        "type": "object",
+        "description": "One observable value two or more of the alerts have. They may have it under more than one type (an\naddress as both the sender and the return path): `types` lists them, most useful first, and `type`\nis the first.",
+        "required": [
+          "type",
+          "types",
+          "value",
+          "alerts",
+          "group",
+          "groups"
+        ],
+        "properties": {
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The requested alerts that have it."
+          },
+          "group": {
+            "type": "integer",
+            "description": "The index in `groups` of the first group with an alert that has it.",
+            "minimum": 0
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "The indexes of every group with an alert that has it; more than one means it links groups."
+          },
+          "type": {
+            "type": "string"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "value": {
+            "type": "string"
           }
         }
       },

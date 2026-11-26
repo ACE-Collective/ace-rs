@@ -117,6 +117,7 @@ pub mod analyze;
 mod assets;
 mod auth;
 pub mod cli;
+pub mod commonalities;
 pub mod detection;
 pub mod events;
 mod headers;

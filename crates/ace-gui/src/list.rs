@@ -112,6 +112,9 @@
 //! and `Last 7d` quick filters (`Service::seed_saved_filters`), written when the page is drawn and never by
 //! the refresh, as in ace3.
 //!
+//! The Commonalities panel (PLAN.md 7.23) is `crate::commonalities`: the list's URL shows it, and the
+//! page and its refresh draw it above the table.
+//!
 //! ace3's search box is the form above the filters, which asks `crate::search`'s page with the list's
 //! filters (PLAN.md 7.11). What ace3's page has that this leaves out: the remediation column and the
 //! queue-mix warning, the tag badges and comments under a title, and the favicon dot.
@@ -160,6 +163,12 @@ pub struct ListQuery {
     pub descending: bool,
     pub size: u32,
     pub after: Option<String>,
+    /// The Commonalities panel (`crate::commonalities`): whether it's shown, `common=1`.
+    pub commonalities: bool,
+    /// The observables it doesn't group by, `ignore=type:value` repeated.
+    pub ignore: Vec<String>,
+    /// The groups showing every column, each by its key (`crate::commonalities`), `expand=` repeated.
+    pub expand: Vec<Uuid>,
 }
 
 impl Default for ListQuery {
@@ -170,6 +179,9 @@ impl Default for ListQuery {
             descending: true,
             size: DEFAULT_PAGE_SIZE,
             after: None,
+            commonalities: false,
+            ignore: Vec::new(),
+            expand: Vec::new(),
         }
     }
 }
@@ -227,6 +239,28 @@ impl ListQuery {
                 .ok_or_else(|| format!("a page holds 1 to {MAX_PAGE_SIZE} alerts"))?;
         }
         query.after = one(pairs, "after").map(str::to_owned);
+        query.commonalities = match one(pairs, "common") {
+            None => false,
+            Some("1") => true,
+            Some(other) => return Err(format!("common is 1, not {other:?}")),
+        };
+        query.ignore = all(pairs, "ignore");
+        if query.ignore.len() > ace_service::commonalities::MAX_IGNORED {
+            return Err(format!(
+                "at most {} observables are ignored",
+                ace_service::commonalities::MAX_IGNORED
+            ));
+        }
+        query.expand = all(pairs, "expand")
+            .iter()
+            .map(|key| {
+                key.parse()
+                    .map_err(|_| format!("{key:?} isn't a group's key"))
+            })
+            .collect::<Result<_, _>>()?;
+        if query.expand.len() > MAX_PAGE_SIZE as usize {
+            return Err(format!("at most {MAX_PAGE_SIZE} groups are expanded"));
+        }
         let (mut filters, warnings, mut error) =
             match filters::decode(FilterScreen::Alerts, &all(pairs, "f"), false) {
                 Ok((filters, warnings)) => (filters, warnings, None),
@@ -314,7 +348,26 @@ impl ListQuery {
         if let Some(after) = after {
             pairs.push(("after", after.to_owned()));
         }
+        pairs.extend(self.panel_pairs());
         pairs
+    }
+
+    /// The Commonalities panel's state, which every link of the list carries.
+    pub(crate) fn panel_pairs(&self) -> Vec<(&'static str, String)> {
+        let mut pairs = Vec::new();
+        if self.commonalities {
+            pairs.push(("common", "1".to_owned()));
+        }
+        pairs.extend(self.ignore.iter().map(|spec| ("ignore", spec.clone())));
+        pairs.extend(self.expand.iter().map(|key| ("expand", key.to_string())));
+        pairs
+    }
+
+    /// This page of the list with its panel's state changed by `change`.
+    pub(crate) fn changed(&self, change: impl FnOnce(&mut ListQuery)) -> String {
+        let mut query = self.clone();
+        change(&mut query);
+        query.at("/")
     }
 
     fn url(path: &str, pairs: &[(&'static str, String)]) -> String {
@@ -448,6 +501,8 @@ pub struct AlertList {
     /// (PLAN.md decision 39). In the fragment, which the refresh draws again, as ace3 puts it in the
     /// filter bar its refresh draws, since a list can start being refused between two refreshes.
     pub refused: Option<String>,
+    /// The Commonalities panel, while the list's URL shows it (`crate::commonalities`).
+    pub panel: Option<crate::commonalities::Panel>,
 }
 
 /// A filter in the bar, and links that take it or one of its values away.
@@ -570,6 +625,11 @@ pub struct ListView {
     pub warnings: Vec<String>,
     pub error: Option<String>,
     pub refresh_seconds: u32,
+    /// Whether the Commonalities panel is shown, and the link that shows or hides it.
+    pub commonalities: bool,
+    pub commonalities_toggle: String,
+    /// The panel's state, which the filter editor's form carries as hidden fields.
+    pub panel_state: Vec<(&'static str, String)>,
 }
 
 /// A user Assign offers.
@@ -767,6 +827,7 @@ pub fn alert_list(
         next: page.next.as_deref().map(|next| query.page(Some(next))),
         ids: serde_json::to_string(&ids).expect("ids are JSON"),
         refused: None,
+        panel: None,
     }
 }
 
@@ -929,6 +990,12 @@ pub fn list_view(
         warnings,
         error,
         refresh_seconds: REFRESH_SECONDS,
+        commonalities: query.commonalities,
+        commonalities_toggle: query.changed(|q| {
+            q.commonalities = !q.commonalities;
+            q.expand.clear();
+        }),
+        panel_state: query.panel_pairs(),
     }
 }
 
@@ -1123,6 +1190,9 @@ pub(crate) async fn page(
         owners.as_deref(),
     );
     view.list.refused = refused;
+    if query.commonalities {
+        crate::commonalities::compare(&gui, actor, &page, &query, &mut view.list).await;
+    }
     render(&ListPage::new(viewer.layout, view))
 }
 
@@ -1164,6 +1234,9 @@ pub(crate) async fn refresh(
     let columns = gui.service.manage_columns(actor).await.unwrap_or_default();
     let mut list = alert_list(&page, &query, &columns, tz, gui.service.dispositions());
     list.refused = refused;
+    if query.commonalities {
+        crate::commonalities::compare(&gui, actor, &page, &query, &mut list).await;
+    }
     render(&AlertListFragment { list })
 }
 

@@ -2,9 +2,13 @@
     what the page includes and what a refresh sends, which Datastar morphs in by the id. A row's box belongs
     to the bulk form, outside this fragment; $_sel keeps the ticked ids across a morph, and each id is a
     uuid. Filters the service refused (an Observable Pattern past its bounds) list nothing and say why
-    here, which the refresh draws again. A description has its marks beside it: what SVS makes of the alert, and its root's tags (PLAN.md
+    here, which the refresh draws again, and so is the Commonalities panel while the URL shows it
+    (PLAN.md 7.23). A description has its marks beside it: what SVS makes of the alert, and its root's tags (PLAN.md
     7.10 batch 7b). -#}
 <div id="alert-list">
+  {%- if let Some(panel) = list.panel %}
+  {% include "commonalities.html" %}
+  {%- endif %}
   <p class="count">{{ list.total }} alert{% if list.total != 1 %}s{% endif %}</p>
   {%- if let Some(why) = list.refused %}
   <p class="error filter-refused">These filters can't be run, so no alerts are listed: {{ why }}</p>

@@ -42,6 +42,10 @@
 //!
 //! PLAN.md 5.11's events (6c): the event list's filters checked, each filter and each order both ways
 //! through the keyset, the filters' choices, and an event's alerts with their state and tags.
+//!
+//! PLAN.md 7.23: ace3's `tests/aceapi_v2/alerts/test_commonalities.py` cases as Rust tests
+//! (`commonalities_tests`, whose comment maps each case): a page's alerts grouped by the values they
+//! share, under `alert:read`, with a site's ranking of the types.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -55362,5 +55366,581 @@ mod alert_automation_tests {
             runs(db, before.root).await,
             removals(db).await,
         )
+    }
+}
+
+mod commonalities_tests {
+    //! ace3 `c55f15a2`'s `tests/aceapi_v2/alerts/test_commonalities.py` has 13 test functions. Here:
+    //! `test_groups_alerts_by_what_they_share`, `test_one_shared_observable_does_not_merge_two_groups`,
+    //! `test_an_alert_linked_only_to_a_group_joins_it`, `test_ignored_observables_do_not_group`,
+    //! `test_a_value_under_two_types_is_one_column`, `test_near_identical_groups`,
+    //! `test_columns_link_first_then_by_type` and `test_a_file_is_one_value_with_its_sha256` have tests
+    //! of the same names; `test_only_alerts_this_node_shows_are_compared` is
+    //! `only_alerts_are_compared`, since ace-rs has one node and an id that isn't an alert is what it
+    //! leaves out; `test_rejects_an_empty_or_oversized_request` is
+    //! `a_request_outside_its_bounds_is_refused` here and the API's 400 in `ace-api`'s
+    //! `every_documented_status_is_tested`, where `test_requires_auth` and `test_requires_alert_read` are
+    //! too (401 and 403), with `an_actor_without_alert_read_learns_nothing` here.
+    //! `test_grouping_a_full_page_that_shares_one_value_is_fast` and `test_measuring_many_groups_is_fast`
+    //! are `a_full_page_that_shares_one_value_groups_in_two` and `measuring_many_groups_is_one_pass`,
+    //! which check the same groups without ace3's wall-clock bound (AGENTS.md, *Time*): the bound is the
+    //! passes over the pairs, which `group` and `measure` make once each. Besides ace3's: a site's own
+    //! types ranked by its overlay's list, and the same page grouped the same way whatever order the
+    //! database returns its rows in.
+    use super::*;
+    use ace_service::commonalities::{
+        self, Commonalities, MAX_ALERTS, MAX_IGNORED, Observed, Ranking,
+    };
+    use std::collections::{HashMap, HashSet};
+
+    /// An alert with these observables (`type:value`), or a root that never became one.
+    async fn observed(db: &Db, specs: &[&str], alerted: bool) -> Uuid {
+        let root = NewRoot::new("correlation");
+        let mut tx = db.begin().await.expect("begins");
+        tree::create_root(&mut tx, &root).await.expect("creates");
+        for spec in specs {
+            let (kind, value) = spec.split_once(':').expect("type:value");
+            let kind: ObservableKind = kind.parse().expect("a type");
+            tree::upsert_observable(&mut tx, root.id, &NewObservable::new(kind, value))
+                .await
+                .expect("adds");
+        }
+        tx.commit().await.expect("commits");
+        if alerted {
+            sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+                .bind(root.id)
+                .execute(db.pool())
+                .await
+                .expect("an alert");
+        }
+        root.id
+    }
+
+    async fn alert_of(db: &Db, specs: &[&str]) -> Uuid {
+        observed(db, specs, true).await
+    }
+
+    async fn compare_with(
+        service: &Service,
+        db: &Db,
+        alerts: &[Uuid],
+        ignore: &[&str],
+    ) -> Commonalities {
+        let ignore: Vec<String> = ignore.iter().map(|s| (*s).to_owned()).collect();
+        service
+            .alert_commonalities(&admin(db).await, alerts, &ignore)
+            .await
+            .expect("compares")
+    }
+
+    async fn compare(db: &Db, alerts: &[Uuid], ignore: &[&str]) -> Commonalities {
+        compare_with(&service(db), db, alerts, ignore).await
+    }
+
+    fn groups(found: &Commonalities) -> Vec<HashSet<Uuid>> {
+        found
+            .groups
+            .iter()
+            .map(|group| group.alerts.iter().copied().collect())
+            .collect()
+    }
+
+    fn set(ids: &[Uuid]) -> HashSet<Uuid> {
+        ids.iter().copied().collect()
+    }
+
+    fn values(found: &Commonalities) -> Vec<&str> {
+        found.observables.iter().map(|o| o.value.as_str()).collect()
+    }
+
+    #[tokio::test]
+    async fn test_groups_alerts_by_what_they_share() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        // three alerts about one user on one host, a pair sharing one sender, and one sharing nothing
+        let a = alert_of(db, &["user:jdoe", "hostname:wks-1", "ipv4:192.0.2.10"]).await;
+        let b = alert_of(db, &["user:jdoe", "hostname:wks-1", "ipv4:192.0.2.10"]).await;
+        let c = alert_of(db, &["user:jdoe", "hostname:wks-1"]).await;
+        let d = alert_of(db, &["email_address:sender@example.com"]).await;
+        let e = alert_of(db, &["email_address:sender@example.com"]).await;
+        let alone = alert_of(db, &["user:someone-else"]).await;
+
+        let found = compare(db, &[d, a, e, b, alone, c], &[]).await;
+
+        assert_eq!(groups(&found), vec![set(&[a, b, c]), set(&[d, e])]);
+        // the group with more in common comes first, its most strongly linked alerts first
+        assert!(found.groups[0].intensity > found.groups[1].intensity);
+        assert_eq!(found.groups[0].alerts.last(), Some(&c));
+        assert_eq!(
+            found.related,
+            [(a, 2), (b, 2), (c, 2), (d, 1), (e, 1)]
+                .into_iter()
+                .collect()
+        );
+        assert_eq!(found.unrelated, 1);
+        assert_eq!(
+            found
+                .observables
+                .iter()
+                .map(|o| (o.kind.as_str(), o.value.as_str()))
+                .collect::<Vec<_>>(),
+            [
+                ("user", "jdoe"),
+                ("hostname", "wks-1"),
+                ("ipv4", "192.0.2.10"),
+                ("email_address", "sender@example.com"),
+            ]
+        );
+        let ip = &found.observables[2];
+        assert_eq!(
+            (&ip.kinds, &ip.alerts, ip.group, &ip.groups),
+            (&vec!["ipv4".to_owned()], &vec![a, b], 0, &vec![0])
+        );
+    }
+
+    #[tokio::test]
+    async fn test_one_shared_observable_does_not_merge_two_groups() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let a = alert_of(db, &["user:jdoe", "hostname:wks-1", "user:anguyen"]).await;
+        let b = alert_of(db, &["user:jdoe", "hostname:wks-1"]).await;
+        let c = alert_of(db, &["user:anguyen"]).await;
+        let d = alert_of(db, &["user:anguyen"]).await;
+
+        let found = compare(db, &[a, b, c, d], &[]).await;
+
+        assert_eq!(groups(&found), vec![set(&[a, b]), set(&[c, d])]);
+        let anguyen = found
+            .observables
+            .iter()
+            .find(|o| o.value == "anguyen")
+            .expect("anguyen");
+        assert_eq!(anguyen.groups, vec![0, 1]);
+        assert_eq!(found.related[&a], 3);
+    }
+
+    #[tokio::test]
+    async fn test_an_alert_linked_only_to_a_group_joins_it() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let a = alert_of(db, &["user:jdoe", "hostname:wks-1"]).await;
+        let b = alert_of(db, &["user:jdoe", "hostname:wks-1"]).await;
+        let c = alert_of(db, &["user:jdoe"]).await;
+
+        let found = compare(db, &[a, b, c], &[]).await;
+
+        assert_eq!(groups(&found), vec![set(&[a, b, c])]);
+        assert_eq!(found.unrelated, 0);
+    }
+
+    #[tokio::test]
+    async fn test_ignored_observables_do_not_group() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let a = alert_of(db, &["ipv4:192.0.2.53", "user:jdoe"]).await;
+        let b = alert_of(db, &["ipv4:192.0.2.53", "user:jdoe"]).await;
+        let c = alert_of(db, &["ipv4:192.0.2.53"]).await;
+
+        let found = compare(db, &[a, b, c], &["ipv4:192.0.2.53"]).await;
+
+        assert_eq!(groups(&found), vec![set(&[a, b])]);
+        assert_eq!(values(&found), ["jdoe"]);
+        assert_eq!(found.unrelated, 1);
+    }
+
+    /// ace3's `test_only_alerts_this_node_shows_are_compared`: ace-rs has one node, so what's left out
+    /// is a root that never became an alert and an id that names nothing.
+    #[tokio::test]
+    async fn only_alerts_are_compared() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let a = observed(db, &["user:jdoe"], false).await;
+        let b = observed(db, &["user:jdoe"], false).await;
+
+        let found = compare(db, &[a, b, Uuid::new_v4()], &[]).await;
+
+        assert_eq!(found, Commonalities::default());
+    }
+
+    #[tokio::test]
+    async fn test_a_value_under_two_types_is_one_column() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let a = alert_of(db, &["email_from:sender@example.com", "user:jdoe"]).await;
+        let b = alert_of(db, &["email_address:sender@example.com", "user:jdoe"]).await;
+
+        let found = compare(db, &[a, b], &[]).await;
+
+        // two values in common, so the alerts are a group, and the address is one column with both types
+        assert_eq!(groups(&found), vec![set(&[a, b])]);
+        let sender = found
+            .observables
+            .iter()
+            .find(|o| o.value == "sender@example.com")
+            .expect("the sender");
+        assert_eq!(sender.kinds, ["email_address", "email_from"]);
+        assert_eq!(sender.kind, "email_address");
+        assert_eq!(
+            sender.specs(),
+            [
+                "email_address:sender@example.com",
+                "email_from:sender@example.com"
+            ]
+        );
+        assert_eq!(found.observables.len(), 2);
+        assert_eq!(
+            found.type_ancestors,
+            [
+                ("email_address".to_owned(), vec![]),
+                ("email_from".to_owned(), vec!["email_address".to_owned()]),
+                ("user".to_owned(), vec![]),
+            ]
+            .into_iter()
+            .collect()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_near_identical_groups() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let same = [
+            "user:jdoe",
+            "hostname:wks-1",
+            "ipv4:192.0.2.10",
+            "email_subject:invoice",
+            "file_name:invoice.html",
+        ];
+        let a = alert_of(db, &same).await;
+        let b = alert_of(db, &same).await;
+        let c = alert_of(db, &["user:other", "hostname:wks-9", "email_subject:hello"]).await;
+        let d = alert_of(
+            db,
+            &["user:other", "hostname:wks-9", "email_subject:goodbye"],
+        )
+        .await;
+
+        let found = compare(db, &[a, b, c, d], &[]).await;
+
+        let (copies, others) = (&found.groups[0], &found.groups[1]);
+        assert_eq!(set(&copies.alerts), set(&[a, b]));
+        assert_eq!(
+            (copies.near_identical, copies.shared, copies.total),
+            (true, 5, 5)
+        );
+        assert_eq!(
+            (others.near_identical, others.shared, others.total),
+            (false, 2, 3)
+        );
+
+        // an ignored value no longer counts toward the alerts' size either
+        let found = compare(db, &[a, b], &["ipv4:192.0.2.10"]).await;
+        assert_eq!((found.groups[0].shared, found.groups[0].total), (4, 4));
+    }
+
+    #[tokio::test]
+    async fn test_columns_link_first_then_by_type() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let a = alert_of(
+            db,
+            &[
+                "file_name:report.pdf",
+                "email_from:sender@example.com",
+                "hostname:wks-1",
+                "ipv4:192.0.2.77",
+            ],
+        )
+        .await;
+        let b = alert_of(
+            db,
+            &[
+                "file_name:report.pdf",
+                "email_from:sender@example.com",
+                "hostname:wks-1",
+            ],
+        )
+        .await;
+        let c = alert_of(db, &["ipv4:192.0.2.77", "user:z"]).await;
+        let d = alert_of(db, &["ipv4:192.0.2.77", "user:z"]).await;
+
+        let found = compare(db, &[a, b, c, d], &[]).await;
+
+        assert_eq!(groups(&found), vec![set(&[a, b]), set(&[c, d])]);
+        // the value linking the groups, then hostname before email_from (ranked as email_address), file
+        // names last
+        assert_eq!(
+            values(&found),
+            [
+                "192.0.2.77",
+                "wks-1",
+                "sender@example.com",
+                "report.pdf",
+                "z"
+            ]
+        );
+
+        // a site's list, as its overlay's gui.commonalities_priority_types gives it
+        let ranked =
+            service(db).with_commonality_ranking(Ranking::new(Some(vec!["file_name".to_owned()])));
+        let found = compare_with(&ranked, db, &[a, b, c, d], &[]).await;
+        assert_eq!(
+            values(&found),
+            [
+                "192.0.2.77",
+                "report.pdf",
+                "sender@example.com",
+                "wks-1",
+                "z"
+            ]
+        );
+    }
+
+    /// A site ranks a type of its own, which its types file adds (PLAN.md decision 66), and a type that
+    /// extends it ranks as it does; a name in the list that is no type ranks nothing.
+    #[tokio::test]
+    async fn a_site_ranks_its_own_types_by_its_overlay_s_list() {
+        let merged = ace_results::merge_file_types(
+            &[
+                (
+                    "made_up_endpoint".to_owned(),
+                    ace_results::FileType::default(),
+                ),
+                (
+                    "made_up_source_endpoint".to_owned(),
+                    ace_results::FileType {
+                        extends: Some("made_up_endpoint".to_owned()),
+                        ..ace_results::FileType::default()
+                    },
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        );
+        assert!(merged.refused.is_empty(), "{merged:?}");
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let a = alert_of(
+            db,
+            &[
+                "hostname:wks-1",
+                "user:jdoe",
+                "made_up_source_endpoint:10.9.8.7",
+            ],
+        )
+        .await;
+        let b = alert_of(
+            db,
+            &[
+                "hostname:wks-1",
+                "user:jdoe",
+                "made_up_source_endpoint:10.9.8.7",
+            ],
+        )
+        .await;
+        let overlay = ace_sdk::Overlay::from_yaml(
+            "gui:\n  commonalities_priority_types: [no_such_type, made_up_endpoint, hostname]\n",
+        )
+        .expect("the overlay reads");
+        let ranking = Ranking::new(overlay.gui.commonalities_priority_types);
+        assert_eq!(ranking.rank("made_up_source_endpoint"), 1);
+        assert_eq!(ranking.rank("user"), 3, "unlisted, after every listed type");
+        let found = compare_with(
+            &service(db).with_commonality_ranking(ranking),
+            db,
+            &[a, b],
+            &[],
+        )
+        .await;
+        assert_eq!(values(&found), ["10.9.8.7", "wks-1", "jdoe"]);
+        assert_eq!(
+            found.type_ancestors["made_up_source_endpoint"],
+            ["made_up_endpoint"]
+        );
+        // with none given, ace3's list: the site's type is unlisted, so it comes last
+        let found = compare(db, &[a, b], &[]).await;
+        assert_eq!(values(&found), ["jdoe", "wks-1", "10.9.8.7"]);
+    }
+
+    #[tokio::test]
+    async fn test_a_file_is_one_value_with_its_sha256() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let digest = hex::encode(Sha256::digest(b"invoice attachment"));
+        let file = format!("file:{digest}");
+        let hash = format!("sha256:{digest}");
+        // the same email twice: the same file, and the sha256 observable the hash analyzer adds for it
+        let a = alert_of(db, &["user:jdoe", &hash, &file]).await;
+        let b = alert_of(db, &["user:jdoe", &hash, &file]).await;
+        // an alert that only has the hash, from a hunt
+        let c = alert_of(db, &[&hash, "user:other"]).await;
+        let d = alert_of(db, &["user:other", "hostname:wks-2"]).await;
+
+        let found = compare(db, &[a, b, c, d], &[]).await;
+
+        let copies = found
+            .groups
+            .iter()
+            .find(|g| g.alerts.contains(&a))
+            .expect("a's group");
+        // two values each: the user, and the file whose sha256 is the same value
+        assert_eq!(
+            (copies.shared, copies.total, copies.near_identical),
+            (2, 2, true)
+        );
+        let attachment = found
+            .observables
+            .iter()
+            .find(|o| o.value == digest)
+            .expect("the attachment");
+        let mut kinds = attachment.kinds.clone();
+        kinds.sort();
+        assert_eq!(kinds, ["file", "sha256"]);
+        assert_eq!(set(&attachment.alerts), set(&[a, b, c]));
+    }
+
+    /// ace3's `test_rejects_an_empty_or_oversized_request`, and the ignore list's bound.
+    #[tokio::test]
+    async fn a_request_outside_its_bounds_is_refused() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let admin = admin(db).await;
+        let service = service(db);
+        let many: Vec<Uuid> = (0..=MAX_ALERTS).map(|_| Uuid::new_v4()).collect();
+        let ignored: Vec<String> = (0..=MAX_IGNORED).map(|n| format!("user:u{n}")).collect();
+        for (alerts, ignore) in [
+            (&[][..], &[][..]),
+            (&many[..], &[][..]),
+            (&many[..1], &ignored[..]),
+        ] {
+            let refused = service.alert_commonalities(&admin, alerts, ignore).await;
+            assert!(
+                matches!(refused, Err(ServiceError::InvalidRequest(_))),
+                "{refused:?}"
+            );
+        }
+        // the bounds themselves are taken
+        let found = service
+            .alert_commonalities(&admin, &many[..MAX_ALERTS], &ignored[..MAX_IGNORED])
+            .await
+            .expect("compares");
+        assert_eq!(found, Commonalities::default());
+    }
+
+    /// ace3's `test_requires_alert_read`, here as the service's refusal.
+    #[tokio::test]
+    async fn an_actor_without_alert_read_learns_nothing() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let a = alert_of(db, &["user:jdoe"]).await;
+        let b = alert_of(db, &["user:jdoe"]).await;
+        let refused = service(db)
+            .alert_commonalities(&component("nobody"), &[a, b], &[])
+            .await;
+        assert!(
+            matches!(
+                &refused,
+                Err(ServiceError::PermissionDenied { permission, .. })
+                    if permission.to_string() == "alert:read"
+            ),
+            "{refused:?}"
+        );
+    }
+
+    /// ace3's `test_grouping_a_full_page_that_shares_one_value_is_fast`.
+    #[test]
+    fn a_full_page_that_shares_one_value_groups_in_two() {
+        let ids: Vec<Uuid> = (0..MAX_ALERTS).map(|_| Uuid::new_v4()).collect();
+        let position: HashMap<Uuid, usize> =
+            ids.iter().enumerate().map(|(n, id)| (*id, n)).collect();
+        let grouping = commonalities::group(
+            &[
+                ("wks-1".to_owned(), ids.clone()),
+                ("jdoe".to_owned(), ids[..10].to_vec()),
+            ],
+            &position,
+        );
+        // the ten alerts sharing two values are a group; the rest, linked by one value only, are another
+        assert_eq!(
+            grouping
+                .groups
+                .iter()
+                .map(|g| set(&g.alerts))
+                .collect::<Vec<_>>(),
+            vec![set(&ids[..10]), set(&ids[10..])]
+        );
+        assert_eq!(grouping.weight.len(), MAX_ALERTS * (MAX_ALERTS - 1) / 2);
+    }
+
+    /// ace3's `test_measuring_many_groups_is_fast`.
+    #[test]
+    fn measuring_many_groups_is_one_pass() {
+        // a full page of 250 pairs, each pair sharing two values, and one value all 500 alerts share
+        let ids: Vec<Uuid> = (0..MAX_ALERTS).map(|_| Uuid::new_v4()).collect();
+        let position: HashMap<Uuid, usize> =
+            ids.iter().enumerate().map(|(n, id)| (*id, n)).collect();
+        let mut alerts_of = vec![("dns".to_owned(), ids.clone())];
+        for n in (0..ids.len()).step_by(2) {
+            alerts_of.push((format!("user-{n}"), ids[n..n + 2].to_vec()));
+            alerts_of.push((format!("host-{n}"), ids[n..n + 2].to_vec()));
+        }
+        let mut grouping = commonalities::group(&alerts_of, &position);
+        assert_eq!(grouping.groups.len(), MAX_ALERTS / 2);
+        let totals = ids.iter().map(|id| (*id, 3)).collect();
+        commonalities::measure(
+            &mut grouping.groups,
+            &grouping.group_of,
+            &alerts_of,
+            &grouping.weight,
+            &totals,
+        );
+        assert!(
+            grouping
+                .groups
+                .iter()
+                .all(|g| (g.shared, g.total, g.near_identical) == (3, 3, true))
+        );
+    }
+
+    /// ace3 groups in the order its database returns the rows; here the request's order decides, so the
+    /// same page groups the same way every time.
+    #[test]
+    fn the_same_page_groups_the_same_way_whatever_order_the_rows_come_in() {
+        let ids: Vec<Uuid> = (0..6).map(|n| Uuid::from_u128(n + 1)).collect();
+        let mut rows = Vec::new();
+        // a and b share two values, c, d, e and f one each with their neighbour
+        for (alert, kind, value) in [
+            (0, "user", "jdoe"),
+            (1, "user", "jdoe"),
+            (0, "hostname", "wks-1"),
+            (1, "hostname", "wks-1"),
+            (2, "user", "x"),
+            (3, "user", "x"),
+            (3, "fqdn", "y.example"),
+            (4, "fqdn", "y.example"),
+            (4, "url", "https://z.example/"),
+            (5, "url", "https://z.example/"),
+        ] {
+            rows.push((ids[alert], kind.to_owned(), value.to_owned()));
+        }
+        let totals: HashMap<Uuid, usize> = ids.iter().map(|id| (*id, 2)).collect();
+        let grouped = |rows: Vec<(Uuid, String, String)>| {
+            commonalities::commonalities_of(
+                &ids,
+                Observed {
+                    rows,
+                    totals: totals.clone(),
+                },
+                &[],
+                &Ranking::default(),
+            )
+        };
+        let first = grouped(rows.clone());
+        for turn in 1..rows.len() {
+            let mut turned = rows.clone();
+            turned.rotate_left(turn);
+            turned.reverse();
+            assert_eq!(grouped(turned), first, "rows turned by {turn}");
+        }
     }
 }

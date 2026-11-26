@@ -49,6 +49,9 @@
     {%- for f in view.f %}
     <input type="hidden" name="f" value="{{ f }}">
     {%- endfor %}
+    {%- for (name, value) in view.panel_state %}
+    <input type="hidden" name="{{ name }}" value="{{ value }}">
+    {%- endfor %}
     <label for="filter-add">Add a filter</label>
     <select id="filter-add" name="add">
       <optgroup label="Common">
@@ -122,6 +125,9 @@
   </details>
 
   {% include "column_chooser.html" %}
+  {#- shows and hides the Commonalities panel (PLAN.md 7.23), above the list -#}
+  <a class="button commonalities-toggle{% if view.commonalities %} active{% endif %}" href="{{ view.commonalities_toggle }}"
+     title="Show which alerts on this page are potentially related: the observables they have in common">{% if view.commonalities %}Hide commonalities{% else %}Commonalities{% endif %}</a>
   <span class="exports">Export: <a href="{{ view.export_csv }}">CSV</a> <a href="{{ view.export_ndjson }}">NDJSON</a></span>
   </div>
 

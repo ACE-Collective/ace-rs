@@ -701,6 +701,7 @@ const DISPOSITIONS: &str = "/api/alerts/v1/dispositions";
 const DIRECTIVES: &str = "/api/alerts/v1/directives";
 const ADD_DIRECTIVES: &str = "/api/alerts/v1/alerts/{id}/observables/{observable}/directives";
 const OWNER: &str = "/api/alerts/v1/owner";
+const COMMONALITIES: &str = "/api/alerts/v1/commonalities";
 const SUBMIT: &str = "/api/analysis/v1/submit";
 const LOOKUP: &str = "/api/observables/v1/lookup";
 const TYPES: &str = "/api/observables/v1/types";
@@ -988,6 +989,7 @@ fn good_body(route: &str) -> Send {
         DISPOSITION => Send::Json(json!({"disposition": "FALSE_POSITIVE"})),
         ADD_DIRECTIVES => Send::Json(json!({"directives": ["crawl"]})),
         OWNER => Send::Json(json!({"alerts": [Uuid::nil()], "owner": null})),
+        COMMONALITIES => Send::Json(json!({"alerts": [Uuid::nil()]})),
         VERDICT => Send::Json(json!({"verdict": "fp"})),
         SUBMIT => Send::Form(form(&json!({"description": "x"}), &[])),
         LOOKUP => Send::Json(json!({"observables": [{"type": "fqdn", "value": "a.example"}]})),
@@ -1080,7 +1082,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 250, "{routes:?}");
+    assert_eq!(routes.len(), 251, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -3173,6 +3175,82 @@ async fn owners(client: &mut Client<'_>) {
             t,
             json(json!({"disposition": "IGNORE", "take_from": "x"})),
             S::BAD_REQUEST,
+        )
+        .await;
+}
+
+/// PLAN.md 7.23: ace3's `test_commonalities.py` through the API: a page's alerts grouped by the values
+/// they share, an empty or oversized request refused (ace3's 422 is 400 here), and its 401 and 403 in
+/// `refuses_without_a_credential_or_a_permission`.
+async fn commonalities(client: &mut Client<'_>, token: &str) {
+    use Method as M;
+    use StatusCode as S;
+    let host = |n| {
+        alert(
+            client.stack,
+            n,
+            &[
+                (ObservableKind::Hostname, "wks-commonality"),
+                (ObservableKind::User, "jdoe-commonality"),
+            ],
+        )
+    };
+    let (a, b) = (host("one").await, host("two").await);
+    let alone = alert(
+        client.stack,
+        "alone",
+        &[(ObservableKind::User, "nobody-else")],
+    )
+    .await;
+    let found = client
+        .json(
+            M::POST,
+            COMMONALITIES,
+            COMMONALITIES,
+            Some(token),
+            Send::Json(json!({"alerts": [a, alone, b], "ignore": ["user:jdoe-commonality"]})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(found["groups"].as_array().map(Vec::len), Some(1), "{found}");
+    assert_eq!(found["groups"][0]["alerts"], json!([a, b]));
+    assert_eq!(found["groups"][0]["near_identical"], true);
+    assert_eq!(
+        found["observables"],
+        json!([{"type": "hostname", "types": ["hostname"], "value": "wks-commonality",
+                "alerts": [a, b], "group": 0, "groups": [0]}])
+    );
+    assert_eq!(
+        found["related"],
+        json!({a.to_string(): 1, b.to_string(): 1})
+    );
+    assert_eq!(found["unrelated"], 1);
+    assert_eq!(found["type_ancestors"], json!({"hostname": []}));
+    let too_many: Vec<Uuid> = (0..501).map(|_| Uuid::new_v4()).collect();
+    for body in [
+        json!({"alerts": []}),
+        json!({"alerts": too_many}),
+        json!({"alerts": [a], "nope": 1}),
+    ] {
+        client
+            .json(
+                M::POST,
+                COMMONALITIES,
+                COMMONALITIES,
+                Some(token),
+                Send::Json(body),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            COMMONALITIES,
+            COMMONALITIES,
+            Some(token),
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
         )
         .await;
 }
@@ -5808,6 +5886,7 @@ async fn every_documented_status_is_tested() {
     dispositions(&mut client, &token).await;
     directives(&mut client, &token).await;
     owners(&mut client).await;
+    commonalities(&mut client, &token).await;
     looks_up(&mut client, &token, id, &bytes).await;
     lists_types(&mut client, &token).await;
     let admin = key(&stack, &["user:read", "user:write"]).await;
@@ -19935,7 +20014,7 @@ async fn a_key_scoped_to_the_ai_api_reaches_nothing_else() {
         );
         checked += 1;
     }
-    assert_eq!(checked, 246, "every other route was swept");
+    assert_eq!(checked, 247, "every other route was swept");
     assert_eq!(
         (audit_count(&stack).await, root_count(&stack).await),
         before,

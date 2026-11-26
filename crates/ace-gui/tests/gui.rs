@@ -44,6 +44,11 @@
 //! and through the server under `alert:read` and `alert:write`, each form one audited write from this site
 //! only, and each refusal changing nothing.
 //!
+//! PLAN.md 7.23: the alert list's Commonalities panel, drawn directly from a fixture grouping with
+//! hostile text, and through the server from Postgres: shown and hidden by the list's URL, drawn again by
+//! the refresh, its ignore and filter-out links, a site's ranking, and nothing inline. ace3's
+//! `test_manage_page_renders_the_commonalities_panel` is `the_list_shows_which_alerts_potentially_relate`.
+//!
 //! PLAN.md 5.12: Administration's CLI, the console and a run's page and fragment, drawn directly with a
 //! run's hostile command and output, and through the server under `admin:read` and `cli:execute`: a start
 //! and a cancel from this site only, each with its audit row, the fragment's poll that stops once a run
@@ -23129,4 +23134,349 @@ mod work_panel {
         assert!(!quiet.contains("datastar-patch-elements"), "{quiet}");
         assert!(quiet.contains(": heartbeat"), "{quiet}");
     }
+}
+
+use ace_service::commonalities::{Commonalities, CommonalityGroup, CommonalityObservable, Ranking};
+
+fn observable_of(
+    kinds: &[&str],
+    value: &str,
+    alerts: &[uuid::Uuid],
+    groups: &[usize],
+) -> CommonalityObservable {
+    CommonalityObservable {
+        kind: kinds[0].to_owned(),
+        kinds: kinds.iter().map(|k| (*k).to_owned()).collect(),
+        value: value.to_owned(),
+        alerts: alerts.to_vec(),
+        group: groups[0],
+        groups: groups.to_vec(),
+    }
+}
+
+/// The panel's view from a grouping: two groups, the first with more values than it shows and one
+/// linking it to the second, which is near-identical; every value escaped, and nothing inline.
+#[test]
+fn the_commonalities_panel_draws_a_page_s_groups() {
+    let ids: Vec<uuid::Uuid> = (1..=5).map(uuid::Uuid::from_u128).collect();
+    let page = ace_service::AlertPage {
+        alerts: ids
+            .iter()
+            .map(|id| summary(*id, &format!("{HOSTILE} {id}")))
+            .collect(),
+        next: None,
+        total: 5,
+    };
+    let (first, second) = (&ids[..2], &ids[2..4]);
+    let mut observables = vec![observable_of(
+        &["email_address", "email_from"],
+        HOSTILE,
+        &[ids[0], ids[1], ids[2]],
+        &[0, 1],
+    )];
+    for n in 0..11 {
+        observables.push(observable_of(
+            &["hostname"],
+            &format!("wks-{n}"),
+            first,
+            &[0],
+        ));
+    }
+    observables.push(observable_of(&["user"], "jdoe", second, &[1]));
+    let found = Commonalities {
+        groups: vec![
+            CommonalityGroup {
+                alerts: first.to_vec(),
+                intensity: 1.0,
+                shared: 12,
+                total: 12,
+                near_identical: false,
+            },
+            CommonalityGroup {
+                alerts: second.to_vec(),
+                intensity: 0.2,
+                shared: 1,
+                total: 1,
+                near_identical: true,
+            },
+        ],
+        observables,
+        related: [(ids[0], 2), (ids[1], 2), (ids[2], 3), (ids[3], 1)]
+            .into_iter()
+            .collect(),
+        unrelated: 1,
+        type_ancestors: [
+            ("email_address".to_owned(), vec![]),
+            ("email_from".to_owned(), vec!["email_address".to_owned()]),
+            ("hostname".to_owned(), vec![]),
+            ("user".to_owned(), vec![]),
+        ]
+        .into_iter()
+        .collect(),
+    };
+    let query = ListQuery {
+        commonalities: true,
+        ..ListQuery::default()
+    };
+    let columns = ace_service::ManageColumnsPreference::default();
+    let draw = |query: &ListQuery| {
+        let mut list = alert_list(
+            &page,
+            query,
+            &columns,
+            chrono_tz::Tz::UTC,
+            &ace_service::Dispositions::ace3(),
+        );
+        ace_gui::commonalities::mark_related(&mut list, &found);
+        list.panel = Some(ace_gui::commonalities::panel(&page, query, Ok(&found)));
+        AlertListFragment { list }.render().expect("renders")
+    };
+    let html = draw(&query);
+    // the hostile text's handler is text (inline_free reads it as one), so: no style, no element of its
+    assert!(!html.contains("style="), "{html}");
+    assert!(!html.contains("<script>alert"), "{html}");
+    assert!(!html.contains("<img"), "{html}");
+    contains_all(
+        &html,
+        &[
+            r#"<section id="commonality-panel""#,
+            "2 groups",
+            "<b>2 potentially related alerts</b>",
+            "<b>2 near-identical alerts</b>: they share all 1 observables",
+            // the linking value and nine hostnames make its ten; the other two fold
+            "+2 more",
+            // the near-identical group folds its one
+            "1 shared",
+            "show all 12",
+            "show the observables",
+            // a type shown with how many more it has
+            "email_address +1",
+            "links 2 groups",
+            "also linked to 1 alert via <b>&#34;&#62;&#60;script&#62;",
+            // the group's box, and Select, fold fixed expressions over the ids in data-ids
+            r#"data-on:change="$_sel = $_sel.filter(id => !JSON.parse(el.dataset.ids).includes(id)).concat(el.checked ? JSON.parse(el.dataset.ids) : [])""#,
+            r#"data-on:click="$_sel = $_sel.filter(id => !JSON.parse(el.dataset.ids).includes(id)).concat(JSON.parse(el.dataset.ids))""#,
+            "Select the 3 alerts that have it",
+            "<span class=\"commonality-alone-n\">1</span>unrelated alert:",
+            // the listed alerts' marks, linking to their groups
+            r##"<a href="#commonality-group-0" class="badge commonality heat-4""##,
+            "potentially related to 3 alerts",
+            "heat-1",
+        ],
+    );
+    assert!(html.contains(&format!(
+        r#"data-ids="[&#34;{}&#34;,&#34;{}&#34;]""#,
+        ids[0], ids[1]
+    )));
+    // the alert sharing nothing has no row in the grid
+    let grid = html
+        .split("<section id=\"commonality-panel\"")
+        .nth(1)
+        .and_then(|rest| rest.split("</section>").next())
+        .expect("the panel");
+    assert!(!grid.contains(&ids[4].to_string()), "{grid}");
+    // the links: ignore it, filter it out under both its types, show every column
+    let links: Vec<String> = html
+        .split("href=\"")
+        .skip(1)
+        .filter_map(|rest| rest.split('"').next())
+        .map(|href| href.replace("&#38;", "&"))
+        .collect();
+    let parse = |href: &str| {
+        ListQuery::parse(
+            &serde_urlencoded::from_str::<Vec<(String, String)>>(href.trim_start_matches("/?"))
+                .expect("pairs"),
+        )
+        .expect("a list")
+        .query
+    };
+    let ignoring: Vec<ListQuery> = links
+        .iter()
+        .filter(|href| href.contains("ignore="))
+        .map(|href| parse(href))
+        .collect();
+    assert!(
+        ignoring.iter().any(|q| q.ignore
+            == [
+                format!("email_address:{HOSTILE}"),
+                format!("email_from:{HOSTILE}")
+            ]
+            && q.commonalities),
+        "{links:?}"
+    );
+    let filtered = links
+        .iter()
+        .map(|href| parse(href))
+        .find(|q| !q.filters.is_empty())
+        .expect("a filter-out link");
+    assert_eq!(
+        filtered.filters,
+        [FilterEntry::new(
+            "Observable",
+            true,
+            vec![
+                ace_service::FilterValue::Pair("email_address".to_owned(), HOSTILE.to_owned()),
+                ace_service::FilterValue::Pair("email_from".to_owned(), HOSTILE.to_owned()),
+            ]
+        )]
+    );
+    let expand = links
+        .iter()
+        .map(|href| parse(href))
+        .find(|q| q.expand == [ids[0]])
+        .expect("an expand link");
+    // expanded, the first group shows every column and says so
+    let expanded = draw(&expand);
+    assert!(!expanded.contains("+2 more"), "{expanded}");
+    assert!(expanded.contains("show fewer"), "{expanded}");
+    let hide = links
+        .iter()
+        .map(|href| parse(href))
+        .find(|q| !q.commonalities)
+        .expect("a hide link");
+    assert!(hide.expand.is_empty());
+
+    // what the service refused is the panel's to say; the list is still drawn
+    let mut list = alert_list(
+        &page,
+        &query,
+        &columns,
+        chrono_tz::Tz::UTC,
+        &ace_service::Dispositions::ace3(),
+    );
+    list.panel = Some(ace_gui::commonalities::panel(
+        &page,
+        &query,
+        Err(format!("Could not compare the alerts: {HOSTILE}")),
+    ));
+    let refused = AlertListFragment { list }.render().expect("renders");
+    assert!(
+        refused.contains("Could not compare the alerts: &#34;"),
+        "{refused}"
+    );
+    assert_eq!(row_ids(&refused).len(), 5);
+}
+
+async fn related_alert(stack: &Stack, title: &str, specs: &[&str]) -> uuid::Uuid {
+    let id = list_alert(stack, title, "2026-01-01T10:00:00Z", None).await;
+    let db = stack.test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    for spec in specs {
+        let (kind, value) = spec.split_once(':').expect("type:value");
+        ace_core::tree::upsert_observable(
+            &mut tx,
+            id,
+            &ace_results::NewObservable::new(kind.parse().expect("a type"), value),
+        )
+        .await
+        .expect("adds");
+    }
+    tx.commit().await.expect("commits");
+    id
+}
+
+/// ace3's `test_manage_page_renders_the_commonalities_panel`, through the server from Postgres: the
+/// toggle is outside the refreshed fragment and the panel inside it, both only while the URL shows it;
+/// the editor's form keeps it; an ignored value stops grouping; the site's ranking orders the columns;
+/// and nothing is inline.
+#[tokio::test]
+async fn the_list_shows_which_alerts_potentially_relate() {
+    let stack = stack_from(|service| {
+        Gui::with_limits(
+            service.with_commonality_ranking(Ranking::new(Some(vec!["user".to_owned()]))),
+            Transport::Plain,
+            LiveLimits::default(),
+        )
+    })
+    .await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let session = session_of(&stack, "alice").await;
+    let a = related_alert(
+        &stack,
+        "payload <b>\"one\"</b> & more",
+        &["hostname:wks-7", "user:jdoe", "fqdn:only-one.example"],
+    )
+    .await;
+    let b = related_alert(&stack, "two", &["hostname:wks-7", "user:jdoe"]).await;
+    let alone = related_alert(&stack, "alone", &["user:nobody-else"]).await;
+    let get = |path: &str| {
+        let request = stack.get(path).header("cookie", cookie(&session));
+        async move {
+            let response = request.send().await.expect("answered");
+            assert_eq!(response.status(), StatusCode::OK);
+            response.text().await.expect("a page")
+        }
+    };
+
+    let plain = get("/").await;
+    assert!(plain.contains("commonalities-toggle"), "{plain}");
+    assert!(!plain.contains("commonality-panel"), "{plain}");
+    assert!(plain.contains(r#"href="/?common=1""#), "{plain}");
+
+    let shown = get("/?common=1").await;
+    assert!(inline_free(&shown), "{shown}");
+    assert_eq!(script_tags(&shown).len(), 2, "no script of its own");
+    contains_all(
+        &shown,
+        &[
+            r#"<section id="commonality-panel""#,
+            "<b>2 potentially related alerts</b>",
+            "potentially related to 1 alert",
+            // the row's label is its description, escaped
+            "payload &#60;b&#62;&#34;one&#34;&#60;/b&#62; &#38; more",
+            // the editor's form keeps the panel
+            r#"<input type="hidden" name="common" value="1">"#,
+            // the refresh asks for it too
+            r#"data-refresh="/alerts/list?common=1""#,
+            "Hide commonalities",
+        ],
+    );
+    // the site's ranking: its user before the hostname ace3's list puts first
+    let user_at = shown.find(">jdoe</span>").expect("the user's column");
+    let host_at = shown.find(">wks-7</span>").expect("the hostname's column");
+    assert!(user_at < host_at, "{shown}");
+    let panel = shown
+        .split("<section id=\"commonality-panel\"")
+        .nth(1)
+        .and_then(|rest| rest.split("</section>").next())
+        .expect("the panel");
+    assert!(panel.contains(&format!("/alerts/{a}")) && panel.contains(&format!("/alerts/{b}")));
+    assert!(
+        !panel.contains(&alone.to_string()),
+        "the alert sharing nothing isn't in the grid"
+    );
+
+    let refreshed = get("/alerts/list?common=1").await;
+    assert!(refreshed.contains("commonality-panel"), "{refreshed}");
+    assert!(!refreshed.contains("commonalities-toggle"), "{refreshed}");
+    assert!(refreshed.contains("potentially related to 1 alert"));
+    let unshown = get("/alerts/list").await;
+    assert!(!unshown.contains("commonality-panel"), "{unshown}");
+    assert!(!unshown.contains("potentially related"), "{unshown}");
+
+    // ignoring the user leaves the hostname, so they're still a group of one value
+    let ignored = get("/?common=1&ignore=user:jdoe").await;
+    assert!(
+        ignored.contains("Ignored when grouping (1 of 100)"),
+        "{ignored}"
+    );
+    assert!(
+        ignored.contains("<b>2 potentially related alerts</b>"),
+        "{ignored}"
+    );
+    let both = get("/?common=1&ignore=user:jdoe&ignore=hostname:wks-7").await;
+    assert!(
+        both.contains("No two alerts on this page have an observable in common."),
+        "{both}"
+    );
+    assert!(!both.contains("potentially related to"), "{both}");
+    // a hand-made URL past the panel's bounds is refused, as any broken list URL is
+    let response = stack
+        .get(&format!("/?common=yes&expand={a}"))
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
