@@ -66,6 +66,10 @@ enum Command {
     /// Accounts and keys an operator makes, starting with the first admin.
     #[command(subcommand)]
     User(crate::user::UserCommand),
+    /// Alert automation rules and their runs: what each did, and how a rule's dry run compares with how
+    /// analysts dispositioned the alerts.
+    #[command(subcommand)]
+    AlertAutomation(crate::alert_automation::AlertAutomationCommand),
     Compare(crate::compare::CompareArgs),
 }
 
@@ -77,7 +81,8 @@ enum Command {
 ///
 /// ace3's GUI runs any `ace` command but global options and secrets (`ace3/docs/GUI_CLI.md`). Of
 /// ace3's commands, ace-rs has `yara scan` (here over a ruleset file, not ace3's scanner service) and
-/// `user`, whose `create-first` and `create-key` are an operator's, not ace3's `user add`. ace-rs's
+/// `user`, whose `create-first` and `create-key` are an operator's, not ace3's `user add`, and
+/// `alert-automation` (`list` and `report`), ace3's. ace-rs's
 /// `svs yara` is ace3's (`validate`, `layout`, `prune`), as are `svs catalog` (`refresh`, `status`) and `svs coverage` (`refresh`, `status`, `snapshot`), and `svs
 /// attack extract` is ace3's `bin/update-attack-catalog`; each is refused like the rest. ace-rs's `signatures check` is new; ace3's `signatures` lists what a node loads (`list`, `locations`) and
 /// builds the Suricata lookup (`build-db`). ace3's other commands (`alert`, `cache`, `cas`,
@@ -148,6 +153,10 @@ fn refusal(command: &Command) -> (&'static str, &'static str) {
             "it writes users and keys with the database's credentials, which only an operator's \
              shell holds; Administration's Users & Roles does the same through the service",
         ),
+        Command::AlertAutomation(_) => (
+            "alert-automation",
+            "it reads Postgres, and a GUI command holds no database credentials",
+        ),
         Command::Compare(_) => (
             "compare",
             "it reads Postgres and ace3's API, and a GUI command can reach neither",
@@ -182,6 +191,7 @@ pub fn main(app: &App) -> ExitCode {
         Command::Task(command) => crate::task::run(app, command),
         Command::Root(command) => crate::root::run(command),
         Command::User(command) => crate::user::run(app, command),
+        Command::AlertAutomation(command) => crate::alert_automation::run(command),
         Command::Compare(args) => crate::compare::run(app, args),
     };
     match result {
@@ -368,6 +378,8 @@ mod tests {
             "task replay 1",
             "root normal-form 00000000-0000-0000-0000-000000000000",
             "user create-key k --grant alert:read",
+            "alert-automation list",
+            "alert-automation report --rule r",
         ] {
             assert_eq!(run_contained(&words(line)), 2, "{line}");
         }

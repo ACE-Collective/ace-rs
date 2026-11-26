@@ -115,6 +115,7 @@
 mod actor;
 pub mod ai;
 mod alert_automation;
+mod alert_automation_report;
 mod alert_comments;
 mod alert_graph;
 mod alert_view;
@@ -210,6 +211,7 @@ pub use alert_automation::{
     ActionRecord, ActionStatus, AlertAutomation, AutomationSweep, Confirmation, Detail, Evidence,
     Rule as AutomationRule, RunStatus,
 };
+pub use alert_automation_report::{AutomationRun, DryRunReport, MAX_LISTED_RUNS, RunsQuery};
 pub use alert_comments::{
     AddedAlertComments, AlertComment, MAX_COMMENTED_ALERTS, MAX_SHOWN_COMMENTS,
 };

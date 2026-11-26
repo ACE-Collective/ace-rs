@@ -47,6 +47,7 @@
 //! runs the same way.
 
 pub mod ai;
+mod alert_automation;
 mod cli;
 pub mod collector;
 mod compare;

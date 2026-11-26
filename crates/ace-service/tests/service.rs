@@ -53815,7 +53815,7 @@ mod work_tests {
 //     shutdown_stops_a_running_task_within_its_bound.
 //   test_a_rule_whose_sweep_fails_is_logged_and_the_service_goes_on:
 //     a_rule_whose_sweep_fails_is_logged_and_the_others_go_on.
-// test_cli.py (4): none; ace-rs has no `ace alert-automation` (PLAN.md 7.22).
+// test_cli.py (4): ace-app's `alert_automation` tests, of the same names (PLAN.md 7.22).
 // The `comments(alert_uuid)` checks of test_rules.py are the alert_comments checks here: the enforce
 // case's two comments, ACE's own, and a dry run's none.
 mod alert_automation_tests {
