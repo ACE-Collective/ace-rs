@@ -35,7 +35,9 @@ use serde::{Deserialize, Serialize};
 pub const MAX_OUTPUT_BYTES: u64 = 64 * 1024 * 1024;
 /// The largest file a tool may write: ace3's `tool_sandbox.file_size_limit` (`RLIMIT_FSIZE`).
 pub const FILE_SIZE_LIMIT: u64 = 1024 * 1024 * 1024;
-/// A tool's address-space limit by default: ace3's `tool_sandbox.memory_limit` (`RLIMIT_AS`).
+/// The memory a tool may use by default: ace3's `tool_sandbox.memory_limit`, on what its process has
+/// written to (resident anonymous and shared memory and swapped-out anonymous memory), not the
+/// address space it reserves.
 pub const MEMORY_LIMIT: u64 = 4 * 1024 * 1024 * 1024;
 /// The most files a tool may have open: ace3's `open_files_limit` (`RLIMIT_NOFILE`).
 pub const OPEN_FILES_LIMIT: u64 = 1024;
@@ -69,7 +71,7 @@ pub struct ToolSpec {
     pub env: &'static [(&'static str, &'static str)],
     /// Variables a request may set, such as tesseract's `OMP_THREAD_LIMIT`.
     pub request_env: &'static [&'static str],
-    /// Its address-space limit.
+    /// The memory it may use: past it the runner stops it (`ToolStop::Memory`).
     pub memory_bytes: u64,
     /// The largest file it may write (`RLIMIT_FSIZE`).
     pub file_size_bytes: u64,
@@ -160,27 +162,19 @@ pub const SANDBOX_TOOLS: &[ToolSpec] = &[
         ..ToolSpec::new("gs", "/usr/bin/gs")
     },
     ToolSpec::new("unace", "/usr/bin/unace"),
-    // CFR 0.151 on OpenJDK 21, with ace3's options (java.py's JVM_OPTIONS): the JVM reserves more
-    // address space than the memory limit unless told how much heap and class space to reserve.
-    // Its configuration is in /etc, where the JDK's conf directory links.
+    // CFR 0.151 on OpenJDK 21 with the JVM's defaults, as ace3 runs it since its memory limit counts
+    // what a tool uses rather than what it reserves. Its configuration is in /etc, where the JDK's
+    // conf directory links.
     ToolSpec {
-        args: &[
-            "-Xmx1g",
-            "-XX:CompressedClassSpaceSize=128m",
-            "-XX:ReservedCodeCacheSize=128m",
-            "-XX:-UsePerfData",
-            "-jar",
-            CFR_JAR,
-        ],
+        args: &["-jar", CFR_JAR],
         reads: &[JVM, "/etc/java-21-openjdk", CFR_JAR],
         ..ToolSpec::new("cfr", "/usr/bin/java")
     },
     ToolSpec::new("upx", "/usr/bin/upx"),
     ToolSpec::new("unautoit", "/usr/local/bin/unautoit"),
-    // de4dotEx, self-contained, and ilspycmd on the shared runtime, with ace3's DOTNET_ENV and
-    // DOTNET_MEMORY_LIMIT (dotnet.py): the GC reserves 256 GB of address space without a heap limit
-    // and a region range, and the runtime still reserves about 5 GB to use a few hundred MB, so the
-    // heap limit is what bounds its memory. CoreCLR won't start without its own /proc/<pid>, its
+    // de4dotEx, self-contained, and ilspycmd on the shared runtime, with the GC's defaults, as ace3
+    // runs them: its 256 GB of reserved address space doesn't count against the memory limit, which
+    // is on what a tool uses. CoreCLR won't start without its own /proc/<pid>, its
     // maps and cgroup, which ace3 makes readable as /proc/self; that rule is the tool's own
     // directory, opened by the tool process that execs it. de4dot loads ICU, and OpenSSL by dlopen
     // to hash a reference's public key to its token (a test in ace-pool's containment.rs); ilspycmd
@@ -195,14 +189,10 @@ pub const SANDBOX_TOOLS: &[ToolSpec] = &[
             LIBSSL,
             LIBCRYPTO,
         ],
-        env: DOTNET_ENV,
-        memory_bytes: DOTNET_MEMORY_LIMIT,
         ..ToolSpec::new("de4dot", "/opt/de4dotEx/de4dot")
     },
     ToolSpec {
         reads: &["/opt/dotnet", "/usr/share/dotnet", "/proc/self"],
-        env: DOTNET_ENV,
-        memory_bytes: DOTNET_MEMORY_LIMIT,
         ..ToolSpec::new("ilspycmd", "/opt/dotnet/ilspycmd")
     },
     // batch 12's: dmg2img, and 7-Zip's 7z itself, which /usr/bin/7z is a shell script to exec, and
@@ -248,11 +238,6 @@ const WIRESHARK_PLUGINS: &str = "/usr/lib/x86_64-linux-gnu/wireshark/plugins";
 
 /// Where the sandbox image keeps CFR's jar.
 pub const CFR_JAR: &str = "/usr/local/share/java/cfr-0.151.jar";
-const DOTNET_ENV: &[(&str, &str)] = &[
-    ("DOTNET_GCHeapHardLimit", "0x40000000"),
-    ("DOTNET_GCRegionRange", "0x80000000"),
-];
-const DOTNET_MEMORY_LIMIT: u64 = 12 * 1024 * 1024 * 1024;
 
 const POPPLER: &[&str] = &[
     "/usr/share/poppler",
@@ -420,8 +405,8 @@ impl ToolRun {
 }
 
 /// Why a run was stopped before the tool ended on its own. ace3's `run_sandboxed_tool` returns
-/// nothing for these: a timeout, too much output, a file past the size limit. The last two are
-/// ace-rs's: ace3's sandbox lets a tool start processes and programs.
+/// nothing for these: a timeout, too much output, too much memory, a file past the size limit. The
+/// last two are ace-rs's: ace3's sandbox lets a tool start processes and programs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolStop {
@@ -429,6 +414,8 @@ pub enum ToolStop {
     Timeout,
     /// It wrote more than `MAX_OUTPUT_BYTES` to stdout or to stderr and was killed.
     Output,
+    /// It used more memory than its spec's `memory_bytes` and was killed.
+    Memory,
     /// It wrote a file past its spec's size limit (`FILE_SIZE_LIMIT` unless the spec says) and died
     /// of SIGXFSZ.
     FileSize,
@@ -443,6 +430,7 @@ impl ToolStop {
         match self {
             ToolStop::Timeout => "it ran past its timeout",
             ToolStop::Output => "it wrote more output than allowed",
+            ToolStop::Memory => "it used more memory than allowed",
             ToolStop::FileSize => "it wrote a file larger than allowed",
             ToolStop::Process => "it tried to start a process",
             ToolStop::Program => "it tried to run another program",

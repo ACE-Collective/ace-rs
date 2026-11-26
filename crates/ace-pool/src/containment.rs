@@ -24,8 +24,9 @@
 //! `contain_before_exec`, which 4.13 removed, brought back with a filter that lets threads through.
 //! The pool's binary, exec'd as the task's user in its `tool` mode and running one thread, contains
 //! itself and then execs the tool, and all of it holds through that exec and for every thread the
-//! tool starts. It sets the address-space, CPU-time, file-size, open-file and core-file limits and
-//! `no_new_privs`; Landlock lets the tool read only what its profile names (the program and its
+//! tool starts. It sets the CPU-time, file-size, open-file and core-file limits and `no_new_privs`,
+//! and no address-space limit: the supervisor bounds the memory a tool uses instead, which a runtime
+//! reserving gigabytes it never touches doesn't reach (`crate::tools`, *Memory*); Landlock lets the tool read only what its profile names (the program and its
 //! libraries, its data, and the task's files the request names), write only its working directory,
 //! run only the program, its interpreter and the dynamic loader, and connect to no TCP port; and the
 //! tool filter (`seccomp::install_tool_filter`) allows a thread, kills a new process, refuses a socket
@@ -242,7 +243,6 @@ pub struct ToolProfile {
     pub writes: Vec<OwnedFd>,
     /// The files it may run: the program, its interpreter and the dynamic loader.
     pub executes: Vec<OwnedFd>,
-    pub address_space_bytes: u64,
     /// `RLIMIT_CPU`, which counts the CPU time of every thread.
     pub cpu_seconds: u64,
     /// `RLIMIT_FSIZE`: SIGXFSZ at a write past it.
@@ -259,8 +259,6 @@ pub fn contain_tool(profile: &ToolProfile) -> Result<(Contained, OwnedFd), Conta
     if threads != 1 {
         return Err(ContainmentError::Threads(threads));
     }
-    let bytes = profile.address_space_bytes;
-    set_rlimit(libc::RLIMIT_AS, "RLIMIT_AS", bytes, bytes)?;
     let seconds = profile.cpu_seconds;
     set_rlimit(
         libc::RLIMIT_CPU,

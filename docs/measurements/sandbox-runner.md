@@ -16,7 +16,10 @@ PLAN.md 7.5 batch 10 built the runner `docs/modules.md` (*External tools*) descr
 | `a_tool_writes_only_its_working_directory` | writes inside its working directory, then outside it | the first written, the second refused (EACCES) and not there |
 | `a_tool_reads_only_what_it_was_given` | reads a task file it was given, another task file, `/etc/passwd`, `/proc/self/status` | the first read, the rest refused (EACCES) |
 | `a_task_file_is_opened_with_no_symlink_followed` | is given a task "file" that is a symlink to `/etc/passwd` | the run refused before it starts: `the task's link: Too many levels of symbolic links` |
-| `a_tool_past_its_memory_limit_is_refused_the_memory` | allocates 512 MB under a 256 MB `RLIMIT_AS` | the allocation fails: SIGABRT, `memory allocation of 536870912 bytes failed` |
+| `a_tool_past_its_memory_limit_is_killed_and_logged` | fills 512 MB and holds it, under a 256 MB memory limit | stopped: `memory`, killed at a poll with the bytes it used, logged at WARN |
+| `a_tool_under_its_memory_limit_runs_and_isnt_logged` | fills 64 MB under a 256 MB memory limit | exits 0 |
+| `address_space_a_tool_reserves_and_never_touches_isnt_its_memory` | maps 8 GiB it never touches, under a 256 MB memory limit | exits 0 |
+| `a_tool_is_the_oom_killers_first_choice` | reads its own `oom_score_adj` | `1000` |
 | `a_tool_past_its_cpu_limit_is_killed` | spins for 30 CPU seconds under a 1-second `RLIMIT_CPU` | killed by SIGXCPU |
 | `a_tool_that_writes_a_file_past_its_limit_is_stopped` | writes 8 MB under a 1 MB `RLIMIT_FSIZE` | stopped: `file_size` (SIGXFSZ), nothing kept |
 | `a_tool_past_its_open_files_is_refused_more` | opens 100 files under `RLIMIT_NOFILE` 32 | refused: `Too many open files` |

@@ -5,8 +5,8 @@
 //! ace3 tells a .NET assembly by `file -b -L` naming one (`is_dotnet`), running `file` as a plain
 //! process; here the file's type holds that description, which the type step found with libmagic over
 //! the same database, and each module declares the check (`dotnet_assembly`, PLAN.md decision 25). The
-//! tools' heap limit, region range and memory limit are their specs' (`ace_sdk::tools`), ace3's
-//! `DOTNET_ENV` and `DOTNET_MEMORY_LIMIT`. ace3 reports a runtime that couldn't start in the sandbox
+//! tools run with the GC's defaults, as ace3's do since its memory limit is on what a tool uses, not
+//! what it reserves (`ace_sdk::tools`). ace3 reports a runtime that couldn't start in the sandbox
 //! (`DOTNET_STARTUP_ERRORS`) as the node's failure; here the task fails.
 
 use std::fs;
@@ -25,7 +25,7 @@ use ace_sdk::takes::{Case, Condition, Match, Takes, Text, TypeFact};
 const TIMEOUT: Duration = Duration::from_secs(10);
 
 /// What the .NET host starts its output with when the sandbox keeps CoreCLR from starting: no
-/// `/proc/<pid>`, or too little address space for its GC (`DOTNET_STARTUP_ERRORS`).
+/// `/proc/<pid>`, or a GC heap it can't reserve (`DOTNET_STARTUP_ERRORS`).
 const STARTUP_ERRORS: [&str; 2] = ["Failed to create CoreCLR", "GC heap initialization failed"];
 
 /// The task's limits: ace3's `maximum_analysis_time`, 60 s. The runtime runs in the runner, under

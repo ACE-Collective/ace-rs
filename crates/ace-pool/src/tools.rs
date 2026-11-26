@@ -21,8 +21,24 @@
 //! (`ToolExec`) on stdin, opens every path it may touch, contains itself (`contain_tool`), hands the
 //! tool filter's listener to the supervisor over its own descriptor 3, and execs the tool. The
 //! supervisor lets that first exec through the listener and kills the tool at any other, reads its
-//! stdout and stderr up to `MAX_OUTPUT_BYTES` each, kills it at its timeout or past that output,
-//! and when it has ended moves what it kept into the task's results directory and answers.
+//! stdout and stderr up to `MAX_OUTPUT_BYTES` each, kills it at its timeout, past that output or
+//! past its memory (`MEMORY_POLL`), and when it has ended moves what it kept into the task's results
+//! directory and answers.
+//!
+//! # Memory
+//!
+//! A tool is bounded by the memory it uses, as ace3's launcher bounds a command since ace3 89041ad6,
+//! not by its address space: the JVM, the .NET GC and OpenBLAS reserve gigabytes they never touch,
+//! which `RLIMIT_AS` counted. Every `MEMORY_POLL` the supervisor reads the tool's
+//! `/proc/<pid>/status` and adds its `RssAnon`, `RssShmem` and `VmSwap` (`memory_used`): what it has
+//! written to, anonymous memory the kernel swapped out included. File pages it maps aren't counted,
+//! since the kernel can drop them, and nor is swapped-out shared memory, which `VmSwap` leaves out.
+//! Past the spec's `memory_bytes` it kills the tool, logs that at WARN with the bytes used, and
+//! answers `ToolStop::Memory`. The tool's process is its whole tree: the tool filter kills one that
+//! starts a process, so one status covers every thread. A tool that allocates faster than the poll
+//! can pass the limit between two reads; the container's memory limit is the backstop, and the tool
+//! runs with the highest `oom_score_adj` (`OOM_SCORE_ADJ_MAX`), so the kernel's OOM killer takes it
+//! before the pool.
 //!
 //! # The protocol on descriptor 3
 //!
@@ -90,6 +106,10 @@ pub const MAX_ANSWER_FRAME: usize = 16 << 20;
 const SETUP_TIMEOUT: Duration = Duration::from_secs(30);
 /// The exit code of a `tool` process that couldn't contain itself or exec.
 pub const EXIT_TOOL_SETUP: i32 = 125;
+/// How often the supervisor reads a running tool's memory, as ace3's launcher's `_POLL_SECONDS`.
+pub const MEMORY_POLL: Duration = Duration::from_millis(50);
+/// The highest `oom_score_adj`, which a tool runs with: the OOM killer takes it first.
+const OOM_SCORE_ADJ_MAX: &str = "1000";
 
 /// The supervisor's answer to a request.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -635,7 +655,8 @@ pub struct ToolExec {
     pub reads: Vec<PathBuf>,
     /// What it may run.
     pub executes: Vec<PathBuf>,
-    pub address_space_bytes: u64,
+    /// The memory it may use, which the supervisor enforces (the module's docs, *Memory*).
+    pub memory_bytes: u64,
     pub cpu_seconds: u64,
     pub file_size_bytes: u64,
     pub open_files: u64,
@@ -790,7 +811,7 @@ impl ToolHost {
             task_reads,
             reads: tool.reads.clone(),
             executes: tool.executes.clone(),
-            address_space_bytes: tool.spec.memory_bytes,
+            memory_bytes: tool.spec.memory_bytes,
             cpu_seconds: cpu_seconds(timeout),
             file_size_bytes: tool.spec.file_size_bytes,
             open_files: OPEN_FILES_LIMIT,
@@ -840,6 +861,8 @@ pub struct Ran {
     pub stderr: Vec<u8>,
     /// What it kept, by name, when it ran to its end and something was to be kept.
     pub kept: Option<BTreeMap<String, PathBuf>>,
+    /// The bytes of memory it was using when it was killed for using more than `memory_bytes`.
+    pub memory_used: Option<u64>,
 }
 
 /// What to keep from a run's working directory, and where to.
@@ -854,7 +877,8 @@ pub struct Keeping<'a> {
 }
 
 /// Starts `program`'s `tool` mode as `user`, has it contain itself and exec `exec`'s tool, and
-/// waits for the tool, killing it at `timeout`, at too much output or at a second exec. When it
+/// waits for the tool, killing it at `timeout`, at too much output, past its memory or at a second
+/// exec. When it
 /// ran to its end, or `keeping` says so anyway, what that names is moved from its working directory.
 /// An `Err` is a tool that couldn't start. The runner's CPU goes into `cpu` when it is reaped, an
 /// `Err` or not (`OwnedChild::counted_in`).
@@ -951,10 +975,23 @@ pub async fn execute_keeping(
             }
         }
     };
+    let over_memory = async move {
+        let mut poll = tokio::time::interval(MEMORY_POLL);
+        loop {
+            poll.tick().await;
+            match memory_used(pid) {
+                Ok(used) if used > exec.memory_bytes => return used,
+                Ok(_) => {}
+                // it ended between two polls; the wait sees that
+                Err(e) => tracing::debug!("reading a tool's memory: {e}"),
+            }
+        }
+    };
     enum Ended {
         Exited(std::process::ExitStatus),
         Timeout,
         Output,
+        Memory(u64),
     }
     let ended = tokio::select! {
         reaped = child.wait() => Ended::Exited(reaped.map_err(|e| e.to_string())?.status),
@@ -966,6 +1003,10 @@ pub async fn execute_keeping(
             kill_and_reap(&mut child).await?;
             Ended::Output
         }
+        used = over_memory => {
+            kill_and_reap(&mut child).await?;
+            Ended::Memory(used)
+        }
     };
     done.store(true, Ordering::Relaxed);
     if watcher.join().is_err() {
@@ -976,12 +1017,25 @@ pub async fn execute_keeping(
     if let Some(why) = exec_failed {
         return Err(why);
     }
+    let memory_used = match ended {
+        Ended::Memory(used) => {
+            // the file's doing, like a timeout
+            tracing::warn!(
+                tool = %exec.program.display(), memory_used = used, memory_limit = exec.memory_bytes,
+                "stopped {}: it used {used} bytes of memory, more than its limit of {} bytes",
+                exec.program.display(), exec.memory_bytes
+            );
+            Some(used)
+        }
+        _ => None,
+    };
     let status = if second.load(Ordering::Relaxed) {
         ToolStatus::Stopped(ToolStop::Program)
     } else {
         match ended {
             Ended::Timeout => ToolStatus::Stopped(ToolStop::Timeout),
             Ended::Output => ToolStatus::Stopped(ToolStop::Output),
+            Ended::Memory(_) => ToolStatus::Stopped(ToolStop::Memory),
             Ended::Exited(_) if over.load(Ordering::Relaxed) => {
                 ToolStatus::Stopped(ToolStop::Output)
             }
@@ -1007,7 +1061,31 @@ pub async fn execute_keeping(
         stdout,
         stderr,
         kept,
+        memory_used: memory_used.filter(|_| status == ToolStatus::Stopped(ToolStop::Memory)),
     })
+}
+
+/// The bytes of memory process `pid` uses: its resident anonymous and shared memory and its
+/// anonymous memory in swap (`RssAnon`, `RssShmem` and `VmSwap` in its status), as ace3's launcher's
+/// `memory_used` counts. A zombie or a process that is gone has none of the lines, or no status.
+pub fn memory_used(pid: libc::pid_t) -> io::Result<u64> {
+    let status = fs::read_to_string(format!("/proc/{pid}/status"))?;
+    Ok(memory_in_status(&status))
+}
+
+fn memory_in_status(status: &str) -> u64 {
+    status
+        .lines()
+        .filter_map(|line| {
+            let (name, value) = line.split_once(':')?;
+            if !matches!(name, "RssAnon" | "RssShmem" | "VmSwap") {
+                return None;
+            }
+            // in kB
+            let kb: u64 = value.trim().strip_suffix("kB")?.trim().parse().ok()?;
+            Some(kb.saturating_mul(1024))
+        })
+        .sum()
 }
 
 /// Kills a tool that is past its bounds and reaps it. The wait is bounded by SIGKILL: the tool can't
@@ -1236,8 +1314,10 @@ fn contain_and_exec(supervisor: &mut UnixStream) -> Result<Never, String> {
     if unsafe { libc::dup2(null.as_raw_fd(), 0) } < 0 {
         return Err(format!("stdin: {}", io::Error::last_os_error()));
     }
+    // the OOM killer's first choice, before Landlock closes /proc: raising it needs no privilege
+    fs::write("/proc/self/oom_score_adj", OOM_SCORE_ADJ_MAX)
+        .map_err(|e| format!("raising its oom_score_adj: {e}"))?;
     let mut profile = ToolProfile {
-        address_space_bytes: exec.address_space_bytes,
         cpu_seconds: exec.cpu_seconds,
         file_size_bytes: exec.file_size_bytes,
         open_files: exec.open_files,
@@ -1404,6 +1484,19 @@ fn send_listener(supervisor: &UnixStream, listener: &OwnedFd) -> Result<(), Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_tools_memory_is_what_it_wrote_and_what_went_to_swap() {
+        let status = "Name:\tjava\nVmPeak:\t 9000000 kB\nVmSize:\t 8000000 kB\nVmRSS:\t    3000 kB\n\
+                      RssAnon:\t    1000 kB\nRssFile:\t    1500 kB\nRssShmem:\t     500 kB\n\
+                      VmSwap:\t     250 kB\nThreads:\t20\n";
+        // the reserved address space and the file pages aren't counted
+        assert_eq!(memory_in_status(status), 1750 * 1024);
+        // a zombie's status has none of the lines
+        assert_eq!(memory_in_status("Name:\tx\nState:\tZ (zombie)\n"), 0);
+        assert!(memory_used(i32::MAX).is_err());
+        assert!(memory_used(std::process::id() as libc::pid_t).expect("its own") > 0);
+    }
 
     #[test]
     fn frames_round_trip_and_refuse_a_huge_length() {

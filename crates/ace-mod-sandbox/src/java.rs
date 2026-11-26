@@ -1,11 +1,11 @@
 //! ace3's `JavaClassDecompilerAnalysisModule` (`saq/modules/file_analysis/java.py`): CFR 0.151
 //! decompiles a Java class file to source, on the JVM in the sandbox runner.
 //!
-//! The image's `cfr` tool is `java` with ace3's options and CFR's jar (`ace_sdk::tools`), so the
-//! module only names the class. ace3 makes the JVM's configuration readable in its sandbox
-//! (`jvm_conf_dirs`); here the tool's spec does. ace3 reports a JVM that couldn't start under its
-//! memory limit as the node's failure (`JVM_STARTUP_ERRORS`); here the module does the same, failing
-//! the task.
+//! The image's `cfr` tool is `java -jar` CFR's jar with the JVM's defaults (`ace_sdk::tools`), so
+//! the module only names the class. ace3 makes the JVM's configuration readable in its sandbox
+//! (`jvm_conf_dirs`); here the tool's spec does. ace3 reports a JVM that couldn't start in its
+//! sandbox as the node's failure (`JVM_STARTUP_ERRORS`); here the module does the same, failing the
+//! task.
 
 use std::time::Duration;
 
@@ -68,8 +68,8 @@ impl Module for JavaClassDecompiler {
     }
 }
 
-/// What the JVM starts its output with when the sandbox keeps it from starting: too little address
-/// space for its heap, or no readable `java.security` (ace3's `JVM_STARTUP_ERRORS`).
+/// What the JVM starts its output with when the sandbox keeps it from starting: no readable
+/// `java.security`, or a heap it can't reserve (ace3's `JVM_STARTUP_ERRORS`).
 const JVM_STARTUP_ERRORS: [&str; 2] = [
     "Error occurred during initialization of VM",
     "Exception in thread \"main\" java.lang.InternalError: Error loading java.security file",

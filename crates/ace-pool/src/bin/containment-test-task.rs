@@ -177,6 +177,38 @@ fn act(action: &str, argument: Option<&str>) -> io::Result<String> {
             black_box(&block);
             Ok(format!("allocated {megabytes} MB"))
         }
+        "hold" => {
+            // filled, so every page is touched, and kept until the test's runner kills it
+            let megabytes: usize = argument()?.parse().map_err(io::Error::other)?;
+            let block = vec![1u8; megabytes * 1024 * 1024];
+            black_box(&block);
+            thread::sleep(std::time::Duration::from_secs(60));
+            Ok(format!("held {megabytes} MB"))
+        }
+        "reserve" => {
+            // address space never touched, as a runtime's heap reservation is
+            let megabytes: usize = argument()?.parse().map_err(io::Error::other)?;
+            // SAFETY: a fresh anonymous mapping that nothing else refers to, unmapped below.
+            let mapped = unsafe {
+                libc::mmap(
+                    std::ptr::null_mut(),
+                    megabytes * 1024 * 1024,
+                    libc::PROT_READ | libc::PROT_WRITE,
+                    libc::MAP_PRIVATE | libc::MAP_ANONYMOUS | libc::MAP_NORESERVE,
+                    -1,
+                    0,
+                )
+            };
+            if mapped == libc::MAP_FAILED {
+                return Err(io::Error::last_os_error());
+            }
+            // SAFETY: the mapping made above, of that length.
+            unsafe { libc::munmap(mapped, megabytes * 1024 * 1024) };
+            Ok(format!("reserved {megabytes} MB"))
+        }
+        "oom-score" => Ok(fs::read_to_string("/proc/self/oom_score_adj")?
+            .trim()
+            .to_owned()),
         "cpu" => {
             let seconds: f64 = argument()?.parse().map_err(io::Error::other)?;
             while cpu_seconds()? < seconds {

@@ -155,6 +155,9 @@ pub fn run<S>(
         }
         // SIGXFSZ: ace3's tool dies of it, and its launcher exits 128 plus the signal
         ToolStatus::Stopped(ToolStop::FileSize) => 128 + 25,
+        // ace3's launcher kills it and exits EXIT_MEMORY_LIMIT, and what it printed before then
+        // counts; its stderr ends with the launcher's line, which this one's doesn't
+        ToolStatus::Stopped(ToolStop::Memory) => 122,
         // ace3's sandbox lets these through; here the runner killed the tool
         ToolStatus::Stopped(stop @ (ToolStop::Process | ToolStop::Program)) => {
             return Ok(Err(PcapError(format!(

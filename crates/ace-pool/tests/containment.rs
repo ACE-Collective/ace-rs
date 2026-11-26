@@ -372,7 +372,7 @@ mod runner {
             task_reads: task_reads.iter().map(PathBuf::from).collect(),
             reads: tool.reads.clone(),
             executes: tool.executes.clone(),
-            address_space_bytes: tool.spec.memory_bytes,
+            memory_bytes: tool.spec.memory_bytes,
             // the runner's budget for the longest run these tests give a tool, so a tool's threads
             // can't run out of CPU time before its timeout, as they can't in a pool
             cpu_seconds: cpu_seconds(LONG),
@@ -536,16 +536,70 @@ mod runner {
     }
 
     #[tokio::test]
-    async fn a_tool_past_its_memory_limit_is_refused_the_memory() {
+    async fn a_tool_past_its_memory_limit_is_killed_and_logged() {
         let dirs = Dirs::new();
-        let mut exec = test_task(&dirs, &["allocate", "512"]);
-        exec.address_space_bytes = 256 * 1024 * 1024;
-        let ran = run(&exec, LONG, None).await;
-        assert_eq!(ran.status, ToolStatus::Signaled(libc::SIGABRT));
+        let mut exec = test_task(&dirs, &["hold", "512"]);
+        exec.memory_bytes = 256 * 1024 * 1024;
+        let logs = crate::secrets::Logs::default();
+        let writer = logs.clone();
+        let subscriber = tracing_subscriber::fmt()
+            .with_writer(move || writer.clone())
+            .with_ansi(false)
+            .finish();
+        let started = Instant::now();
+        let ran = {
+            let _logging = tracing::subscriber::set_default(subscriber);
+            run(&exec, LONG, None).await
+        };
+        assert_eq!(ran.status, ToolStatus::Stopped(ToolStop::Memory));
+        // killed at a poll, not at its timeout or when it would have ended
         assert!(
-            String::from_utf8_lossy(&ran.stderr)
-                .contains("memory allocation of 536870912 bytes failed")
+            started.elapsed() < Duration::from_secs(30),
+            "{:?}",
+            started.elapsed()
         );
+        let used = ran.memory_used.expect("the memory it used");
+        assert!(used > 256 * 1024 * 1024, "{used}");
+        let logs = String::from_utf8(logs.0.lock().unwrap().clone()).unwrap();
+        assert!(logs.contains("WARN"), "{logs}");
+        assert!(
+            logs.contains(&format!(
+                "it used {used} bytes of memory, more than its limit of 268435456 bytes"
+            )),
+            "{logs}"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_tool_under_its_memory_limit_runs_and_isnt_logged() {
+        let dirs = Dirs::new();
+        let mut exec = test_task(&dirs, &["allocate", "64"]);
+        exec.memory_bytes = 256 * 1024 * 1024;
+        let ran = run(&exec, LONG, None).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        assert_eq!(ran.memory_used, None);
+    }
+
+    #[tokio::test]
+    async fn address_space_a_tool_reserves_and_never_touches_isnt_its_memory() {
+        // the JVM and the .NET GC reserve gigabytes at start, which RLIMIT_AS counted
+        let dirs = Dirs::new();
+        let mut exec = test_task(&dirs, &["reserve", "8192"]);
+        exec.memory_bytes = 256 * 1024 * 1024;
+        let ran = run(&exec, LONG, None).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        assert_eq!(stdout(&ran), "reserved 8192 MB");
+    }
+
+    #[tokio::test]
+    async fn a_tool_is_the_oom_killers_first_choice() {
+        let dirs = Dirs::new();
+        let mut exec = test_task(&dirs, &["oom-score"]);
+        // the tool's own /proc/<pid>, as the .NET tools' specs make readable
+        exec.reads.push(PathBuf::from("/proc/self"));
+        let ran = run(&exec, LONG, None).await;
+        assert_eq!(ran.status, ToolStatus::Exited(0));
+        assert_eq!(stdout(&ran), "1000");
     }
 
     #[tokio::test]
