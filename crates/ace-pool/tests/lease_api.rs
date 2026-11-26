@@ -5998,8 +5998,7 @@ async fn the_capture_write_is_refused_unless_it_s_the_task_s_own_file_s_matches(
 
 /// A task of a module that runs last is held back while another module's task is left in its root,
 /// with a wait that doubles to 32 seconds. The end of the last of them makes it due and wakes the
-/// pool waiting for it, so the rest of its wait isn't sat out. The module sees its delay as before:
-/// one, held back for the others.
+/// pool waiting for it, so the rest of its wait isn't sat out. The module never hears of the wait.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_task_that_runs_last_is_leased_when_the_last_other_task_ends() {
     let core = Core::start(
@@ -6031,10 +6030,9 @@ async fn a_task_that_runs_last_is_leased_when_the_last_other_task_ends() {
     // as after its seventh ask: half a minute to the next
     let held = sqlx::query(
         "UPDATE queue.tasks
-         SET run_after = now() + interval '30 seconds',
-             delay_state = jsonb_set(delay_state, '{step}', '6')
+         SET run_after = now() + interval '30 seconds', held_back_step = 6
          WHERE root_id = $1 AND module = 'email_thread_analyzer' AND state = 'delayed'
-           AND delay_state->>'held_back_by' = 'others'",
+           AND held_back_by = 'others'",
     )
     .bind(root)
     .execute(core.test_db.db().pool())
@@ -6079,11 +6077,157 @@ async fn a_task_that_runs_last_is_leased_when_the_last_other_task_ends() {
         ended.elapsed()
     );
     assert_eq!(task.module, "email_thread_analyzer");
-    let delayed = task.delayed.expect("its delay");
-    assert_eq!(delayed.delays, 1);
+    assert!(task.delayed.is_none(), "a hold isn't a module's delay");
+}
+
+/// What a task's row says of its runs and its module's delays: runs, run seconds, delays, whether
+/// it has a first delay, its delay state, attempts and state.
+type RunRecord = (i32, f64, i32, bool, Option<serde_json::Value>, i32, String);
+
+async fn run_record(core: &Core, root: uuid::Uuid, module: &str) -> RunRecord {
+    sqlx::query_as(
+        "SELECT runs, run_seconds, delays, first_delayed_at IS NOT NULL, delay_state, attempts,
+                state::text
+         FROM queue.tasks WHERE root_id = $1 AND module = $2",
+    )
+    .bind(root)
+    .bind(module)
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("the task's row")
+}
+
+/// A root with a task of email_thread_analyzer, which runs last, and an archive task that holds it
+/// back, on a core whose lease the thread task has just been held back by.
+async fn held_back_thread(core: &Core) -> (uuid::Uuid, ace_pool::client::LeaseClient) {
+    let message_id = "<held@example.com>";
+    let root = root_of(
+        core,
+        ace_results::ObservableKind::MessageId,
+        &[message_id],
+        "email_thread_analyzer",
+    )
+    .await;
+    common::enqueue(core, root, message_id, "archive").await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+    assert!(
+        client
+            .lease(&["email_thread_analyzer".to_owned()], Duration::ZERO)
+            .await
+            .expect("leases")
+            .is_none(),
+        "held back: the archive task is left"
+    );
+    (root, client)
+}
+
+/// The core holding back a task that runs last isn't a run of its module, nor its module's delay: no
+/// pool saw it. Its run count, run time and delay record stay as they were, and the claim isn't an
+/// attempt, so once it runs and ends it has run once, and its module's metrics event says one run.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn holding_back_a_task_that_runs_last_is_not_a_run() {
+    let core = Core::start(
+        vec![ace_mod_brocess::thread::MANIFEST, ace_mod_archive::MANIFEST],
+        &["email_thread_analyzer", "archive"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let (root, client) = held_back_thread(&core).await;
     assert_eq!(
-        delayed.state,
-        serde_json::json!({"held_back_by": "others", "step": 6})
+        run_record(&core, root, "email_thread_analyzer").await,
+        (0, 0.0, 0, false, None, 0, "delayed".to_owned()),
+        "a hold counts nothing and leaves the module's delay alone"
+    );
+    let archive = client
+        .lease(&["archive".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the archive task");
+    client.end(archive.id, &skipped()).await.expect("ends");
+    let task = client
+        .lease(
+            &["email_thread_analyzer".to_owned()],
+            Duration::from_secs(10),
+        )
+        .await
+        .expect("leases")
+        .expect("the held task");
+    assert_eq!(task.attempts, 1, "the hold's claim wasn't an attempt");
+    assert!(task.delayed.is_none(), "its module never asked for a delay");
+    client.end(task.id, &skipped()).await.expect("ends");
+    let (runs, _, delays, delayed, _, _, state) =
+        run_record(&core, root, "email_thread_analyzer").await;
+    assert_eq!(
+        (runs, delays, delayed, state.as_str()),
+        (1, 0, false, "done")
+    );
+    let metrics = ace_core::metrics::read_last_pass(core.test_db.db(), root)
+        .await
+        .expect("reads")
+        .expect("the pass completed");
+    let thread = metrics
+        .modules
+        .iter()
+        .find(|m| m.module == "email_thread_analyzer")
+        .expect("the module's event");
+    assert_eq!(thread.exec_count, 1);
+}
+
+/// A task that runs last and asks for a delay of its own after the core held it back gets that
+/// delay's whole timeout, which counts from its own first delay, and sees only its own state.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_task_held_back_to_run_last_keeps_its_own_delay() {
+    let core = Core::start(
+        vec![ace_mod_brocess::thread::MANIFEST, ace_mod_archive::MANIFEST],
+        &["email_thread_analyzer", "archive"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let (_, client) = held_back_thread(&core).await;
+    let archive = client
+        .lease(&["archive".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the archive task");
+    client.end(archive.id, &skipped()).await.expect("ends");
+    let thread = ["email_thread_analyzer".to_owned()];
+    let task = client
+        .lease(&thread, Duration::from_secs(10))
+        .await
+        .expect("leases")
+        .expect("the held task");
+    let asked: chrono::DateTime<chrono::Utc> = sqlx::query_scalar("SELECT now()")
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("reads the clock");
+    client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Delay {
+                after_seconds: 0.0,
+                state: serde_json::json!({"asked": 1}),
+                scan: None,
+                writes: Vec::new(),
+            },
+        )
+        .await
+        .expect("delays");
+    let again = client
+        .lease(&thread, Duration::from_secs(10))
+        .await
+        .expect("leases")
+        .expect("the delayed task");
+    let delayed = again.delayed.expect("its own delay");
+    assert_eq!(
+        (delayed.delays, &delayed.state),
+        (1, &serde_json::json!({"asked": 1})),
+        "one delay, its own"
+    );
+    assert!(
+        delayed.first_delayed_at >= asked,
+        "its timeout counts from {}, before it asked at {asked}",
+        delayed.first_delayed_at
     );
 }
 
@@ -6313,13 +6457,22 @@ async fn a_request_for_several_tasks_decides_each_lease_alone() {
     for (value, module) in &got {
         assert_eq!(row(value, module).0, "running", "{value}");
     }
-    // held back for the other modules, and marked so their end wakes it
+    // held back for the other modules, and marked so their end wakes it, which its module never
+    // hears of
     let (state, attempts, _, delay, delayed) = row(message_id, "email_thread_analyzer");
-    assert_eq!((state.as_str(), attempts, delayed), ("delayed", 0, true));
     assert_eq!(
-        delay,
-        Some(serde_json::json!({"held_back_by": "others", "step": 0}))
+        (state.as_str(), attempts, delay, delayed),
+        ("delayed", 0, None, false)
     );
+    let mark: (Option<String>, Option<i32>) = sqlx::query_as(
+        "SELECT held_back_by, held_back_step FROM queue.tasks
+         WHERE root_id = $1 AND module = 'email_thread_analyzer'",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(mark, (Some("others".to_owned()), Some(0)));
     // held for its path, which its module never hears of
     let (state, attempts, error, delay, delayed) = row(&below, "test_spin");
     assert_eq!(
@@ -6373,8 +6526,7 @@ async fn a_request_for_several_tasks_decides_each_lease_alone() {
         .expect("leases");
     assert_eq!(last.len(), 1, "{last:?}");
     assert_eq!(last[0].module, "email_thread_analyzer");
-    let delay = last[0].delayed.as_ref().expect("its delay");
-    assert_eq!(delay.state["held_back_by"], "others");
+    assert!(last[0].delayed.is_none(), "a hold isn't a module's delay");
 }
 
 /// The answer holds no more tasks than the request asks for, one when it doesn't say, and no more

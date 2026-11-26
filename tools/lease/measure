@@ -95,13 +95,13 @@ PHASES = ["running", "due", "path hold", "module wait", "held back"]
 # module's own delay is all that's left; only tasks that run last are left, held back.
 WATCH = """
 WITH active AS (
-    SELECT root_id, state, lease_owner, run_after, delay_state FROM queue.tasks
+    SELECT root_id, state, lease_owner, run_after, delay_state, held_back_by FROM queue.tasks
     WHERE state IN ('queued', 'delayed', 'running')
 ), roots AS (
     SELECT CASE WHEN bool_or(state = 'running') THEN 0
                 WHEN bool_or(run_after <= now()) THEN 1
-                WHEN bool_or(delay_state IS NULL) THEN 2
-                WHEN bool_or(NOT delay_state ? 'held_back_by') THEN 3
+                WHEN bool_or(held_back_by IS NULL AND delay_state IS NULL) THEN 2
+                WHEN bool_or(held_back_by IS NULL) THEN 3
                 ELSE 4 END AS phase
     FROM active GROUP BY root_id
 )

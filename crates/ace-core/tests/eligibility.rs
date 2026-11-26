@@ -988,8 +988,8 @@ async fn a_module_that_runs_last_waits_for_one_below_it() {
 }
 
 /// A task that runs last and waits for every other module is due as soon as the last of them ends,
-/// however long its wait had grown, with its delay's record as it was: its state, its count and its
-/// first delay. Nothing else moves: not while another module's task is left, a module's own delay
+/// however long its wait had grown, with its wait's record as it was, the step its next wait doubles
+/// from, and no delay of its module's. Nothing else moves: not while another module's task is left, a module's own delay
 /// among them, which keeps its time, and not a task that waits for one below it.
 #[tokio::test]
 async fn a_task_held_back_for_the_others_is_due_when_the_last_of_them_ends() {
@@ -1042,14 +1042,15 @@ async fn a_task_held_back_for_the_others_is_due_when_the_last_of_them_ends() {
         } else {
             tree::HeldBack::ByOthers
         };
-        let state = json!({(ace_core::queue::HELD_BACK_BY): by.as_str(), "step": 6});
-        last.delay(task.id, minute, &state).await.expect("delays");
+        let wait = ace_core::queue::HeldBackWait { by, step: 6 };
+        last.hold(task.id, minute, Some(wait)).await.expect("holds");
         held.push(task.id);
     }
     assert_eq!(held.len(), 3);
     let record = || async {
-        sqlx::query_as::<_, (i64, i32, chrono::DateTime<chrono::Utc>, serde_json::Value)>(
-            "SELECT id, delays, first_delayed_at, delay_state FROM queue.tasks
+        sqlx::query_as::<_, (i64, Option<String>, Option<i32>, i32, bool)>(
+            "SELECT id, held_back_by, held_back_step, delays, first_delayed_at IS NULL
+             FROM queue.tasks
              WHERE root_id = $1 AND module = 'xlmdeobfuscator' ORDER BY id",
         )
         .bind(root)
@@ -1093,13 +1094,15 @@ async fn a_task_held_back_for_the_others_is_due_when_the_last_of_them_ends() {
     let mut woken = Vec::new();
     while let Some(task) = last.claim().await.expect("claims") {
         assert_eq!(task.module, "xlmdeobfuscator");
-        let delayed = task.delayed.as_ref().expect("its delay's record");
         assert_eq!(
-            delayed.state,
-            json!({"held_back_by": "others", "step": 6}),
-            "the state the lease reads its next wait from"
+            task.held_back,
+            Some(ace_core::queue::HeldBackWait {
+                by: tree::HeldBack::ByOthers,
+                step: 6
+            }),
+            "the wait the lease doubles its next from"
         );
-        assert_eq!(delayed.delays, 1);
+        assert!(task.delayed.is_none(), "its module never delayed it");
         woken.push(task.id);
     }
     assert_eq!(
@@ -1107,11 +1110,7 @@ async fn a_task_held_back_for_the_others_is_due_when_the_last_of_them_ends() {
         2,
         "the one waiting for a task below keeps its wait"
     );
-    assert_eq!(
-        record().await,
-        before,
-        "nothing of the delays' record moved"
-    );
+    assert_eq!(record().await, before, "nothing of the waits' record moved");
     let lure: String = sqlx::query_scalar(
         "SELECT state::text FROM queue.tasks WHERE root_id = $1 AND module = 'lure_url_analyzer'",
     )
@@ -1150,14 +1149,13 @@ async fn a_task_that_has_not_asked_yet_puts_the_wake_off_until_it_has() {
     };
     let lease = Duration::from_secs(30);
     let minute = Duration::from_secs(60);
-    let held_back =
-        |by: tree::HeldBack| json!({(ace_core::queue::HELD_BACK_BY): by.as_str(), "step": 0});
+    let held_back = |by| Some(ace_core::queue::HeldBackWait { by, step: 0 });
     let last = worker(&test_db, "last", &["xlmdeobfuscator"], lease).await;
     queue(ids[1], "xlmdeobfuscator").await;
     let first = last.claim().await.expect("claims").expect("the task");
-    last.delay(first.id, minute, &held_back(tree::HeldBack::ByOthers))
+    last.hold(first.id, minute, held_back(tree::HeldBack::ByOthers))
         .await
-        .expect("delays");
+        .expect("holds");
     // one that hasn't asked, and the last other task
     queue(ids[0], "xlmdeobfuscator").await;
     queue(ids[0], "archive").await;
@@ -1175,9 +1173,9 @@ async fn a_task_that_has_not_asked_yet_puts_the_wake_off_until_it_has() {
         "the first one's wait stands"
     );
     // the lease holds the fresh one back for the one below it, and says so
-    last.delay(fresh.id, minute, &held_back(tree::HeldBack::ByLastBelow))
+    last.hold(fresh.id, minute, held_back(tree::HeldBack::ByLastBelow))
         .await
-        .expect("delays");
+        .expect("holds");
     assert_eq!(
         ace_core::queue::wake_held_back_now(db, root)
             .await
@@ -1204,9 +1202,9 @@ async fn a_task_that_has_not_asked_yet_puts_the_wake_off_until_it_has() {
         tx.commit().await.expect("commits");
     }
     let task = last.claim().await.expect("claims").expect("the task");
-    last.delay(task.id, minute, &held_back(tree::HeldBack::ByOthers))
+    last.hold(task.id, minute, held_back(tree::HeldBack::ByOthers))
         .await
-        .expect("delays");
+        .expect("holds");
     let running = archive.claim().await.expect("claims").expect("the task");
     let mut tx = db.begin().await.expect("begins");
     ace_core::queue::cancel_root(&mut tx, root)
@@ -1220,6 +1218,164 @@ async fn a_task_that_has_not_asked_yet_puts_the_wake_off_until_it_has() {
         [
             ("archive".to_owned(), file.clone(), "cancelled".to_owned()),
             ("xlmdeobfuscator".to_owned(), file, "cancelled".to_owned()),
+        ]
+    );
+}
+
+/// A task that runs last whose module delays it after the core held it back waits for its module's
+/// delay, not the core's: the end of the last other task doesn't wake it, and it no longer counts as
+/// held back, so it puts off the wake of those that are until it ends.
+#[tokio::test]
+async fn a_module_delay_after_a_hold_is_not_woken_as_held_back() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let hash = |c: &str| c.repeat(64);
+    let (one, two) = (hash("a"), hash("b"));
+    let (root, ids) = root_with(
+        db,
+        "test",
+        &[
+            (ObservableKind::File, one.as_str()),
+            (ObservableKind::File, two.as_str()),
+        ],
+    )
+    .await;
+    for (id, module) in [
+        (ids[0], "xlmdeobfuscator"),
+        (ids[1], "xlmdeobfuscator"),
+        (ids[0], "archive"),
+    ] {
+        let mut tx = db.begin().await.expect("begins");
+        ace_core::queue::enqueue(&mut tx, root, id, module)
+            .await
+            .expect("queues");
+        tx.commit().await.expect("commits");
+    }
+    let lease = Duration::from_secs(30);
+    let minute = Duration::from_secs(60);
+    let others = Some(ace_core::queue::HeldBackWait {
+        by: tree::HeldBack::ByOthers,
+        step: 0,
+    });
+    let last = worker(&test_db, "last", &["xlmdeobfuscator"], lease).await;
+    // one held back and then run, which delays itself; the other held back
+    let own = last.claim().await.expect("claims").expect("a task");
+    last.hold(own.id, Duration::ZERO, others)
+        .await
+        .expect("holds");
+    let held = last.claim().await.expect("claims").expect("the other");
+    last.hold(held.id, minute, others).await.expect("holds");
+    let own = last
+        .claim()
+        .await
+        .expect("claims")
+        .expect("the first again");
+    assert_eq!(own.held_back, others);
+    let due = last
+        .delay(own.id, minute, &json!({"asked": 1}))
+        .await
+        .expect("delays");
+    let archive = worker(&test_db, "archive", &["archive"], lease).await;
+    let task = archive.claim().await.expect("claims").expect("the task");
+    archive.complete(task.id).await.expect("completes");
+    assert!(
+        last.claim().await.expect("claims").is_none(),
+        "the module's delay stands, and puts the held one's wake off"
+    );
+    let run_after: chrono::DateTime<chrono::Utc> =
+        sqlx::query_scalar("SELECT run_after FROM queue.tasks WHERE id = $1")
+            .bind(own.id.0)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(run_after, due, "its own delay's time");
+}
+
+/// Migration 0089 moves a hold the lease wrote as a delay before it to the hold's own columns, and
+/// takes the delay record that was the hold's off the task. Its UPDATE runs here on rows as they were
+/// before it: a held task, a module's own delay, and a task that ended after a hold, which it leaves.
+#[tokio::test]
+async fn migration_0089_moves_a_hold_written_as_a_delay() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let migration = include_str!("../migrations/0089_held_back.sql");
+    let start = migration
+        .find("UPDATE queue.tasks")
+        .expect("the migration's move");
+    let hash = |c: &str| c.repeat(64);
+    let (one, two, three) = (hash("a"), hash("b"), hash("c"));
+    let (root, ids) = root_with(
+        db,
+        "test",
+        &[
+            (ObservableKind::File, one.as_str()),
+            (ObservableKind::File, two.as_str()),
+            (ObservableKind::File, three.as_str()),
+        ],
+    )
+    .await;
+    let mut tasks = Vec::new();
+    for (id, state, delay_state) in [
+        (
+            ids[0],
+            "delayed",
+            json!({"held_back_by": "last_below", "step": 3}),
+        ),
+        (ids[1], "delayed", json!({"asked": 1})),
+        (ids[2], "done", json!({"held_back_by": "others", "step": 0})),
+    ] {
+        let mut tx = db.begin().await.expect("begins");
+        let task = ace_core::queue::enqueue(&mut tx, root, id, "xlmdeobfuscator")
+            .await
+            .expect("queues")
+            .expect("a new task");
+        tx.commit().await.expect("commits");
+        sqlx::query(
+            "UPDATE queue.tasks SET state = $2::queue.task_state, delay_state = $3,
+                    first_delayed_at = now(), delays = 2, held_back_by = NULL,
+                    held_back_step = NULL
+             WHERE id = $1",
+        )
+        .bind(task.0)
+        .bind(state)
+        .bind(delay_state)
+        .execute(db.pool())
+        .await
+        .expect("writes the old shape");
+        tasks.push(task.0);
+    }
+    sqlx::raw_sql(&migration[start..])
+        .execute(db.pool())
+        .await
+        .expect("moves them");
+    // its mark, its step, its delay state, whether it has a first delay, and its delays
+    type Moved = (
+        Option<String>,
+        Option<i32>,
+        Option<serde_json::Value>,
+        bool,
+        i32,
+    );
+    let rows: Vec<Moved> = sqlx::query_as(
+        "SELECT held_back_by, held_back_step, delay_state, first_delayed_at IS NOT NULL, delays
+         FROM queue.tasks WHERE id = ANY($1) ORDER BY id",
+    )
+    .bind(&tasks)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(
+        rows,
+        [
+            (Some("last_below".to_owned()), Some(3), None, false, 0),
+            (None, None, Some(json!({"asked": 1})), true, 2),
+            (
+                None,
+                None,
+                Some(json!({"held_back_by": "others", "step": 0})),
+                true,
+                2
+            ),
         ]
     );
 }

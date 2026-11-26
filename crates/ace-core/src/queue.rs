@@ -285,17 +285,14 @@ pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>
     Ok(pass)
 }
 
-/// The key of a delay's state that says the core holds the task back, and for what
-/// (`tree::HeldBack::as_str`): the mark of a task that runs last and isn't to run yet.
-pub const HELD_BACK_BY: &str = "held_back_by";
-
 /// Makes the root's tasks that wait for every other module due now, once nothing is left but tasks
 /// the core holds back, and returns how many. They are the tasks of modules that run last
-/// (`Module::RUNS_LAST`), which the lease delays with a wait that doubles to 32 s
-/// (`Api::leased`), so without this one sat out the rest of its wait after the root went quiet.
+/// (`Module::RUNS_LAST`), which the lease holds back with a wait that doubles to 32 s
+/// (`Api::leased`, `Worker::hold`), so without this one sat out the rest of its wait after the root
+/// went quiet.
 ///
 /// It changes only when such a task next asks. Whether it runs is still decided where it's leased,
-/// by `tree::held_back`, so one woken too early is delayed again, and one this misses, as when a
+/// by `tree::held_back`, so one woken too early is held back again, and one this misses, as when a
 /// pool dies holding the last other task, comes back when its wait ends, as before. A task that
 /// waits for one below it (`tree::HeldBack::ByLastBelow`) keeps its wait, which starts low.
 ///
@@ -306,13 +303,12 @@ async fn wake_held_back(tx: &mut Tx<'_>, root: Uuid) -> Result<u64, QueueError> 
     Ok(sqlx::query!(
         "UPDATE queue.tasks SET run_after = now()
          WHERE root_id = $1 AND state = 'delayed' AND run_after > now()
-           AND delay_state->>$2 = $3
+           AND held_back_by = $2
            AND NOT EXISTS (
                SELECT 1 FROM queue.tasks other
                WHERE other.root_id = $1 AND other.state IN ('queued', 'delayed', 'running')
-                 AND (other.delay_state->>$2) IS NULL)",
+                 AND other.held_back_by IS NULL)",
         root,
-        HELD_BACK_BY,
         crate::tree::HeldBack::ByOthers.as_str(),
     )
     .execute(tx.conn())
@@ -343,7 +339,8 @@ async fn queue_hooks(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<TaskId>, Queu
            ON CONFLICT (root_id, observable_id, module) DO UPDATE
                SET state = 'queued', run_after = now(), attempts = 0, error = NULL,
                    lease_owner = NULL, lease_expires_at = NULL, delay_state = NULL,
-                   first_delayed_at = NULL, delays = 0, cancel_requested = false,
+                   first_delayed_at = NULL, delays = 0, held_back_by = NULL,
+                   held_back_step = NULL, cancel_requested = false,
                    updated_at = now()
                WHERE t.state IN ('done', 'cancelled')
            RETURNING id AS "id: TaskId""#,
@@ -377,7 +374,8 @@ pub async fn requeue_incomplete(tx: &mut Tx<'_>, task: TaskId) -> Result<bool, Q
     let root = sqlx::query_scalar!(
         "UPDATE queue.tasks
          SET state = 'queued', run_after = now(), attempts = 0, error = NULL, delay_state = NULL,
-             first_delayed_at = NULL, delays = 0, cancel_requested = false, updated_at = now()
+             first_delayed_at = NULL, delays = 0, held_back_by = NULL, held_back_step = NULL,
+             cancel_requested = false, updated_at = now()
          WHERE id = $1 AND state = 'done' AND incomplete
          RETURNING root_id",
         task as TaskId,
@@ -402,8 +400,8 @@ pub async fn requeue_without_result(
     let ids = sqlx::query_scalar!(
         r#"UPDATE queue.tasks t
            SET state = 'queued', run_after = now(), attempts = 0, error = NULL,
-               delay_state = NULL, first_delayed_at = NULL, delays = 0, cancel_requested = false,
-               updated_at = now()
+               delay_state = NULL, first_delayed_at = NULL, delays = 0, held_back_by = NULL,
+               held_back_step = NULL, cancel_requested = false, updated_at = now()
            WHERE t.root_id = $1 AND t.observable_id = $2 AND t.module = ANY($3)
              AND t.state = 'done'
              AND NOT EXISTS (SELECT 1 FROM analysis.results r
@@ -428,8 +426,8 @@ pub async fn requeue_cancelled(tx: &mut Tx<'_>, task: TaskId) -> Result<bool, Qu
     let requeued = sqlx::query!(
         "UPDATE queue.tasks
          SET state = 'queued', run_after = now(), attempts = 0, error = NULL,
-             delay_state = NULL, first_delayed_at = NULL, delays = 0, cancel_requested = false,
-             updated_at = now()
+             delay_state = NULL, first_delayed_at = NULL, delays = 0, held_back_by = NULL,
+             held_back_step = NULL, cancel_requested = false, updated_at = now()
          WHERE id = $1 AND state = 'cancelled'",
         task as TaskId,
     )
@@ -454,8 +452,8 @@ pub async fn requeue_ended(tx: &mut Tx<'_>, task: TaskId) -> Result<bool, QueueE
     let requeued = sqlx::query!(
         "UPDATE queue.tasks
          SET state = 'queued', run_after = now(), attempts = 0, error = NULL,
-             delay_state = NULL, first_delayed_at = NULL, delays = 0, cancel_requested = false,
-             updated_at = now()
+             delay_state = NULL, first_delayed_at = NULL, delays = 0, held_back_by = NULL,
+             held_back_step = NULL, cancel_requested = false, updated_at = now()
          WHERE id = $1 AND state IN ('done', 'failed')",
         task as TaskId,
     )
@@ -497,6 +495,28 @@ pub struct Task {
     pub lease_expires_at: DateTime<Utc>,
     /// Set when the module asked for a delay on an earlier run.
     pub delayed: Option<DelayedRun>,
+    /// Set when the core held it back last, as a task that runs last (`Worker::hold`), and its module
+    /// hasn't delayed it since.
+    pub held_back: Option<HeldBackWait>,
+}
+
+/// The core's wait for a task that runs last: what holds it back, and how many times in a row that
+/// has, which its next wait doubles with (`Api::leased`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HeldBackWait {
+    pub by: crate::tree::HeldBack,
+    pub step: u32,
+}
+
+impl HeldBackWait {
+    /// The wait a task's row records, if any. A mark this build doesn't know reads as none, so the
+    /// next wait starts low.
+    fn of_row(by: Option<String>, step: Option<i32>) -> Option<HeldBackWait> {
+        Some(HeldBackWait {
+            by: crate::tree::HeldBack::parse(&by?)?,
+            step: u32::try_from(step.unwrap_or_default()).unwrap_or_default(),
+        })
+    }
 }
 
 /// The future `TaskEnded`'s methods return.
@@ -669,8 +689,8 @@ impl Worker {
                WHERE t.id = due.id AND o.id = t.observable_id
                RETURNING t.id AS "id: TaskId", t.root_id, t.module, t.attempts, t.input_hashes,
                          t.lease_expires_at AS "lease_expires_at!", t.run_after,
-                         t.delay_state, t.first_delayed_at, t.delays,
-                         o.id AS "observable_id: ObservableId", o.type AS kind, o.value,
+                         t.delay_state, t.first_delayed_at, t.delays, t.held_back_by,
+                         t.held_back_step, o.id AS "observable_id: ObservableId", o.type AS kind, o.value,
                          o.time, o.directives"#,
                             self.name,
                             self.lease.as_secs_f64(),
@@ -710,6 +730,7 @@ impl Worker {
                         first_delayed_at,
                         delays: u32::try_from(row.delays).unwrap_or_default(),
                     }),
+                    held_back: HeldBackWait::of_row(row.held_back_by, row.held_back_step),
                 })
             })
             .collect()
@@ -725,8 +746,8 @@ impl Worker {
         let row = sqlx::query!(
             r#"SELECT t.id AS "id: TaskId", t.root_id, t.module, t.attempts, t.input_hashes,
                       t.lease_expires_at AS "lease_expires_at!",
-                      t.delay_state, t.first_delayed_at, t.delays,
-                      o.id AS "observable_id: ObservableId", o.type AS kind, o.value,
+                      t.delay_state, t.first_delayed_at, t.delays, t.held_back_by,
+                      t.held_back_step, o.id AS "observable_id: ObservableId", o.type AS kind, o.value,
                       o.time, o.directives
                FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id
                WHERE t.id = $1 AND t.lease_owner = $2 AND t.state = 'running'"#,
@@ -761,6 +782,7 @@ impl Worker {
                 first_delayed_at,
                 delays: u32::try_from(row.delays).unwrap_or_default(),
             }),
+            held_back: HeldBackWait::of_row(row.held_back_by, row.held_back_step),
         }))
     }
 
@@ -809,9 +831,22 @@ impl Worker {
 
     /// Sends a task the worker owns back to the queue until `after` from now, before its module
     /// has seen it: the core holds it, as it holds a file's first task until its path is settled
-    /// (`tree::choose_analysis_file`). Unlike a module's `delay`, the module never learns of it: its
-    /// delay state, count and first delay stay as they were, and the claim isn't an attempt.
-    pub async fn hold(&self, task: TaskId, after: Duration) -> Result<(), QueueError> {
+    /// (`tree::choose_analysis_file`) and a task that runs last until the rest of its root is done
+    /// (`held_back`, which `wake_held_back` finds it by). Unlike a module's `delay`, the module never
+    /// learns of it: its delay state, count and first delay stay as they were, no run is counted
+    /// (`crate::metrics`), and the claim isn't an attempt.
+    pub async fn hold(
+        &self,
+        task: TaskId,
+        after: Duration,
+        held_back: Option<HeldBackWait>,
+    ) -> Result<(), QueueError> {
+        let (by, step) = held_back.map_or((None, None), |wait| {
+            (
+                Some(wait.by.as_str()),
+                Some(i32::try_from(wait.step).unwrap_or(i32::MAX)),
+            )
+        });
         self.db
             .transaction(Isolation::ReadCommitted, |tx| {
                 Box::pin(async move {
@@ -822,12 +857,15 @@ impl Worker {
                                 ELSE 'delayed'::queue.task_state END,
                    run_after = now() + make_interval(secs => $3),
                    attempts = GREATEST(attempts - 1, 0), lease_owner = NULL,
-                   lease_expires_at = NULL, updated_at = now()
+                   lease_expires_at = NULL, held_back_by = $4, held_back_step = $5,
+                   updated_at = now()
                WHERE id = $1 AND lease_owner = $2 AND state = 'running'
                RETURNING state AS "state: TaskState""#,
                         task as TaskId,
                         self.name,
                         after.as_secs_f64(),
+                        by,
+                        step,
                     )
                     .fetch_optional(tx.conn())
                     .await?
@@ -872,7 +910,9 @@ impl Worker {
         state: &serde_json::Value,
     ) -> Result<Option<(DateTime<Utc>, Uuid)>, QueueError> {
         let (root, pass) = self.lock_task_root_in_pass(tx, task).await?;
-        // the run ends here, as at a task's end (`finish_in`)
+        // the run ends here, as at a task's end (`finish_in`). A module that delays itself isn't held
+        // back by the core any more, so its next hold's wait starts low, and until then it counts as
+        // another module's task for the wake (`wake_held_back`).
         let row = sqlx::query!(
             r#"UPDATE queue.tasks
                SET state = CASE WHEN cancel_requested THEN 'cancelled'::queue.task_state
@@ -880,7 +920,8 @@ impl Worker {
                    run_after = now() + make_interval(secs => $3),
                    delay_state = $4, first_delayed_at = COALESCE(first_delayed_at, now()),
                    delays = delays + 1, attempts = 0, lease_owner = NULL,
-                   lease_expires_at = NULL, updated_at = now(),
+                   lease_expires_at = NULL, held_back_by = NULL, held_back_step = NULL,
+                   updated_at = now(),
                    run_seconds = CASE WHEN run_pass = $5 THEN run_seconds ELSE 0 END
                        + GREATEST(COALESCE(EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),
                    runs = CASE WHEN run_pass = $5 THEN runs ELSE 0 END + 1,
@@ -1681,8 +1722,8 @@ pub async fn find(db: &Db, task: TaskId) -> Result<Option<Task>, QueueError> {
     let row = sqlx::query!(
         r#"SELECT t.id AS "id: TaskId", t.root_id, t.module, t.attempts, t.input_hashes,
                   COALESCE(t.lease_expires_at, now()) AS "lease_expires_at!",
-                  t.delay_state, t.first_delayed_at, t.delays,
-                  o.id AS "observable_id: ObservableId", o.type AS kind, o.value,
+                  t.delay_state, t.first_delayed_at, t.delays, t.held_back_by,
+                  t.held_back_step, o.id AS "observable_id: ObservableId", o.type AS kind, o.value,
                   o.time, o.directives
            FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id
            WHERE t.id = $1"#,
@@ -1716,6 +1757,7 @@ pub async fn find(db: &Db, task: TaskId) -> Result<Option<Task>, QueueError> {
             first_delayed_at,
             delays: u32::try_from(row.delays).unwrap_or_default(),
         }),
+        held_back: HeldBackWait::of_row(row.held_back_by, row.held_back_step),
     }))
 }
 

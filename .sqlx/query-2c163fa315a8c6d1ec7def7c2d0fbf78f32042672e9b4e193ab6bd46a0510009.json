@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT t.id AS \"id: TaskId\", t.root_id, t.module, t.attempts, t.input_hashes,\n                  COALESCE(t.lease_expires_at, now()) AS \"lease_expires_at!\",\n                  t.delay_state, t.first_delayed_at, t.delays,\n                  o.id AS \"observable_id: ObservableId\", o.type AS kind, o.value,\n                  o.time, o.directives\n           FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id\n           WHERE t.id = $1",
+  "query": "SELECT t.id AS \"id: TaskId\", t.root_id, t.module, t.attempts, t.input_hashes,\n                      t.lease_expires_at AS \"lease_expires_at!\",\n                      t.delay_state, t.first_delayed_at, t.delays, t.held_back_by,\n                      t.held_back_step, o.id AS \"observable_id: ObservableId\", o.type AS kind, o.value,\n                      o.time, o.directives\n               FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id\n               WHERE t.id = $1 AND t.lease_owner = $2 AND t.state = 'running'",
   "describe": {
     "columns": [
       {
@@ -62,7 +62,12 @@
         "ordinal": 5,
         "name": "lease_expires_at!",
         "type_info": "Timestamptz",
-        "origin": "Expression"
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "lease_expires_at"
+          }
+        }
       },
       {
         "ordinal": 6,
@@ -99,6 +104,28 @@
       },
       {
         "ordinal": 9,
+        "name": "held_back_by",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "held_back_by"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "held_back_step",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "held_back_step"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
         "name": "observable_id: ObservableId",
         "type_info": "Int8",
         "origin": {
@@ -109,7 +136,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 12,
         "name": "kind",
         "type_info": "Text",
         "origin": {
@@ -120,7 +147,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 13,
         "name": "value",
         "type_info": "Text",
         "origin": {
@@ -131,7 +158,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 14,
         "name": "time",
         "type_info": "Timestamptz",
         "origin": {
@@ -142,7 +169,7 @@
         }
       },
       {
-        "ordinal": 13,
+        "ordinal": 15,
         "name": "directives",
         "type_info": "TextArray",
         "origin": {
@@ -155,7 +182,8 @@
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8",
+        "Text"
       ]
     },
     "nullable": [
@@ -164,10 +192,12 @@
       false,
       false,
       false,
-      null,
+      true,
       true,
       true,
       false,
+      true,
+      true,
       false,
       false,
       false,
@@ -175,5 +205,5 @@
       false
     ]
   },
-  "hash": "662b2081e262ffe53b45cc688acedeb66291f3d0e54d23ca1bd62ec11683c06f"
+  "hash": "2c163fa315a8c6d1ec7def7c2d0fbf78f32042672e9b4e193ab6bd46a0510009"
 }

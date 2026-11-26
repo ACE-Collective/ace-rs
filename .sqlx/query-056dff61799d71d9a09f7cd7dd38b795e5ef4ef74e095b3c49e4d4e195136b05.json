@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.tasks SET run_after = now()\n         WHERE root_id = $1 AND state = 'delayed' AND run_after > now()\n           AND held_back_by = $2\n           AND NOT EXISTS (\n               SELECT 1 FROM queue.tasks other\n               WHERE other.root_id = $1 AND other.state IN ('queued', 'delayed', 'running')\n                 AND other.held_back_by IS NULL)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "056dff61799d71d9a09f7cd7dd38b795e5ef4ef74e095b3c49e4d4e195136b05"
+}

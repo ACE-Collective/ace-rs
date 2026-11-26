@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.tasks\n         SET state = 'queued', run_after = now(), attempts = 0, error = NULL, delay_state = NULL,\n             first_delayed_at = NULL, delays = 0, held_back_by = NULL, held_back_step = NULL,\n             cancel_requested = false, updated_at = now()\n         WHERE id = $1 AND state = 'done' AND incomplete\n         RETURNING root_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "root_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "cd72042454db4541c1f5475c102a821c4b0e641b684f368f286a251e15b4f014"
+}

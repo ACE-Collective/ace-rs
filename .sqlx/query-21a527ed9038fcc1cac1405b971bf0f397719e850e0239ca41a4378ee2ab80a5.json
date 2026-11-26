@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO queue.tasks AS t (root_id, observable_id, module, max_attempts)\n           SELECT $1, min(o.id), $2, $3 FROM analysis.observables o\n           WHERE o.root_id = $1 HAVING min(o.id) IS NOT NULL\n           ON CONFLICT (root_id, observable_id, module) DO UPDATE\n               SET state = 'queued', run_after = now(), attempts = 0, error = NULL,\n                   lease_owner = NULL, lease_expires_at = NULL, delay_state = NULL,\n                   first_delayed_at = NULL, delays = 0, held_back_by = NULL,\n                   held_back_step = NULL, cancel_requested = false,\n                   updated_at = now()\n               WHERE t.state IN ('done', 'cancelled')\n           RETURNING id AS \"id: TaskId\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: TaskId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "21a527ed9038fcc1cac1405b971bf0f397719e850e0239ca41a4378ee2ab80a5"
+}

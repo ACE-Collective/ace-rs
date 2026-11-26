@@ -109,7 +109,7 @@ use crate::commands::{CommandState, CommandWorker};
 use crate::db::{Db, DbError, Isolation, Retryable};
 use crate::lists::ListCache;
 use crate::orchestrator::{Ending, Orchestrator, OrchestratorError, Rejected};
-use crate::queue::{HELD_BACK_BY, QueueError, TASKS_CHANNEL, Task, TaskId, Worker};
+use crate::queue::{HeldBackWait, QueueError, TASKS_CHANNEL, Task, TaskId, Worker};
 use crate::scans::{EndedScan, ScanRowState, ScanWorker};
 use crate::tree::{self, PATH_HOLD_LIMIT};
 
@@ -1175,22 +1175,17 @@ impl Api {
                 tree::held_back(self.inner.db.pool(), task.root, task.observable.id, &last).await;
             times.last = lap(&mut clock);
             if let Some(held) = held? {
-                let before = task.delayed.as_ref().map(|d| &d.state);
-                let step = match before {
-                    Some(state) if state[HELD_BACK_BY] == held.as_str() => {
-                        state["step"].as_u64().unwrap_or(0).saturating_add(1)
-                    }
+                let step = match task.held_back {
+                    Some(before) if before.by == held => before.step.saturating_add(1),
                     _ => 0,
                 };
-                let exponent = u32::try_from(step.min(7)).unwrap_or(7);
-                let after = OTHERS_PENDING_DELAY.saturating_mul(2u32.saturating_pow(exponent));
-                let state = serde_json::json!({HELD_BACK_BY: held.as_str(), "step": step});
-                match worker.delay(task.id, after, &state).await {
-                    Ok(_) => {}
-                    Err(QueueError::Cancelled(_)) => return Ok(None),
-                    Err(e) => return Err(e.into()),
-                }
-                // every other module has finished, and this task's delay isn't an end that would
+                let after = OTHERS_PENDING_DELAY.saturating_mul(2u32.saturating_pow(step.min(7)));
+                // a hold, not a delay: no pool saw this claim, so it's no run of the module, and the
+                // module's own delay, its timeout and its state, aren't this wait's
+                worker
+                    .hold(task.id, after, Some(HeldBackWait { by: held, step }))
+                    .await?;
+                // every other module has finished, and this task's hold isn't an end that would
                 // wake the ones still waiting for that (`queue::check_completion`). They come back
                 // when their waits end if this fails, so it doesn't fail the lease.
                 if held == tree::HeldBack::ByLastBelow
@@ -1525,7 +1520,7 @@ impl Api {
             return Ok(false);
         }
         let after = (waited / 2).clamp(PATH_HOLD_MIN, PATH_HOLD_MAX);
-        worker.hold(task.id, after).await?;
+        worker.hold(task.id, after, None).await?;
         Ok(true)
     }
 

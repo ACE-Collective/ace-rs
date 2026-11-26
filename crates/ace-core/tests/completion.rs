@@ -739,7 +739,9 @@ async fn a_tasks_run_time_is_from_each_claim_to_its_end_in_the_pass() {
     let held = worker(&test_db, "held", &["held"], lease).await;
     let task = claim(&held).await;
     tokio::time::sleep(Duration::from_millis(300)).await;
-    held.hold(task.id, Duration::ZERO).await.expect("holds");
+    held.hold(task.id, Duration::ZERO, None)
+        .await
+        .expect("holds");
     let task = claim(&held).await;
     tokio::time::sleep(Duration::from_millis(50)).await;
     held.complete(task.id).await.expect("completes");

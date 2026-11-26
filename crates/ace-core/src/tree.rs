@@ -1013,6 +1013,13 @@ impl HeldBack {
             HeldBack::ByLastBelow => "last_below",
         }
     }
+
+    /// The one `as_str` names.
+    pub fn parse(s: &str) -> Option<HeldBack> {
+        [HeldBack::ByOthers, HeldBack::ByLastBelow]
+            .into_iter()
+            .find(|held| held.as_str() == s)
+    }
 }
 
 /// Whether a task that runs last, on `observable`, must wait, and for what: a module not in `last` has

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH oldest AS MATERIALIZED (\n                   SELECT c.id FROM (SELECT DISTINCT unnest($3::text[]) AS module) m\n                   CROSS JOIN LATERAL (\n                       SELECT id, run_after FROM queue.tasks\n                       WHERE module = m.module AND state IN ('queued', 'delayed')\n                         AND run_after <= now()\n                       ORDER BY run_after, id\n                       LIMIT $4) c\n                   ORDER BY c.run_after, c.id\n                   LIMIT 2 * $4::int8),\n               first AS MATERIALIZED (\n                   SELECT t.id FROM queue.tasks t JOIN oldest ON oldest.id = t.id\n                   WHERE t.state IN ('queued', 'delayed') AND t.run_after <= now()\n                   ORDER BY t.run_after, t.id\n                   FOR UPDATE OF t SKIP LOCKED\n                   LIMIT $4),\n               rest AS MATERIALIZED (\n                   SELECT id FROM queue.tasks\n                   WHERE state IN ('queued', 'delayed') AND run_after <= now()\n                     AND module = ANY($3)\n                     AND NOT EXISTS (SELECT FROM first) AND EXISTS (SELECT FROM oldest)\n                   ORDER BY run_after, id\n                   FOR UPDATE SKIP LOCKED\n                   LIMIT $4),\n               due AS (SELECT id FROM first UNION ALL SELECT id FROM rest)\n               UPDATE queue.tasks t\n               SET state = 'running', lease_owner = $1,\n                   lease_expires_at = now() + make_interval(secs => $2),\n                   attempts = t.attempts + 1, claimed_at = now(), updated_at = now(),\n                   seen_changes = o.changes\n               FROM due, analysis.observables o\n               WHERE t.id = due.id AND o.id = t.observable_id\n               RETURNING t.id AS \"id: TaskId\", t.root_id, t.module, t.attempts, t.input_hashes,\n                         t.lease_expires_at AS \"lease_expires_at!\", t.run_after,\n                         t.delay_state, t.first_delayed_at, t.delays,\n                         o.id AS \"observable_id: ObservableId\", o.type AS kind, o.value,\n                         o.time, o.directives",
+  "query": "WITH oldest AS MATERIALIZED (\n                   SELECT c.id FROM (SELECT DISTINCT unnest($3::text[]) AS module) m\n                   CROSS JOIN LATERAL (\n                       SELECT id, run_after FROM queue.tasks\n                       WHERE module = m.module AND state IN ('queued', 'delayed')\n                         AND run_after <= now()\n                       ORDER BY run_after, id\n                       LIMIT $4) c\n                   ORDER BY c.run_after, c.id\n                   LIMIT 2 * $4::int8),\n               first AS MATERIALIZED (\n                   SELECT t.id FROM queue.tasks t JOIN oldest ON oldest.id = t.id\n                   WHERE t.state IN ('queued', 'delayed') AND t.run_after <= now()\n                   ORDER BY t.run_after, t.id\n                   FOR UPDATE OF t SKIP LOCKED\n                   LIMIT $4),\n               rest AS MATERIALIZED (\n                   SELECT id FROM queue.tasks\n                   WHERE state IN ('queued', 'delayed') AND run_after <= now()\n                     AND module = ANY($3)\n                     AND NOT EXISTS (SELECT FROM first) AND EXISTS (SELECT FROM oldest)\n                   ORDER BY run_after, id\n                   FOR UPDATE SKIP LOCKED\n                   LIMIT $4),\n               due AS (SELECT id FROM first UNION ALL SELECT id FROM rest)\n               UPDATE queue.tasks t\n               SET state = 'running', lease_owner = $1,\n                   lease_expires_at = now() + make_interval(secs => $2),\n                   attempts = t.attempts + 1, claimed_at = now(), updated_at = now(),\n                   seen_changes = o.changes\n               FROM due, analysis.observables o\n               WHERE t.id = due.id AND o.id = t.observable_id\n               RETURNING t.id AS \"id: TaskId\", t.root_id, t.module, t.attempts, t.input_hashes,\n                         t.lease_expires_at AS \"lease_expires_at!\", t.run_after,\n                         t.delay_state, t.first_delayed_at, t.delays, t.held_back_by,\n                         t.held_back_step, o.id AS \"observable_id: ObservableId\", o.type AS kind, o.value,\n                         o.time, o.directives",
   "describe": {
     "columns": [
       {
@@ -115,6 +115,28 @@
       },
       {
         "ordinal": 10,
+        "name": "held_back_by",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "held_back_by"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "held_back_step",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "held_back_step"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
         "name": "observable_id: ObservableId",
         "type_info": "Int8",
         "origin": {
@@ -125,7 +147,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 13,
         "name": "kind",
         "type_info": "Text",
         "origin": {
@@ -136,7 +158,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 14,
         "name": "value",
         "type_info": "Text",
         "origin": {
@@ -147,7 +169,7 @@
         }
       },
       {
-        "ordinal": 13,
+        "ordinal": 15,
         "name": "time",
         "type_info": "Timestamptz",
         "origin": {
@@ -158,7 +180,7 @@
         }
       },
       {
-        "ordinal": 14,
+        "ordinal": 16,
         "name": "directives",
         "type_info": "TextArray",
         "origin": {
@@ -188,6 +210,8 @@
       true,
       true,
       false,
+      true,
+      true,
       false,
       false,
       false,
@@ -195,5 +219,5 @@
       false
     ]
   },
-  "hash": "498ede183ddbee07eb857464b774a60d714ebff7b577e760a69eef99d0973a99"
+  "hash": "1e30ae6d9c0ca57f8fd7d28de8e7fa54d72fc750f66de477bd6a454a021209c1"
 }
