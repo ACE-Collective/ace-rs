@@ -313,3 +313,27 @@ fn a_rule_file_past_the_guard_s_bounds_is_left_out_and_the_rest_scan() {
         ]
     );
 }
+
+/// A file the type step typed: its mime type comes with the task, so libmagic's database, which the
+/// module maps before containment, goes unread.
+#[test]
+fn a_typed_file_reads_none_of_libmagics_database() {
+    let database = std::fs::metadata(ace_yara::mime::DEFAULT_DATABASE)
+        .expect("the database")
+        .len();
+    let dir = tempfile::tempdir().expect("a temp dir");
+    let (outcome, read) = ace_testkit::bytes_read_by(|| {
+        let harness = harness(&dir).with_typer(|_, _| {
+            Some(ace_results::types::file_type::TypeFacts {
+                mime: "application/octet-stream".to_owned(),
+                ..Default::default()
+            })
+        });
+        let file = harness
+            .file_bytes("payload.bin", b"xxEVILxx", &[])
+            .expect("fixture");
+        harness.run_parser(file).expect("scans")
+    });
+    assert!(matches!(outcome, Outcome::Done(_)), "{outcome:?}");
+    assert!(read < database / 10, "{read} bytes read");
+}

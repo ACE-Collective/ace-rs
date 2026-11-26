@@ -10,6 +10,7 @@ publish.workspace = true
 autotests = false
 
 [dependencies]
+ace-libmagic = { path = "../ace-libmagic" }
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
 ace-yara = { path = "../ace-yara" }

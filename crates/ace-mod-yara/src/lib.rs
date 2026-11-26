@@ -27,7 +27,6 @@ use ace_results::types::yara::{MatchContext, ScanResult, YaraScanResults};
 use ace_results::{Bytes, Detection, NewObservable, ObservableKind, ResultEnvelope};
 use ace_sdk::generation::{self, GenerationInfo};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
-use ace_yara::mime::{DEFAULT_DATABASE, MimeTyper};
 use ace_yara::{LoadOptions, Ruleset, ScanError, ScanRequest, Scanner};
 use regex::Regex;
 use schemars::JsonSchema;
@@ -82,9 +81,9 @@ pub struct YaraScanner {
     /// None in a pool whose first ruleset hasn't arrived: the supervisor builds its modules
     /// before it has one, and runs no task until it does.
     ruleset: Option<Loaded>,
-    /// libmagic's database, read before containment, for a file whose type step failed and so has
-    /// no mime type (PLAN.md decision 25).
-    magic: Result<Vec<u8>, String>,
+    /// libmagic's database, mapped before containment, for a file whose type step failed and so has
+    /// no mime type (PLAN.md decision 25). A task reads none of it for any other file.
+    magic: MagicDatabase,
 }
 
 /// A ruleset and where it came from.
@@ -128,7 +127,7 @@ impl Module for YaraScanner {
             else {
                 return Ok(YaraScanner {
                     ruleset: None,
-                    magic: magic_database(),
+                    magic: MagicDatabase::open(),
                 });
             };
             let bytes = std::fs::read(current.data())
@@ -141,7 +140,7 @@ impl Module for YaraScanner {
                     ruleset,
                     built: Some(current.info),
                 }),
-                magic: magic_database(),
+                magic: MagicDatabase::open(),
             });
         }
         let loaded = ace_yara::load_dir(&settings.signature_dir, &options)
@@ -154,7 +153,7 @@ impl Module for YaraScanner {
                 ruleset: loaded.ruleset,
                 built: None,
             }),
-            magic: magic_database(),
+            magic: MagicDatabase::open(),
         })
     }
 }
@@ -203,9 +202,38 @@ pub fn hexdump(data: &[u8]) -> String {
     out
 }
 
-/// libmagic's database, read before containment, which can't open it.
-fn magic_database() -> Result<Vec<u8>, String> {
-    std::fs::read(DEFAULT_DATABASE).map_err(|e| e.to_string())
+/// libmagic's database, mapped before containment, which can't open it (`ace_libmagic`). Mapping it
+/// reads nothing; a cookie loads from the mapping only for a file that needs it, and reads only the
+/// pages it matches against.
+struct MagicDatabase(Result<ace_libmagic::Database, String>);
+
+impl MagicDatabase {
+    fn open() -> MagicDatabase {
+        MagicDatabase(ace_libmagic::Database::open(Path::new(
+            ace_libmagic::DATABASE,
+        )))
+    }
+
+    /// The file's mime type as `file -b --mime-type -L` gives it: libmagic opens the file by its
+    /// path, since by a buffer it answers some files differently (`ace_yara::mime`).
+    fn mime_type_of_path(&self, path: &Path) -> Result<String, String> {
+        let database = self.0.as_ref().map_err(Clone::clone)?;
+        let cookie = ace_libmagic::Cookie::load(
+            database.bytes(),
+            ace_libmagic::MAGIC_MIME_TYPE | ace_libmagic::MAGIC_SYMLINK,
+        )?;
+        let path = std::ffi::CString::new(path.as_os_str().as_encoded_bytes())
+            .map_err(|_| "the path holds a NUL".to_owned())?;
+        cookie
+            .file(&path)
+            .map(|answer| String::from_utf8_lossy(&answer).into_owned())
+            .map_err(|error| {
+                format!(
+                    "libmagic failed: {}",
+                    String::from_utf8_lossy(&error.unwrap_or_default())
+                )
+            })
+    }
 }
 
 impl Parser for YaraScanner {
@@ -232,15 +260,10 @@ impl Parser for YaraScanner {
         let mime_type = match &file.mime_type {
             Some(mime) => mime.clone(),
             // the file's type holds libmagic's answer; a file whose type step failed gets it here
-            None => {
-                let database = self
-                    .magic
-                    .as_ref()
-                    .map_err(|e| ModuleError::other(format!("{DEFAULT_DATABASE}: {e}")))?;
-                MimeTyper::from_bytes(database.clone(), Path::new(DEFAULT_DATABASE))
-                    .and_then(|typer| typer.mime_type_of_path(&file.local_path))
-                    .map_err(ModuleError::other)?
-            }
+            None => self
+                .magic
+                .mime_type_of_path(&file.local_path)
+                .map_err(|e| ModuleError::other(format!("{}: {e}", ace_libmagic::DATABASE)))?,
         };
         let meta_tags: Vec<String> = file.yara_meta.iter().map(|t| t.to_string()).collect();
         ctx.check_cancelled()?;
@@ -488,6 +511,41 @@ fn push_tagged(list: &mut Vec<NewObservable>, kind: ObservableKind, value: &str,
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A file whose type step failed gets its mime type from libmagic over the mapped database, as
+    /// `file -b --mime-type -L` gives it and as the module's copy of the database gave it before: the
+    /// `mime_type` filter sees the same type.
+    #[test]
+    fn an_untyped_file_gets_the_mime_type_file_gives() {
+        let typer =
+            ace_yara::mime::MimeTyper::open(std::path::Path::new(ace_yara::mime::DEFAULT_DATABASE))
+                .expect("libmagic");
+        let mut files = Vec::new();
+        let mut dirs = vec![
+            ace_testkit::samples_dir().join("ace3"),
+            ace_testkit::samples_dir().join("ace-rs"),
+        ];
+        while let Some(dir) = dirs.pop() {
+            for entry in std::fs::read_dir(&dir).expect("a samples directory") {
+                let path = entry.expect("an entry").path();
+                if path.is_dir() {
+                    dirs.push(path);
+                } else {
+                    files.push(path);
+                }
+            }
+        }
+        assert!(files.len() > 400, "{}", files.len());
+        let database = MagicDatabase::open();
+        for path in &files {
+            assert_eq!(
+                database.mime_type_of_path(path).expect("a mime type"),
+                typer.mime_type_of_path(path).expect("a mime type"),
+                "{}",
+                path.display()
+            );
+        }
+    }
 
     #[test]
     fn hexdump_matches_hexdump_c() {
