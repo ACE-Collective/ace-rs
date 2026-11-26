@@ -93,9 +93,9 @@ fn tool_version(spec: &ToolSpec) -> Result<String, String> {
         .spawn()
         .map_err(|e| format!("{}: {e}", spec.program))?;
     let started = Instant::now();
-    loop {
-        if child.try_wait().map_err(|e| e.to_string())?.is_some() {
-            break;
+    let status = loop {
+        if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
+            break status;
         }
         if started.elapsed() > PROBE_TIMEOUT {
             child.kill().ok();
@@ -103,7 +103,7 @@ fn tool_version(spec: &ToolSpec) -> Result<String, String> {
             return Err(format!("{} didn't print its version in time", spec.name));
         }
         std::thread::sleep(Duration::from_millis(20));
-    }
+    };
     let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
     if let Some(mut out) = child.stdout.take() {
         out.read_to_end(&mut stdout).map_err(|e| e.to_string())?;
@@ -111,7 +111,16 @@ fn tool_version(spec: &ToolSpec) -> Result<String, String> {
     if let Some(mut err) = child.stderr.take() {
         err.read_to_end(&mut stderr).map_err(|e| e.to_string())?;
     }
-    version_line(&stdout, &stderr).ok_or_else(|| format!("{} printed no version", spec.name))
+    let first = version_line(&stdout, &stderr);
+    if !status.success() {
+        // what a tool prints when it rejects its version arguments is its complaint, not a version
+        return Err(format!(
+            "{} exited with {status}: {}",
+            spec.name,
+            first.as_deref().unwrap_or("")
+        ));
+    }
+    first.ok_or_else(|| format!("{} printed no version", spec.name))
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -161,6 +170,29 @@ mod tests {
             ..Cache::new(1, Duration::from_secs(60))
         };
         assert!(probe(&missing, &[spec]).is_err());
+    }
+
+    #[test]
+    fn a_tool_that_exits_non_zero_has_no_version() {
+        // a tool that rejects its version arguments prints its complaint and exits non-zero; that
+        // line was taken for its version, and so went into the cache key
+        let spec = ToolSpec {
+            name: "sh",
+            program: "/bin/sh",
+            interpreter: None,
+            args: &[],
+            version_args: &["-c", "echo 'sh: unknown option --version' >&2; exit 2"],
+            ..ace_sdk::tools::SANDBOX_TOOLS[0]
+        };
+        let cache = Cache {
+            tools: &["sh"],
+            ..Cache::new(1, Duration::from_secs(60))
+        };
+        let why = probe(&cache, &[spec]).expect_err("no version");
+        assert_eq!(
+            why,
+            "sh exited with exit status: 2: sh: unknown option --version"
+        );
     }
 
     #[test]

@@ -2227,7 +2227,7 @@ fn an_alert_s_summary_is_chosen_by_its_type() {
         "event_time": "2026-10-26T07:00:00+00:00",
         "event_time_source": "event",
         "queue": "default",
-        "extensions": {"playbook_url": "javascript:alert(1)"},
+        "extensions": {"playbook_url": "https://wiki.example.com/playbook"},
         "details": {
             "search_link": "https://splunk.example.com/search?sid=1&x=<y>",
             "query": "search index=x earliest=10/26/2026:06:00:00 latest=10/26/2026:07:00:00 \"<script>\" | stats count",
@@ -2254,9 +2254,9 @@ fn an_alert_s_summary_is_chosen_by_its_type() {
             "<summary>All 2 events</summary>",
         ],
     );
-    // a link is only an http or https address
+    // the playbook URL is kept but not shown, as ace3's alert page stopped showing it
     assert!(
-        !page.contains("javascript:") && !page.contains("Playbook"),
+        !page.contains("Playbook") && !page.contains("wiki.example.com"),
         "{page}"
     );
     assert!(!page.contains("Key observables"), "{page}");

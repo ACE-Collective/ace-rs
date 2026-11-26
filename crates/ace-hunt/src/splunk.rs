@@ -301,16 +301,6 @@ pub fn strip_comments(query: &str) -> String {
     out.trim_matches(char::is_whitespace).to_owned()
 }
 
-/// Python's `time.mktime(t.timetuple())` of a time in `tz`, on a host whose local time is UTC, as
-/// ace3's containers' is: the wall clock read as UTC, an hour earlier when the time is in daylight
-/// saving, since the tuple's `tm_isdst` says so and C's `mktime` honours it.
-fn mktime(time: DateTime<Utc>, tz: Tz) -> i64 {
-    use chrono_tz::OffsetComponents;
-    let local = time.with_timezone(&tz);
-    let wall: NaiveDateTime = local.naive_local();
-    wall.and_utc().timestamp() - local.offset().dst_offset().num_seconds()
-}
-
 /// `encode_splunk_query_link`.
 pub fn link(
     host: &str,
@@ -339,11 +329,13 @@ pub fn link(
             .replace(&query, regex::NoExpand(&replacement))
             .into_owned();
     }
+    // the instants' epochs, as ace3's `dt.timestamp()`: before ace3 41e6cdc9 it read the wall time in
+    // the Splunk time zone as UTC, which put the link's window hours off
     let month = TimeDelta::days(30);
     let (earliest, latest) = if use_index_time {
-        (mktime(start - month, tz), mktime(end + month, tz))
+        ((start - month).timestamp(), (end + month).timestamp())
     } else {
-        (mktime(start, tz), mktime(end, tz))
+        (start.timestamp(), end.timestamp())
     };
     let path = match app {
         None | Some("-") => "en-US/app/search/search".to_owned(),
@@ -402,6 +394,35 @@ mod tests {
         assert_eq!(strip_comments("a\n  ```x```\n  b"), "a\n  b");
         assert_eq!(strip_comments(r#"a "```x```" b"#), r#"a "```x```" b"#);
         assert_eq!(strip_comments("a ```open"), "a ```open");
+    }
+
+    #[test]
+    fn a_link_searches_the_window_s_instants_in_any_time_zone() {
+        // the wall time in New York was read as UTC, so the link searched a window 5 hours early
+        let start = DateTime::parse_from_rfc3339("2026-01-15T15:00:00Z")
+            .expect("a time")
+            .to_utc();
+        let end = start + TimeDelta::hours(1);
+        let tz: Tz = "America/New_York".parse().expect("a zone");
+        let url = link("splunk.example", None, "index=x", start, end, tz, false);
+        assert!(
+            url.ends_with(&format!(
+                "&earliest={}&latest={}",
+                start.timestamp(),
+                end.timestamp()
+            )),
+            "{url}"
+        );
+        let month = TimeDelta::days(30);
+        let url = link("splunk.example", None, "index=x", start, end, tz, true);
+        assert!(
+            url.ends_with(&format!(
+                "&earliest={}&latest={}",
+                (start - month).timestamp(),
+                (end + month).timestamp()
+            )),
+            "{url}"
+        );
     }
 
     #[test]

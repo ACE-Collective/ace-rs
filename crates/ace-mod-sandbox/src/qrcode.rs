@@ -26,7 +26,7 @@ use ace_results::types::sandbox::QrCodeAnalysis;
 use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
 use ace_sdk::cache::{Cache, CachePaths};
 use ace_sdk::takes::{Condition, Takes, TypeFact};
-use ace_sdk::tools::ToolRun;
+use ace_sdk::tools::{ToolOutput, ToolRun};
 use ace_sdk::{List, ListSpec, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use opencv::core::{Mat, Vector};
 use opencv::objdetect::QRCodeDetector;
@@ -260,6 +260,38 @@ fn scan_with_opencv(image: &std::path::Path) -> Option<(String, String)> {
     Some((normal.join("\n"), inverted.join("\n")))
 }
 
+/// The page count in what pdfinfo printed, or None to render every page: when it was stopped,
+/// exited non-zero or printed no count it can read.
+fn pdfinfo_page_count(output: &ToolOutput, pdf: &str) -> Option<u64> {
+    let returncode = output.returncode()?;
+    // pdfinfo writes the metadata before it scans the pages and prints its count, so a run killed
+    // during that scan can end in a forged "Pages:" line from the Title. Only a finished run's
+    // last count is pdfinfo's own
+    if returncode != 0 {
+        let reason = crate::tool_failure_reason("pdfinfo", returncode, &output.stderr_text());
+        tracing::warn!(path = pdf, "pdfinfo failed on {pdf}: {reason}");
+        return None;
+    }
+    // pdfinfo prints the document's metadata, newlines and all, before its own "Pages:" line, so a
+    // Title can print a "Pages:" line of its own. Nothing pdfinfo prints after its count is free
+    // text: the last one is real
+    let stdout = output.stdout_text();
+    let line = stdout
+        .split('\n')
+        .rfind(|line| line.starts_with("Pages:"))?;
+    // int(line.split(":")[1].strip())
+    let value = ace_pycompat::pystr::strip(line.split(':').nth(1).unwrap_or_default());
+    let count = python_int(value);
+    if count.is_none() {
+        // the count comes from the attacker's PDF, so a bad one is the file's problem
+        tracing::warn!(
+            path = pdf,
+            "pdfinfo printed an unreadable page count for {pdf}: {line}"
+        );
+    }
+    count
+}
+
 impl QrCodeAnalyzer {
     /// `_get_pdf_page_count`.
     fn page_count(
@@ -274,18 +306,7 @@ impl QrCodeAnalyzer {
                 .read(pdf)
                 .timeout(timeout),
         )?;
-        if output.stopped().is_some() {
-            return Ok(None);
-        }
-        for line in output.stdout_text().split('\n') {
-            if line.starts_with("Pages:") {
-                // int(line.split(":")[1].strip())
-                let value = line.split(':').nth(1).unwrap_or_default();
-                let value = ace_pycompat::pystr::strip(value);
-                return Ok(python_int(value));
-            }
-        }
-        Ok(None)
+        Ok(pdfinfo_page_count(&output, &path))
     }
 
     /// `_render_pdf_pages` and `_render_pdf_to_pngs`: the pages to scan, in order.
@@ -504,6 +525,92 @@ mod tests {
         assert_eq!(python_int("+3"), Some(3));
         for bad in ["", "x", "1.0", "_1", "1__0"] {
             assert_eq!(python_int(bad), None, "{bad}");
+        }
+    }
+
+    /// What `f` logs, as the fmt subscriber writes it.
+    fn logged<T>(f: impl FnOnce() -> T) -> (T, String) {
+        #[derive(Clone, Default)]
+        struct Logs(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
+        impl std::io::Write for Logs {
+            fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+                self.0.lock().expect("lock").extend_from_slice(buf);
+                Ok(buf.len())
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        let logs = Logs::default();
+        let writer = logs.clone();
+        let subscriber = tracing_subscriber::fmt()
+            .with_writer(move || writer.clone())
+            .with_ansi(false)
+            .finish();
+        let value = tracing::subscriber::with_default(subscriber, f);
+        let text = String::from_utf8(logs.0.lock().expect("lock").clone()).expect("text");
+        (value, text)
+    }
+
+    fn pdfinfo(status: ace_sdk::tools::ToolStatus, stdout: &str) -> ToolOutput {
+        ToolOutput {
+            status,
+            stdout: stdout.as_bytes().to_vec(),
+            stderr: b"Syntax Error: bad xref\n".to_vec(),
+            outputs: Default::default(),
+        }
+    }
+
+    #[test]
+    fn the_page_count_is_pdfinfos_last_pages_line() {
+        use ace_sdk::tools::ToolStatus;
+        // pdfinfo prints the metadata, newlines kept, before its own count: this Title printed a
+        // count of 1, and only page 1 was rendered
+        let output = pdfinfo(
+            ToolStatus::Exited(0),
+            "Title: x\nPages: 1\nCreator: y\nPages: 5\n",
+        );
+        let (count, logs) = logged(|| pdfinfo_page_count(&output, "a.pdf"));
+        assert_eq!(count, Some(5));
+        assert_eq!(logs, "");
+    }
+
+    #[test]
+    fn a_page_count_that_cannot_be_read_renders_every_page() {
+        use ace_sdk::tools::{ToolStatus, ToolStop};
+        let cases = [
+            // stopped: ace3's run_sandboxed_tool returns nothing, and nothing is logged
+            (ToolStatus::Stopped(ToolStop::Timeout), "Pages: 3\n", None),
+            (
+                ToolStatus::Exited(0),
+                "Title: x\nPages: many\n",
+                Some("unreadable page count for a.pdf: Pages: many"),
+            ),
+            (ToolStatus::Exited(0), "Title: x\n", None),
+            // killed after writing a forged count from the Title, before its own
+            (
+                ToolStatus::Signaled(6),
+                "Title: x\nPages: 1\n",
+                Some(
+                    "pdfinfo failed on a.pdf: pdfinfo was killed by signal 6: Syntax Error: bad xref",
+                ),
+            ),
+            (
+                ToolStatus::Exited(1),
+                "Title: x\nPages: 1\n",
+                Some("pdfinfo failed on a.pdf: pdfinfo exited with status 1"),
+            ),
+        ];
+        for (status, stdout, warning) in cases {
+            let (count, logs) = logged(|| pdfinfo_page_count(&pdfinfo(status, stdout), "a.pdf"));
+            assert_eq!(count, None, "{status:?} {stdout:?}");
+            match warning {
+                Some(warning) => {
+                    assert!(logs.contains("WARN"), "{logs}");
+                    assert!(logs.contains(warning), "{logs}");
+                }
+                None => assert_eq!(logs, "", "{status:?} {stdout:?}"),
+            }
         }
     }
 

@@ -805,7 +805,6 @@ pub struct HuntSummaryView {
     pub instructions: Option<String>,
     /// The search in the hunt's tool, when the origin has a web address for it.
     pub search_link: Option<String>,
-    pub playbook: Option<String>,
     /// The query's own time window, as it ran.
     pub window: Option<String>,
     pub query: Option<Clipped>,
@@ -896,7 +895,6 @@ fn hunt_view(alert: &SummaryInput<'_>) -> Option<HuntSummaryView> {
         fields,
         instructions: text(&origin["instructions"]).map(|text| clip(&text, MAX_BLOCK).text),
         search_link: text(&details["search_link"]).and_then(|url| web_link(&url)),
-        playbook: text(&origin["extensions"]["playbook_url"]).and_then(|url| web_link(&url)),
         window: query.as_deref().and_then(query_window),
         query: query.map(|query| clip(&query, MAX_BLOCK)),
         events: events.len(),

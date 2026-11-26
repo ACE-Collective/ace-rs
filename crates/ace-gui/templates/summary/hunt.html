@@ -1,7 +1,8 @@
 {#- A hunt alert's summary (src/analysis/summary.rs), from ace3's analysis/custom/hunter_splunk.html: the
     hunt and where it searched, its query as it ran with its time window, and the matched event's
     fields, with ace3's Raw Splunk Details folded away. A link is only an http or https address the
-    origin gave (`web_link`). -#}
+    origin gave (`web_link`). The hunt's playbook URL stays in the origin and isn't shown, as ace3's
+    alert page stopped showing it. -#}
 <section class="type-summary hunt-summary" aria-labelledby="type-summary-title">
   <h2 id="type-summary-title">Hunt <span class="muted">{{ events }} matched event{% if events != 1 %}s{% endif %}</span></h2>
   {%- if let Some(instructions) = instructions %}
@@ -14,12 +15,9 @@
     {%- if let Some(window) = window %}
     <dt>Time window</dt><dd><code>{{ window }}</code></dd>
     {%- endif %}
-    {%- if search_link.is_some() || playbook.is_some() %}
+    {%- if let Some(link) = search_link %}
     <dt>Links</dt>
-    <dd>
-      {%- if let Some(link) = search_link %} <a href="{{ link }}" rel="noopener noreferrer" target="_blank">Open the search</a>{% endif %}
-      {%- if let Some(link) = playbook %} <a href="{{ link }}" rel="noopener noreferrer" target="_blank">Playbook</a>{% endif %}
-    </dd>
+    <dd> <a href="{{ link }}" rel="noopener noreferrer" target="_blank">Open the search</a></dd>
     {%- endif %}
   </dl>
   {%- if let Some(query) = query %}
