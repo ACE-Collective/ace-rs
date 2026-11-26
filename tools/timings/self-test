@@ -216,6 +216,32 @@ class Edges(unittest.TestCase):
         self.assertAlmostEqual(row["ratio"]["cpu"], 0.8)
         self.assertEqual((row["ace_rs"]["runs"]["median"], row["ace3"]["runs"]["median"]), (4, 5000))
 
+    def test_ace3s_custom_requirement_counts_even_where_analyze_never_ran(self):
+        rs = rs_run([{"sample": "x", "timings": {"root": {}, "modules": {
+            "gated": {"runs": 4, "run_seconds": 0.4, "analyze_seconds": 0.2, "cpu_seconds": 0.2, "cache_hits": 0},
+            "never": {"runs": 4, "run_seconds": 0.4, "analyze_seconds": 0.2, "cpu_seconds": 0.2, "cache_hits": 0}}}}])
+        ace3 = ace3_run([compare.with_requirement({"sample": "x", "process": process(), "modules": {
+            "gated": {"executor_runs": 2, "executor_seconds": 1.0, "runs": 2, "analyze_seconds": 0.5,
+                      "cpu_seconds": 0.5, "requirement_runs": 100, "requirement_seconds": 0.3,
+                      "requirement_cpu_seconds": 0.25},
+            "never": {"executor_runs": 0, "executor_seconds": 0.0, "runs": 0, "analyze_seconds": 0.0,
+                      "cpu_seconds": 0.0, "requirement_runs": 100, "requirement_seconds": 0.4,
+                      "requirement_cpu_seconds": 0.4}}})])
+        rows = {r["module"]: r for r in compare.compare([rs], [ace3])["modules"]}
+        gated = rows["gated"]["ace3"]["total"]
+        self.assertAlmostEqual(gated["analyze"]["median"], 0.8)
+        self.assertAlmostEqual(gated["slot"]["median"], 1.3)
+        self.assertAlmostEqual(gated["cpu"]["median"], 0.75)
+        # a module whose gate declined every observable still compares, with its gate's time
+        self.assertIn("never", rows)
+        self.assertAlmostEqual(rows["never"]["ace3"]["total"]["analyze"]["median"], 0.4)
+        self.assertAlmostEqual(rows["never"]["ratio"]["analyze"], 0.5)
+
+    def test_a_timing_file_from_before_the_gate_was_timed_is_unchanged(self):
+        timing = {"modules": {"m": {"executor_seconds": None, "analyze_seconds": 1.0, "cpu_seconds": 2.0}}}
+        self.assertEqual(compare.with_requirement(timing)["modules"]["m"],
+                         {"executor_seconds": None, "analyze_seconds": 1.0, "cpu_seconds": 2.0})
+
     def test_a_root_of_lookups_alone_has_no_ace_rs_cpu_and_adds_nothing_to_the_total(self):
         rs = rs_run([
             {"sample": "x", "timings": {"root": {"cpu_seconds": None, "analyze_seconds": 0.2}, "modules": {

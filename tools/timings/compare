@@ -17,6 +17,12 @@ where ace-rs's declarations keep the core from queueing them, so a per-run avera
 is mostly of declines. The per-run figures follow in a table of their own, for reading beside the
 run counts, with no ratios.
 
+ace3's figures for a module include its `custom_requirement`, the gate its executor checks before
+its own clock starts and before `analyze` (`requirement_seconds` in a timing file, from
+`make-trees --timings`), since ace-rs runs the same checks inside `analyze` and its slot. A module
+whose gate ran but whose `analyze` never did counts as having run. A timing file from before the
+gate was timed has none, and counts as before.
+
 A figure no counted sample had is n/a: ace-rs's CPU for a lookup module, whose process is shared,
 or ace3's slot time when its executor gave none. A figure some samples had and some didn't is
 "partial", with no total and no ratio, since a sum of a part would pass for the whole.
@@ -57,13 +63,26 @@ def load_ace3(directory):
     directory = Path(directory)
     samples = {}
     for file in sorted(directory.rglob("*.json")):
-        timing = json.loads(file.read_text())
+        timing = with_requirement(json.loads(file.read_text()))
         name = timing.get("sample") or str(file.relative_to(directory).with_suffix(""))
         samples[name] = timing
     if not samples:
         raise SystemExit(f"{directory} holds no timing files")
     return {"path": str(directory), "samples": samples,
             "ace3_commit": next(iter(samples.values())).get("ace3_commit")}
+
+
+def with_requirement(timing):
+    """An ace3 timing file with each module's custom_requirement time added to its analyze,
+    executor and CPU figures: the gate ace-rs runs inside analyze, which ace3's executor checks
+    before both of its own clocks."""
+    for module in timing.get("modules", {}).values():
+        seconds = module.get("requirement_seconds") or 0.0
+        module["analyze_seconds"] = (module.get("analyze_seconds") or 0.0) + seconds
+        if module.get("executor_seconds") is not None:
+            module["executor_seconds"] += seconds
+        module["cpu_seconds"] = (module.get("cpu_seconds") or 0.0) + (module.get("requirement_cpu_seconds") or 0.0)
+    return timing
 
 
 def spread(values):
@@ -120,9 +139,11 @@ def module_run(rows, fields):
     """One run's figures for a module over the counted samples' rows: totals and per run."""
     rows = [r for r in rows if r]
     out = {"runs": sum(r.get("runs", 0) for r in rows),
+           "gate_runs": sum(r.get("requirement_runs", 0) for r in rows),
            "cache_hits": sum(r.get("cache_hits", 0) for r in rows)}
     for figure, field in fields.items():
-        pairs = [(r.get(field), r.get("runs", 0)) for r in rows]
+        # a module whose gate ran and declined every time ran all the same
+        pairs = [(r.get(field), r.get("runs", 0) + r.get("requirement_runs", 0)) for r in rows]
         out[f"total_{figure}"], out[f"nulls_{figure}"], out[f"ran_{figure}"] = total(pairs)
         out[f"per_run_{figure}"] = per_run(pairs)
     return out
@@ -130,6 +151,7 @@ def module_run(rows, fields):
 
 def side_spread(per_runs):
     side = {"runs": spread([r["runs"] for r in per_runs]),
+            "gate_runs": spread([r["gate_runs"] for r in per_runs]),
             "cache_hits": spread([r["cache_hits"] for r in per_runs]),
             "total": {}, "per_run": {}, "nulls": {}}
     for figure in FIGURES:
@@ -192,7 +214,7 @@ def compare(ace_rs_runs, ace3_runs):
             "ace3": ace3,
         }
         rs_ran = bool(rs["runs"] and rs["runs"]["max"])
-        ace3_ran = bool(ace3["runs"] and ace3["runs"]["max"])
+        ace3_ran = any(ace3[key] and ace3[key]["max"] for key in ("runs", "gate_runs"))
         if rs_ran and ace3_ran:
             row["ratio"] = {f: ratio(rs["total"][f], ace3["total"][f]) for f in ("analyze", "cpu")}
             on_both.append(row)

@@ -63,8 +63,9 @@ does (saq/cli/commands/correlate.py) with all modules disabled except the ones n
 - with --tree, it also writes tree.json, the whole root in the normal form of PLAN.md 3.1
   (crates/ace-core/src/normal.rs), which tools/ace3/trees/make-trees collects;
 - with --timings, it also writes timings.json (PLAN.md 3.6): for each module, the executor's own
-  total_exec_count and total_analysis_time, and each call of its analyze timed by wall clock and CPU;
-  and the process's wall time and CPU, its children's apart, from its start to the engine's end.
+  total_exec_count and total_analysis_time, each call of its analyze timed by wall clock and CPU,
+  and each call of its custom_requirement, which the executor makes before either; and the process's
+  wall time and CPU, its children's apart, from its start to the engine's end.
 
 The dump lists every analysis on the observable (the module's and its dependencies'), with the
 observables each one added, and what the module did to the observable itself (tags, directives,
@@ -895,12 +896,38 @@ class ModuleTimings:
             try:
                 return analyze(module, *args, **kwargs)
             finally:
-                entry = modules.setdefault(module.name, {"runs": 0, "analyze_seconds": 0.0, "cpu_seconds": 0.0})
+                entry = modules.setdefault(module.name, empty())
                 entry["runs"] += 1
                 entry["analyze_seconds"] += time.perf_counter() - wall
                 entry["cpu_seconds"] += time.process_time() - cpu + children_cpu() - children
 
         AnalysisModule.analyze = timed_analyze
+
+        # The executor checks custom_requirement before it starts its own clock or calls analyze
+        # (saq/engine/executor.py), so neither timing above holds it. Modules override it, so it's
+        # wrapped on the adapter the executor calls it through. A module without one raises
+        # NotImplementedError at once and isn't counted; a check that raises
+        # WaitForAnalysisException is.
+        from saq.modules.adapter import AnalysisModuleAdapter
+
+        requirement = AnalysisModuleAdapter.custom_requirement
+
+        def timed_requirement(adapter, *args, **kwargs):
+            wall, cpu, children = time.perf_counter(), time.process_time(), children_cpu()
+            counted = True
+            try:
+                return requirement(adapter, *args, **kwargs)
+            except NotImplementedError:
+                counted = False
+                raise
+            finally:
+                if counted:
+                    entry = modules.setdefault(adapter.name, empty())
+                    entry["requirement_runs"] += 1
+                    entry["requirement_seconds"] += time.perf_counter() - wall
+                    entry["requirement_cpu_seconds"] += time.process_time() - cpu + children_cpu() - children
+
+        AnalysisModuleAdapter.custom_requirement = timed_requirement
 
     def form(self, process):
         executor_seconds, executor_runs = {}, {}
@@ -911,12 +938,20 @@ class ModuleTimings:
                 executor_runs[name] = executor_runs.get(name, 0) + count
         modules = {}
         for name in sorted(set(self.modules) | set(executor_seconds) | set(executor_runs)):
-            mine = self.modules.get(name, {"runs": 0, "analyze_seconds": 0.0, "cpu_seconds": 0.0})
+            mine = self.modules.get(name, empty())
             modules[name] = {
                 "executor_runs": executor_runs.get(name, 0) if self.contexts else None,
                 "executor_seconds": executor_seconds.get(name, 0.0) if self.contexts else None,
             } | mine
         return {"process": process, "modules": modules}
+
+
+def empty():
+    """A module's timings before its first call."""
+    return {
+        "runs": 0, "analyze_seconds": 0.0, "cpu_seconds": 0.0,
+        "requirement_runs": 0, "requirement_seconds": 0.0, "requirement_cpu_seconds": 0.0,
+    }
 
 
 def process_timings():

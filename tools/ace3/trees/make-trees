@@ -43,7 +43,8 @@ the trees as they are:
 
     {"sample": <path under samples/>, "ace3_commit": ...,
      "process": {"wall_seconds", "cpu_seconds", "children_cpu_seconds"},
-     "modules": {<module>: {"executor_runs", "executor_seconds", "runs", "analyze_seconds", "cpu_seconds"}}}
+     "modules": {<module>: {"executor_runs", "executor_seconds", "runs", "analyze_seconds", "cpu_seconds",
+                            "requirement_runs", "requirement_seconds", "requirement_cpu_seconds"}}}
 
 `process` is the run's python process from its start to the engine's end, a floor for what a root
 costs ace3, since the cli mode has no queue, database or lock; its children are the tools modules
@@ -51,7 +52,10 @@ run. Per module, executor_runs and executor_seconds are the executor's own total
 total_analysis_time, summed over the run's execution contexts (null with none), whose time includes
 its snapshots of the root around the module; runs, analyze_seconds and cpu_seconds time each call of
 the module's analyze, a declining one included, and its CPU is the process's and its children's
-during the call. Modules go by their config names, as ENABLE names them.
+during the call. requirement_runs, requirement_seconds and requirement_cpu_seconds time each call
+of the module's custom_requirement, the gate the executor checks before its own clock starts and
+before analyze, so neither of the others holds it; a module without one has none. Modules go by
+their config names, as ENABLE names them.
 The comparison follows the newest ace3 (PLAN.md decision 14), so rerun this after ace3 moves.
 Everything runs under the container's /tmp/ace-rs-dumps; nothing is written under /opt/ace. Samples
 under samples/local/ are git-ignored, so make them or copy them in first.
