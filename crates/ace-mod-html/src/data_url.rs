@@ -27,10 +27,19 @@ use crate::py::{NAME_MAX_BYTES, mime_extension};
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<HtmlDataUrlAnalyzer>();
 
-/// `RE_HTML_EMBED`.
+/// `RE_HTML_EMBED`. Compiling it takes most of a task's time on a file with no data URL, and each
+/// task is a process of its own, so it is compiled only for a file that `may_hold_a_data_url`.
 static RE_HTML_EMBED: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?-u)data:([^/]+/[^;]+);base64,([-A-Za-z0-9+/=]+)").expect("the pattern compiles")
 });
+
+/// Whether `RE_HTML_EMBED` can match: every match starts with `data:`.
+fn may_hold_a_data_url(data: &[u8]) -> bool {
+    memchr::memmem::find(data, b"data:").is_some()
+}
+
+/// Why a file with no data URL that decodes is skipped.
+const NONE_DECODED: &str = "no data URL decoded";
 
 /// ace3's OCR module, which the extracted files are kept from.
 const OCR: &str = "ocr";
@@ -80,6 +89,9 @@ impl Parser for HtmlDataUrlAnalyzer {
             &mut std::io::Read::take(std::fs::File::open(&file.local_path)?, limit),
             &mut data,
         )?;
+        if !may_hold_a_data_url(&data) {
+            return Ok(Outcome::Skipped(NONE_DECODED.to_owned()));
+        }
         let source = ObservableRef::new(ObservableKind::File, file.sha256.to_hex());
         let mut analysis: Option<HtmlDataUrlAnalysis> = None;
         let mut files = Vec::new();
@@ -123,7 +135,7 @@ impl Parser for HtmlDataUrlAnalyzer {
             count += 1;
         }
         let Some(analysis) = analysis else {
-            return Ok(Outcome::Skipped("no data URL decoded".to_owned()));
+            return Ok(Outcome::Skipped(NONE_DECODED.to_owned()));
         };
         let summary = (analysis.count > 0).then(|| {
             format!(
@@ -157,5 +169,63 @@ mod tests {
                 (b"a\nb/c d".to_vec(), b"-x".to_vec()),
             ]
         );
+    }
+
+    /// Inputs made of the pattern's own pieces, so many come close to a data URL and some are one.
+    fn generated(count: usize) -> Vec<Vec<u8>> {
+        const PIECES: [&[u8]; 18] = [
+            b"data:",
+            b"dat",
+            b"a:",
+            b"image",
+            b"/",
+            b"png",
+            b";",
+            b"base64,",
+            b"iVBO",
+            b"=",
+            b"+-",
+            b"\n",
+            b" ",
+            b"\xff\xfe",
+            b"DATA:",
+            b"<img src=\"",
+            b"data:image/png;base64,",
+            b"data:a/b;base64,",
+        ];
+        let mut state = 0u64;
+        // splitmix64
+        let mut next = move || {
+            state = state.wrapping_add(0x9e37_79b9_7f4a_7c15);
+            let mut z = state;
+            z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+            z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+            z ^ (z >> 31)
+        };
+        (0..count)
+            .map(|_| {
+                let mut input = Vec::new();
+                for _ in 0..next() % 24 {
+                    input.extend_from_slice(PIECES[(next() % PIECES.len() as u64) as usize]);
+                }
+                input
+            })
+            .collect()
+    }
+
+    #[test]
+    fn the_pattern_matches_only_where_the_cheap_check_says_it_may() {
+        let inputs = generated(20_000);
+        let mut matched = 0;
+        for input in &inputs {
+            let found = RE_HTML_EMBED.is_match(input);
+            matched += usize::from(found);
+            if !may_hold_a_data_url(input) {
+                assert!(!found, "{:?}", String::from_utf8_lossy(input));
+            }
+        }
+        // the inputs reach both sides of the check
+        assert!(matched > 1_000, "{matched}");
+        assert!(inputs.iter().any(|i| !may_hold_a_data_url(i)));
     }
 }

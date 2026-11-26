@@ -47,6 +47,24 @@ static KEYLOG_LINE: LazyLock<Regex> = LazyLock::new(|| {
     .expect("the pattern compiles")
 });
 
+/// Whether `line` starts with a label and a space, as every line `KEYLOG_LINE` matches does.
+fn starts_with_a_label(line: &str) -> bool {
+    KEYLOG_LABELS.iter().any(|label| {
+        line.strip_prefix(label)
+            .is_some_and(|rest| rest.starts_with(' '))
+    })
+}
+
+/// `KEYLOG_LINE`'s captures of `line`. Compiling the pattern takes most of a task's time on a text
+/// file that isn't a key log, and each task is a process of its own, so a line that can't match
+/// doesn't compile it.
+fn keylog_line(line: &str) -> Option<regex::Captures<'_>> {
+    if !starts_with_a_label(line) {
+        return None;
+    }
+    KEYLOG_LINE.captures(line)
+}
+
 /// What a key log holds: its labels' counts, the sessions it keys by client random, and its key
 /// log lines, stripped.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -85,7 +103,7 @@ pub fn is_keylog_file(path: &Path) -> bool {
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        if !KEYLOG_LINE.is_match(line) {
+        if keylog_line(line).is_none() {
             return false;
         }
         checked += 1;
@@ -102,7 +120,7 @@ pub fn parse_keylog_lines<'a>(lines: impl IntoIterator<Item = &'a str>) -> Keylo
     let mut contents = KeylogContents::default();
     for line in lines {
         let line = pystr::strip(line);
-        let Some(m) = KEYLOG_LINE.captures(line) else {
+        let Some(m) = keylog_line(line) else {
             continue;
         };
         *contents.label_counts.entry(m[1].to_owned()).or_default() += 1;
@@ -421,6 +439,62 @@ mod tests {
             read_embedded_secrets(&samples.join("network.pcap"), MAX_KEYLOG_SIZE, || false)
                 .unwrap()
                 .is_none()
+        );
+    }
+
+    #[test]
+    fn the_pattern_matches_only_lines_that_start_with_a_label_and_a_space() {
+        let mut state = 0u64;
+        // splitmix64
+        let mut next = move || {
+            state = state.wrapping_add(0x9e37_79b9_7f4a_7c15);
+            let mut z = state;
+            z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+            z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+            z ^ (z >> 31)
+        };
+        let mut pick = |choices: &[&'static str]| choices[(next() % choices.len() as u64) as usize];
+        // a key log line's parts, each usually what the pattern wants and sometimes not
+        let mut lines: Vec<String> = (0..50_000)
+            .map(|_| {
+                let label = pick(&KEYLOG_LABELS);
+                let mut line = String::new();
+                for part in [
+                    pick(&["", "", "", "", " ", "#", "x"]),
+                    pick(&[label, label, label, "CLIENT_", "rsa", "RSA_", "SECRET_0"]),
+                    pick(&[" ", " ", " ", "", "  ", "\t"]),
+                    pick(&["ab01", "F", "0", "", "g", "\u{e9}", "ab 01"]),
+                    pick(&[" ", " ", " ", "", "  ", "\t"]),
+                    pick(&["cd", "F", "0", "", "g", "0\n", "cd ef"]),
+                    pick(&["", "", "", "", " ", "\n", "_"]),
+                ] {
+                    line.push_str(part);
+                }
+                line
+            })
+            .collect();
+        lines.extend(KEYLOG_LABELS.map(|label| format!("{label} ab01 CD")));
+        let mut matched = 0;
+        for line in &lines {
+            let found = KEYLOG_LINE.is_match(line);
+            matched += usize::from(found);
+            if !starts_with_a_label(line) {
+                assert!(!found, "{line:?}");
+            }
+            assert_eq!(
+                keylog_line(line).map(|m| (m[1].to_owned(), m[2].to_owned())),
+                KEYLOG_LINE
+                    .captures(line)
+                    .map(|m| (m[1].to_owned(), m[2].to_owned())),
+                "{line:?}"
+            );
+        }
+        // the lines reach both sides of the check
+        assert!(matched > 100, "{matched}");
+        assert!(
+            lines
+                .iter()
+                .any(|l| starts_with_a_label(l) && !KEYLOG_LINE.is_match(l))
         );
     }
 }
