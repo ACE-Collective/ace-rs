@@ -124,6 +124,8 @@ services:
       # the parent directory and a major upgrade can sit beside the old data.
       - postgres-data:/var/lib/postgresql
     mem_limit: ${ACE_RS_POSTGRES_MEM_LIMIT:-1g}
+    # the services restart after Docker does; without this the database they need stays down
+    restart: unless-stopped
     healthcheck:
       # Over TCP, because during first-start initialization the image's temporary server
       # listens only on the Unix socket, and pg_isready on the socket would pass too early.
@@ -153,6 +155,7 @@ services:
     volumes:
       - bucket-data:/data
     mem_limit: ${ACE_RS_BUCKET_MEM_LIMIT:-1g}
+    restart: unless-stopped
     healthcheck:
       # Healthy when the S3 gateway answers and the filer holds the bucket's directory.
       test:
@@ -184,6 +187,7 @@ services:
       - "${ACE_RS_BIND_ADDRESS:-127.0.0.1}::16686"
       - "${ACE_RS_BIND_ADDRESS:-127.0.0.1}::4318"
     mem_limit: ${ACE_RS_COLLECTOR_MEM_LIMIT:-512m}
+    restart: unless-stopped
     healthcheck:
       test:
         - CMD-SHELL
