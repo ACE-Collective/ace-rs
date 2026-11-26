@@ -7,91 +7,44 @@
 //! the private section, as tld's public-only parser does. Errors are `tld.exceptions.TldBadUrl` and
 //! `TldDomainNotFound` (both `ValueError`s), `TldImproperlyConfigured`, and urlsplit's `ValueError`.
 
-use std::collections::HashMap;
-use std::sync::LazyLock;
-
 use crate::PyErr;
 use crate::parse::{SplitResult, urlsplit};
-use crate::pystr::{is_space, lower, splitlines_keepends, strip};
+use crate::pystr::lower;
 
-static DATA: &str = include_str!("tld/effective_tld_names.dat.txt");
-
-#[derive(Default)]
+/// A node of a trie `build.rs` wrote: its children are `edges[first..first + count]`, sorted by
+/// label.
 struct Node {
-    children: Option<HashMap<String, usize>>,
-    exception: Option<String>,
+    first: u32,
+    count: u32,
+    exception: Option<&'static str>,
     leaf: bool,
     private: bool,
 }
 
 struct Trie {
-    nodes: Vec<Node>,
+    nodes: &'static [Node],
+    edges: &'static [(&'static str, u32)],
 }
 
 impl Trie {
-    fn add(&mut self, tld: &str, private: bool) {
-        let mut node = 0;
-        for part in tld.split('.').rev() {
-            if let Some(exception) = part.strip_prefix('!') {
-                self.nodes[node].exception = Some(exception.to_owned());
-                break;
-            }
-            let existing = self.nodes[node]
-                .children
-                .as_ref()
-                .and_then(|c| c.get(part).copied());
-            let child = match existing {
-                Some(child) => child,
-                None => {
-                    self.nodes.push(Node::default());
-                    let child = self.nodes.len() - 1;
-                    self.nodes[node]
-                        .children
-                        .get_or_insert_with(HashMap::new)
-                        .insert(part.to_owned(), child);
-                    child
-                }
-            };
-            node = child;
-        }
-        self.nodes[node].leaf = true;
-        if private {
-            self.nodes[node].private = true;
-        }
+    fn root(&self) -> &Node {
+        &self.nodes[0]
     }
 
-    /// `BaseMozillaTLDSourceParser.get_tld_names`.
-    fn load(include_private: bool) -> Trie {
-        let mut trie = Trie {
-            nodes: vec![Node::default()],
-        };
-        let mut private_section = false;
-        for line in splitlines_keepends(DATA) {
-            if line.contains("===BEGIN PRIVATE DOMAINS===") {
-                private_section = true;
-            }
-            if private_section && !include_private {
-                break;
-            }
-            let mut line = line;
-            if line.contains("// xn--") {
-                line = line
-                    .split(is_space)
-                    .filter(|w| !w.is_empty())
-                    .nth(1)
-                    .unwrap_or("");
-            }
-            if line.starts_with(['/', '\n']) {
-                continue;
-            }
-            trie.add(strip(line), private_section);
-        }
-        trie
+    fn children(&self, node: &Node) -> &[(&'static str, u32)] {
+        &self.edges[node.first as usize..(node.first + node.count) as usize]
+    }
+
+    fn child(&self, node: &Node, label: &str) -> Option<&Node> {
+        let children = self.children(node);
+        let at = children.binary_search_by(|(l, _)| (*l).cmp(label)).ok()?;
+        Some(&self.nodes[children[at].1 as usize])
     }
 }
 
-static FULL: LazyLock<Trie> = LazyLock::new(|| Trie::load(true));
-static PUBLIC_ONLY: LazyLock<Trie> = LazyLock::new(|| Trie::load(false));
+// FULL and PUBLIC_ONLY, read from the list when the crate is built: a fresh process would
+// otherwise spend about 2 ms building a trie before its first lookup.
+include!(concat!(env!("OUT_DIR"), "/tld_tries.rs"));
 
 /// tld's `Result` for `as_object=True`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -164,7 +117,7 @@ fn process_split(
     search_public: bool,
     search_private: bool,
 ) -> Result<Option<Processed>, PyErr> {
-    let trie: &Trie = if search_private { &FULL } else { &PUBLIC_ONLY };
+    let trie = if search_private { &FULL } else { &PUBLIC_ONLY };
     let Some(domain_name) = parsed_url.hostname().filter(|h| !h.is_empty()) else {
         if fail_silently {
             return Ok(None);
@@ -176,22 +129,19 @@ fn process_split(
         domain_name.truncate(domain_name.trim_end_matches('.').len());
     }
     let domain_parts: Vec<String> = domain_name.split('.').map(str::to_owned).collect();
-    let mut node = &trie.nodes[0];
+    let mut node = trie.root();
     let mut current_length = 0;
     let mut tld_length = 0;
     let mut matched: Option<&Node> = None;
     for part in domain_parts.iter().rev() {
-        let Some(children) = &node.children else {
-            break;
-        };
-        if node.exception.as_deref() == Some(part.as_str()) {
+        if node.count == 0 || node.exception == Some(part.as_str()) {
             break;
         }
-        let Some(&child) = children.get(part.as_str()).or_else(|| children.get("*")) else {
+        let Some(child) = trie.child(node, part).or_else(|| trie.child(node, "*")) else {
             break;
         };
         current_length += 1;
-        node = &trie.nodes[child];
+        node = child;
         if node.leaf {
             tld_length = current_length;
             matched = Some(node);
@@ -335,8 +285,106 @@ pub fn get_fld(
 mod tests {
     use serde_json::{Value, json};
 
+    use std::collections::HashMap;
+
     use super::*;
+    use crate::pystr::{is_space, splitlines_keepends, strip};
     use crate::testdata::{Mismatches, outcome, s};
+
+    /// A node of the trie as tld builds it at run time, which `build.rs` has to reproduce.
+    #[derive(Default)]
+    struct Loaded {
+        children: HashMap<String, usize>,
+        exception: Option<String>,
+        leaf: bool,
+        private: bool,
+    }
+
+    /// `BaseMozillaTLDSourceParser.get_tld_names`, read with `pystr`'s Python string functions.
+    fn load(include_private: bool) -> Vec<Loaded> {
+        let mut nodes = vec![Loaded::default()];
+        let mut private_section = false;
+        for line in splitlines_keepends(include_str!("tld/effective_tld_names.dat.txt")) {
+            if line.contains("===BEGIN PRIVATE DOMAINS===") {
+                private_section = true;
+            }
+            if private_section && !include_private {
+                break;
+            }
+            let mut line = line;
+            if line.contains("// xn--") {
+                line = line
+                    .split(is_space)
+                    .filter(|w| !w.is_empty())
+                    .nth(1)
+                    .unwrap_or("");
+            }
+            if line.starts_with(['/', '\n']) {
+                continue;
+            }
+            let mut node = 0;
+            for part in strip(line).split('.').rev() {
+                if let Some(exception) = part.strip_prefix('!') {
+                    nodes[node].exception = Some(exception.to_owned());
+                    break;
+                }
+                node = match nodes[node].children.get(part) {
+                    Some(&child) => child,
+                    None => {
+                        nodes.push(Loaded::default());
+                        let child = nodes.len() - 1;
+                        nodes[node].children.insert(part.to_owned(), child);
+                        child
+                    }
+                };
+            }
+            nodes[node].leaf = true;
+            nodes[node].private |= private_section;
+        }
+        nodes
+    }
+
+    /// Walks both tries from the root, looking each label up as `process_split` does, and returns
+    /// how many nodes it compared.
+    fn compare(trie: &Trie, loaded: &[Loaded]) -> usize {
+        let mut stack = vec![(trie.root(), 0, String::new())];
+        let mut seen = 0;
+        while let Some((node, at, path)) = stack.pop() {
+            let want = &loaded[at];
+            assert_eq!(
+                node.exception,
+                want.exception.as_deref(),
+                "exception at {path:?}"
+            );
+            assert_eq!(node.leaf, want.leaf, "leaf at {path:?}");
+            assert_eq!(node.private, want.private, "private at {path:?}");
+            assert_eq!(
+                node.count as usize,
+                want.children.len(),
+                "children at {path:?}"
+            );
+            for (label, &child) in &want.children {
+                let found = trie
+                    .child(node, label)
+                    .unwrap_or_else(|| panic!("{label:?} under {path:?} isn't found"));
+                stack.push((found, child, format!("{label}.{path}")));
+            }
+            seen += 1;
+        }
+        assert_eq!(seen, trie.nodes.len(), "nodes no label reaches");
+        seen
+    }
+
+    #[test]
+    fn the_static_tries_are_the_ones_tld_builds() {
+        let full = compare(&FULL, &load(true));
+        let public = compare(&PUBLIC_ONLY, &load(false));
+        // the private section adds rules, so a count that didn't grow means it was left out
+        assert!(
+            public > 5000 && full > public,
+            "{public} public, {full} full"
+        );
+    }
 
     #[test]
     fn get_tld_matches_python() {
