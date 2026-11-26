@@ -25,6 +25,7 @@ use ace_results::types::email::{EmailAnalysis, EmailPart};
 use ace_results::types::emailtree::{LureCandidate, LureUrlAnalysis};
 use ace_results::types::pdf::PdfLinkTextAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ObservableRef, OtherAdditions, ResultEnvelope};
+use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::tree::{TreeFiles, TreeView};
 use ace_sdk::{Manifest, Module, ModuleError, OtherAdditionsAllowed, Outcome, Parser, TaskContext};
 use ace_urlfinder::url::Url;
@@ -335,6 +336,16 @@ impl Module for LureUrlAnalyzer {
             )
             .map_err(ModuleError::other)?,
         })
+    }
+
+    fn takes(_: &LureSettings) -> Takes {
+        // analyze skips a file with no email analysis, and the core builds the root's tree and its
+        // email bodies for every task it leases here: queued on every file, each lease read the
+        // tree only to decline (docs/measurements/module-timings.md)
+        Takes::everything().and(
+            Condition::HasResult(EmailAnalysis::MODULE.to_owned()),
+            "the file has no email analysis",
+        )
     }
 }
 
@@ -1898,6 +1909,41 @@ fn score_candidates(
 mod tests {
     use super::*;
     use serde_json::json;
+
+    /// Whether the declaration takes a file with these dependency results.
+    fn takes(results: &std::collections::BTreeMap<String, serde_json::Value>) -> bool {
+        let facts = ace_sdk::takes::Facts {
+            kind: ObservableKind::File,
+            directives: &[],
+            directive_sources: &[],
+            relationships: &[],
+            redirected: false,
+            added_by: &[],
+            at_root: false,
+            mode: None,
+            file: Some(ace_sdk::takes::FileFacts {
+                path: "email.rfc822",
+                size: Some(1),
+                facts: None,
+                role: None,
+                yara_meta: Some(&[]),
+            }),
+            results,
+            origins: None,
+        };
+        LureUrlAnalyzer::takes(&LureSettings::default())
+            .check(&facts)
+            .is_ok()
+    }
+
+    #[test]
+    fn only_a_file_with_an_email_analysis_is_taken() {
+        let none = std::collections::BTreeMap::new();
+        assert!(!takes(&none));
+        let email =
+            std::collections::BTreeMap::from([(EmailAnalysis::MODULE.to_owned(), json!({}))]);
+        assert!(takes(&email));
+    }
 
     #[test]
     fn a_url_is_shown_without_its_scheme_and_cut_in_the_middle() {
