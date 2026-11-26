@@ -146,6 +146,9 @@
 //! | ace3 | here |
 //! |---|---|
 //! | `GET /email/archive?message_id=`, the email as `message/rfc822` | `GET /api/email/v1/archive?message_id=`, the same, audited |
+//! | `POST /email/archive/lookup`, every email archived under up to 1000 Message-IDs | `POST /api/email/v1/archive/lookup`, the same |
+//! | `GET /email/archive/{sha256}`, one of them | `GET /api/email/v1/archive/{sha256}`, the same, audited |
+//! | `POST /email/archive/download`, all of them in a zip with the password `infected` | `POST /api/email/v1/archive/download`, the same, audited |
 //!
 //! What differs, or is left out, and why:
 //! - The read is audited: the archive holds any alert's emails, and a read of an alert's file is audited
@@ -155,6 +158,12 @@
 //! - A missing `message_id` is 400, as the API's other bad queries; ace3's is FastAPI's 422.
 //! - ace3 opens the file under its own node's hostname, so it can't serve an email another node archived;
 //!   one bucket is every node's here.
+//! - The download's caps are ace3's defaults, fixed rather than settings. An email archived before
+//!   migration 0091 has no recorded size: the lookup says null, and the cap counts its sealed object.
+//! - A download's directory for a Message-ID is its index alone, `0003/`, where ace3 adds the
+//!   Message-ID cleaned to a file name: the manifest names the Message-ID, and nothing a sender wrote
+//!   names an entry, as the API's other zips. Each email is opened into the zip in turn, so one email is
+//!   in memory at a time, where ace3 decrypts them all to a staging directory.
 //!
 //! ace3's `yara_qa` router (PLAN.md 5.6), under ace3's `signature:read`, `signature:download` and
 //! `signature:qa_purge` (`ace_service`'s `yara_qa` docs). A rule is named by its `uuid` meta, as there:
@@ -868,6 +877,15 @@ impl Web {
             .route("/api/cli/v1/commands/{id}", get(cli::one))
             .route("/api/cli/v1/commands/{id}/cancel", post(cli::cancel))
             .route("/api/email/v1/archive", get(email::archive))
+            .route(
+                "/api/email/v1/archive/lookup",
+                post(email::lookup).layer(json_limit),
+            )
+            .route(
+                "/api/email/v1/archive/download",
+                post(email::download).layer(json_limit),
+            )
+            .route("/api/email/v1/archive/{sha256}", get(email::by_hash))
             .route("/api/crashes/v1/crashes", get(crashes::list))
             .route("/api/crashes/v1/crashes/{id}", get(crashes::one))
             .route(
@@ -1474,6 +1492,9 @@ impl Web {
         crashes::one,
         crashes::download,
         email::archive,
+        email::lookup,
+        email::by_hash,
+        email::download,
         cli::start,
         cli::list,
         cli::one,

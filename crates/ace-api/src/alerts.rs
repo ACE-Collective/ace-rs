@@ -1129,6 +1129,11 @@ pub(crate) async fn zipped_file(
     .await
     .map_err(ApiError::internal)?
     .map_err(ApiError::internal)?;
+    zip_download(zipped, download)
+}
+
+/// A finished zip, read from its start, as the answer: downloaded as `<download>.zip`.
+pub(crate) fn zip_download(zipped: std::fs::File, download: &str) -> Result<Response, ApiError> {
     let length = zipped.metadata().map_err(ApiError::internal)?.len();
     let body = Body::from_stream(tokio_util::io::ReaderStream::new(
         tokio::fs::File::from_std(zipped),

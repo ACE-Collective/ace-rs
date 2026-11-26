@@ -725,6 +725,9 @@ const COMMAND: &str = "/api/cli/v1/commands/{id}";
 const CANCEL_COMMAND: &str = "/api/cli/v1/commands/{id}/cancel";
 const CRASHES: &str = "/api/crashes/v1/crashes";
 const EMAIL_ARCHIVE: &str = "/api/email/v1/archive";
+const EMAIL_LOOKUP: &str = "/api/email/v1/archive/lookup";
+const EMAIL_COPY: &str = "/api/email/v1/archive/{sha256}";
+const EMAIL_DOWNLOAD: &str = "/api/email/v1/archive/download";
 const CRASH: &str = "/api/crashes/v1/crashes/{id}";
 const CRASH_DOWNLOAD: &str = "/api/crashes/v1/crashes/{id}/download";
 const QA_RULES: &str = "/api/yara-qa/v1/rules";
@@ -901,6 +904,9 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
     if route == EMAIL_ARCHIVE {
         return format!("{EMAIL_ARCHIVE}?message_id=%3Ca%40example.com%3E");
     }
+    if route == EMAIL_COPY {
+        return EMAIL_COPY.replace("{sha256}", &"0".repeat(64));
+    }
     if route == COMMENTS {
         return format!("{COMMENTS}?type=fqdn&value=a.example");
     }
@@ -985,6 +991,7 @@ fn good_body(route: &str) -> Send {
         VERDICT => Send::Json(json!({"verdict": "fp"})),
         SUBMIT => Send::Form(form(&json!({"description": "x"}), &[])),
         LOOKUP => Send::Json(json!({"observables": [{"type": "fqdn", "value": "a.example"}]})),
+        EMAIL_LOOKUP | EMAIL_DOWNLOAD => Send::Json(json!({"message_ids": ["<a@example.com>"]})),
         USERS => Send::Json(json!({"username": "refused", "password": PASSWORD})),
         USER | ME => Send::Json(json!({"display_name": "x"})),
         ENABLED => Send::Json(json!({"enabled": true})),
@@ -1073,7 +1080,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 247, "{routes:?}");
+    assert_eq!(routes.len(), 250, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -4409,8 +4416,195 @@ async fn email_archive(
         body["error"],
         "archived emails cannot be decrypted: no encryption key is configured"
     );
+    let ids = Send::Json(json!({"message_ids": ["<a@example.com>"]}));
+    other
+        .json(
+            Method::POST,
+            EMAIL_DOWNLOAD,
+            EMAIL_DOWNLOAD,
+            Some(&reader),
+            ids,
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+        .await;
+    let copy = EMAIL_COPY.replace("{sha256}", &"0".repeat(64));
+    other
+        .json(
+            Method::GET,
+            EMAIL_COPY,
+            &copy,
+            Some(&reader),
+            Send::Nothing,
+            StatusCode::INTERNAL_SERVER_ERROR,
+        )
+        .await;
     assert_eq!(audit_count(keyless).await, keyless_audits);
     other.seen
+}
+
+/// ace3 e7cd8be8's routes: every email of many Message-IDs, one by its hash, and a zip of them all.
+async fn email_archive_copies(client: &mut Client<'_>, token: &str) {
+    let first = b"Message-ID: <bulk/1@example.com>\r\n\r\nfirst\r\n";
+    let second = b"Message-ID: <bulk/1@example.com>\r\n\r\nsecond\r\n";
+    for (email, days) in [(&first[..], 2), (&second[..], 1)] {
+        client
+            .stack
+            .archive
+            .seed(&ace_core::email_archive::Seed {
+                email,
+                message_id: "<bulk/1@example.com>",
+                insert_date: chrono::Utc::now().naive_utc() - chrono::Duration::days(days),
+            })
+            .await
+            .expect("archives");
+    }
+    let asked = json!({"message_ids": ["bulk/1@example.com", "<none@example.com>"]});
+    let audits = audit_count(client.stack).await;
+    let found = client
+        .json(
+            Method::POST,
+            EMAIL_LOOKUP,
+            EMAIL_LOOKUP,
+            Some(token),
+            Send::Json(asked.clone()),
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(found["results"][0]["message_id"], "<bulk/1@example.com>");
+    assert_eq!(
+        found["results"][0]["copies"][0]["sha256"],
+        sha256_hex(second),
+        "newest first"
+    );
+    assert_eq!(found["results"][0]["copies"][1]["size"], first.len());
+    assert_eq!(
+        found["results"][1],
+        json!({"index": 1, "message_id": "<none@example.com>", "copies": [], "expired_copies": 0})
+    );
+    assert_eq!(
+        audit_count(client.stack).await,
+        audits,
+        "a lookup opens nothing"
+    );
+    for bad in [
+        json!({"message_ids": []}),
+        json!({"message_ids": [" "]}),
+        json!({}),
+    ] {
+        client
+            .json(
+                Method::POST,
+                EMAIL_LOOKUP,
+                EMAIL_LOOKUP,
+                Some(token),
+                Send::Json(bad),
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+    }
+    let big = format!("{{\"message_ids\": [\"{}\"]}}", "a".repeat(MAX_JSON));
+    for route in [EMAIL_LOOKUP, EMAIL_DOWNLOAD] {
+        client
+            .json(
+                Method::POST,
+                route,
+                route,
+                Some(token),
+                Send::Bytes(big.clone().into_bytes()),
+                StatusCode::PAYLOAD_TOO_LARGE,
+            )
+            .await;
+    }
+
+    // one copy by its hash, not only the newest
+    let copy = EMAIL_COPY.replace("{sha256}", &sha256_hex(first));
+    let response = client
+        .call(Method::GET, EMAIL_COPY, &copy, Some(token), Send::Nothing)
+        .await;
+    assert_eq!(response.status(), 200);
+    assert_eq!(response.headers()["content-type"], "message/rfc822");
+    assert_eq!(response.bytes().await.expect("a body").as_ref(), first);
+    assert_eq!(audit_count(client.stack).await, audits + 1);
+    for (path, status) in [
+        (
+            EMAIL_COPY.replace("{sha256}", &"0".repeat(64)),
+            StatusCode::NOT_FOUND,
+        ),
+        (EMAIL_COPY.replace("{sha256}", "x"), StatusCode::BAD_REQUEST),
+    ] {
+        client
+            .json(
+                Method::GET,
+                EMAIL_COPY,
+                &path,
+                Some(token),
+                Send::Nothing,
+                status,
+            )
+            .await;
+    }
+
+    // all of them in a zip with ace3's password and a manifest
+    let response = client
+        .call(
+            Method::POST,
+            EMAIL_DOWNLOAD,
+            EMAIL_DOWNLOAD,
+            Some(token),
+            Send::Json(asked),
+        )
+        .await;
+    assert_eq!(response.status(), 200);
+    assert_eq!(response.headers()["content-type"], "application/zip");
+    assert_eq!(
+        response.headers()["content-disposition"],
+        "attachment; filename=\"archived-emails.zip\""
+    );
+    let zipped = response.bytes().await.expect("a body");
+    let (names, mut read) = unzip(&zipped);
+    let (one, two) = (
+        format!("archived-emails/0000/{}.eml", sha256_hex(first)),
+        format!("archived-emails/0000/{}.eml", sha256_hex(second)),
+    );
+    assert_eq!(
+        names,
+        BTreeSet::from([
+            "archived-emails/manifest.json".to_owned(),
+            one.clone(),
+            two.clone()
+        ])
+    );
+    assert_eq!(read(&one), first);
+    assert_eq!(read(&two), second);
+    let manifest: Value =
+        serde_json::from_slice(&read("archived-emails/manifest.json")).expect("JSON");
+    assert_eq!(manifest["emails"][0]["copies"][0]["path"], two);
+    assert_eq!(
+        manifest["skipped"],
+        json!([{"index": 1, "message_id": "<none@example.com>", "reason": "not_archived"}])
+    );
+    assert_eq!(audit_count(client.stack).await, audits + 2);
+    client
+        .json(
+            Method::POST,
+            EMAIL_DOWNLOAD,
+            EMAIL_DOWNLOAD,
+            Some(token),
+            Send::Json(json!({"message_ids": ["<none@example.com>"]})),
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            Method::POST,
+            EMAIL_DOWNLOAD,
+            EMAIL_DOWNLOAD,
+            Some(token),
+            Send::Json(json!({"message_ids": []})),
+            StatusCode::BAD_REQUEST,
+        )
+        .await;
+    assert_eq!(audit_count(client.stack).await, audits + 2);
 }
 
 async fn crashes(client: &mut Client<'_>, token: &str, root: Uuid, file: i64, bytes: &[u8]) {
@@ -5623,6 +5817,7 @@ async fn every_documented_status_is_tested() {
     let keyless = stack_with(ace_core::email_archive::ArchiveConfig::default()).await;
     let seen = email_archive(&mut client, &keyless, &token).await;
     client.seen.extend(seen);
+    email_archive_copies(&mut client, &token).await;
     commands(&mut client).await;
     yara_qa(&mut client, &token, id, file, &bytes).await;
     comments(&mut client, id, &bytes).await;
@@ -19740,7 +19935,7 @@ async fn a_key_scoped_to_the_ai_api_reaches_nothing_else() {
         );
         checked += 1;
     }
-    assert_eq!(checked, 243, "every other route was swept");
+    assert_eq!(checked, 246, "every other route was swept");
     assert_eq!(
         (audit_count(&stack).await, root_count(&stack).await),
         before,

@@ -2617,6 +2617,250 @@
         }
       }
     },
+    "/api/email/v1/archive/download": {
+      "post": {
+        "tags": [
+          "email"
+        ],
+        "summary": "Every archived email of each Message-ID, with a manifest, as one zip encrypted with AES-256 and the\npassword `infected`, as ace3's `POST /email/archive/download`: `archived-emails/manifest.json`, the\nemails and every Message-ID with none and why, and `archived-emails/<index>-<n>/<sha256>.eml` for\neach email, the index its Message-ID's place in the request. At most 500 emails and 1 GiB. The\ndownload is in the audit record with every email it holds.",
+        "operationId": "download",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageIdsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The zip",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZipBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No Message-IDs, more than 1000, or one that's empty or longer than 998 characters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold email:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "None of the Message-IDs has an archived email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large, or the emails are more than 500 or 1 GiB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "This node has no encryption key, so archived emails can't be decrypted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/email/v1/archive/lookup": {
+      "post": {
+        "tags": [
+          "email"
+        ],
+        "summary": "Every archived email of each Message-ID, newest first, in request order, as ace3's `POST\n/email/archive/lookup`: its sha256, when it was last archived and its size. It opens nothing, so\nit isn't audited.",
+        "operationId": "lookup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageIdsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Each Message-ID's archived emails",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveLookupsBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No Message-IDs, more than 1000, or one that's empty or longer than 998 characters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold email:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/email/v1/archive/{sha256}": {
+      "get": {
+        "tags": [
+          "email"
+        ],
+        "summary": "One archived email by its sha256, from `POST /api/email/v1/archive/lookup`, decrypted and as it\narrived: any copy of a Message-ID, not only the newest, as ace3's `GET /email/archive/{sha256}`.\nThe read is in the audit record.",
+        "operationId": "by_hash",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "description": "The email's sha256, 64 lower-case hex digits",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The email",
+            "content": {
+              "message/rfc822": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rfc822Body"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a sha256",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold email:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No archived email has that sha256",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "This node has no encryption key, so archived emails can't be decrypted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/events/v1/events/export/csv": {
       "get": {
         "tags": [
@@ -20688,6 +20932,79 @@
         },
         "additionalProperties": false
       },
+      "ArchiveLookupBody": {
+        "type": "object",
+        "description": "One requested Message-ID, at its index in the request. No copies and no expired copies: nothing\nwas archived under it, or it was archived too long ago for its row to be kept. No copies and some\nexpired: it was archived, and has expired from the archive since.",
+        "required": [
+          "index",
+          "message_id",
+          "copies",
+          "expired_copies"
+        ],
+        "properties": {
+          "copies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArchivedCopyBody"
+            },
+            "description": "Every archived email with this Message-ID, newest first."
+          },
+          "expired_copies": {
+            "type": "integer",
+            "description": "How many emails archived under it have expired.",
+            "minimum": 0
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "message_id": {
+            "type": "string",
+            "description": "The Message-ID as the archive stores it, in angle brackets."
+          }
+        }
+      },
+      "ArchiveLookupsBody": {
+        "type": "object",
+        "required": [
+          "results"
+        ],
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArchiveLookupBody"
+            }
+          }
+        }
+      },
+      "ArchivedCopyBody": {
+        "type": "object",
+        "description": "One archived email of a Message-ID.",
+        "required": [
+          "sha256",
+          "archived_at"
+        ],
+        "properties": {
+          "archived_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The last time it was archived under this Message-ID."
+          },
+          "sha256": {
+            "type": "string",
+            "description": "The email's sha256, which `GET /api/email/v1/archive/{sha256}` takes."
+          },
+          "size": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Its size in bytes; null for one archived before ace-rs recorded sizes."
+          }
+        }
+      },
       "AssetBody": {
         "type": "object",
         "description": "A file of a compiled hunt package.",
@@ -24942,6 +25259,25 @@
             "type": "string"
           }
         }
+      },
+      "MessageIdsRequest": {
+        "type": "object",
+        "description": "Message-IDs, with or without their angle brackets.",
+        "required": [
+          "message_ids"
+        ],
+        "properties": {
+          "message_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "1 to 1000 Message-IDs of 1 to 998 characters, white space around each ignored.",
+            "maxItems": 1000,
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
       },
       "MissingCountBody": {
         "type": "object",

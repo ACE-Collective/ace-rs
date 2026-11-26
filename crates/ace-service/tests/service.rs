@@ -1584,6 +1584,8 @@ async fn every_write_function_has_an_audit_test_in_turn() {
         download_file_records_its_row(db).await,
         download_crash_records_its_row(db).await,
         archived_email_records_its_row(db).await,
+        archived_email_by_hash_records_its_row(db).await,
+        archived_email_download_records_its_row(db).await,
         download_qa_match_records_its_row(db).await,
         download_qa_matches_records_its_row(db).await,
         purge_qa_matches_records_its_row(db).await,
@@ -2061,6 +2063,244 @@ async fn archived_email_records_its_row(db: &Db) -> String {
     ));
     assert_eq!(audit_rows(db).await.len(), rows);
     row.action
+}
+
+async fn archived_email_by_hash_records_its_row(db: &Db) -> String {
+    let (bucket, _cache) = bucket(db).await;
+    let archive = email_archive(&bucket, db);
+    let email = b"From: a@example.com\r\nMessage-ID: <by-hash@example.com>\r\n\r\nhi\r\n";
+    let id = archived(&archive, email, "<by-hash@example.com>").await;
+    let actor = admin(db).await;
+    let sha256 = hex::encode(Sha256::digest(email));
+    let read = service(db)
+        .archived_email_by_hash(&actor, &archive, &sha256)
+        .await
+        .expect("may read");
+    assert_eq!((read.bytes.as_slice(), read.archive_id), (&email[..], id));
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "archived_email_by_hash".to_owned(),
+            target: ("archived_email".to_owned(), id.to_string()),
+            before: None,
+            after: None,
+            details: json!({"archive_id": id, "hash": sha256}),
+        }
+    );
+    // a refusal, a hash the archive doesn't have and one that isn't a hash have no row
+    let reader = UserId(Uuid::from_u128(0x5F));
+    grant(db, &Holder::User(reader), "alert", "read", Effect::Allow).await;
+    let rows = audit_rows(db).await.len();
+    assert!(matches!(
+        service(db)
+            .archived_email_by_hash(&user(reader), &archive, &sha256)
+            .await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert!(matches!(
+        service(db)
+            .archived_email_by_hash(&actor, &archive, &"0".repeat(64))
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    for bad in [sha256.to_uppercase(), "x".to_owned()] {
+        assert!(matches!(
+            service(db)
+                .archived_email_by_hash(&actor, &archive, &bad)
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn archived_email_download_records_its_row(db: &Db) -> String {
+    let (bucket, _cache) = bucket(db).await;
+    let archive = email_archive(&bucket, db);
+    let first = b"Message-ID: <bulk@example.com>\r\n\r\nfirst\r\n";
+    let second = b"Message-ID: <bulk@example.com>\r\n\r\nsecond\r\n";
+    let one = archived(&archive, first, "<bulk@example.com>").await;
+    let two = archived(&archive, second, "<bulk@example.com>").await;
+    let actor = admin(db).await;
+    let asked = [
+        "bulk@example.com".to_owned(),
+        "<never@example.com>".to_owned(),
+    ];
+    let download = service(db)
+        .archived_email_download(&actor, &archive, &asked)
+        .await
+        .expect("may download");
+    assert_eq!(download.found.len(), 1);
+    assert_eq!(
+        download.found[0].copies.len(),
+        2,
+        "both emails of the Message-ID"
+    );
+    assert_eq!(
+        download.skipped,
+        [(1, "<never@example.com>".to_owned(), "not_archived")]
+    );
+    let opened = service(db)
+        .open_archived_copy(&archive, &download.found[0].copies[1])
+        .await
+        .expect("opens");
+    assert!(opened == first || opened == second);
+    let (h1, h2) = (
+        hex::encode(Sha256::digest(first)),
+        hex::encode(Sha256::digest(second)),
+    );
+    let row = last_audit(db).await;
+    assert_eq!(row.action, "archived_email_download");
+    assert_eq!(row.target.0, "archived_emails");
+    let mut ids: Vec<String> = row.target.1.split(',').map(str::to_owned).collect();
+    ids.sort();
+    let mut want = vec![one.to_string(), two.to_string()];
+    want.sort();
+    assert_eq!(ids, want);
+    let mut hashes: Vec<String> =
+        serde_json::from_value(row.details["hashes"].clone()).expect("hashes");
+    hashes.sort();
+    let mut expected = vec![h1, h2];
+    expected.sort();
+    assert_eq!(hashes, expected);
+    assert_eq!(row.details["message_ids"], 2);
+
+    // none of them archived, a refusal and a request past its limits have no row
+    let rows = audit_rows(db).await.len();
+    assert!(matches!(
+        service(db)
+            .archived_email_download(&actor, &archive, &["<never@example.com>".to_owned()])
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    let many: Vec<String> = (0..1001).map(|i| format!("<{i}@example.com>")).collect();
+    for bad in [
+        Vec::new(),
+        many,
+        vec![" ".to_owned()],
+        vec!["x".repeat(999)],
+    ] {
+        assert!(matches!(
+            service(db)
+                .archived_email_download(&actor, &archive, &bad)
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+/// The lookup lists every email of each Message-ID in request order, newest first, each once, with
+/// its size, and counts the ones the bucket no longer has as expired (ace3 e7cd8be8).
+#[tokio::test]
+async fn an_archive_lookup_lists_every_copy_and_counts_the_expired() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db).await;
+    let archive = email_archive(&bucket, db);
+    let actor = admin(db).await;
+    let old = b"Message-ID: <many@example.com>\r\n\r\nold\r\n";
+    let new = b"Message-ID: <many@example.com>\r\n\r\nnew\r\n";
+    let gone = b"Message-ID: <gone@example.com>\r\n\r\ngone\r\n";
+    let at = |days: i64| chrono::Utc::now().naive_utc() - chrono::Duration::days(days);
+    for (email, message_id, days) in [
+        (&old[..], "<many@example.com>", 3),
+        (&new[..], "<many@example.com>", 1),
+        // the same email archived again under the Message-ID is one copy, at its last time
+        (&old[..], "<many@example.com>", 2),
+        (&gone[..], "<gone@example.com>", 1),
+    ] {
+        archive
+            .seed(&ace_core::email_archive::Seed {
+                email,
+                message_id,
+                insert_date: at(days),
+            })
+            .await
+            .expect("archives");
+    }
+    // the bucket loses the third email's object, as when its week was dropped
+    sqlx::query(
+        "UPDATE store.objects SET state = 'deleting' WHERE pool = 'email_archive' AND sha256 =
+         (SELECT object_sha256 FROM email_archive.archive WHERE message_id_hash = $1)",
+    )
+    .bind(ace_core::email_archive::value_hash("<gone@example.com>"))
+    .execute(db.pool())
+    .await
+    .expect("expires");
+    let found = service(db)
+        .archived_email_copies(
+            &actor,
+            &[
+                " many@example.com ".to_owned(),
+                "<gone@example.com>".to_owned(),
+                "<never@example.com>".to_owned(),
+            ],
+        )
+        .await
+        .expect("looks up");
+    assert_eq!(found.len(), 3);
+    assert_eq!(found[0].message_id, "<many@example.com>");
+    let hashes: Vec<String> = found[0].copies.iter().map(|c| c.hash.clone()).collect();
+    assert_eq!(
+        hashes,
+        [
+            hex::encode(Sha256::digest(new)),
+            hex::encode(Sha256::digest(old))
+        ],
+        "newest first, each email once"
+    );
+    assert_eq!(found[0].copies[1].size, Some(old.len() as i64));
+    assert_eq!(
+        (found[1].copies.len(), found[1].expired),
+        (0, 1),
+        "archived, and expired since"
+    );
+    assert_eq!((found[2].copies.len(), found[2].expired), (0, 0));
+    // a lookup opens nothing, so it has no audit row
+    assert!(audit_rows(db).await.is_empty());
+
+    // a download past ace3's caps is refused with no row: rows of more emails than a zip holds, then
+    // of more bytes, sharing one object, which is all the caps read
+    let copies = |message_id: &str, count: i64, size: i64| {
+        sqlx::query(
+            "INSERT INTO email_archive.archive
+                 (message_id_hash, hash, object_sha256, insert_date, root_id, observable_id, size)
+             SELECT $1, sha256(convert_to($2 || n::text, 'UTF8')), a.object_sha256,
+                    a.insert_date, a.root_id, 0, $4
+             FROM generate_series(1, $3) n,
+                  (SELECT * FROM email_archive.archive ORDER BY archive_id LIMIT 1) a",
+        )
+        .bind(ace_core::email_archive::value_hash(message_id))
+        .bind(message_id.to_owned())
+        .bind(count)
+        .bind(size)
+        .execute(db.pool())
+    };
+    copies("<crowd@example.com>", 501, 1).await.expect("seeds");
+    copies("<huge@example.com>", 2, 600 << 20)
+        .await
+        .expect("seeds");
+    for (message_id, why) in [
+        ("<crowd@example.com>", "501 emails is more than 500"),
+        (
+            "<huge@example.com>",
+            "1258291200 bytes is more than 1073741824",
+        ),
+    ] {
+        let refused = service(db)
+            .archived_email_download(&actor, &archive, &[message_id.to_owned()])
+            .await;
+        assert!(
+            matches!(&refused, Err(ServiceError::TooLarge(text)) if text.starts_with(why)),
+            "{refused:?}"
+        );
+    }
+    assert!(audit_rows(db).await.is_empty());
 }
 
 /// ace3's crash listing: failed tasks newest first, filtered by root and module, in pages, with one
@@ -4179,6 +4419,30 @@ async fn every_write_fails_when_its_audit_fails_in_turn() {
             "archived_email",
             service
                 .archived_email(&actor, &archive, "<audit-fails@example.com>")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "archived_email_by_hash",
+            service
+                .archived_email_by_hash(
+                    &actor,
+                    &archive,
+                    &hex::encode(Sha256::digest(b"an archived email")),
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "archived_email_download",
+            service
+                .archived_email_download(
+                    &actor,
+                    &archive,
+                    &["<audit-fails@example.com>".to_owned()],
+                )
                 .await
                 .map(|_| ())
                 .expect_err("refused"),

@@ -83,6 +83,14 @@ impl Target {
         }
     }
 
+    /// Several emails in the archive read in one download, by their archive rows' ids in order.
+    pub(crate) fn archived_emails(ids: &[i64]) -> Self {
+        Target {
+            kind: "archived_emails",
+            id: ids.iter().map(i64::to_string).collect::<Vec<_>>().join(","),
+        }
+    }
+
     /// A detection, by its id (PLAN.md 7.14).
     pub(crate) fn detection(id: i64) -> Self {
         Target {

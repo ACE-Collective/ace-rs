@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.archive_id, a.hash, a.object_sha256, a.insert_date\n           FROM email_archive.archive a\n           JOIN store.objects o ON o.pool = $2 AND o.sha256 = a.object_sha256\n           WHERE a.hash = $1 AND o.state = 'present'\n           ORDER BY a.insert_date DESC, a.archive_id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "archive_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "email_archive.archive",
+            "name": "archive_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "hash",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "email_archive.archive",
+            "name": "hash"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "object_sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_archive.archive",
+            "name": "object_sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "insert_date",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "email_archive.archive",
+            "name": "insert_date"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c8eb93701baca9679662b705f5fb408e2aab37566496917693b381501abc0317"
+}

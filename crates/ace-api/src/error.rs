@@ -76,8 +76,12 @@ impl From<ServiceError> for ApiError {
             | ServiceError::AlertOwned { .. }
             | ServiceError::UsersExist => StatusCode::CONFLICT,
             ServiceError::Bucket(BucketError::Deleting { .. }) => StatusCode::SERVICE_UNAVAILABLE,
-            // its message is an operator's, such as a missing key, and holds nothing secret
-            ServiceError::Unconfigured(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            // its message is an operator's, such as a missing key, and holds nothing secret; the
+            // operator hears of it, as ace3 since e7cd8be8 reports a missing key
+            ServiceError::Unconfigured(why) => {
+                tracing::error!("a request needs what this node lacks: {why}");
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
             ServiceError::RateLimited {
                 detail,
                 retry_after_seconds,

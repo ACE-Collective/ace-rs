@@ -25,6 +25,7 @@
 //! archive's object is held by its row (`Hold`, kind `email_archive`) until its week is dropped, and
 //! the bucket's GC removes it after the pool's grace.
 
+use std::collections::BTreeMap;
 use std::io::{Read, Write};
 use std::sync::Arc;
 
@@ -305,6 +306,8 @@ pub struct Archived {
 #[derive(Debug, Clone)]
 pub struct Prepared {
     hash: Vec<u8>,
+    /// The email's size, when it's known: an object archived before migration 0091 has none.
+    size: Option<i64>,
     object: PreparedObject,
     message_id: String,
     root: Uuid,
@@ -408,8 +411,8 @@ impl EmailArchive {
             .key()
             .map_err(|e| PrepareFailure::Refused(e.to_string()))?;
         let hash = sha256.0.to_vec();
-        let existing = sqlx::query_scalar!(
-            r#"SELECT a.object_sha256 FROM email_archive.archive a
+        let existing = sqlx::query!(
+            r#"SELECT a.object_sha256, a.size FROM email_archive.archive a
                JOIN store.objects o ON o.pool = $2 AND o.sha256 = a.object_sha256
                WHERE a.hash = $1 AND o.state = 'present'
                ORDER BY a.insert_date DESC LIMIT 1"#,
@@ -419,8 +422,10 @@ impl EmailArchive {
         .fetch_optional(self.db.pool())
         .await
         .map_err(|e| PrepareFailure::Failed(ArchiveError::from(e)))?;
-        let object = match existing.and_then(|o| o.parse::<Sha256>().ok()) {
-            Some(object) => PreparedObject::Existing(object),
+        let existing =
+            existing.and_then(|row| Some((row.object_sha256.parse::<Sha256>().ok()?, row.size)));
+        let (object, size) = match existing {
+            Some((object, size)) => (PreparedObject::Existing(object), size),
             None => {
                 let email = self
                     .bytes(ALERT_FILES, &sha256)
@@ -432,6 +437,7 @@ impl EmailArchive {
                         other => PrepareFailure::Failed(other),
                     })?;
                 let key = key.clone();
+                let size = i64::try_from(email.len()).ok();
                 let sealed = tokio::task::spawn_blocking(move || seal(&key, &email))
                     .await
                     .map_err(|e| {
@@ -446,11 +452,12 @@ impl EmailArchive {
                     .spool_bytes(&sealed)
                     .await
                     .map_err(|e| PrepareFailure::Failed(BucketError::from(e).into()))?;
-                PreparedObject::New(Arc::new(spooled))
+                (PreparedObject::New(Arc::new(spooled)), size)
             }
         };
         Ok(Prepared {
             hash,
+            size,
             object,
             message_id: normalize_message_id(&record.message_id),
             root: task.root,
@@ -469,8 +476,8 @@ impl EmailArchive {
         };
         let inserted = sqlx::query!(
             r#"INSERT INTO email_archive.archive
-                   (message_id_hash, hash, object_sha256, insert_date, root_id, observable_id)
-               VALUES ($1, $2, $3, date_trunc('second', now() AT TIME ZONE 'UTC'), $4, $5)
+                   (message_id_hash, hash, object_sha256, insert_date, root_id, observable_id, size)
+               VALUES ($1, $2, $3, date_trunc('second', now() AT TIME ZONE 'UTC'), $4, $5, $6)
                ON CONFLICT (message_id_hash, hash, insert_date) DO NOTHING
                RETURNING archive_id, insert_date"#,
             value_hash(&prepared.message_id),
@@ -478,6 +485,7 @@ impl EmailArchive {
             object_sha256.to_hex(),
             prepared.root,
             prepared.observable,
+            prepared.size,
         )
         .fetch_optional(tx.conn())
         .await?;
@@ -583,14 +591,15 @@ impl EmailArchive {
         let mut tx = self.db.begin().await?;
         let archive_id: i64 = sqlx::query_scalar(
             "INSERT INTO email_archive.archive
-                 (message_id_hash, hash, object_sha256, insert_date, root_id, observable_id)
-             VALUES ($1, $2, $3, $4, $5, 0) RETURNING archive_id",
+                 (message_id_hash, hash, object_sha256, insert_date, root_id, observable_id, size)
+             VALUES ($1, $2, $3, $4, $5, 0, $6) RETURNING archive_id",
         )
         .bind(value_hash(&normalize_message_id(seed.message_id)))
         .bind(&hash)
         .bind(spooled.sha256.to_hex())
         .bind(seed.insert_date)
         .bind(Uuid::nil())
+        .bind(i64::try_from(seed.email.len()).ok())
         .fetch_one(tx.conn())
         .await?;
         let hold = Hold::new(HOLD_KIND, archive_id.to_string())
@@ -627,6 +636,100 @@ pub async fn find_by_message_id<'e>(
            WHERE a.message_id_hash = $1 AND o.state = 'present'
            ORDER BY a.insert_date DESC, a.archive_id DESC LIMIT 1"#,
         value_hash(&normalize_message_id(message_id)),
+        EMAIL_ARCHIVE,
+    )
+    .fetch_optional(executor)
+    .await?;
+    Ok(row.map(|row| Archived {
+        archive_id: row.archive_id,
+        hash: hex::encode(row.hash),
+        object_sha256: row.object_sha256,
+        insert_date: row.insert_date,
+    }))
+}
+
+/// One email archived under a Message-ID, ace3's `ArchivedCopy` with its pool's answer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArchivedCopy {
+    /// Its newest row under the Message-ID.
+    pub archive_id: i64,
+    pub object_sha256: String,
+    /// The email's SHA-256, lower-case hex: what `find_by_hash` takes.
+    pub hash: String,
+    /// The last time it was archived under that Message-ID, UTC.
+    pub archived_at: NaiveDateTime,
+    /// The email's size, None for one archived before migration 0091.
+    pub size: Option<i64>,
+    /// The sealed object's size in the bucket.
+    pub object_size: Option<i64>,
+    /// Whether the bucket still has it; one that hasn't has expired.
+    pub present: bool,
+}
+
+/// The most Message-IDs one lookup takes, ace3's `MAX_MESSAGE_IDS`.
+pub const MAX_LOOKUP_MESSAGE_IDS: usize = 1000;
+
+/// Every email archived under each of `message_ids` that still has a row, by its normalized
+/// Message-ID, newest first, each email once at the last time it was archived, as ace3's
+/// `query_archived_copies`, with whether the bucket still has it, as its pool's `sizes`. One query for
+/// all of them, which `MAX_LOOKUP_MESSAGE_IDS` bounds; a Message-ID with no rows is left out.
+pub async fn copies_of<'e>(
+    executor: impl sqlx::PgExecutor<'e>,
+    message_ids: &[String],
+) -> Result<BTreeMap<String, Vec<ArchivedCopy>>, ArchiveError> {
+    let normalized: Vec<String> = message_ids
+        .iter()
+        .map(|m| normalize_message_id(m))
+        .collect();
+    let hashes: Vec<Vec<u8>> = normalized.iter().map(|m| value_hash(m)).collect();
+    let rows = sqlx::query!(
+        r#"SELECT w.message_id AS "message_id!", a.archive_id, a.object_sha256, a.hash,
+                  a.insert_date, a.size,
+                  o.size AS "object_size?", coalesce(o.state = 'present', false) AS "present!"
+           FROM (SELECT DISTINCT * FROM unnest($1::text[], $2::bytea[]) AS w(message_id, message_id_hash)) w
+           JOIN email_archive.archive a ON a.message_id_hash = w.message_id_hash
+           LEFT JOIN store.objects o ON o.pool = $3 AND o.sha256 = a.object_sha256
+           ORDER BY w.message_id, a.insert_date DESC, a.archive_id DESC"#,
+        &normalized,
+        &hashes,
+        EMAIL_ARCHIVE,
+    )
+    .fetch_all(executor)
+    .await?;
+    let mut copies: BTreeMap<String, Vec<ArchivedCopy>> = BTreeMap::new();
+    for row in rows {
+        let hash = hex::encode(&row.hash);
+        let found = copies.entry(row.message_id).or_default();
+        // newest first, so an email's first row is the last time it was archived
+        if found.iter().any(|copy| copy.hash == hash) {
+            continue;
+        }
+        found.push(ArchivedCopy {
+            archive_id: row.archive_id,
+            object_sha256: row.object_sha256,
+            hash,
+            archived_at: row.insert_date,
+            size: row.size,
+            object_size: row.object_size,
+            present: row.present,
+        });
+    }
+    Ok(copies)
+}
+
+/// The newest row of the email whose SHA-256 is `hash` whose object the bucket still has, under any
+/// Message-ID: ace3's `open_archived_copy` reads an email by its digest.
+pub async fn find_by_hash<'e>(
+    executor: impl sqlx::PgExecutor<'e>,
+    hash: &Sha256,
+) -> Result<Option<Archived>, ArchiveError> {
+    let row = sqlx::query!(
+        r#"SELECT a.archive_id, a.hash, a.object_sha256, a.insert_date
+           FROM email_archive.archive a
+           JOIN store.objects o ON o.pool = $2 AND o.sha256 = a.object_sha256
+           WHERE a.hash = $1 AND o.state = 'present'
+           ORDER BY a.insert_date DESC, a.archive_id DESC LIMIT 1"#,
+        hash.0.as_slice(),
         EMAIL_ARCHIVE,
     )
     .fetch_optional(executor)

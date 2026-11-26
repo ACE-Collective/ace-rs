@@ -240,7 +240,10 @@ pub use dispositions::{
     BADGE_STYLES, DEFAULT_BADGE, Disposition, Dispositions, MAX_BADGE_CLASS_CHARS,
     MAX_DISPOSITION_CHARS, MAX_RANK, is_badge_class, is_disposition_name,
 };
-pub use email_archive::ArchivedEmail;
+pub use email_archive::{
+    ArchiveDownload, ArchiveLookup, ArchivedEmail, EmailCopy, MAX_DOWNLOAD_BYTES,
+    MAX_DOWNLOAD_FILES,
+};
 pub use events::{
     AddedToEvent, CLOSED_EVENTS_PAGE, CLOSED_STATUS, CampaignChoice, Event, EventAlert,
     EventChoice, EventChoices, EventEdit, EventEditChoices, EventListPage, EventMalware,

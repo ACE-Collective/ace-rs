@@ -1,0 +1,104 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT w.message_id AS \"message_id!\", a.archive_id, a.object_sha256, a.hash,\n                  a.insert_date, a.size,\n                  o.size AS \"object_size?\", coalesce(o.state = 'present', false) AS \"present!\"\n           FROM (SELECT DISTINCT * FROM unnest($1::text[], $2::bytea[]) AS w(message_id, message_id_hash)) w\n           JOIN email_archive.archive a ON a.message_id_hash = w.message_id_hash\n           LEFT JOIN store.objects o ON o.pool = $3 AND o.sha256 = a.object_sha256\n           ORDER BY w.message_id, a.insert_date DESC, a.archive_id DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "message_id!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "archive_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "email_archive.archive",
+            "name": "archive_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "object_sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_archive.archive",
+            "name": "object_sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "hash",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "email_archive.archive",
+            "name": "hash"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "insert_date",
+        "type_info": "Timestamp",
+        "origin": {
+          "Table": {
+            "table": "email_archive.archive",
+            "name": "insert_date"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "size",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "email_archive.archive",
+            "name": "size"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "object_size?",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "store.objects",
+            "name": "size"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "present!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "ByteaArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "8a69da895b2c0f9d0d2f5894d197eecb053342c4fa26637b3e4ac6f162932009"
+}
