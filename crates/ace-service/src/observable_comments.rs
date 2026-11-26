@@ -15,14 +15,16 @@
 //!   author, and is refused with 403 where ace3 answers 401.
 //! - Only the author edits or deletes a comment, with any of their credentials that holds
 //!   `observable:write`. An admin can't either: ace3 has no override, so neither does this.
-//! - An edit that changes only line endings or the whitespace around the text isn't a change, as ace3's
-//!   edit box sends the text trimmed: it has no audit row and doesn't mark the comment edited.
+//! - A comment is stored with its line breaks normalized (`normalize_comment`): a form post sends CRLF
+//!   and the edit box LF, trimmed. So an edit whose text normalizes to what's stored isn't a change: it
+//!   has no audit row and doesn't mark the comment edited. Migration 0090 normalized the comments
+//!   stored before (ace3 130b9e3c).
 //! - A delete removes the row. Its audit row keeps the whole comment.
 //!
 //! What differs: ace3 takes any text. Here a comment holds 1 to `MAX_COMMENT_CHARS` characters, ace3's
 //! limit on an SVS run's comment, with something besides whitespace, as ace3's GUI asks, and no NUL,
-//! which Postgres can't store. The text is stored and returned as it was sent: it's data, and a page
-//! that shows it escapes it.
+//! which Postgres can't store. Past its line breaks, the text is stored and returned as it was sent:
+//! it's data, and a page that shows it escapes it.
 //!
 //! The alert view (5.8) shows each observable's comments, as ace3's does: `alert_observable_comments`
 //! reads an alert's in one query, under `alert:read` as the alert's other reads are. 5.5's lookup could
@@ -175,8 +177,17 @@ fn observable(kind: &str, value: &str) -> Result<(String, String), ServiceError>
     Ok((kind.as_str().to_owned(), value))
 }
 
-fn checked(text: &str) -> Result<&str, ServiceError> {
-    if text.trim().is_empty() {
+/// A comment's text as it's stored, ace3's `normalize_comment`: CRLF line breaks as LF and no
+/// whitespace at its ends, as Python's `strip` takes it. A form post sends CRLF and the edit box LF,
+/// trimmed, so storing one form makes an unchanged edit equal to the stored text.
+pub(crate) fn normalize_comment(text: &str) -> String {
+    ace_pycompat::pystr::strip(&text.replace("\r\n", "\n")).to_owned()
+}
+
+/// The comment normalized, or why it can't be stored.
+fn checked(text: &str) -> Result<String, ServiceError> {
+    let text = normalize_comment(text);
+    if text.is_empty() {
         return Err(ServiceError::InvalidRequest(
             "a comment can't be empty".to_owned(),
         ));
@@ -192,11 +203,6 @@ fn checked(text: &str) -> Result<&str, ServiceError> {
         ));
     }
     Ok(text)
-}
-
-/// ace3's test for an edit that isn't one: the same text once line endings are LF and the ends trimmed.
-fn same_text(before: &str, after: &str) -> bool {
-    before.replace("\r\n", "\n").trim() == after.replace("\r\n", "\n").trim()
 }
 
 fn no_comment(id: i64) -> ServiceError {
@@ -338,7 +344,8 @@ impl Service {
         comment: &str,
     ) -> Result<ObservableComment, ServiceError> {
         let (kind, value) = observable(kind, value)?;
-        let (kind, value, comment) = (&kind, &value, checked(comment)?);
+        let comment = checked(comment)?;
+        let (kind, value, comment) = (&kind, &value, comment.as_str());
         self.gate
             .write(actor, "add_observable_comment", &OBSERVABLE_WRITE, &|tx| {
                 Box::pin(async move {
@@ -383,7 +390,7 @@ impl Service {
     }
 
     /// Replaces a comment's text and marks it edited. It needs `observable:write`, and only the author
-    /// may. Text that differs only in line endings and the whitespace at its ends changes nothing.
+    /// may. Text that normalizes to the stored text (`normalize_comment`) changes nothing.
     pub async fn edit_observable_comment(
         &self,
         actor: &Actor,
@@ -391,11 +398,13 @@ impl Service {
         comment: &str,
     ) -> Result<ObservableComment, ServiceError> {
         let comment = checked(comment)?;
+        let comment = comment.as_str();
         self.gate
             .write(actor, "edit_observable_comment", &OBSERVABLE_WRITE, &|tx| {
                 Box::pin(async move {
                     let found = own_comment(tx.conn(), actor, id).await?;
-                    if same_text(&found.comment, comment) {
+                    // stored comments are normalized, so text that normalizes to it is no change
+                    if found.comment == comment {
                         return Ok(Audited::unchanged(found.into_comment()?));
                     }
                     sqlx::query!(

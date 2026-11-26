@@ -5115,7 +5115,11 @@ async fn comments(client: &mut Client<'_>, file_alert: Uuid, file_bytes: &[u8]) 
         .await;
     assert_eq!(added["type"], "file");
     assert_eq!(added["value"], sha256, "matched as the lookup matches");
-    assert_eq!(added["comment"], text, "as it was sent");
+    // as it was sent, its line breaks normalized (ace3 130b9e3c)
+    assert_eq!(
+        added["comment"],
+        "<script>alert(1)</script>\n../../etc/passwd \u{FFFD}"
+    );
     assert_eq!(added["author"]["id"], json!(alice));
     assert_eq!(added["author"]["username"], "commenter");
     assert_eq!(added["created_by"]["kind"], "user");

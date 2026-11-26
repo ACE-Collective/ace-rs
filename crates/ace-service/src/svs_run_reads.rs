@@ -963,11 +963,10 @@ async fn run_id(conn: &mut PgConnection, uuid: Uuid) -> Result<i64, ServiceError
         .ok_or_else(|| unknown_run(uuid))
 }
 
-/// A comment as it's stored: line endings as one character, no white space around it, not empty and not
+/// A comment as it's stored: normalized as every comment is (`normalize_comment`), not empty and not
 /// longer than a comment may be. ace3's `_text`.
 fn comment_text(comment: &str) -> Result<String, ServiceError> {
-    let comment = comment.replace("\r\n", "\n");
-    let comment = comment.trim();
+    let comment = crate::observable_comments::normalize_comment(comment);
     if comment.is_empty() {
         return Err(ServiceError::InvalidRequest(
             "a comment can't be empty".to_owned(),
@@ -978,7 +977,7 @@ fn comment_text(comment: &str) -> Result<String, ServiceError> {
             "a comment is at most {MAX_RUN_COMMENT_CHARS} characters"
         )));
     }
-    Ok(comment.to_owned())
+    Ok(comment)
 }
 
 /// The user a comment is by: the user, or the user an API key belongs to. Every comment records who

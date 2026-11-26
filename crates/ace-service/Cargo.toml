@@ -14,6 +14,7 @@ doctest = false
 
 [dependencies]
 ace-core = { path = "../ace-core" }
+ace-pycompat = { path = "../ace-pycompat" }
 ace-results = { path = "../ace-results" }
 # The analyst-edited lists' entries, checked as a module will compile them (PLAN.md 5.14).
 ace-sdk = { path = "../ace-sdk" }

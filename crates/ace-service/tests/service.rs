@@ -7850,7 +7850,8 @@ async fn add_observable_comment_records_its_row(db: &Db) -> String {
         .add_observable_comment(&actor, "fqdn", "audited.example.com", "<b>bad</b>\r\n")
         .await
         .expect("comments");
-    assert_eq!(added.comment, "<b>bad</b>\r\n", "kept as it was sent");
+    // stored with its line breaks normalized, and otherwise as it was sent (ace3 130b9e3c)
+    assert_eq!(added.comment, "<b>bad</b>");
     let row = last_audit(db).await;
     assert_eq!(
         row,
@@ -7863,7 +7864,7 @@ async fn add_observable_comment_records_its_row(db: &Db) -> String {
                 "type": "fqdn",
                 "value": "audited.example.com",
                 "author": Uuid::from_u128(0xAD),
-                "comment": "<b>bad</b>\r\n",
+                "comment": "<b>bad</b>",
             })),
             details: json!({}),
         }
@@ -7909,7 +7910,7 @@ async fn edit_observable_comment_records_its_row(db: &Db) -> String {
             actor: boss_json(),
             action: "edit_observable_comment".to_owned(),
             target: ("observable_comment".to_owned(), added.id.to_string()),
-            before: Some(json!({"comment": "first\r\nthought"})),
+            before: Some(json!({"comment": "first\nthought"})),
             after: Some(json!({"comment": "second thought"})),
             details: json!({
                 "type": "ipv4",
@@ -7927,6 +7928,20 @@ async fn edit_observable_comment_records_its_row(db: &Db) -> String {
         .expect("edits");
     assert_eq!(same, edited, "nothing changed, not even when it was edited");
     assert_eq!(audit_rows(db).await.len(), rows);
+    // a comment posted with CRLF line breaks, as a form sends it, then saved untouched from the edit
+    // box, which sends LF ones: no edit, since what's stored is normalized
+    let posted = service
+        .add_observable_comment(&actor, "ipv4", "192.0.2.1", "two\r\nlines\r\n")
+        .await
+        .expect("comments");
+    assert_eq!(posted.comment, "two\nlines");
+    let saved = service
+        .edit_observable_comment(&actor, posted.id, "two\nlines")
+        .await
+        .expect("edits");
+    assert_eq!(saved, posted);
+    assert_eq!(saved.edited_at, None);
+    assert_eq!(audit_rows(db).await.len(), rows + 1, "only the add's row");
     row.action
 }
 
@@ -7985,6 +8000,103 @@ async fn delete_observable_comment_records_its_row(db: &Db) -> String {
 
 /// ace3's comments: on a type and value, so they show in every alert that holds the observable; a person's,
 /// a key's being its owner's; and changed or deleted only by their author.
+/// A comment's text as ace3's `normalize_comment` leaves it, through the add that stores it.
+#[tokio::test]
+async fn a_comment_is_normalized_as_ace3_normalizes_it() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let service = service(db);
+    for (sent, stored) in [
+        ("  a\r\nb\r\n", "a\nb"),
+        // only CRLF pairs: a lone CR stays inside the text
+        ("a\rb", "a\rb"),
+        // Python's strip takes the file and group separators and the no-break space too
+        ("\u{1c}\u{a0}a\u{3000}", "a"),
+    ] {
+        let added = service
+            .add_observable_comment(&actor, "fqdn", "normalized.example", sent)
+            .await
+            .expect("comments");
+        assert_eq!(added.comment, stored, "{sent:?}");
+    }
+    assert!(matches!(
+        service
+            .add_observable_comment(&actor, "fqdn", "normalized.example", "\u{1c}\r\n")
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+}
+
+/// Migration 0090 normalizes the observable comments stored before every write did (ace3 130b9e3c),
+/// a batch at a time: it runs here again over rows as they were stored then, past one batch's 1,000.
+#[tokio::test]
+async fn migration_0090_normalizes_the_comments_stored_before() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let author = Uuid::from_u128(0xAD);
+    exists(db, &Holder::User(UserId(author))).await;
+    let insert = |comment: String| {
+        sqlx::query_scalar::<_, i64>(
+            "INSERT INTO analysis.observable_comments (type, value, author_id, created_by, comment)
+             VALUES ('fqdn', 'a.example', $1, '{\"kind\": \"internal\", \"id\": \"test\"}', $2)
+             RETURNING id",
+        )
+        .bind(author)
+        .bind(comment)
+    };
+    let mut ids = Vec::new();
+    for n in 0..1005 {
+        let id = insert(format!("note {n}\r\nline two\r\n"))
+            .fetch_one(db.pool())
+            .await
+            .expect("inserts");
+        ids.push(id);
+    }
+    let mut odd = Vec::new();
+    // already normalized; a lone CR; Python's whitespace at the ends; only whitespace, which the
+    // column would refuse once stripped
+    for comment in ["as typed", "a\rb", "\u{a0}\u{1c}c\u{3000}", "\u{1c}"] {
+        let id = insert(comment.to_owned())
+            .fetch_one(db.pool())
+            .await
+            .expect("inserts");
+        odd.push(id);
+    }
+
+    sqlx::raw_sql(include_str!(
+        "../../ace-core/migrations/0090_comment_line_breaks.sql"
+    ))
+    .execute(db.pool())
+    .await
+    .expect("the migration runs");
+
+    let comment = |id: i64| {
+        sqlx::query_as::<_, (String, Option<chrono::DateTime<chrono::Utc>>)>(
+            "SELECT comment, edited_at FROM analysis.observable_comments WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_one(db.pool())
+    };
+    for (n, id) in [(0, ids[0]), (999, ids[999]), (1004, ids[1004])] {
+        let (text, edited_at) = comment(id).await.expect("reads");
+        assert_eq!(text, format!("note {n}\nline two"));
+        assert_eq!(edited_at, None, "a rewrite isn't an analyst's edit");
+    }
+    let mut kept = Vec::new();
+    for id in odd {
+        kept.push(comment(id).await.expect("reads").0);
+    }
+    assert_eq!(kept, ["as typed", "a\rb", "c", "\u{1c}"]);
+    let crlf: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM analysis.observable_comments WHERE comment LIKE E'%\\r\\n%'",
+    )
+    .fetch_one(db.pool())
+    .await
+    .expect("counts");
+    assert_eq!(crlf, 0);
+}
+
 #[tokio::test]
 async fn observable_comments_apply_across_alerts_and_only_their_author_changes_them() {
     let test_db = TestDb::new().await;
