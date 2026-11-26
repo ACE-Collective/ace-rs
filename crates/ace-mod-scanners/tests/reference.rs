@@ -416,15 +416,17 @@ fn with_fixed_job(form: Value, job: &str) -> Value {
     serde_json::from_str(&text).expect("JSON")
 }
 
-#[test]
-fn phishkit_analyzer_matches_the_reference_dumps_or_lists_each_difference() {
+/// phishkit_analyzer on each dump, with libmagic's database at `database`.
+fn compare_phishkit(database: &Path) -> Vec<(String, Vec<ace_testkit::reference::Difference>)> {
     let mut compared = Vec::new();
     let dumps = Dump::all("phishkit_analyzer").expect("the dumps read");
     assert_eq!(dumps.len(), 8);
     for dump in dumps {
         let work = tempfile::tempdir().expect("a directory");
         let input = &dump.value["input"];
-        let harness = Harness::<PhishkitAnalyzer>::new().expect("harness");
+        let harness = Harness::<PhishkitAnalyzer>::new()
+            .expect("harness")
+            .with_module(PhishkitAnalyzer::with_database(database));
         let observable = if input["observable"]["type"] == "file" {
             let meta: Vec<&str> = input["meta_tags"]
                 .as_array()
@@ -528,6 +530,22 @@ fn phishkit_analyzer_matches_the_reference_dumps_or_lists_each_difference() {
             ),
         ));
     }
+    compared
+}
+
+#[test]
+fn phishkit_analyzer_matches_the_reference_dumps_or_lists_each_difference() {
+    let compared = compare_phishkit(Path::new(ace_urlfinder::magic::DATABASE));
+    if let Err(report) = listed("phishkit_differences.md").check(&compared, &[]) {
+        panic!("{report}");
+    }
+}
+
+/// The module gives urlfinderlib the captured bodies as `text/plain`, so it never needs libmagic:
+/// without its database it finds the same URLs in them (`url_scan` and `file_render` have bodies).
+#[test]
+fn phishkit_analyzer_needs_no_libmagic_database() {
+    let compared = compare_phishkit(Path::new("/nonexistent/magic.mgc"));
     if let Err(report) = listed("phishkit_differences.md").check(&compared, &[]) {
         panic!("{report}");
     }

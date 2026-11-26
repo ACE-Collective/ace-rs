@@ -59,7 +59,7 @@ use ace_sdk::cache::{Cache, CachePaths};
 use ace_sdk::scanners::{PHISHKIT, ScanInput, ScanRequest, ScanState};
 use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
 use ace_sdk::{Delay, Module, ModuleError, Observable, Outcome, Parser, Resources, TaskContext};
-use ace_urlfinder::{Finder, Magic, Url};
+use ace_urlfinder::{Finder, Url, magic};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
@@ -176,9 +176,20 @@ struct Fallback {
 /// The most of a proxied attempt's stdout kept beside the direct one's.
 const MAX_PROXY_STDOUT: usize = 64 * 1024;
 
-/// The phishkit_analyzer module.
+/// The phishkit_analyzer module, with libmagic's database opened before containment, which can't
+/// open it. It gives urlfinderlib the captured bodies as `text/plain`, as ace3 does, so urlfinderlib
+/// has nothing to describe and no task reads the database.
 pub struct PhishkitAnalyzer {
-    magic: Result<Vec<u8>, String>,
+    database: magic::Database,
+}
+
+impl PhishkitAnalyzer {
+    /// The module with libmagic's database at `path`; `init`'s is where the images keep it.
+    pub fn with_database(path: &std::path::Path) -> PhishkitAnalyzer {
+        PhishkitAnalyzer {
+            database: magic::Database::open(path),
+        }
+    }
 }
 
 impl Module for PhishkitAnalyzer {
@@ -205,9 +216,9 @@ impl Module for PhishkitAnalyzer {
     type Settings = PhishkitSettings;
 
     fn init(_: &PhishkitSettings) -> Result<Self, ModuleError> {
-        Ok(PhishkitAnalyzer {
-            magic: std::fs::read(ace_urlfinder::magic::DATABASE).map_err(|e| e.to_string()),
-        })
+        Ok(PhishkitAnalyzer::with_database(std::path::Path::new(
+            magic::DATABASE,
+        )))
     }
 
     fn takes(settings: &PhishkitSettings) -> Takes {
@@ -667,19 +678,19 @@ impl PhishkitAnalyzer {
             return Ok(());
         };
         let corpus = text_ignoring(bodies.bytes.as_deref().unwrap_or_default());
-        let database = self
-            .magic
-            .as_ref()
-            .map_err(|e| ModuleError::other(e.clone()))?;
-        let magic = Magic::load(database.clone()).map_err(ModuleError::other)?;
-        let finder = Finder::new(&magic);
+        let load_magic = || self.database.load();
+        let finder = Finder::on_demand(&load_magic);
         for body in split_bodies(&corpus) {
             ctx.check_cancelled()?;
             if pystr::strip(body).is_empty() {
                 continue;
             }
-            // a body that won't parse doesn't fail the analysis
+            // a body that won't parse doesn't fail the analysis, but a libmagic that won't load
+            // would fail every body, which isn't theirs to fail of
             let Ok(found) = finder.find_urls(body.as_bytes(), "", "text/plain", false) else {
+                if let Some(why) = finder.load_error() {
+                    return Err(ModuleError::other(why.to_owned()));
+                }
                 continue;
             };
             for raw in found {

@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use ace_mod_urls::{IocExtraction, UrlExtraction};
+use ace_results::types::file_type::FileTypeAnalysis;
 use ace_sdk::{Observable, Outcome};
 use ace_testkit::reference::{Dump, ListedDifferences, diff, normal_form};
 use ace_testkit::{Harness, HarnessError};
@@ -123,26 +124,49 @@ fn check_interest_order(details: &Value) {
     assert!(sizes.windows(2).all(|w| w[0] <= w[1]), "{urls:?}");
 }
 
+/// Whose file_type result the module is given.
+#[derive(Clone, Copy, PartialEq)]
+enum FileType {
+    /// ace3's, from the dump.
+    Ace3s,
+    /// ace-rs's type step's, from the file's bytes, as the core builds it.
+    TypeSteps,
+}
+
 fn compare<M: ace_sdk::Parser>(
     module: &str,
     class: &str,
     fixture_dir: &str,
+    file_type: FileType,
     normalize: impl Fn(&mut Value, &Value),
 ) -> Vec<(String, Vec<ace_testkit::reference::Difference>)> {
     let mut compared = Vec::new();
     for dump in Dump::all(module).expect("the dumps read") {
-        // url_extraction depends on file_type, whose result the dump holds
         let mut harness = Harness::<M>::new().expect("harness");
-        if let Some(file_type) = dump.file_type() {
-            harness = harness.dependency_result("file_type", file_type.clone());
+        if file_type == FileType::TypeSteps {
+            harness = harness.with_typer(ace_mod_files::file_type::type_of);
         }
         let observable =
             input(&harness, &dump, fixture_dir).unwrap_or_else(|e| panic!("{}: {e}", dump.name));
+        // url_extraction depends on file_type and gives urlfinderlib its description
+        let details = match file_type {
+            FileType::Ace3s => dump.file_type().cloned(),
+            FileType::TypeSteps => {
+                let file = observable.file.as_ref().expect("a file");
+                let facts = file.facts.as_ref().expect("the type step typed it");
+                let analysis = FileTypeAnalysis::from_facts(facts, file.path.as_str());
+                Some(serde_json::to_value(analysis).expect("serializes"))
+            }
+        };
+        if let Some(details) = details {
+            harness = harness.dependency_result("file_type", details);
+        }
         let outcome = harness
             .run_parser(observable)
             .unwrap_or_else(|e| panic!("{}: {e}", dump.name));
         // the fixtures ace-gui's analysis view test draws (PLAN.md 5.9)
         match (module, dump.short_name()) {
+            _ if file_type == FileType::TypeSteps => {}
             ("url_extraction", "page.html") => {
                 ace_testkit::check_view_fixture("urls_page_html", &outcome)
             }
@@ -161,16 +185,13 @@ fn compare<M: ace_sdk::Parser>(
     compared
 }
 
-#[test]
-fn matches_the_reference_dumps_or_lists_each_difference() {
-    let listed = ListedDifferences::load(
-        &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/differences.md"),
-    )
-    .expect("differences.md reads");
+/// Each module on every dump, given ace3's file_type result or the type step's.
+fn compare_all(file_type: FileType) -> Vec<(String, Vec<ace_testkit::reference::Difference>)> {
     let mut compared = compare::<UrlExtraction>(
         "url_extraction",
         "URLExtractionAnalysis",
         "urls",
+        file_type,
         |theirs, ours| {
             check_interest_order(&ours["details"]);
             same_members_take_our_order(&mut theirs["details"]["urls"], &ours["details"]["urls"]);
@@ -190,6 +211,7 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         "ioc_extraction",
         "IOCExtractionAnalysis",
         "iocs",
+        file_type,
         |theirs, ours| {
             if let (Some(t), Some(o)) = (
                 theirs.pointer_mut("/details/iocs/url"),
@@ -202,7 +224,29 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
     assert!(compared.len() >= 20, "only {} url dumps", compared.len());
     assert!(iocs.len() >= 4, "only {} ioc dumps", iocs.len());
     compared.extend(iocs.into_iter().map(|(name, d)| (format!("ioc/{name}"), d)));
-    if let Err(report) = listed.check(&compared, &[]) {
+    compared
+}
+
+#[test]
+fn matches_the_reference_dumps_or_lists_each_difference() {
+    let listed = ListedDifferences::load(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/differences.md"),
+    )
+    .expect("differences.md reads");
+    if let Err(report) = listed.check(&compare_all(FileType::Ace3s), &[]) {
+        panic!("{report}");
+    }
+}
+
+/// In a stack url_extraction reads the type step's description of the file, not ace3's, so the
+/// dumps are compared again with that: the same list holds.
+#[test]
+fn matches_the_reference_dumps_with_the_type_steps_file_type() {
+    let listed = ListedDifferences::load(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/differences.md"),
+    )
+    .expect("differences.md reads");
+    if let Err(report) = listed.check(&compare_all(FileType::TypeSteps), &[]) {
         panic!("{report}");
     }
 }

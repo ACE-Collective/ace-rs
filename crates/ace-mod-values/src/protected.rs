@@ -23,7 +23,7 @@
 //! - ace3 reads the response's body; this reads only the status and the `Location` header.
 
 use std::collections::BTreeSet;
-use std::fs;
+use std::path::Path;
 use std::time::Duration;
 
 use ace_pycompat::PyErr;
@@ -35,7 +35,7 @@ use ace_results::{
 };
 use ace_sdk::http::HttpClient;
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
-use ace_urlfinder::{Finder, Magic};
+use ace_urlfinder::{Finder, magic};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
@@ -292,10 +292,19 @@ fn result<D: AnalysisType>(
     result
 }
 
-/// The module, with libmagic's database read before containment, for urlfinderlib's sniffing of a
-/// Proofpoint URL.
+/// The module, with libmagic's database opened before containment, which can't open it, for
+/// urlfinderlib's sniffing of a Proofpoint URL. Only such a URL's task reads it.
 pub struct ProtectedUrlAnalyzer {
-    database: Result<Vec<u8>, String>,
+    database: magic::Database,
+}
+
+impl ProtectedUrlAnalyzer {
+    /// The module with libmagic's database at `path`; `init`'s is where the images keep it.
+    pub fn with_database(path: &Path) -> ProtectedUrlAnalyzer {
+        ProtectedUrlAnalyzer {
+            database: magic::Database::open(path),
+        }
+    }
 }
 
 impl Module for ProtectedUrlAnalyzer {
@@ -305,24 +314,20 @@ impl Module for ProtectedUrlAnalyzer {
     type Settings = ();
 
     fn init(_: &()) -> Result<Self, ModuleError> {
-        Ok(ProtectedUrlAnalyzer {
-            database: fs::read(ace_urlfinder::magic::DATABASE).map_err(|e| e.to_string()),
-        })
+        Ok(ProtectedUrlAnalyzer::with_database(Path::new(
+            magic::DATABASE,
+        )))
     }
 }
 
 impl Parser for ProtectedUrlAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<ProtectedUrlAnalysis>, ModuleError> {
         let url = ctx.observable();
+        // the URL's text, which urlfinderlib has libmagic describe, as ace3's does; a database
+        // that won't load is its OSError
         let find_urls = |value: &str| {
-            let database = self.database.as_ref().map_err(|e| {
-                PyErr::builtin(
-                    "OSError",
-                    format!("{}: {e}", ace_urlfinder::magic::DATABASE),
-                )
-            })?;
-            let magic = Magic::load(database.clone()).map_err(|e| PyErr::builtin("OSError", e))?;
-            Finder::new(&magic).find_urls(value.as_bytes(), "", "", false)
+            let load_magic = || self.database.load();
+            Finder::on_demand(&load_magic).find_urls(value.as_bytes(), "", "", false)
         };
         let (kind, extracted) = match extract_protected_url(&url.value, find_urls) {
             Ok(Extracted::Url(kind, extracted)) => (Some(kind), Some(extracted)),

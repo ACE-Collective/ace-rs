@@ -24,6 +24,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
+use std::path::Path;
 use std::time::Duration;
 
 use crate::pyre::Pattern;
@@ -32,7 +33,7 @@ use ace_results::FileRole;
 use ace_results::types::ioc_extraction::IocExtractionAnalysis;
 use ace_results::{AnalysisType, ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
-use ace_urlfinder::{Finder, Magic};
+use ace_urlfinder::{Finder, magic};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -183,12 +184,23 @@ struct Compiled {
 }
 
 /// The module: its patterns compiled, invalid ones left out as ace3 logs and skips them, and
-/// libmagic's database, read before containment.
+/// libmagic's database, opened before containment, which can't open it, and read only by a task
+/// that looks for URLs.
 pub struct IocExtraction {
     refang: Vec<(String, Vec<Pattern>)>,
     patterns: Vec<Compiled>,
     url_ignored: Vec<(String, Pattern)>,
-    database: Result<Vec<u8>, String>,
+    database: magic::Database,
+}
+
+impl IocExtraction {
+    /// The module with libmagic's database at `path` in place of `init`'s.
+    pub fn with_database(self, path: &Path) -> IocExtraction {
+        IocExtraction {
+            database: magic::Database::open(path),
+            ..self
+        }
+    }
 }
 
 fn compile_logged(pattern: &str, what: &str) -> Option<Pattern> {
@@ -254,7 +266,7 @@ impl Module for IocExtraction {
             refang,
             patterns,
             url_ignored,
-            database: fs::read(ace_urlfinder::magic::DATABASE).map_err(|e| e.to_string()),
+            database: magic::Database::open(Path::new(magic::DATABASE)),
         })
     }
 }
@@ -356,13 +368,17 @@ impl Parser for IocExtraction {
         };
 
         if let Some(url_config) = &settings.urls {
-            let database = self.database.as_ref().map_err(|e| {
-                ModuleError::other(format!("{}: {e}", ace_urlfinder::magic::DATABASE))
-            })?;
-            let magic = Magic::load(database.clone()).map_err(ModuleError::other)?;
-            let urls = Finder::new(&magic)
-                .find_urls(text.as_bytes(), "", "", false)
-                .map_err(|e| ModuleError::other(format!("find_urls raised {e}")))?;
+            // the text is the file's after markup is stripped and IOCs re-fanged, which the type
+            // step never described, so urlfinderlib asks libmagic, as ace3's does
+            let load_magic = || self.database.load();
+            let finder = Finder::on_demand(&load_magic);
+            let urls =
+                finder
+                    .find_urls(text.as_bytes(), "", "", false)
+                    .map_err(|e| match finder.load_error() {
+                        Some(why) => ModuleError::other(why.to_owned()),
+                        None => ModuleError::other(format!("find_urls raised {e}")),
+                    })?;
             let extras = Extras {
                 directives: url_config.directives.clone(),
                 tags: url_config.tags.clone(),

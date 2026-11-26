@@ -345,6 +345,13 @@ impl<M: Module> Harness<M> {
         &self.module
     }
 
+    /// Runs the tasks on `module` in place of the one `Module::init` built, such as one made to
+    /// find a file it reads missing.
+    pub fn with_module(mut self, module: M) -> Self {
+        self.module = module;
+        self
+    }
+
     /// An observable that isn't a file.
     pub fn observable(&self, kind: ObservableKind, value: &str) -> Observable {
         Observable::new(kind, value)
@@ -663,6 +670,22 @@ pub fn check_view_fixture<D: AnalysisType>(name: &str, outcome: &Outcome<D>) {
         "{} isn't this module's result; ACE_RS_WRITE_FIXTURES=1 writes it",
         path.display()
     );
+}
+
+/// What `f` returns, and how many bytes this process read from files and sockets while it ran
+/// (Linux's `rchar`, which counts every `read` and `pread` and not a mapping's page faults): for a
+/// test that a module leaves a big file, such as libmagic's database, unread.
+pub fn bytes_read_by<T>(f: impl FnOnce() -> T) -> (T, u64) {
+    let rchar = || {
+        let io = fs::read_to_string("/proc/self/io").expect("/proc/self/io reads");
+        io.lines()
+            .find_map(|line| line.strip_prefix("rchar: "))
+            .and_then(|n| n.parse::<u64>().ok())
+            .expect("/proc/self/io has rchar")
+    };
+    let before = rchar();
+    let value = f();
+    (value, rchar() - before)
 }
 
 /// The repository's `samples/` directory.

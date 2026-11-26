@@ -314,3 +314,58 @@ fn a_command_line_writes_at_most_500_payload_files() {
         "command_line_base64_payload_598.bin"
     );
 }
+
+/// Only a Proofpoint URL has urlfinderlib describe text, so only its task reads libmagic's
+/// database: the module reads none of it at `init` or for any other URL, and with the database
+/// missing a Proofpoint URL fails, naming it.
+#[test]
+fn only_a_proofpoint_url_reads_libmagics_database() {
+    let database = std::fs::metadata(ace_urlfinder::magic::DATABASE)
+        .expect("the database")
+        .len();
+    let safelinks = "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fevil.example.com%2Fpage&data=xyz";
+    let proofpoint =
+        "https://urldefense.proofpoint.com/v2/url?u=https-3A__evil.example.com_path&d=DwMF&c=x";
+    let run = |url: &str| {
+        ace_testkit::bytes_read_by(|| {
+            let harness = Harness::<ProtectedUrlAnalyzer>::new().expect("harness");
+            harness.run_parser(harness.observable(ObservableKind::Url, url))
+        })
+    };
+    let extracted = |outcome: Result<Outcome<_>, _>| match outcome {
+        Ok(Outcome::Done(result)) => {
+            let result: ace_results::ResultEnvelope<
+                ace_results::types::values::ProtectedUrlAnalysis,
+            > = result;
+            result.details.extracted_url
+        }
+        other => panic!("{other:?}"),
+    };
+
+    let (outcome, read) = run(safelinks);
+    assert_eq!(
+        extracted(outcome).as_deref(),
+        Some("https://evil.example.com/page")
+    );
+    assert!(read < database / 10, "{read} bytes read for {safelinks}");
+    // what the count would see of a read
+    let (outcome, read) = run(proofpoint);
+    assert_eq!(
+        extracted(outcome).as_deref(),
+        Some("https://evil.example.com/path")
+    );
+    assert!(read >= database, "{read} bytes read for {proofpoint}");
+
+    let missing = Path::new("/nonexistent/magic.mgc");
+    let harness = Harness::<ProtectedUrlAnalyzer>::new()
+        .expect("harness")
+        .with_module(ProtectedUrlAnalyzer::with_database(missing));
+    let outcome = harness.run_parser(harness.observable(ObservableKind::Url, safelinks));
+    assert!(extracted(outcome).is_some());
+    match harness.run_parser(harness.observable(ObservableKind::Url, proofpoint)) {
+        Err(ace_testkit::HarnessError::Module(e)) => {
+            assert!(e.to_string().contains("/nonexistent/magic.mgc"), "{e}")
+        }
+        other => panic!("{other:?}"),
+    }
+}

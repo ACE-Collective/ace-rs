@@ -1,11 +1,16 @@
 //! `magic.from_buffer(blob)` of python-magic 0.4.27: libmagic's description of the bytes, with
 //! no flags and the name/use limit raised to 64, as its `Magic()` sets it.
 //!
-//! The database is read before containment, which can't open it (`Magic::load`), and a cookie
-//! is made from those bytes in the task. libmagic is the one ace3's image has, 5.46, and the
+//! A contained task can't open the database, so a module opens it before containment
+//! (`Database::open`) and reads it through that descriptor only when a task needs libmagic, which
+//! Landlock allows, since it checks a file only when it is opened. A cookie is made from those
+//! bytes in the task. libmagic is the one ace3's image has, 5.46, and the
 //! database is the same file (`docker/ace-rs/Dockerfile` pins both).
 
 use std::ffi::{CStr, c_char, c_int, c_void};
+use std::fs::File;
+use std::os::unix::fs::FileExt;
+use std::path::{Path, PathBuf};
 
 use ace_pycompat::PyErr;
 
@@ -35,6 +40,37 @@ const MAGIC_PARAM_NAME_MAX: c_int = 1;
 
 /// Where ace-rs's images keep the database, the one ace3's python-magic loads by default.
 pub const DATABASE: &str = "/usr/lib/file/magic.mgc";
+
+/// libmagic's database, opened before containment and read only when a task loads libmagic: most
+/// tasks give urlfinderlib a description of their bytes, and never do.
+pub struct Database {
+    path: PathBuf,
+    file: Result<File, String>,
+}
+
+impl Database {
+    /// The database at `path`; a module's `init` passes [`DATABASE`]. A file that won't open is
+    /// an error only for a task that loads libmagic.
+    pub fn open(path: &Path) -> Database {
+        Database {
+            path: path.to_owned(),
+            file: File::open(path).map_err(|e| format!("{}: {e}", path.display())),
+        }
+    }
+
+    /// libmagic over the database's bytes, read through the descriptor opened before containment.
+    /// `read_exact_at` keeps no file position, so concurrent tasks of one module can share it.
+    pub fn load(&self) -> Result<Magic, String> {
+        let file = self.file.as_ref().map_err(Clone::clone)?;
+        let read = || -> std::io::Result<Vec<u8>> {
+            let mut bytes = vec![0; usize::try_from(file.metadata()?.len()).unwrap_or(usize::MAX)];
+            file.read_exact_at(&mut bytes, 0)?;
+            Ok(bytes)
+        };
+        let bytes = read().map_err(|e| format!("reading {}: {e}", self.path.display()))?;
+        Magic::load(bytes)
+    }
+}
 
 /// libmagic with a database loaded. Not shared between threads.
 pub struct Magic {

@@ -17,9 +17,23 @@
 //!   run to run. Here the set is sorted first, so the order is the same each time.
 //! - ace3 adds the URLs as volatile observables. ace-rs has no volatile flag; in ace3 only the GUI's
 //!   pruning and the analysis cache read it.
+//! - urlfinderlib chooses its finder from libmagic's description of the bytes, which ace3's asks
+//!   python-magic's `from_buffer` for. Here it is given the type step's description, from the
+//!   file_type result (`file -b -L`'s flags, stripped), so a task reads no libmagic database and
+//!   makes no libmagic call for a description the type step has made already (PLAN.md decision 25).
+//!   The two descriptions can differ: over 875 files (`samples/` and `tools/ace3/dumps/fixtures`)
+//!   they differed on 28, 25 zips and 2 jars that `from_buffer` calls only "data" and a gzip whose
+//!   size detail it leaves out. urlfinderlib's choice reads only whether the description holds
+//!   "utf-16", "rfc 822", "mail", "html", "vcalendar", "icalendar", "xml" or "text", and none of
+//!   the 28 hold one on either side, so every one of the 875 takes the same finder
+//!   (`tests/type_description.rs` keeps a file of each class). libmagic is still loaded where
+//!   urlfinderlib describes bytes the type step never saw: UTF-16 text with its NULs taken out,
+//!   and a file whose description is empty. For those the database is read through a descriptor
+//!   `init` opened, since a contained task can't open it.
 
 use std::collections::BTreeSet;
 use std::fs;
+use std::path::Path;
 use std::time::Duration;
 
 use ace_pycompat::pystr;
@@ -29,7 +43,7 @@ use ace_results::types::yara::YaraScanResults;
 use ace_results::{AnalysisType, NewObservable, ObservableKind, RelationshipKind, ResultEnvelope};
 use ace_sdk::observable_rules::names_a_host;
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
-use ace_urlfinder::{Finder, Magic};
+use ace_urlfinder::{Finder, magic};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
@@ -75,9 +89,19 @@ impl Default for UrlExtractionSettings {
     }
 }
 
-/// The module, with libmagic's database read before containment, which can't open it.
+/// The module, with libmagic's database opened before containment, which can't open it. It is read
+/// only for a task whose bytes urlfinderlib has to describe itself.
 pub struct UrlExtraction {
-    database: Result<Vec<u8>, String>,
+    database: magic::Database,
+}
+
+impl UrlExtraction {
+    /// The module with libmagic's database at `path`; `init`'s is where the images keep it.
+    pub fn with_database(path: &Path) -> UrlExtraction {
+        UrlExtraction {
+            database: magic::Database::open(path),
+        }
+    }
 }
 
 impl Module for UrlExtraction {
@@ -97,9 +121,9 @@ impl Module for UrlExtraction {
     type Settings = UrlExtractionSettings;
 
     fn init(_: &UrlExtractionSettings) -> Result<Self, ModuleError> {
-        Ok(UrlExtraction {
-            database: fs::read(ace_urlfinder::magic::DATABASE).map_err(|e| e.to_string()),
-        })
+        Ok(UrlExtraction::with_database(Path::new(
+            ace_urlfinder::magic::DATABASE,
+        )))
     }
 }
 
@@ -232,10 +256,12 @@ impl Parser for UrlExtraction {
                 .iter()
                 .any(|m| m.name() == "type" && m.value() == value)
         };
+        // the type step's description of the bytes, which urlfinderlib would otherwise ask libmagic
+        // for; an empty one still has urlfinderlib ask
         let url_mimetype = if has_type("script.javascript") {
             "text/plain"
         } else {
-            ""
+            file_type.file_type.as_str()
         };
         let domain_as_url = ctx
             .observable()
@@ -244,13 +270,11 @@ impl Parser for UrlExtraction {
         ctx.check_cancelled()?;
 
         let ocr = has_type(OCR_TEXT);
+        let load_magic = || self.database.load();
+        let finder = Finder::on_demand(&load_magic);
         let found = if ocr {
             ace_urlfinder::find_urls_in_text(&blob, domain_as_url)
         } else {
-            let database = self.database.as_ref().map_err(|e| {
-                ModuleError::other(format!("{}: {e}", ace_urlfinder::magic::DATABASE))
-            })?;
-            let magic = Magic::load(database.clone()).map_err(ModuleError::other)?;
             // an HTML file downloaded from a URL has its relative URLs made absolute against it
             let base_url = if pystr::lower(&file_type.mime).contains("html") {
                 ctx.observable()
@@ -259,11 +283,16 @@ impl Parser for UrlExtraction {
             } else {
                 ""
             };
-            Finder::new(&magic).find_urls(&blob, base_url, url_mimetype, domain_as_url)
+            finder.find_urls(&blob, base_url, url_mimetype, domain_as_url)
         };
         let mut extracted: Vec<String> = match found {
             Ok(urls) => urls.into_iter().collect(),
             Err(e) => {
+                // a module that can't load libmagic fails every such task, which the file didn't
+                // cause, so it fails the task rather than skipping the file
+                if let Some(why) = finder.load_error() {
+                    return Err(ModuleError::other(why.to_owned()));
+                }
                 tracing::warn!("failed to extract urls from {}: {e}", file.path.as_str());
                 return Ok(Outcome::Skipped(format!("failed to extract urls: {e}")));
             }

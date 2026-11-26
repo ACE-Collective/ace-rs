@@ -98,3 +98,71 @@ fn child_urls_are_urlfinderlib_s() {
     children.sort();
     assert_eq!(children, ["https://target.example.org/land"]);
 }
+
+/// An `on_demand` finder with a loader that counts its calls, and libmagic loaded or refused.
+fn counting(calls: &std::cell::Cell<u32>, refuse: bool) -> impl Fn() -> Result<Magic, String> + '_ {
+    move || {
+        calls.set(calls.get() + 1);
+        if refuse {
+            return Err("no database".to_owned());
+        }
+        Magic::load(std::fs::read(crate::magic::DATABASE).map_err(|e| e.to_string())?)
+    }
+}
+
+#[test]
+fn an_on_demand_finder_given_a_description_loads_no_libmagic() {
+    let calls = std::cell::Cell::new(0);
+    let load = counting(&calls, true);
+    let finder = Finder::on_demand(&load);
+    let blob = b"<a href=\"https://a.example.com/x\">x</a>";
+    let urls = finder
+        .find_urls(blob, "", "HTML document, ASCII text", false)
+        .expect("no libmagic needed");
+    assert!(urls.contains("https://a.example.com/x"), "{urls:?}");
+    assert_eq!(calls.get(), 0);
+    assert_eq!(finder.load_error(), None);
+}
+
+/// UTF-16 bytes are described again once their NULs are gone, which needs libmagic; the finder
+/// loads it once, however many descriptions it makes, and finds what a loaded finder finds.
+#[test]
+fn an_on_demand_finder_loads_libmagic_once_for_bytes_it_describes() {
+    let mut blob = vec![0xff, 0xfe];
+    for b in b"<a href=\"https://utf16.example.com/x\">x</a>" {
+        blob.extend([*b, 0]);
+    }
+    let database = std::fs::read(crate::magic::DATABASE).expect("the magic database");
+    let magic = Magic::load(database).expect("libmagic");
+    for mimetype in [
+        "",
+        "HTML document, Unicode text, UTF-16, little-endian text",
+    ] {
+        let calls = std::cell::Cell::new(0);
+        let load = counting(&calls, false);
+        let finder = Finder::on_demand(&load);
+        let urls = finder.find_urls(&blob, "", mimetype, false);
+        assert_eq!(
+            urls,
+            Finder::new(&magic).find_urls(&blob, "", mimetype, false),
+            "{mimetype:?}"
+        );
+        assert!(
+            urls.expect("found").contains("https://utf16.example.com/x"),
+            "{mimetype:?}"
+        );
+        assert_eq!(calls.get(), 1, "{mimetype:?}");
+    }
+}
+
+#[test]
+fn an_on_demand_finder_that_cant_load_libmagic_says_why() {
+    let calls = std::cell::Cell::new(0);
+    let load = counting(&calls, true);
+    let finder = Finder::on_demand(&load);
+    let error = finder
+        .find_urls(b"https://a.example.com/", "", "", false)
+        .expect_err("libmagic was needed");
+    assert_eq!(error.kind, "OSError");
+    assert_eq!(finder.load_error(), Some("no database"));
+}

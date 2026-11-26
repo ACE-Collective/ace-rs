@@ -109,14 +109,62 @@ fn remove_utf16_chars(blob: &[u8]) -> Vec<u8> {
     blob[start..].iter().copied().filter(|b| *b != 0).collect()
 }
 
+/// What loads libmagic for a [`Finder`] that may not need it, or why it can't.
+pub type LoadMagic<'m> = &'m dyn Fn() -> Result<Magic, String>;
+
+/// Where a [`Finder`] gets libmagic, for the bytes it describes itself.
+enum Describer<'m> {
+    Loaded(&'m Magic),
+    /// Loaded at the first description, at most once.
+    OnDemand {
+        load: LoadMagic<'m>,
+        magic: std::cell::OnceCell<Result<Magic, String>>,
+    },
+}
+
 /// The URLs in a blob, as `urlfinderlib.find_urls` finds them.
 pub struct Finder<'m> {
-    magic: &'m Magic,
+    describer: Describer<'m>,
 }
 
 impl<'m> Finder<'m> {
     pub fn new(magic: &'m Magic) -> Finder<'m> {
-        Finder { magic }
+        Finder {
+            describer: Describer::Loaded(magic),
+        }
+    }
+
+    /// A finder that calls `load` only when it has to describe bytes itself: when it is given no
+    /// mime type, or bytes whose description says UTF-16, which it describes again without their
+    /// NULs. A caller that has the bytes' description already then needn't load libmagic at all.
+    pub fn on_demand(load: LoadMagic<'m>) -> Finder<'m> {
+        Finder {
+            describer: Describer::OnDemand {
+                load,
+                magic: std::cell::OnceCell::new(),
+            },
+        }
+    }
+
+    /// Why libmagic couldn't be loaded, when an `on_demand` finder needed it: what a search that
+    /// failed for that reason failed of, which isn't the blob's fault.
+    pub fn load_error(&self) -> Option<&str> {
+        match &self.describer {
+            Describer::OnDemand { magic, .. } => magic.get()?.as_ref().err().map(String::as_str),
+            Describer::Loaded(_) => None,
+        }
+    }
+
+    /// `magic.from_buffer(blob)`.
+    fn describe(&self, blob: &[u8]) -> PyResult<String> {
+        let magic = match &self.describer {
+            Describer::Loaded(magic) => *magic,
+            Describer::OnDemand { load, magic } => magic
+                .get_or_init(*load)
+                .as_ref()
+                .map_err(|e| PyErr::builtin("OSError", e.clone()))?,
+        };
+        magic.from_buffer(blob)
     }
 
     /// `find_urls(blob, base_url, mimetype, domain_as_url)`.
@@ -149,14 +197,14 @@ impl<'m> Finder<'m> {
     ) -> PyResult<Vec<String>> {
         let mut blob = std::borrow::Cow::Borrowed(blob);
         let mut mimetype = if mimetype.is_empty() {
-            self.magic.from_buffer(&blob)?
+            self.describe(&blob)?
         } else {
             mimetype.to_owned()
         };
         mimetype = py::lower(&mimetype).into_owned();
         if mimetype.contains("utf-16") {
             blob = std::borrow::Cow::Owned(remove_utf16_chars(&blob));
-            mimetype = self.magic.from_buffer(&blob)?;
+            mimetype = self.describe(&blob)?;
         }
         let mimetype = py::lower(&mimetype).into_owned();
 
