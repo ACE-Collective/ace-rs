@@ -8,7 +8,8 @@
 //! cells listed. Here emulation reads its clock inside the interpreter's loop, and a pass past its output
 //! limit is dropped the same way.
 //!
-//! It's a separate crate from `ace-mod-oletools` because it links yara-x, for ace3's rule file.
+//! It's a separate crate from `ace-mod-oletools` because it links yara-x, for ace3's rule file, which
+//! build.rs compiles into the binary.
 
 use std::path::Path;
 use std::sync::LazyLock;
@@ -101,15 +102,36 @@ impl Module for XlmDeobfuscator {
     }
 }
 
-/// ace3's own rules, compiled on the first file that needs them. A pool builds every module for every
-/// task, so this isn't in `init`.
-static COMPILED: LazyLock<Result<yara_x::Rules, String>> = LazyLock::new(|| {
+/// `RULES` as build.rs compiled and serialized them, with their machine code.
+const SERIALIZED: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/xlmdeobfuscator.yarc"));
+
+/// ace3's own rules, loaded on the first file that needs them, so a task of the module's that never
+/// scans, such as one with too large a file, doesn't. Every task is a process of its own, so this
+/// runs once a task: compiling the source took 4 ms there, and loading what build.rs serialized
+/// takes 0.25 ms.
+static COMPILED: LazyLock<Result<yara_x::Rules, String>> = LazyLock::new(|| load(SERIALIZED));
+
+/// The serialized rules, or the source compiled when they don't load in this build.
+fn load(serialized: &[u8]) -> Result<yara_x::Rules, String> {
+    match yara_x::Rules::deserialize(serialized) {
+        Ok(rules) => Ok(rules),
+        Err(error) => {
+            tracing::info!(
+                error = %error,
+                "the xlmdeobfuscator.yar rules built with the crate don't load in this build; compiling them"
+            );
+            compile_source()
+        }
+    }
+}
+
+fn compile_source() -> Result<yara_x::Rules, String> {
     let mut compiler = yara_x::Compiler::new();
     compiler
         .add_source(RULES)
         .map_err(|error| format!("xlmdeobfuscator.yar: {error}"))?;
     Ok(compiler.build())
-});
+}
 
 /// Whether ace3 would analyze this file: its own rules, or the YARA module's in it or below it.
 fn has_macros(
@@ -502,6 +524,99 @@ mod tests {
             ),
             Outcome::Skipped(_)
         ));
+    }
+
+    /// Each rule's namespace, name, tags and metadata, and the rules matching each tracked sample.
+    fn rules_and_matches(rules: &yara_x::Rules) -> (Vec<String>, Vec<(String, Vec<String>)>) {
+        let described = rules
+            .iter()
+            .map(|rule| {
+                let tags: Vec<&str> = rule.tags().map(|tag| tag.identifier()).collect();
+                format!(
+                    "{}:{} {tags:?} {:?}",
+                    rule.namespace(),
+                    rule.identifier(),
+                    rule.metadata().into_json()
+                )
+            })
+            .collect();
+        let mut paths = Vec::new();
+        let mut dirs = vec![
+            ace_testkit::samples_dir().join("ace3"),
+            ace_testkit::samples_dir().join("ace-rs"),
+        ];
+        while let Some(dir) = dirs.pop() {
+            for entry in std::fs::read_dir(&dir).expect("a samples directory") {
+                let path = entry.expect("an entry").path();
+                if path.is_dir() {
+                    dirs.push(path);
+                } else {
+                    paths.push(path);
+                }
+            }
+        }
+        paths.sort();
+        let mut scanner = yara_x::Scanner::new(rules);
+        let matches = paths
+            .iter()
+            .map(|path| {
+                let data = std::fs::read(path).expect("a sample");
+                let results = scanner.scan(&data).expect("scans");
+                let names = results
+                    .matching_rules()
+                    .map(|rule| rule.identifier().to_owned())
+                    .collect();
+                (path.display().to_string(), names)
+            })
+            .collect();
+        (described, matches)
+    }
+
+    #[test]
+    fn the_rules_built_with_the_crate_are_the_ones_its_source_compiles_to() {
+        let built = load(SERIALIZED).expect("loads");
+        let compiled = compile_source().expect("compiles");
+        let (built_rules, built_matches) = rules_and_matches(&built);
+        let (rules, matches) = rules_and_matches(&compiled);
+        assert_eq!(built_rules.len(), 16, "{built_rules:?}");
+        assert_eq!(built_rules, rules);
+        assert!(
+            matches
+                .iter()
+                .filter(|(_, names)| !names.is_empty())
+                .count()
+                > 10,
+            "{matches:?}"
+        );
+        assert_eq!(built_matches, matches);
+    }
+
+    #[test]
+    fn rules_that_dont_load_are_compiled_from_the_source_and_logged() {
+        #[derive(Clone, Default)]
+        struct Logs(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
+        impl std::io::Write for Logs {
+            fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+                self.0.lock().expect("lock").extend_from_slice(buf);
+                Ok(buf.len())
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        let logs = Logs::default();
+        let writer = logs.clone();
+        let subscriber = tracing_subscriber::fmt()
+            .with_writer(move || writer.clone())
+            .with_ansi(false)
+            .finish();
+        let rules = tracing::subscriber::with_default(subscriber, || load(b"not rules"))
+            .expect("compiled instead");
+        let logs = String::from_utf8(logs.0.lock().expect("lock").clone()).expect("text");
+        assert!(logs.contains("INFO"), "{logs}");
+        assert!(logs.contains("compiling them"), "{logs}");
+        let compiled = compile_source().expect("compiles");
+        assert_eq!(rules_and_matches(&rules), rules_and_matches(&compiled));
     }
 
     #[test]
