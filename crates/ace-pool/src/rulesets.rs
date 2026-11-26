@@ -8,6 +8,12 @@
 //! generation when it starts, so a task that started before the switch finishes on the old
 //! ruleset and every task after it runs on the new one. A download or a load that fails keeps
 //! the old ruleset and is tried again on the next look.
+//!
+//! Each look also has the module prepare what it keeps beside the current generation (`Prepare`),
+//! such as the YARA module's native copy of the ruleset, built on this host: after a switch, and on
+//! the first look after the pool starts, when a new binary may need a copy of its own. A copy that
+//! doesn't build is a warning, since tasks still load the core's file, and is tried again on the
+//! next look. A generation's directory holds what was prepared for it, so it goes with it.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -21,6 +27,10 @@ use crate::client::{ClientError, LeaseClient};
 
 /// Loads the ruleset at a path the way the pool's task processes will, and says why it didn't.
 pub type Check = Arc<dyn Fn(&Path) -> Result<(), String> + Send + Sync>;
+
+/// Prepares what the module keeps beside a generation, in its directory: the path of what it built,
+/// None when there was nothing to build, or why it couldn't.
+pub type Prepare = Arc<dyn Fn(&Generation) -> Result<Option<PathBuf>, String> + Send + Sync>;
 
 /// How often the watcher asks for the current ruleset by default.
 pub const DEFAULT_EVERY: Duration = Duration::from_secs(30);
@@ -48,6 +58,7 @@ pub struct RulesetWatcher {
     client: LeaseClient,
     dir: PathBuf,
     check: Check,
+    prepare: Option<Prepare>,
     every: Duration,
     patience: Duration,
 }
@@ -58,9 +69,16 @@ impl RulesetWatcher {
             client,
             dir: dir.into(),
             check,
+            prepare: None,
             every: DEFAULT_EVERY,
             patience: FIRST_RULESET_PATIENCE,
         }
+    }
+
+    /// Prepares each current generation with `prepare` (`Prepare`).
+    pub fn prepare(mut self, prepare: Prepare) -> Self {
+        self.prepare = Some(prepare);
+        self
     }
 
     pub fn every(mut self, every: Duration) -> Self {
@@ -82,6 +100,46 @@ impl RulesetWatcher {
     /// Looks once: switches to the core's current ruleset if it isn't the one on disk. Returns
     /// the generation that is current afterwards, if any.
     pub async fn refresh(&self) -> Result<Option<Generation>, WatchError> {
+        let current = self.switch().await?;
+        if let Some(generation) = &current {
+            self.prepared(generation).await;
+        }
+        Ok(current)
+    }
+
+    /// Prepares the generation, and says at WARN when it couldn't.
+    async fn prepared(&self, generation: &Generation) {
+        let Some(prepare) = self.prepare.clone() else {
+            return;
+        };
+        let (target, started) = (generation.clone(), std::time::Instant::now());
+        // a look waits for it: it reads and writes local files of one ruleset's size
+        let prepared = tokio::task::spawn_blocking(move || prepare(&target)).await;
+        match prepared {
+            Ok(Ok(Some(path))) => tracing::info!(
+                key = %generation.info.key,
+                path = %path.display(),
+                seconds = started.elapsed().as_secs_f64(),
+                "prepared the ruleset for this pool's tasks"
+            ),
+            Ok(Ok(None)) => {}
+            Ok(Err(error)) => tracing::warn!(
+                key = %generation.info.key,
+                dir = %generation.dir.display(),
+                error,
+                "preparing the ruleset for this pool's tasks failed; they load the core's file, \
+                 more slowly, until a later look prepares it"
+            ),
+            Err(e) => tracing::warn!(
+                key = %generation.info.key,
+                dir = %generation.dir.display(),
+                "preparing the ruleset stopped: {e}"
+            ),
+        }
+    }
+
+    /// Switches to the core's current ruleset if it isn't the one on disk.
+    async fn switch(&self) -> Result<Option<Generation>, WatchError> {
         let on_disk = generation::current(&self.dir)?;
         let Some(current) = self.client.current_ruleset().await? else {
             return Ok(on_disk);

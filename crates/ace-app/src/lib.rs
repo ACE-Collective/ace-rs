@@ -66,7 +66,7 @@ mod types_file;
 mod user;
 mod yara;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Arc;
 
@@ -223,11 +223,13 @@ impl ScannerPool {
 }
 
 /// A parser pool's YARA rulesets (2.26): the module whose `rulesets` setting the pool sets to its
-/// ruleset directory, and the check that a downloaded ruleset loads.
+/// ruleset directory, the check that a downloaded ruleset loads, and what the pool prepares beside
+/// the current one (`ace_pool::rulesets::Prepare`).
 #[derive(Clone, Copy)]
 struct Rulesets {
     module: &'static str,
     check: fn(&Path) -> Result<(), String>,
+    prepare: fn(&ace_sdk::generation::Generation) -> Result<Option<PathBuf>, String>,
 }
 
 impl App {
@@ -1659,15 +1661,18 @@ impl ParserPool {
 
     /// Keeps the pool on the core's current YARA ruleset: the supervisor downloads each new
     /// ruleset into its ruleset directory (`ACE_RS_RULESET_DIR`), publishes it once `check` loads
-    /// it, and leases nothing before the first one has. The module `M` gets the directory as its
-    /// `rulesets` setting, whatever the overlay says.
+    /// it, has `prepare` build what it keeps beside the current one, and leases nothing before the
+    /// first one has. The module `M` gets the directory as its `rulesets` setting, whatever the
+    /// overlay says.
     pub fn yara_rulesets<M: Parser>(
         mut self,
         check: fn(&Path) -> Result<(), String>,
+        prepare: fn(&ace_sdk::generation::Generation) -> Result<Option<PathBuf>, String>,
     ) -> ParserPool {
         self.rulesets = Some(Rulesets {
             module: Manifest::parser::<M>().name,
             check,
+            prepare,
         });
         self
     }

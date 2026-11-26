@@ -72,7 +72,10 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_tag::SiteTagger>()
         .module::<ace_mod_scanners::JavaScriptDeobfuscationAnalyzer>()
         .module::<ace_mod_scanners::PhishkitAnalyzer>()
-        .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
+        .yara_rulesets::<ace_mod_yara::YaraScanner>(
+            ace_mod_yara::check_ruleset,
+            ace_mod_yara::prepare_ruleset,
+        )
         .commands()
 }
 

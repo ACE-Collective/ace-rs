@@ -215,6 +215,25 @@ async fn a_switch_during_a_stream_of_scans_drops_none() {
     assert_eq!(generations.first(), Some(&1), "{generations:?}");
     assert_eq!(generations.last(), Some(&2), "{generations:?}");
     assert!(stderr.contains("switched to a new ruleset"), "{stderr}");
+    // each generation has the pool's native copy built beside it, which tasks then load
+    for key in [first.key.to_hex(), second.key.to_hex()] {
+        assert!(
+            stderr
+                .lines()
+                .any(|l| l.contains("prepared the ruleset for this pool's tasks")
+                    && l.contains(&key)),
+            "no native copy of {key}\n{stderr}"
+        );
+    }
+    assert!(
+        stderr.contains("loaded the pool's native copy of the ruleset"),
+        "{stderr}"
+    );
+    let copy = rulesets
+        .path()
+        .join(format!("{}-{}", second.key.to_hex(), second.commit))
+        .join(ace_mod_yara::native_copy_name());
+    assert!(copy.is_file(), "{}", copy.display());
 }
 
 /// A log writer that sends each write as a line of text, so a test waits for a line rather than for
@@ -291,4 +310,73 @@ async fn waiting_for_the_first_ruleset_becomes_an_error_after_its_patience() {
             );
         }
     }
+}
+
+/// A look prepares the current generation even when it is already on disk, as after the pool's
+/// binary changed, which finds no native copy of its own beside it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_look_builds_a_missing_native_copy_of_the_current_ruleset() {
+    use ace_pool::client::LeaseClient;
+    use ace_pool::rulesets::RulesetWatcher;
+
+    let checkout = tempfile::tempdir().unwrap();
+    let repo = checkout.path();
+    git(repo, &["init", "-q"]);
+    commit_rules(repo, FIRST, "one rule");
+    let core = Core::start(
+        vec![ace_mod_yara::MANIFEST],
+        &[MODULE],
+        Duration::from_secs(30),
+    )
+    .await;
+    build_new(core.test_db.db(), &core.bucket, &SignatureRepo::new(repo))
+        .await
+        .expect("builds")
+        .expect("a ruleset");
+    let client = LeaseClient::new(&core.url, common::TOKEN, "ruleset-prepare").unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let watcher = RulesetWatcher::new(
+        client,
+        dir.path(),
+        std::sync::Arc::new(ace_mod_yara::check_ruleset),
+    )
+    .prepare(std::sync::Arc::new(ace_mod_yara::prepare_ruleset));
+    let current = watcher.refresh().await.unwrap().expect("a ruleset");
+    let copy = current.dir.join(ace_mod_yara::native_copy_name());
+    assert!(copy.is_file(), "{}", copy.display());
+    std::fs::remove_file(&copy).unwrap();
+    let again = watcher.refresh().await.unwrap().expect("a ruleset");
+    assert_eq!(again, current, "no switch");
+    assert!(copy.is_file(), "built again: {}", copy.display());
+
+    // a copy that doesn't build is a warning, and the ruleset is still current
+    use tracing::instrument::WithSubscriber;
+    let (sent, mut lines) = tokio::sync::mpsc::unbounded_channel();
+    let writer = Lines(sent);
+    let subscriber = tracing_subscriber::fmt()
+        .with_writer(move || writer.clone())
+        .with_ansi(false)
+        .finish();
+    let client = LeaseClient::new(&core.url, common::TOKEN, "ruleset-prepare").unwrap();
+    let failing = RulesetWatcher::new(
+        client,
+        dir.path(),
+        std::sync::Arc::new(ace_mod_yara::check_ruleset),
+    )
+    .prepare(std::sync::Arc::new(
+        |_: &ace_sdk::generation::Generation| Err("no space left".to_owned()),
+    ));
+    let still = async move { failing.refresh().await }
+        .with_subscriber(subscriber)
+        .await
+        .unwrap();
+    assert_eq!(still, Some(current.clone()));
+    // a guard against a hang, not a bound on how fast it logs
+    let line = tokio::time::timeout(Duration::from_secs(60), lines.recv())
+        .await
+        .expect("a line within the guard")
+        .expect("a line");
+    assert!(line.contains("WARN"), "{line}");
+    assert!(line.contains("no space left"), "{line}");
+    assert!(line.contains(&current.info.key), "{line}");
 }

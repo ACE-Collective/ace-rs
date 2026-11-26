@@ -1,9 +1,10 @@
 //! Generations of a file a pool keeps on disk for a module, such as the YARA pool's rulesets
 //! (PLAN.md 2.26), as the yara service's generations in ace3.
 //!
-//! A directory holds one subdirectory per generation, each with the file (`data`) and what it
-//! is (`generation.json`), and a symbolic link, `current`, to the generation modules should
-//! load. The pool publishes a new generation only once the file is complete and has loaded, and
+//! A directory holds one subdirectory per generation, each with the file (`data`), what it is
+//! (`generation.json`) and anything the pool prepared from the file for its own tasks, such as the
+//! YARA module's native copy of a ruleset, and a symbolic link, `current`, to the generation
+//! modules should load. The pool publishes a new generation only once the file is complete and has loaded, and
 //! then swaps the link with one rename, so a module reading `current` gets the old generation or
 //! the new one, never part of either. A module reads the link once and both files through what
 //! it named. The generation before the current one stays, for a process that read the link just

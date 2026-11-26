@@ -15,7 +15,9 @@
 //! as ace3 does from its `observable_detections` row.
 //!
 //! In a YARA pool the module loads the ruleset the core built, from the pool's ruleset
-//! directory (`rulesets`, PLAN.md 2.26), and every match records that ruleset's key and commit.
+//! directory (`rulesets`, PLAN.md 2.26), and every match records that ruleset's key and commit. It
+//! loads the pool's native copy of that ruleset when there is one (`prepare_ruleset`), which the
+//! pool's supervisor builds beside the core's file.
 //! Without one, as in tests and `ace task replay` on a laptop, it compiles `signature_dir` when it
 //! starts, and its matches record neither.
 
@@ -25,7 +27,7 @@ use std::time::Duration;
 
 use ace_results::types::yara::{MatchContext, ScanResult, YaraScanResults};
 use ace_results::{Bytes, Detection, NewObservable, ObservableKind, ResultEnvelope};
-use ace_sdk::generation::{self, GenerationInfo};
+use ace_sdk::generation::{self, Generation, GenerationInfo};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use ace_yara::{LoadOptions, Ruleset, ScanError, ScanRequest, Scanner};
 use regex::Regex;
@@ -100,6 +102,114 @@ pub fn check_ruleset(path: &Path) -> Result<(), String> {
     Ruleset::from_bytes(&bytes, &LoadOptions::default()).map(drop)
 }
 
+/// The name of the pool's native copy of a generation's ruleset: the core's rules serialized again
+/// with yara-x's machine code, by the pool's supervisor on its own host (`prepare_ruleset`). A
+/// copy loads in a fraction of the time the core's file does, since loading that compiles the
+/// rules' WebAssembly. The name holds what the machine code depends on that a pool can name: yara-x's
+/// version, rule profiling and the architecture, so a binary of another kind finds no copy of its own
+/// and loads the core's file. A CPU without a feature the code was compiled for, or another wasmtime
+/// build, makes yara-x compile the WebAssembly again as it loads the copy, which then matches as the
+/// core's file does, only more slowly.
+pub fn native_copy_name() -> String {
+    format!(
+        "native-{}-{}{}",
+        ace_yara::YARA_X_VERSION,
+        std::env::consts::ARCH,
+        if ace_yara::RULES_PROFILING {
+            "-profiling"
+        } else {
+            ""
+        }
+    )
+}
+
+/// Builds the pool's native copy of the generation's ruleset beside its file, unless it is there:
+/// the path of a copy it built, or None. The copy is written under a hidden name and renamed into
+/// place, so a task loads the whole copy or doesn't find one, and it goes with its generation's
+/// directory. Copies other binaries built, and any a stopped pool left half written, are removed.
+pub fn prepare_ruleset(current: &Generation) -> Result<Option<PathBuf>, String> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let name = native_copy_name();
+    let copy = current.dir.join(&name);
+    let entries = std::fs::read_dir(&current.dir)
+        .map_err(|e| format!("reading {}: {e}", current.dir.display()))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("reading {}: {e}", current.dir.display()))?;
+        let other = entry.file_name().to_string_lossy().into_owned();
+        if other != name && (other.starts_with("native-") || other.starts_with(".native-")) {
+            std::fs::remove_file(entry.path())
+                .map_err(|e| format!("removing {}: {e}", entry.path().display()))?;
+        }
+    }
+    if copy.exists() {
+        return Ok(None);
+    }
+    let data = current.data();
+    let bytes = std::fs::read(&data).map_err(|e| format!("reading {}: {e}", data.display()))?;
+    let rules = yara_x::Rules::deserialize(&bytes)
+        .map_err(|e| format!("loading {}: {e}", data.display()))?;
+    let native = rules
+        .serialize()
+        .map_err(|e| format!("serializing the copy: {e}"))?;
+    // the copy loads as a task loads it, with the same rules
+    let loaded = Ruleset::from_bytes(&native, &LoadOptions::default())
+        .map_err(|e| format!("the copy doesn't load: {e}"))?;
+    if loaded.rules().iter().len() != rules.iter().len() {
+        return Err("the copy holds other rules than the core's file".to_owned());
+    }
+    let staging = current.dir.join(format!(".{name}-{}", std::process::id()));
+    let written = std::fs::write(&staging, &native)
+        .and_then(|()| std::fs::set_permissions(&staging, std::fs::Permissions::from_mode(0o644)))
+        .and_then(|()| std::fs::rename(&staging, &copy));
+    if let Err(e) = written {
+        if let Err(removing) = std::fs::remove_file(&staging) {
+            tracing::warn!(path = %staging.display(), "removing a partial copy: {removing}");
+        }
+        return Err(format!("writing {}: {e}", copy.display()));
+    }
+    Ok(Some(copy))
+}
+
+/// The generation's ruleset: the pool's native copy when there is one that loads, else the core's
+/// file. A task logs which, since the copy is what makes a task with a large ruleset start quickly.
+fn load_generation(current: &Generation, options: &LoadOptions) -> Result<Ruleset, ModuleError> {
+    let key = current.info.key.as_str();
+    let copy = current.dir.join(native_copy_name());
+    let data = current.data();
+    match std::fs::read(&copy) {
+        Ok(bytes) => match Ruleset::from_bytes(&bytes, options) {
+            Ok(ruleset) => {
+                tracing::info!(key = %key, path = %copy.display(), "loaded the pool's native copy of the ruleset");
+                return Ok(ruleset);
+            }
+            Err(error) => tracing::warn!(
+                key = %key,
+                path = %copy.display(),
+                core_file = %data.display(),
+                error,
+                "the pool's native copy of the ruleset doesn't load; loading the core's file"
+            ),
+        },
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => tracing::info!(
+            key = %key,
+            path = %data.display(),
+            "the pool has no native copy of the ruleset; loading the core's file"
+        ),
+        Err(error) => tracing::warn!(
+            key = %key,
+            path = %copy.display(),
+            core_file = %data.display(),
+            error = %error,
+            "the pool's native copy of the ruleset doesn't read; loading the core's file"
+        ),
+    }
+    let bytes = std::fs::read(&data)
+        .map_err(|e| ModuleError::other(format!("reading the ruleset: {e}")))?;
+    Ruleset::from_bytes(&bytes, options)
+        .map_err(|e| ModuleError::other(format!("loading ruleset {key}: {e}")))
+}
+
 impl Module for YaraScanner {
     const NAME: &'static str = "yara_scanner_v3_4";
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
@@ -130,11 +240,7 @@ impl Module for YaraScanner {
                     magic: MagicDatabase::open(),
                 });
             };
-            let bytes = std::fs::read(current.data())
-                .map_err(|e| ModuleError::other(format!("reading the ruleset: {e}")))?;
-            let ruleset = Ruleset::from_bytes(&bytes, &options).map_err(|e| {
-                ModuleError::other(format!("loading ruleset {}: {e}", current.info.key))
-            })?;
+            let ruleset = load_generation(&current, &options)?;
             return Ok(YaraScanner {
                 ruleset: Some(Loaded {
                     ruleset,

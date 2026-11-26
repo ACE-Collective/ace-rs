@@ -5,6 +5,7 @@
 //! checks.
 
 mod module;
+mod native;
 mod reference;
 
 /// With `autotests = false`, Cargo builds only what this file declares, so a test file it doesn't

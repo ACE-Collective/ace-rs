@@ -19,10 +19,15 @@ schemars = "1.2.3"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 tracing = "0.1.44"
+# The pool's native copy of a ruleset (`prepare_ruleset`) is serialized with machine code. Features
+# unify, so in a build with this crate every serialized ruleset carries the machine code, the core's
+# among them; loading reads it whatever the features.
+yara-x = { version = "1.22.1", features = ["native-code-serialization"] }
 
 [dev-dependencies]
 ace-testkit = { path = "../ace-testkit" }
 tempfile = "3.27.0"
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "std"] }
 
 [lints]
 workspace = true

@@ -491,7 +491,9 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
     };
     let poll = Duration::from_secs(number("ACE_RS_RULESET_POLL_SECONDS", 30) as u64);
     let watcher = rulesets.clone().map(|(rulesets, dir)| {
-        RulesetWatcher::new(client.clone(), dir, Arc::new(rulesets.check)).every(poll)
+        RulesetWatcher::new(client.clone(), dir, Arc::new(rulesets.check))
+            .prepare(Arc::new(rulesets.prepare))
+            .every(poll)
     });
     let mut supervisor = Supervisor::new(client, handle.clone(), config);
     if pool.commands {
@@ -984,7 +986,10 @@ secrets:
         let pool = ParserPool::new("parsers")
             .module::<ace_mod_email::EmailAnalyzer>()
             .module::<ace_mod_yara::YaraScanner>()
-            .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset);
+            .yara_rulesets::<ace_mod_yara::YaraScanner>(
+                ace_mod_yara::check_ruleset,
+                ace_mod_yara::prepare_ruleset,
+            );
         let overlay = Overlay::from_yaml(
             "modules:\n  yara_scanner_v3_4:\n    settings:\n      blacklist: [noisy]\n  rdap_analyzer:\n    settings:\n      request_timeout_seconds: 5\n",
         )
@@ -1297,7 +1302,10 @@ secrets:
     fn a_task_process_gets_the_block_its_module_was_built_from_at_the_start() {
         let pool = picky_pool()
             .module::<ace_mod_yara::YaraScanner>()
-            .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset);
+            .yara_rulesets::<ace_mod_yara::YaraScanner>(
+                ace_mod_yara::check_ruleset,
+                ace_mod_yara::prepare_ruleset,
+            );
         let overlay = Overlay::from_yaml(
             "modules:\n  test_picky:\n    instances:\n      picky_two:\n        settings:\n          limit: 2\n      picky_nine:\n        settings:\n          limit: 9\n  yara_scanner_v3_4:\n    settings:\n      blacklist: [noisy]\n",
         )

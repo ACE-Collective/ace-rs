@@ -247,6 +247,7 @@ fn main() -> ExitCode {
             };
             let watcher = args.rulesets.map(|dir| {
                 RulesetWatcher::new(client.clone(), dir, Arc::new(ace_mod_yara::check_ruleset))
+                    .prepare(Arc::new(ace_mod_yara::prepare_ruleset))
                     .every(args.ruleset_poll)
             });
             let mut supervisor = Supervisor::new(client, modules.into(), config);
