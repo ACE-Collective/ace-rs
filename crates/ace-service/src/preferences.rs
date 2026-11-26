@@ -5,7 +5,8 @@
 //! Each key has a type that checks its value, `PreferenceKey::parse`, and a default, so every key has a
 //! value for every user. A stored value is checked again when it's read, so a row a later release can't
 //! read falls back to the default with a warning, as ace3's does, rather than breaking the page. 5.7 brings
-//! `theme`, 5.8 `alert_sections` and 5.10 `manage_columns`.
+//! `theme`, 5.8 `alert_sections` and 5.10 `manage_columns`; `alert_commonalities` keeps the alert list's
+//! Commonalities panel (PLAN.md 7.23, decision 72), which ace3 keeps in the browser's storage.
 //!
 //! As in ace3, a preference is the caller's own: there's no user id to name, and it needs no grant,
 //! since it changes only how the caller's own pages look. Setting or resetting one goes through
@@ -31,6 +32,7 @@ pub enum PreferenceKey {
     Theme,
     AlertSections,
     ManageColumns,
+    AlertCommonalities,
 }
 
 impl PreferenceKey {
@@ -39,6 +41,7 @@ impl PreferenceKey {
         PreferenceKey::Theme,
         PreferenceKey::AlertSections,
         PreferenceKey::ManageColumns,
+        PreferenceKey::AlertCommonalities,
     ];
 
     pub fn name(self) -> &'static str {
@@ -46,6 +49,7 @@ impl PreferenceKey {
             PreferenceKey::Theme => "theme",
             PreferenceKey::AlertSections => "alert_sections",
             PreferenceKey::ManageColumns => "manage_columns",
+            PreferenceKey::AlertCommonalities => "alert_commonalities",
         }
     }
 
@@ -63,6 +67,9 @@ impl PreferenceKey {
             }
             PreferenceKey::ManageColumns => {
                 PreferenceValue::ManageColumns(ManageColumnsPreference::default())
+            }
+            PreferenceKey::AlertCommonalities => {
+                PreferenceValue::AlertCommonalities(CommonalitiesPreference::default())
             }
         }
     }
@@ -92,6 +99,11 @@ impl PreferenceKey {
                     .map(|columns| PreferenceValue::ManageColumns(columns.normalized()))
                     .map_err(invalid)
             }
+            PreferenceKey::AlertCommonalities => {
+                serde_json::from_value::<CommonalitiesPreference>(value)
+                    .map(|panel| PreferenceValue::AlertCommonalities(panel.normalized()))
+                    .map_err(invalid)
+            }
         }
     }
 }
@@ -109,6 +121,7 @@ pub enum PreferenceValue {
     Theme(ThemePreference),
     AlertSections(AlertSectionsPreference),
     ManageColumns(ManageColumnsPreference),
+    AlertCommonalities(CommonalitiesPreference),
 }
 
 impl PreferenceValue {
@@ -117,6 +130,7 @@ impl PreferenceValue {
             PreferenceValue::Theme(_) => PreferenceKey::Theme,
             PreferenceValue::AlertSections(_) => PreferenceKey::AlertSections,
             PreferenceValue::ManageColumns(_) => PreferenceKey::ManageColumns,
+            PreferenceValue::AlertCommonalities(_) => PreferenceKey::AlertCommonalities,
         }
     }
 
@@ -172,6 +186,55 @@ fn section_choices<'de, D: Deserializer<'de>>(
         )));
     }
     Ok(sections)
+}
+
+/// The alert list's Commonalities panel (PLAN.md 7.23, decision 72): whether it's shown and the
+/// observables it doesn't group by, each `type:value`, ace3's `ace.commonalities.shown` and
+/// `ace.commonalities.ignore`, which its script keeps in the browser's storage. Here it's the analyst's
+/// across browsers, as their other preferences are. At most `commonalities::MAX_IGNORED` ignored, each 1
+/// to `MAX_IGNORE_SPEC_CHARS` characters with no NUL; one named twice is kept once, where it came first.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CommonalitiesPreference {
+    #[serde(default)]
+    pub shown: bool,
+    #[serde(default, deserialize_with = "ignored_specs")]
+    pub ignore: Vec<String>,
+}
+
+/// The longest ignored `type:value` the preference keeps.
+pub const MAX_IGNORE_SPEC_CHARS: usize = 4096;
+
+impl CommonalitiesPreference {
+    pub fn normalized(mut self) -> Self {
+        let mut seen = std::collections::HashSet::new();
+        self.ignore.retain(|spec| seen.insert(spec.clone()));
+        self
+    }
+
+    /// Whether this is what a user who never chose has: the panel hidden, nothing ignored.
+    pub fn is_default(&self) -> bool {
+        !self.shown && self.ignore.is_empty()
+    }
+}
+
+fn ignored_specs<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<String>, D::Error> {
+    let specs = Vec::<String>::deserialize(deserializer)?;
+    let most = crate::commonalities::MAX_IGNORED;
+    if specs.len() > most {
+        return Err(serde::de::Error::custom(format!(
+            "at most {most} ignored observables"
+        )));
+    }
+    if let Some(bad) = specs.iter().find(|spec| {
+        spec.is_empty() || spec.chars().count() > MAX_IGNORE_SPEC_CHARS || spec.contains('\0')
+    }) {
+        return Err(serde::de::Error::custom(format!(
+            "{:?} isn't an ignored observable, which is 1 to {MAX_IGNORE_SPEC_CHARS} characters",
+            bad.chars().take(64).collect::<String>()
+        )));
+    }
+    Ok(specs)
 }
 
 /// One column the alert list can show, ace3's `ColumnSpec` (`saq/gui/manage_columns.py`).
@@ -468,9 +531,9 @@ impl Service {
         }
         match self.preference(actor, PreferenceKey::Theme).await?.value {
             PreferenceValue::Theme(theme) => Ok(theme.mode),
-            PreferenceValue::AlertSections(_) | PreferenceValue::ManageColumns(_) => {
-                Ok(Theme::default())
-            }
+            PreferenceValue::AlertSections(_)
+            | PreferenceValue::ManageColumns(_)
+            | PreferenceValue::AlertCommonalities(_) => Ok(Theme::default()),
         }
     }
 
@@ -488,7 +551,9 @@ impl Service {
             .value
         {
             PreferenceValue::AlertSections(sections) => Ok(sections.sections),
-            PreferenceValue::Theme(_) | PreferenceValue::ManageColumns(_) => Ok(BTreeMap::new()),
+            PreferenceValue::Theme(_)
+            | PreferenceValue::ManageColumns(_)
+            | PreferenceValue::AlertCommonalities(_) => Ok(BTreeMap::new()),
         }
     }
 
@@ -506,9 +571,29 @@ impl Service {
             .value
         {
             PreferenceValue::ManageColumns(columns) => Ok(columns),
-            PreferenceValue::Theme(_) | PreferenceValue::AlertSections(_) => {
-                Ok(ManageColumnsPreference::default())
-            }
+            PreferenceValue::Theme(_)
+            | PreferenceValue::AlertSections(_)
+            | PreferenceValue::AlertCommonalities(_) => Ok(ManageColumnsPreference::default()),
+        }
+    }
+
+    /// The alert list's Commonalities panel for this actor: the user's, or the default for anyone else.
+    pub async fn commonalities_preference(
+        &self,
+        actor: &Actor,
+    ) -> Result<CommonalitiesPreference, ServiceError> {
+        if !matches!(actor, Actor::User { .. }) {
+            return Ok(CommonalitiesPreference::default());
+        }
+        match self
+            .preference(actor, PreferenceKey::AlertCommonalities)
+            .await?
+            .value
+        {
+            PreferenceValue::AlertCommonalities(panel) => Ok(panel),
+            PreferenceValue::Theme(_)
+            | PreferenceValue::AlertSections(_)
+            | PreferenceValue::ManageColumns(_) => Ok(CommonalitiesPreference::default()),
         }
     }
 

@@ -23454,7 +23454,10 @@ async fn the_list_shows_which_alerts_potentially_relate() {
     assert!(refreshed.contains("commonality-panel"), "{refreshed}");
     assert!(!refreshed.contains("commonalities-toggle"), "{refreshed}");
     assert!(refreshed.contains("potentially related to 1 alert"));
-    let unshown = get("/alerts/list").await;
+    // the page with common=1 kept it as the viewer's (PLAN.md decision 72): a URL without it shows it
+    let kept = get("/alerts/list").await;
+    assert!(kept.contains("commonality-panel"), "{kept}");
+    let unshown = get("/alerts/list?common=0").await;
     assert!(!unshown.contains("commonality-panel"), "{unshown}");
     assert!(!unshown.contains("potentially related"), "{unshown}");
 
@@ -23961,4 +23964,108 @@ again</li></ul>"#
         2,
         "{page}"
     );
+}
+
+/// PLAN.md decision 72 as amended: the Commonalities panel's shown and ignored are the analyst's
+/// `alert_commonalities` preference, as ace3 keeps them in the browser's storage. A page whose URL says
+/// them keeps them; a URL that says nothing takes them, and its links carry them; the URL still wins,
+/// `common=0` among it; the refresh keeps nothing; and another analyst has their own.
+#[tokio::test]
+async fn the_commonalities_panel_is_kept_across_visits() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let bob = user(&stack, "bob").await;
+    grant_alert_read(&stack, &bob).await;
+    let (alices, bobs) = (
+        session_of(&stack, "alice").await,
+        session_of(&stack, "bob").await,
+    );
+    related_alert(&stack, "one", &["hostname:wks-7", "user:jdoe"]).await;
+    related_alert(&stack, "two", &["hostname:wks-7", "user:jdoe"]).await;
+    let get = |session: &str, path: &str| {
+        let request = stack.get(path).header("cookie", cookie(session));
+        async move {
+            let response = request.send().await.expect("answered");
+            assert_eq!(response.status(), StatusCode::OK);
+            response.text().await.expect("a page")
+        }
+    };
+    let stored = || async {
+        stack
+            .service
+            .commonalities_preference(&alice)
+            .await
+            .expect("reads")
+    };
+
+    // a fresh visit starts hidden, and its links say nothing of the panel
+    let plain = get(&alices, "/").await;
+    assert!(!plain.contains("commonality-panel"), "{plain}");
+    assert!(plain.contains(r#"href="/?common=1""#), "{plain}");
+
+    // a page that shows it with an ignored value keeps both
+    let audits = stack.audit_count().await;
+    let shown = get(&alices, "/?common=1&ignore=user%3Ajdoe").await;
+    assert!(
+        shown.contains(r#"<section id="commonality-panel""#),
+        "{shown}"
+    );
+    assert_eq!(
+        stack.audit_count().await,
+        audits + 1,
+        "set_preference's row"
+    );
+    assert_eq!(
+        stored().await,
+        ace_service::CommonalitiesPreference {
+            shown: true,
+            ignore: vec!["user:jdoe".to_owned()],
+        }
+    );
+    // the same again keeps nothing new
+    get(&alices, "/?common=1&ignore=user%3Ajdoe").await;
+    assert_eq!(stack.audit_count().await, audits + 1);
+
+    // the next visit, and the refresh, start from it; the refresh writes nothing
+    let again = get(&alices, "/").await;
+    assert!(
+        again.contains(r#"<section id="commonality-panel""#),
+        "{again}"
+    );
+    assert!(again.contains("common=1&#38;ignore=user%3Ajdoe"), "{again}");
+    let refreshed = get(&alices, "/alerts/list").await;
+    assert!(refreshed.contains("commonality-panel"), "{refreshed}");
+    let refreshed = get(&alices, "/alerts/list?common=0").await;
+    assert!(!refreshed.contains("commonality-panel"), "{refreshed}");
+    assert_eq!(
+        stack.audit_count().await,
+        audits + 1,
+        "a refresh keeps nothing"
+    );
+
+    // bob has his own
+    let bobs_page = get(&bobs, "/").await;
+    assert!(!bobs_page.contains("commonality-panel"), "{bobs_page}");
+
+    // hiding it says so in the link, since the stored state would show it, and is kept
+    assert!(
+        again.contains(r#"href="/?common=0&#38;ignore=user%3Ajdoe""#),
+        "{again}"
+    );
+    let hidden = get(&alices, "/?common=0").await;
+    assert!(!hidden.contains("commonality-panel"), "{hidden}");
+    assert!(stored().await.is_default());
+    assert!(hidden.contains(r#"href="/?common=1""#), "{hidden}");
+    let after = get(&alices, "/").await;
+    assert!(!after.contains("commonality-panel"), "{after}");
+
+    // a value the preference can't keep is the URL's alone, and the page still draws
+    let long = format!(
+        "fqdn%3A{}",
+        "x".repeat(ace_service::MAX_IGNORE_SPEC_CHARS + 1)
+    );
+    let page = get(&alices, &format!("/?common=1&ignore={long}")).await;
+    assert!(page.contains("commonality-panel"), "{page}");
+    assert!(stored().await.is_default());
 }

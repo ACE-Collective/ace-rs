@@ -112,8 +112,9 @@
 //! and `Last 7d` quick filters (`Service::seed_saved_filters`), written when the page is drawn and never by
 //! the refresh, as in ace3.
 //!
-//! The Commonalities panel (PLAN.md 7.23) is `crate::commonalities`: the list's URL shows it, and the
-//! page and its refresh draw it above the table.
+//! The Commonalities panel (PLAN.md 7.23) is `crate::commonalities`: the list's URL shows it, or else the
+//! viewer's `alert_commonalities` preference, which a page the URL changes it on keeps (decision 72), and
+//! the page and its refresh draw it above the table.
 //!
 //! ace3's search box is the form above the filters, which asks `crate::search`'s page with the list's
 //! filters (PLAN.md 7.11). What ace3's page has that this leaves out: the remediation column and the
@@ -163,12 +164,19 @@ pub struct ListQuery {
     pub descending: bool,
     pub size: u32,
     pub after: Option<String>,
-    /// The Commonalities panel (`crate::commonalities`): whether it's shown, `common=1`.
+    /// The Commonalities panel (`crate::commonalities`): whether it's shown, `common=1`, or hidden,
+    /// `common=0`.
     pub commonalities: bool,
     /// The observables it doesn't group by, `ignore=type:value` repeated.
     pub ignore: Vec<String>,
     /// The groups showing every column, each by its key (`crate::commonalities`), `expand=` repeated.
     pub expand: Vec<Uuid>,
+    /// Whether the URL said the panel's state, `common` or `ignore`; without it the viewer's
+    /// `alert_commonalities` preference does (`with_panel_preference`, PLAN.md decision 72).
+    pub panel_from_url: bool,
+    /// Whether the viewer's stored panel state isn't the default, so a link to the default has to say
+    /// `common=0` for the URL to win over it.
+    pub panel_saved: bool,
 }
 
 impl Default for ListQuery {
@@ -182,6 +190,8 @@ impl Default for ListQuery {
             commonalities: false,
             ignore: Vec::new(),
             expand: Vec::new(),
+            panel_from_url: false,
+            panel_saved: false,
         }
     }
 }
@@ -240,11 +250,12 @@ impl ListQuery {
         }
         query.after = one(pairs, "after").map(str::to_owned);
         query.commonalities = match one(pairs, "common") {
-            None => false,
+            None | Some("0") => false,
             Some("1") => true,
-            Some(other) => return Err(format!("common is 1, not {other:?}")),
+            Some(other) => return Err(format!("common is 1 or 0, not {other:?}")),
         };
         query.ignore = all(pairs, "ignore");
+        query.panel_from_url = one(pairs, "common").is_some() || !query.ignore.is_empty();
         if query.ignore.len() > ace_service::commonalities::MAX_IGNORED {
             return Err(format!(
                 "at most {} observables are ignored",
@@ -357,6 +368,9 @@ impl ListQuery {
         let mut pairs = Vec::new();
         if self.commonalities {
             pairs.push(("common", "1".to_owned()));
+        } else if !self.ignore.is_empty() || self.panel_saved {
+            // hidden, said, since without `common` the viewer's stored state would show it
+            pairs.push(("common", "0".to_owned()));
         }
         pairs.extend(self.ignore.iter().map(|spec| ("ignore", spec.clone())));
         pairs.extend(self.expand.iter().map(|key| ("expand", key.to_string())));
@@ -1140,6 +1154,54 @@ pub(crate) async fn viewer_tz(gui: &Gui, viewer: &SignedIn) -> Tz {
     }
 }
 
+/// The Commonalities panel's state for this view (PLAN.md decision 72): the URL's when it says one,
+/// else the viewer's `alert_commonalities` preference, as ace3's script reads its browser storage. With
+/// `keep`, the page's own draw, a state the URL says that isn't the stored one is stored, so the next
+/// visit starts with it; the refresh keeps nothing. A preference that can't be read or stored is logged
+/// and the URL's state, or the default, applies.
+pub(crate) async fn with_panel_preference(
+    gui: &Gui,
+    viewer: &SignedIn,
+    query: &mut ListQuery,
+    keep: bool,
+) {
+    let actor = &viewer.actor;
+    let mut saved = gui
+        .service
+        .commonalities_preference(actor)
+        .await
+        .unwrap_or_else(|error| {
+            tracing::warn!(%actor, "reading alert_commonalities failed, so the list has the default: {error}");
+            ace_service::CommonalitiesPreference::default()
+        });
+    if query.panel_from_url {
+        let said = ace_service::CommonalitiesPreference {
+            shown: query.commonalities,
+            ignore: query.ignore.clone(),
+        }
+        .normalized();
+        if keep && said != saved && matches!(actor, ace_service::Actor::User { .. }) {
+            match gui
+                .service
+                .set_preference(
+                    actor,
+                    &ace_service::PreferenceValue::AlertCommonalities(said.clone()),
+                )
+                .await
+            {
+                Ok(_) => saved = said,
+                Err(error) => {
+                    tracing::warn!(%actor, "storing alert_commonalities failed, so the next visit starts as before: {error}");
+                }
+            }
+        }
+    } else {
+        query.commonalities = saved.shown;
+        query.ignore = saved.ignore.clone();
+    }
+    query.panel_saved = !saved.is_default();
+}
+
 /// `GET /`.
 pub(crate) async fn page(
     State(gui): State<Gui>,
@@ -1155,7 +1217,8 @@ pub(crate) async fn page(
     if parsed.added {
         return see_other(&parsed.query.at("/"), None);
     }
-    let query = parsed.query;
+    let mut query = parsed.query;
+    with_panel_preference(&gui, &viewer, &mut query, true).await;
     let tz = viewer_tz(&gui, &viewer).await;
     let actor = &viewer.actor;
     let listed = gui
@@ -1244,10 +1307,11 @@ pub(crate) async fn refresh(
         return StatusCode::SERVICE_UNAVAILABLE.into_response();
     };
     let pairs = pairs(raw.as_deref().unwrap_or("").as_bytes());
-    let query = match ListQuery::parse(&pairs) {
+    let mut query = match ListQuery::parse(&pairs) {
         Ok(parsed) if parsed.error.is_none() && !parsed.added => parsed.query,
         _ => return StatusCode::BAD_REQUEST.into_response(),
     };
+    with_panel_preference(&gui, &viewer, &mut query, false).await;
     let tz = viewer_tz(&gui, &viewer).await;
     let actor = &viewer.actor;
     let listed = gui

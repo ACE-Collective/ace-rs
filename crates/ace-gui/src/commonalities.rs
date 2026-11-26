@@ -5,9 +5,12 @@
 //! ace3 draws the grid in the browser from its API's answer. Here the server draws it with the list, in
 //! the fragment the refresh morphs in, so it follows the alerts listed with nothing more to poll, and the
 //! page loads no script for it. Its state is the list's URL, as the rest of the list's is (`ListQuery`):
-//! `common=1` shows it, `ignore=type:value` leaves a value out of the grouping, and `expand=<key>` shows
-//! every column of a group, keyed by the group's least alert id, which stays its key while that alert is
-//! in it. Every link of the list carries them.
+//! `common=1` shows it and `common=0` hides it, `ignore=type:value` leaves a value out of the grouping,
+//! and `expand=<key>` shows every column of a group, keyed by the group's least alert id, which stays its
+//! key while that alert is in it. Every link of the list carries them. A URL that says neither `common`
+//! nor `ignore` takes shown and ignored from the viewer's `alert_commonalities` preference, which the
+//! page keeps whenever its URL says otherwise (`list::with_panel_preference`), as ace3 keeps them in the
+//! browser's storage.
 //!
 //! What it does, as ace3's: each group's head says how many alerts are in it and whether they are
 //! near-identical, and what links it to other groups; its box ticks or unticks its alerts for the bulk
@@ -20,8 +23,10 @@
 //! furthest ancestor (`email_from` as `email_address`).
 //!
 //! Where it differs from ace3, each for a reason:
-//! - Shown and ignored are in the URL, not the browser's storage, so a reload, the back button and a
-//!   shared link keep them, and a new visit to the list starts without them.
+//! - Shown and ignored are the analyst's preference, kept on the server, so they follow the analyst to
+//!   another browser, where ace3's stay in one; the URL still says them, so a reload, the back button
+//!   and a shared link keep what the link says. Which groups are expanded is the URL's alone, as ace3
+//!   keeps that only while the page is open.
 //! - The policy refuses a `style` attribute (`headers`), so a square's color is one of five steps of the
 //!   heat ramp, and a type's one of eight hues, each a class of the stylesheet, where ace3 sets colors
 //!   inline.

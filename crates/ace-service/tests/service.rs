@@ -8822,12 +8822,14 @@ async fn preferences_are_a_user_s_own_and_checked_by_key() {
     .await
     .expect("adds a row");
     let all = service.preferences(&alice).await.expect("reads");
-    assert_eq!(all.len(), 3);
+    assert_eq!(all.len(), 4);
     assert_eq!(all[0].value, theme(Theme::Light));
     assert_eq!(all[1].value.key(), PreferenceKey::AlertSections);
     assert!(all[1].is_default);
     assert_eq!(all[2].value.key(), PreferenceKey::ManageColumns);
     assert!(all[2].is_default);
+    assert_eq!(all[3].value.key(), PreferenceKey::AlertCommonalities);
+    assert!(all[3].is_default);
 
     // Only a user has preferences. A key, even one of the user's own holding everything, and a
     // component are refused, and change nothing; their pages have the default theme.
@@ -56735,4 +56737,78 @@ mod alert_comment_tests {
             .expect("counts");
         assert_eq!(others, 0, "a root that isn't an alert isn't indexed");
     }
+}
+
+/// The `alert_commonalities` preference (PLAN.md decision 72) is checked as the other keys are: an object
+/// of `shown` and `ignore`, at most `MAX_IGNORED` ignored, each 1 to `MAX_IGNORE_SPEC_CHARS` characters
+/// with no NUL, one named twice kept once; a field it doesn't have is refused; and anyone but a user has
+/// the default.
+#[tokio::test]
+async fn the_commonalities_preference_is_checked_as_the_others_are() {
+    use ace_service::commonalities::MAX_IGNORED;
+    use ace_service::{CommonalitiesPreference, MAX_IGNORE_SPEC_CHARS};
+    let key = PreferenceKey::AlertCommonalities;
+    assert_eq!(key.name(), "alert_commonalities");
+    assert_eq!(PreferenceKey::named("alert_commonalities"), Some(key));
+    assert_eq!(
+        key.parse(json!({"shown": true, "ignore": ["user:jdoe", "fqdn:a.example", "user:jdoe"]}))
+            .expect("takes it"),
+        PreferenceValue::AlertCommonalities(CommonalitiesPreference {
+            shown: true,
+            ignore: vec!["user:jdoe".to_owned(), "fqdn:a.example".to_owned()],
+        })
+    );
+    assert_eq!(
+        key.parse(json!({})).expect("takes it"),
+        PreferenceValue::AlertCommonalities(CommonalitiesPreference::default())
+    );
+    for bad in [
+        json!({"shown": true, "expand": []}),
+        json!({"shown": "yes"}),
+        json!({"ignore": [""]}),
+        json!({"ignore": ["nul\u{0}"]}),
+        json!({"ignore": ["x".repeat(MAX_IGNORE_SPEC_CHARS + 1)]}),
+        json!({"ignore": vec!["user:x"; MAX_IGNORED + 1]}),
+        json!([true]),
+    ] {
+        assert!(
+            matches!(key.parse(bad.clone()), Err(ServiceError::InvalidRequest(_))),
+            "{bad}"
+        );
+    }
+
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let alice = user(UserId(Uuid::from_u128(0xA11CE)));
+    exists(db, &Holder::User(UserId(Uuid::from_u128(0xA11CE)))).await;
+    assert!(
+        service
+            .commonalities_preference(&alice)
+            .await
+            .expect("reads")
+            .is_default()
+    );
+    let kept = CommonalitiesPreference {
+        shown: true,
+        ignore: vec!["user:jdoe".to_owned()],
+    };
+    service
+        .set_preference(&alice, &PreferenceValue::AlertCommonalities(kept.clone()))
+        .await
+        .expect("keeps it");
+    assert_eq!(
+        service
+            .commonalities_preference(&alice)
+            .await
+            .expect("reads"),
+        kept
+    );
+    assert!(
+        service
+            .commonalities_preference(&component("scheduler"))
+            .await
+            .expect("reads")
+            .is_default()
+    );
 }

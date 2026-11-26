@@ -314,9 +314,9 @@ pub use permission::{
     SVS_VALIDATE, SVS_VALIDATION_PRUNE, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
-    AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
-    ManageColumnsPreference, Preference, PreferenceKey, PreferenceValue, Theme, ThemePreference,
-    is_section_id,
+    AlertSectionsPreference, CommonalitiesPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS,
+    MAX_IGNORE_SPEC_CHARS, ManageColumn, ManageColumnsPreference, Preference, PreferenceKey,
+    PreferenceValue, Theme, ThemePreference, is_section_id,
 };
 pub use remediation::{
     ACE_SOURCE, ActionAttempt, ActionQuery, ActionSummary, COVERAGE_TYPE, Coverage, CoverageCheck,

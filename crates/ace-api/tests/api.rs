@@ -5869,6 +5869,12 @@ async fn preferences(client: &mut Client<'_>) {
                 "updated_at": null,
                 "is_default": true,
             },
+            {
+                "key": "alert_commonalities",
+                "value": {"shown": false, "ignore": []},
+                "updated_at": null,
+                "is_default": true,
+            },
         ]})
     );
     let one = client
