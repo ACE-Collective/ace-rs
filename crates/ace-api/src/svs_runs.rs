@@ -585,7 +585,7 @@ fn page_limit(params: &Params, most: i64) -> Result<i64, ApiError> {
     request_body = RunRegistrationBody,
     responses(
         (status = 201, description = "The run, created", body = RunLifecycleBody),
-        (status = 400, description = "A body that isn't one, a test that isn't in the catalog, a target whose platform the test doesn't support, or an extra that is too large", body = ErrorBody),
+        (status = 400, description = "A body that isn't one, a test that isn't in the catalog or that a person excluded (the error names who, when and why), a target whose platform the test doesn't support, or an extra that is too large", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
         (status = 403, description = "The actor doesn't hold svs:run_register, or a target isn't a test host or a user its host lists", body = ErrorBody),
         (status = 409, description = "Another run or a maintenance window holds a target's test host", body = ErrorBody),

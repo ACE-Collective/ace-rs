@@ -9,9 +9,15 @@
 //!   or for every test (`svs:admin`). An ignored signature is never a candidate and never missing.
 //! - A test's **settings** hold an observation window that replaces the computed one, and whether a run of
 //!   it holds its hosts for its whole attribution window.
+//! - An **exclusion** (batch 10, ace3's 5081921e) takes a test out of SVS on every platform
+//!   (`svs:run_manage`): from the next coverage refresh it counts toward no coverage row and measures no
+//!   signature on the worklist, its state reads `excluded`, and no run of it can be registered
+//!   (`svs_runs`). Its runs, decisions and ignores are kept, so removing the exclusion brings the test
+//!   back as it was.
 //!
 //! Every change of an expectation or an ignore marks the affected runs' results stale in its own
-//! transaction (`svs_results`), so the timers recompute them, and each write has an audit row. A write may
+//! transaction (`svs_results`), so the timers recompute them; an exclusion changes no result. Each write
+//! has an audit row. A write may
 //! carry a precondition (`ace_core::svs::results::Precondition`): one that no longer holds is
 //! `StaleWrite` and changes nothing.
 //!
@@ -25,6 +31,9 @@
 //!   as ace3's does, so a pull resumed from its last `updated_at` never misses a row whose transaction
 //!   committed late.
 
+use std::collections::BTreeMap;
+
+use ace_core::DbError;
 use ace_core::svs::catalog::platform_slugs;
 use ace_core::svs::results::Precondition;
 use chrono::{DateTime, Utc};
@@ -162,6 +171,34 @@ pub struct TestSettings {
     pub holds_host: bool,
     pub set_by: Option<RecordedActor>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// A person's exclusion of a test from SVS, on every platform.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TestExclusion {
+    pub test_guid: Uuid,
+    /// Why the test doesn't apply, or isn't worth measuring.
+    pub reason: String,
+    pub excluded_by: RecordedActor,
+    pub excluded_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl TestExclusion {
+    /// Why a run of the test can't be registered: who excluded it, when and why, as ace3's
+    /// `describe_exclusion` says it.
+    pub fn refusal(&self) -> String {
+        format!(
+            "test {} is excluded from SVS: {} excluded it at {} UTC: {}",
+            self.test_guid,
+            self.excluded_by
+                .name
+                .as_deref()
+                .unwrap_or(&self.excluded_by.id),
+            self.excluded_at.format("%Y-%m-%d %H:%M:%S"),
+            self.reason
+        )
+    }
 }
 
 /// Where a page of decisions left off: by id, or by (updated_at, id) for a changed-since pull.
@@ -469,6 +506,62 @@ async fn settings_row(
     }))
 }
 
+/// The exclusions of `tests`, by guid: one query whatever their number, along the table's unique index.
+pub(crate) async fn exclusions(
+    conn: &mut PgConnection,
+    tests: &[Uuid],
+) -> Result<BTreeMap<Uuid, TestExclusion>, ServiceError> {
+    let mut found = BTreeMap::new();
+    if tests.is_empty() {
+        return Ok(found);
+    }
+    for row in sqlx::query!(
+        r#"SELECT test_guid, reason, excluded_by AS "excluded_by!: Value", excluded_at, updated_at
+           FROM svs.test_exclusions WHERE test_guid = ANY ($1)"#,
+        tests,
+    )
+    .fetch_all(conn)
+    .await?
+    {
+        let excluded_by = RecordedActor::from_row(Some(row.excluded_by))?
+            .ok_or_else(|| ServiceError::from(DbError::Decode("an exclusion's actor".into())))?;
+        found.insert(
+            row.test_guid,
+            TestExclusion {
+                test_guid: row.test_guid,
+                reason: row.reason,
+                excluded_by,
+                excluded_at: row.excluded_at,
+                updated_at: row.updated_at,
+            },
+        );
+    }
+    Ok(found)
+}
+
+/// The test's exclusion, None when it isn't excluded.
+pub(crate) async fn exclusion_of(
+    conn: &mut PgConnection,
+    test: Uuid,
+) -> Result<Option<TestExclusion>, ServiceError> {
+    Ok(exclusions(conn, &[test]).await?.remove(&test))
+}
+
+/// An exclusion's reason, trimmed: not blank, and at most [`MAX_DECISION_REASON`] characters, ace3's
+/// `set_exclusion`'s checks.
+fn exclusion_reason(reason: &str) -> Result<&str, ServiceError> {
+    let reason = reason.trim();
+    if reason.is_empty() {
+        return Err(invalid("an exclusion needs a reason"));
+    }
+    if reason.chars().count() > MAX_DECISION_REASON {
+        return Err(invalid(format!(
+            "the reason is longer than {MAX_DECISION_REASON} characters"
+        )));
+    }
+    Ok(reason)
+}
+
 /// What a decision's audit row keeps.
 #[derive(Serialize)]
 struct ExpectationRecord<'a> {
@@ -530,6 +623,14 @@ impl SettingsRecord {
         }
     }
 }
+
+/// What an exclusion's audit row keeps: ace3's AUDIT record's `reason`.
+#[derive(Serialize)]
+struct ExclusionRecord<'a> {
+    reason: &'a str,
+}
+
+impl Recorded for ExclusionRecord<'_> {}
 
 fn expectation_target(test: Uuid, platform: &str, signature: &str) -> Target {
     Target::svs_expectation(&format!("{test}/{platform}/{signature}"))
@@ -1331,6 +1432,119 @@ impl Service {
                     let change = Change::removed(
                         Target::svs_test_settings(test.guid),
                         &SettingsRecord::of(&before),
+                    )?;
+                    Ok(Audited::changed((), change))
+                })
+            })
+            .await
+    }
+
+    /// The test's exclusion, None when it isn't excluded: ace3's `get_exclusion`. It needs
+    /// `svs:run_read`; an unknown test is `NotFound`.
+    pub async fn svs_test_exclusion(
+        &self,
+        actor: &Actor,
+        test_guid: &str,
+    ) -> Result<Option<TestExclusion>, ServiceError> {
+        self.gate
+            .read(actor, "svs_test_exclusion", &SVS_RUN_READ, &|tx| {
+                Box::pin(async move {
+                    let test = catalog_test(tx.conn(), test_guid).await?;
+                    exclusion_of(tx.conn(), test.guid).await
+                })
+            })
+            .await
+    }
+
+    /// Excludes the test on every platform, with why, as of `now`: ace3's `set_exclusion`. From the next
+    /// coverage refresh it counts toward no coverage row and measures no signature, and registering a run
+    /// of it is refused; nothing else of it changes. Excluding it again replaces who, when and why. It
+    /// needs `svs:run_manage`. An unknown test is `NotFound`; a blank reason, or one longer than
+    /// [`MAX_DECISION_REASON`] characters, `InvalidRequest`.
+    pub async fn set_svs_test_exclusion(
+        &self,
+        actor: &Actor,
+        test_guid: &str,
+        reason: &str,
+        now: DateTime<Utc>,
+    ) -> Result<TestExclusion, ServiceError> {
+        self.gate
+            .write(actor, "set_svs_test_exclusion", &SVS_RUN_MANAGE, &|tx| {
+                Box::pin(async move {
+                    let reason = exclusion_reason(reason)?;
+                    let conn = tx.conn();
+                    let test = catalog_test(conn, test_guid).await?;
+                    sqlx::query_scalar!(
+                        "SELECT id FROM svs.test_exclusions WHERE test_guid = $1 FOR UPDATE",
+                        test.guid,
+                    )
+                    .fetch_optional(&mut *conn)
+                    .await?;
+                    let before = exclusion_of(conn, test.guid).await?;
+                    sqlx::query!(
+                        "INSERT INTO svs.test_exclusions (test_guid, reason, excluded_by, excluded_at)
+                         VALUES ($1, $2, $3::jsonb, $4)
+                         ON CONFLICT (test_guid) DO UPDATE
+                         SET reason = EXCLUDED.reason, excluded_by = EXCLUDED.excluded_by,
+                             excluded_at = EXCLUDED.excluded_at",
+                        test.guid,
+                        reason,
+                        Json(actor) as _,
+                        now,
+                    )
+                    .execute(&mut *conn)
+                    .await?;
+                    let after = exclusion_of(conn, test.guid)
+                        .await?
+                        .ok_or_else(|| unknown_test(test_guid))?;
+                    let target = Target::svs_test_exclusion(test.guid);
+                    let record = ExclusionRecord {
+                        reason: &after.reason,
+                    };
+                    let change = match &before {
+                        Some(before) => Change::updated(
+                            target,
+                            &ExclusionRecord {
+                                reason: &before.reason,
+                            },
+                            &record,
+                        )?,
+                        None => Change::added(target, &record)?,
+                    };
+                    Ok(Audited::changed(after, change))
+                })
+            })
+            .await
+    }
+
+    /// Brings an excluded test back, with its runs, decisions and ignores as they were: ace3's
+    /// `remove_exclusion`. It needs `svs:run_manage`. An unknown test, or one that isn't excluded, is
+    /// `NotFound`.
+    pub async fn remove_svs_test_exclusion(
+        &self,
+        actor: &Actor,
+        test_guid: &str,
+    ) -> Result<(), ServiceError> {
+        self.gate
+            .write(actor, "remove_svs_test_exclusion", &SVS_RUN_MANAGE, &|tx| {
+                Box::pin(async move {
+                    let conn = tx.conn();
+                    let test = catalog_test(conn, test_guid).await?;
+                    let Some(before) = sqlx::query_scalar!(
+                        "DELETE FROM svs.test_exclusions WHERE test_guid = $1 RETURNING reason",
+                        test.guid,
+                    )
+                    .fetch_optional(&mut *conn)
+                    .await?
+                    else {
+                        return Err(ServiceError::NotFound(format!(
+                            "test {} is not excluded",
+                            test.guid
+                        )));
+                    };
+                    let change = Change::removed(
+                        Target::svs_test_exclusion(test.guid),
+                        &ExclusionRecord { reason: &before },
                     )?;
                     Ok(Audited::changed((), change))
                 })

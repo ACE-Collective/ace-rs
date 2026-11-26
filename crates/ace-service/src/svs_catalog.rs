@@ -21,7 +21,8 @@
 //!
 //! What differs from ace3's:
 //! - Each test carries its state and run history (`svs_test_state`, batch 8), read for the whole page at
-//!   once, as ace3's does: `history`. One test adds its state on each platform.
+//!   once, as ace3's does: `history`, and its `exclusion` (batch 10). One test adds its state on each
+//!   platform. The screen's `excluded` filter finds the tests a person excluded.
 //! - ace3's refresh is not audited; here each write of it is.
 //! - Two replicas may refresh at once: each reads its own mirror and the row lock orders their writes. One
 //!   that fetched an older commit can store it after the other stored a newer one; the next refresh sees
@@ -41,6 +42,7 @@ use crate::alerts::page_limit;
 use crate::filters::{FilterEntry, FilterScreen, Resolved};
 use crate::gate::{Audited, Change, Recorded, Target};
 use crate::permission::{SVS_CATALOG_REFRESH, SVS_RUN_READ};
+use crate::svs_decisions::TestExclusion;
 use crate::svs_test_state::{StateTest, catalog_histories};
 use crate::{Actor, Service, ServiceError};
 
@@ -74,9 +76,13 @@ pub struct CatalogTest {
     /// When the catalog row last changed: the `changed_since` key. A change to the test's runs or state
     /// doesn't change it.
     pub updated_at: DateTime<Utc>,
-    /// Its state and run history (`ace_core::svs::test_state`): never_run without runs, else the worst of
-    /// its platforms' states. One test's detail has each platform's in `platform_states`.
+    /// Its state and run history (`ace_core::svs::test_state`): excluded while it is excluded, never_run
+    /// without runs, else the worst of its platforms' states. One test's detail has each platform's in
+    /// `platform_states`.
     pub history: TestHistory,
+    /// Who excluded it, when and why; None while it isn't excluded. Excluding a test doesn't change its
+    /// row, so not its `updated_at`.
+    pub exclusion: Option<TestExclusion>,
 }
 
 /// One test with its description and its entry.
@@ -143,6 +149,7 @@ struct Params {
     executors: [Option<Vec<String>>; 2],
     repositories: [Option<Vec<String>>; 2],
     removed: [Option<Vec<String>>; 2],
+    excluded: [Option<Vec<String>>; 2],
 }
 
 fn params(query: &CatalogTestQuery) -> Result<Params, ServiceError> {
@@ -160,6 +167,7 @@ fn params(query: &CatalogTestQuery) -> Result<Params, ServiceError> {
             f.patterns("repository", true, false),
         ],
         removed: [f.names("removed", false), f.names("removed", true)],
+        excluded: [f.names("excluded", false), f.names("excluded", true)],
     })
 }
 
@@ -200,9 +208,10 @@ impl ListRow {
         }
     }
 
-    fn test(self, history: TestHistory) -> CatalogTest {
+    fn test(self, history: TestHistory, exclusion: Option<TestExclusion>) -> CatalogTest {
         CatalogTest {
             history,
+            exclusion,
             guid: self.guid,
             repository: self.repository,
             technique: self.technique,
@@ -267,6 +276,10 @@ async fn list(
                   OR (t.updated_at >= $13 AND t.updated_at < now() - make_interval(secs => $18)))
              AND ($14::text IS NULL
                   OR (t.technique COLLATE "C", t.name COLLATE "C", t.id) > ($14, $15::text, $16::bigint))
+             AND ($19::text IS NULL OR $19 = 'both'
+                  OR (EXISTS (SELECT FROM svs.test_exclusions x WHERE x.test_guid = t.guid)) = ($19 = 'true'))
+             AND ($20::text IS NULL OR $20 <> 'both'
+                  AND (EXISTS (SELECT FROM svs.test_exclusions x WHERE x.test_guid = t.guid)) <> ($20 = 'true'))
            ORDER BY t.technique COLLATE "C", t.name COLLATE "C", t.id
            LIMIT $17"#,
         p.techniques[0].as_deref(),
@@ -287,6 +300,8 @@ async fn list(
         after_id,
         limit,
         settle,
+        flag(&p.excluded[0]),
+        flag(&p.excluded[1]),
     )
     .fetch_all(conn)
     .await
@@ -391,10 +406,10 @@ impl Service {
                         tests: rows
                             .into_iter()
                             .map(|row| {
-                                let history = histories
+                                let (history, exclusion) = histories
                                     .remove(&row.guid)
-                                    .unwrap_or_else(TestHistory::never_run);
-                                row.test(history)
+                                    .unwrap_or_else(|| (TestHistory::never_run(), None));
+                                row.test(history, exclusion)
                             })
                             .collect(),
                         next_cursor,
@@ -456,7 +471,7 @@ impl Service {
                     .fetch_optional(tx.conn())
                     .await?
                     .ok_or_else(|| no_test(guid))?;
-                    let history = catalog_histories(
+                    let (history, exclusion) = catalog_histories(
                         tx.conn(),
                         &[StateTest {
                             guid: row.guid,
@@ -466,7 +481,7 @@ impl Service {
                     )
                     .await?
                     .remove(&row.guid)
-                    .unwrap_or_else(TestHistory::never_run);
+                    .unwrap_or_else(|| (TestHistory::never_run(), None));
                     Ok(CatalogTestDetail {
                         platform_slugs: catalog::platform_slugs(&row.platforms),
                         description: row.description,
@@ -486,6 +501,7 @@ impl Service {
                             removed_at: row.removed_at,
                             updated_at: row.updated_at,
                             history,
+                            exclusion,
                         },
                     })
                 })

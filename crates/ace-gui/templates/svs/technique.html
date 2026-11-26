@@ -1,6 +1,6 @@
 {#- ace3's svs/coverage_detail.html (PLAN.md 7.10 batch 8): one technique's coverage, its rows and its
-    sub-techniques', the tests and signatures that count toward them now, its removed tests and its latest
-    daily snapshots (src/svs_coverage.rs). Read-only. -#}
+    sub-techniques', the tests and signatures that count toward them now, its removed and excluded tests
+    (batch 10) and its latest daily snapshots (src/svs_coverage.rs). Read-only. -#}
 {% extends "base.html" %}
 {% block title %}{{ view.technique }} · Coverage · SVS · ACE{% endblock %}
 {% block content %}
@@ -123,6 +123,24 @@
     {%- endfor %}
   </ul>
   {%- endif %}
+
+  <h3>Excluded tests</h3>
+  <p class="muted">Excluded by a person on every platform; they don't count, and keep their runs and decisions.</p>
+  <div class="table-wrap"><table class="keys">
+    <thead><tr><th>Test</th><th>By</th><th title="UTC">Excluded</th><th>Reason</th></tr></thead>
+    <tbody>
+      {%- for (test, exclusion) in view.excluded %}
+      <tr>
+        <td class="qa-text"><a href="{{ test.href }}">{{ test.text }}</a></td>
+        <td class="qa-text">{{ exclusion.by }}</td>
+        <td class="nowrap">{{ exclusion.at }}</td>
+        <td class="qa-text">{{ exclusion.reason }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="4" class="muted">None.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table></div>
 
   <h3>History</h3>
   <p class="muted">Its daily snapshots of the last two months, newest first. The last year's are in the <a href="{{ view.history_csv }}">CSV</a>.</p>

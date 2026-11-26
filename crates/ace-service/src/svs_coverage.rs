@@ -5,7 +5,8 @@
 //! **The refresh** ([`Service::refresh_svs_coverage`]) needs `svs:coverage_refresh`, which the scheduler's
 //! `svs_coverage_refresh` (every two minutes, ace3's `svs.coverage.refresh_interval_seconds`) and
 //! `svs_coverage_snapshot` hold; `ace svs coverage refresh` acts as the first. In one transaction it locks
-//! the one row of `svs.coverage_state`, reads the catalog tests that aren't removed and judges them
+//! the one row of `svs.coverage_state`, reads the catalog tests that aren't removed or excluded (batch 10)
+//! and judges them
 //! (`svs_test_state`), reads the signatures' `mitre:` tags, refreshes the worklist (`svs_worklist`), computes
 //! every row, and writes only the rows that changed, so a row's `updated_at` moves only on a real change. A
 //! row the computation no longer produces is retired, never deleted. A refresh that changed a row writes
@@ -28,7 +29,7 @@
 //!
 //! How it scales. `svs.coverage` has a row per technique and platform, which the ATT&CK release bounds (a
 //! few thousand), so the refresh's read of all of it, the summary's two grouped counts and a technique's
-//! rows are small. A refresh's cost is its inputs': every catalog test that isn't removed (the catalog's
+//! rows are small. A refresh's cost is its inputs': every catalog test that isn't removed or excluded (the catalog's
 //! `max_tests`), and what `svs_test_state` reads of their runs and decisions, linear in those. The
 //! drill-down reads three columns of every catalog test to resolve each technique as the refresh does, then
 //! judges only the technique's own. `svs.coverage_snapshots` grows by the live rows each day and nothing
@@ -66,6 +67,7 @@ use crate::alerts::{SET_LIST_TIMEOUT, page_limit, timed_out};
 use crate::filters::{FilterEntry, FilterScreen, Resolved};
 use crate::gate::{Audited, Change, Recorded, Target};
 use crate::permission::{SVS_COVERAGE_REFRESH, SVS_COVERAGE_SNAPSHOT, SVS_RUN_READ};
+use crate::svs_decisions::{TestExclusion, exclusions};
 use crate::svs_results::yara_signatures;
 use crate::svs_run_reads::flag;
 use crate::svs_test_state::{StateTest, evaluate_tests};
@@ -210,6 +212,15 @@ pub struct RemovedTest {
     pub removed_at: Option<DateTime<Utc>>,
 }
 
+/// A test a person excluded that is still in its repository; it doesn't count.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExcludedTest {
+    pub guid: Uuid,
+    pub name: String,
+    pub technique: String,
+    pub exclusion: TestExclusion,
+}
+
 /// A technique's coverage: its rows as of the last refresh, and what counts toward them now. ace3's
 /// `TechniqueCoverage`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -236,6 +247,9 @@ pub struct TechniqueCoverage {
     pub measured_signatures: Vec<MeasuredSignature>,
     pub manual_signatures: Vec<ManualSignature>,
     pub removed_tests: Vec<RemovedTest>,
+    /// Its tests a person excluded that are still in their repository; a removed test is listed as removed,
+    /// excluded or not.
+    pub excluded_tests: Vec<ExcludedTest>,
 }
 
 /// A coverage row as it was on one day: a row of `svs.coverage_snapshots`.
@@ -965,13 +979,15 @@ async fn write_rows(
     Ok(written)
 }
 
-/// The catalog tests that count toward coverage: those not removed.
+/// The catalog tests that count toward coverage and the worklist: those not removed and not excluded.
 async fn live_tests(
     conn: &mut PgConnection,
 ) -> Result<(Vec<CoverageTest>, Vec<StateTest>), sqlx::Error> {
     let rows = sqlx::query!(
         "SELECT guid, technique, technique_name, platforms, content_hash
-         FROM svs.catalog_tests WHERE removed_at IS NULL"
+         FROM svs.catalog_tests t
+         WHERE removed_at IS NULL
+           AND NOT EXISTS (SELECT FROM svs.test_exclusions x WHERE x.test_guid = t.guid)"
     )
     .fetch_all(conn)
     .await?;
@@ -1570,7 +1586,10 @@ impl Service {
                     )
                     .fetch_all(&mut *conn)
                     .await?;
+                    let guids: Vec<Uuid> = found.iter().map(|row| row.guid).collect();
+                    let mut excluded = exclusions(&mut *conn, &guids).await?;
                     let mut removed_tests = Vec::new();
+                    let mut excluded_tests = Vec::new();
                     let mut current = Vec::new();
                     for row in found {
                         if row.removed_at.is_some() {
@@ -1579,6 +1598,13 @@ impl Service {
                                 name: row.name,
                                 technique: row.technique,
                                 removed_at: row.removed_at,
+                            });
+                        } else if let Some(exclusion) = excluded.remove(&row.guid) {
+                            excluded_tests.push(ExcludedTest {
+                                guid: row.guid,
+                                name: row.name,
+                                technique: row.technique,
+                                exclusion,
                             });
                         } else {
                             current.push(row);
@@ -1713,6 +1739,7 @@ impl Service {
                             .collect(),
                         manual_signatures,
                         removed_tests,
+                        excluded_tests,
                     })
                 })
             })

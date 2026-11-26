@@ -9624,7 +9624,7 @@
             }
           },
           "400": {
-            "description": "A body that isn't one, a test that isn't in the catalog, a target whose platform the test doesn't support, or an extra that is too large",
+            "description": "A body that isn't one, a test that isn't in the catalog or that a person excluded (the error names who, when and why), a target whose platform the test doesn't support, or an extra that is too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -15295,7 +15295,7 @@
           {
             "name": "f",
             "in": "query",
-            "description": "A filter in the share-link encoding (`[!]slug:v1,v2`) with the tests screen's slugs: technique\n(T1059 also finds its sub-techniques), name, platform, executor, repository, removed. Repeat it for\nmore; filters are ANDed, the values of one ORed.",
+            "description": "A filter in the share-link encoding (`[!]slug:v1,v2`) with the tests screen's slugs: technique\n(T1059 also finds its sub-techniques), name, platform, executor, repository, removed, excluded.\nRepeat it for more; filters are ANDed, the values of one ORed.",
             "required": false,
             "schema": {
               "type": "array",
@@ -15611,6 +15611,211 @@
           },
           "404": {
             "description": "No test with that guid in the catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/tests/{guid}/exclusion": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Who excluded the test, when and why; 404 when it isn't excluded.",
+        "operationId": "exclusion",
+        "parameters": [
+          {
+            "name": "guid",
+            "in": "path",
+            "description": "The test's auto_generated_guid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The exclusion",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestExclusionBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such test, or it isn't excluded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Excludes the test on every platform: from the next coverage refresh it counts toward no coverage row\nand measures no signature, and registering a run of it is refused. Its runs, decisions and ignores are\nkept. Excluding it again replaces who, when and why.",
+        "operationId": "set_exclusion",
+        "parameters": [
+          {
+            "name": "guid",
+            "in": "path",
+            "description": "The test's auto_generated_guid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestExclusionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The exclusion",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestExclusionBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that isn't one, or a reason that is blank or longer than 4096 characters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No test with that guid in the catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Brings the test back as it was, with its runs, decisions and ignores.",
+        "operationId": "remove_exclusion",
+        "parameters": [
+          {
+            "name": "guid",
+            "in": "path",
+            "description": "The test's auto_generated_guid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Included again"
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such test, or it isn't excluded",
             "content": {
               "application/json": {
                 "schema": {
@@ -21647,6 +21852,32 @@
             "type": "string",
             "description": "The sha256 of the test's entry; it changes exactly when the test does."
           },
+          "excluded_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When it was excluded; null while it isn't."
+          },
+          "excluded_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody",
+                "description": "Who excluded it."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exclusion_reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it was excluded."
+          },
           "executor": {
             "type": [
               "string",
@@ -21748,7 +21979,7 @@
           },
           "test_state": {
             "type": "string",
-            "description": "`never_run`, `awaiting_review`, `no_expectations`, `failing`, `stale` or `validated`: `never_run`\nwithout runs, else the worst of its platforms' states."
+            "description": "`excluded`, `never_run`, `awaiting_review`, `no_expectations`, `failing`, `stale` or `validated`:\n`excluded` while a person has excluded it, `never_run` without runs, else the worst of its\nplatforms' states."
           },
           "updated_at": {
             "type": "string",
@@ -24036,6 +24267,40 @@
             ],
             "format": "int64",
             "description": "Pass as `after` for the next page; null on the last."
+          }
+        }
+      },
+      "ExcludedTestBody": {
+        "type": "object",
+        "description": "A test a person excluded that is still in its repository; it doesn't count.",
+        "required": [
+          "guid",
+          "name",
+          "technique",
+          "excluded_at",
+          "excluded_by",
+          "exclusion_reason"
+        ],
+        "properties": {
+          "excluded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "excluded_by": {
+            "$ref": "#/components/schemas/ActorBody"
+          },
+          "exclusion_reason": {
+            "type": "string"
+          },
+          "guid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "technique": {
+            "type": "string"
           }
         }
       },
@@ -30843,7 +31108,8 @@
           "tests",
           "measured_signatures",
           "manual_signatures",
-          "removed_tests"
+          "removed_tests",
+          "excluded_tests"
         ],
         "properties": {
           "attack_release": {
@@ -30852,6 +31118,13 @@
           },
           "catalog_status": {
             "type": "string"
+          },
+          "excluded_tests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExcludedTestBody"
+            },
+            "description": "Tests a person excluded that are still in their repository; they don't count."
           },
           "is_subtechnique": {
             "type": "boolean"
@@ -30931,6 +31204,51 @@
             "description": "The tests of the technique and its sub-techniques, per platform."
           }
         }
+      },
+      "TestExclusionBody": {
+        "type": "object",
+        "description": "A test's exclusion.",
+        "required": [
+          "test_guid",
+          "reason",
+          "excluded_by",
+          "excluded_at",
+          "updated_at"
+        ],
+        "properties": {
+          "excluded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "excluded_by": {
+            "$ref": "#/components/schemas/ActorBody"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "test_guid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TestExclusionRequest": {
+        "type": "object",
+        "description": "Why a test is excluded.",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why the test doesn't apply, or isn't worth measuring: 1 to 4096 characters, not blank."
+          }
+        },
+        "additionalProperties": false
       },
       "TestHostBody": {
         "type": "object",

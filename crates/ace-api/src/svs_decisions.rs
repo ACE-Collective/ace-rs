@@ -1,7 +1,7 @@
 //! What has been decided about a test's signatures (PLAN.md 7.10 batch 5, part 5b): ace3's
 //! `aceapi_v2/svs/expectations` and `ignores` routers and the catalog router's decision routes, over
-//! `ace_service`'s `svs_decisions`. Reading needs `svs:run_read`; a test's decisions, ignores and settings
-//! need `svs:run_manage`; a global ignore needs `svs:admin`.
+//! `ace_service`'s `svs_decisions`. Reading needs `svs:run_read`; a test's decisions, ignores, settings
+//! and exclusion (batch 10) need `svs:run_manage`; a global ignore needs `svs:admin`.
 //!
 //! A write may say what it was made from (`If-Match`, the row's `updated_at` as last read, or
 //! `If-None-Match: *`, no row seen), and one made from a row that has changed since is 412 and changes
@@ -10,10 +10,12 @@
 //! From ace3: a page is its rows under their own name and `next`; a refused parameter or decision is 400
 //! where ace3 answers 422; a 412's body is `{"error": ...}` and the client reads the row again, where
 //! ace3's carries the row as it is now; who decided is an actor, so a key that belongs to nobody decides
-//! too; and an export is one operation, `.../export/{format}`.
+//! and excludes too, where ace3 answers 422 for a config key; and an export is one operation,
+//! `.../export/{format}`.
 
 use ace_service::{
-    Expectation, ExpectationQuery, Ignore, IgnoreQuery, Precondition, SvsFeed, TestSettings,
+    Expectation, ExpectationQuery, Ignore, IgnoreQuery, Precondition, SvsFeed, TestExclusion,
+    TestSettings,
 };
 use axum::Json;
 use axum::extract::rejection::{JsonRejection, PathRejection};
@@ -271,6 +273,36 @@ impl From<TestSettings> for TestSettingsBody {
             holds_host: s.holds_host,
             set_by: s.set_by.map(ActorBody::from),
             updated_at: s.updated_at,
+        }
+    }
+}
+
+/// Why a test is excluded.
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct TestExclusionRequest {
+    /// Why the test doesn't apply, or isn't worth measuring: 1 to 4096 characters, not blank.
+    reason: String,
+}
+
+/// A test's exclusion.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct TestExclusionBody {
+    test_guid: Uuid,
+    reason: String,
+    excluded_by: ActorBody,
+    excluded_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<TestExclusion> for TestExclusionBody {
+    fn from(e: TestExclusion) -> Self {
+        TestExclusionBody {
+            test_guid: e.test_guid,
+            reason: e.reason,
+            excluded_by: e.excluded_by.into(),
+            excluded_at: e.excluded_at,
+            updated_at: e.updated_at,
         }
     }
 }
@@ -864,5 +896,93 @@ pub(crate) async fn remove_settings(
 ) -> Result<StatusCode, ApiError> {
     let Path(guid) = path?;
     web.service.remove_svs_test_settings(&actor, &guid).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Who excluded the test, when and why; 404 when it isn't excluded.
+#[utoipa::path(
+    get,
+    path = "/api/svs/v1/tests/{guid}/exclusion",
+    tag = "svs",
+    params(("guid" = String, Path, description = "The test's auto_generated_guid")),
+    responses(
+        (status = 200, description = "The exclusion", body = TestExclusionBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold svs:run_read", body = ErrorBody),
+        (status = 404, description = "No such test, or it isn't excluded", body = ErrorBody),
+    )
+)]
+pub(crate) async fn exclusion(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    path: Result<Path<String>, PathRejection>,
+) -> Result<Json<TestExclusionBody>, ApiError> {
+    let Path(guid) = path?;
+    let exclusion = web
+        .service
+        .svs_test_exclusion(&actor, &guid)
+        .await?
+        .ok_or_else(|| {
+            ApiError::new(
+                StatusCode::NOT_FOUND,
+                format!("test {guid} is not excluded"),
+            )
+        })?;
+    Ok(Json(exclusion.into()))
+}
+
+/// Excludes the test on every platform: from the next coverage refresh it counts toward no coverage row
+/// and measures no signature, and registering a run of it is refused. Its runs, decisions and ignores are
+/// kept. Excluding it again replaces who, when and why.
+#[utoipa::path(
+    put,
+    path = "/api/svs/v1/tests/{guid}/exclusion",
+    tag = "svs",
+    params(("guid" = String, Path, description = "The test's auto_generated_guid")),
+    request_body = TestExclusionRequest,
+    responses(
+        (status = 200, description = "The exclusion", body = TestExclusionBody),
+        (status = 400, description = "A body that isn't one, or a reason that is blank or longer than 4096 characters", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold svs:run_manage", body = ErrorBody),
+        (status = 404, description = "No test with that guid in the catalog", body = ErrorBody),
+        (status = 413, description = "The body is too large", body = ErrorBody),
+    )
+)]
+pub(crate) async fn set_exclusion(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    path: Result<Path<String>, PathRejection>,
+    body: Result<Json<TestExclusionRequest>, JsonRejection>,
+) -> Result<Json<TestExclusionBody>, ApiError> {
+    let Path(guid) = path?;
+    let Json(body) = body?;
+    let exclusion = web
+        .service
+        .set_svs_test_exclusion(&actor, &guid, &body.reason, Utc::now())
+        .await?;
+    Ok(Json(exclusion.into()))
+}
+
+/// Brings the test back as it was, with its runs, decisions and ignores.
+#[utoipa::path(
+    delete,
+    path = "/api/svs/v1/tests/{guid}/exclusion",
+    tag = "svs",
+    params(("guid" = String, Path, description = "The test's auto_generated_guid")),
+    responses(
+        (status = 204, description = "Included again"),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold svs:run_manage", body = ErrorBody),
+        (status = 404, description = "No such test, or it isn't excluded", body = ErrorBody),
+    )
+)]
+pub(crate) async fn remove_exclusion(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    path: Result<Path<String>, PathRejection>,
+) -> Result<StatusCode, ApiError> {
+    let Path(guid) = path?;
+    web.service.remove_svs_test_exclusion(&actor, &guid).await?;
     Ok(StatusCode::NO_CONTENT)
 }

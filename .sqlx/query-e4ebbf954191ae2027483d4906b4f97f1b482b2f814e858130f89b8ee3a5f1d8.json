@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT guid, technique, technique_name, platforms, content_hash\n         FROM svs.catalog_tests WHERE removed_at IS NULL",
+  "query": "SELECT guid, name, technique, technique_name, platforms, content_hash\n                         FROM svs.catalog_tests t\n                         WHERE t.removed_at IS NULL\n                           AND NOT EXISTS (SELECT FROM svs.test_exclusions x WHERE x.test_guid = t.guid)\n                           AND EXISTS (SELECT FROM svs.expectations e\n                                       WHERE e.test_guid = t.guid AND e.signature_uuid = $1\n                                         AND e.state = 'expected')",
   "describe": {
     "columns": [
       {
@@ -16,6 +16,17 @@
       },
       {
         "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
         "name": "technique",
         "type_info": "Text",
         "origin": {
@@ -26,7 +37,7 @@
         }
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "technique_name",
         "type_info": "Text",
         "origin": {
@@ -37,7 +48,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "platforms",
         "type_info": "TextArray",
         "origin": {
@@ -48,7 +59,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "content_hash",
         "type_info": "Text",
         "origin": {
@@ -60,9 +71,12 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
+      false,
       false,
       false,
       true,
@@ -70,5 +84,5 @@
       false
     ]
   },
-  "hash": "3fa0003f6cb7da5490475eb0d8cea3db6590b07557f1d2871c1e10b55cde9df0"
+  "hash": "e4ebbf954191ae2027483d4906b4f97f1b482b2f814e858130f89b8ee3a5f1d8"
 }

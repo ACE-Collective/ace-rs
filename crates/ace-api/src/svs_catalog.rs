@@ -6,8 +6,9 @@
 //! From ace3: a page is `{tests, next}`, as the API's other pages, where ace3's is `{data, next_cursor}`;
 //! and a refused parameter is 400 where ace3 answers 422. Each test carries its state and run history
 //! (`test_state`, `run_count` and the rest, batch 8), read for the whole page at once, and one test adds
-//! its state on each platform (`platform_states`). The same router's expectations, ignores and settings
-//! are `svs_decisions`'.
+//! its state on each platform (`platform_states`), and who excluded it, when and why (`excluded_at`,
+//! `excluded_by`, `exclusion_reason`, batch 10). The same router's expectations, ignores, settings and
+//! exclusion are `svs_decisions`'.
 
 use ace_service::filters::{FilterScreen, decode};
 use ace_service::{CatalogRepository, CatalogTest, CatalogTestDetail, CatalogTestQuery};
@@ -22,6 +23,7 @@ use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::Web;
+use crate::alerts::ActorBody;
 use crate::auth::Authenticated;
 use crate::error::{ApiError, ErrorBody};
 use crate::export::{self, EXPORT_PAGE, ExportRow, Format, time_cell};
@@ -54,9 +56,16 @@ pub(crate) struct CatalogTestBody {
     /// When the catalog row last changed: the `changed_since` key. A change to the test's runs or state
     /// doesn't change it.
     updated_at: DateTime<Utc>,
-    /// `never_run`, `awaiting_review`, `no_expectations`, `failing`, `stale` or `validated`: `never_run`
-    /// without runs, else the worst of its platforms' states.
+    /// `excluded`, `never_run`, `awaiting_review`, `no_expectations`, `failing`, `stale` or `validated`:
+    /// `excluded` while a person has excluded it, `never_run` without runs, else the worst of its
+    /// platforms' states.
     test_state: String,
+    /// When it was excluded; null while it isn't.
+    excluded_at: Option<DateTime<Utc>>,
+    /// Who excluded it.
+    excluded_by: Option<ActorBody>,
+    /// Why it was excluded.
+    exclusion_reason: Option<String>,
     run_count: i64,
     last_run_id: Option<Uuid>,
     last_run_at: Option<DateTime<Utc>>,
@@ -88,8 +97,19 @@ pub(crate) struct PlatformStateBody {
 impl From<CatalogTest> for CatalogTestBody {
     fn from(t: CatalogTest) -> Self {
         let h = t.history;
+        let (excluded_at, excluded_by, exclusion_reason) = match t.exclusion {
+            Some(e) => (
+                Some(e.excluded_at),
+                Some(e.excluded_by.into()),
+                Some(e.reason),
+            ),
+            None => (None, None, None),
+        };
         CatalogTestBody {
             test_state: h.state.as_str().to_owned(),
+            excluded_at,
+            excluded_by,
+            exclusion_reason,
             run_count: h.run_count,
             last_run_id: h.last_run,
             last_run_at: h.last_run_at,
@@ -154,6 +174,9 @@ impl ExportRow for CatalogTestBody {
         "expected_signatures",
         "recent_runs",
         "recent_runs_missing",
+        "excluded_at",
+        "excluded_by",
+        "exclusion_reason",
     ];
 
     fn cells(&self) -> Vec<String> {
@@ -185,6 +208,12 @@ impl ExportRow for CatalogTestBody {
             self.expected_signatures.to_string(),
             self.recent_runs.to_string(),
             self.recent_runs_missing.to_string(),
+            time_cell(self.excluded_at),
+            self.excluded_by
+                .as_ref()
+                .map(ActorBody::shown)
+                .unwrap_or_default(),
+            cell(&self.exclusion_reason),
         ]
     }
 }
@@ -276,8 +305,8 @@ impl From<CatalogRepository> for CatalogRepositoryBody {
 #[allow(dead_code)]
 pub(crate) struct CatalogTestsQuery {
     /// A filter in the share-link encoding (`[!]slug:v1,v2`) with the tests screen's slugs: technique
-    /// (T1059 also finds its sub-techniques), name, platform, executor, repository, removed. Repeat it for
-    /// more; filters are ANDed, the values of one ORed.
+    /// (T1059 also finds its sub-techniques), name, platform, executor, repository, removed, excluded.
+    /// Repeat it for more; filters are ANDed, the values of one ORed.
     #[param(style = Form, explode)]
     f: Option<Vec<String>>,
     /// Only tests added, changed or removed at or after this time.

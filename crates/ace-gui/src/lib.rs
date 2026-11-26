@@ -453,6 +453,10 @@ impl Gui {
                 post(svs_coverage::test_settings),
             )
             .route("/svs/tests/{guid}/decide", post(svs_coverage::test_decide))
+            .route(
+                "/svs/tests/{guid}/exclusion",
+                post(svs_coverage::test_exclusion),
+            )
             .route("/svs/coverage", get(svs_coverage::coverage))
             .route("/svs/coverage/{technique}", get(svs_coverage::technique))
             .route("/svs/worklist", get(svs_coverage::worklist))

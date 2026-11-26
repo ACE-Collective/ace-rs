@@ -935,11 +935,13 @@ impl Service {
                     let (signature_family, signature_name) =
                         (latest.signature_family.clone(), latest.signature_name.clone());
 
-                    // what it is measured on now: the tests that expect it, ignores applied
+                    // what it is measured on now: the tests that expect it, ignores applied, removed and
+                    // excluded tests left out
                     let tests = sqlx::query!(
                         "SELECT guid, name, technique, technique_name, platforms, content_hash
                          FROM svs.catalog_tests t
                          WHERE t.removed_at IS NULL
+                           AND NOT EXISTS (SELECT FROM svs.test_exclusions x WHERE x.test_guid = t.guid)
                            AND EXISTS (SELECT FROM svs.expectations e
                                        WHERE e.test_guid = t.guid AND e.signature_uuid = $1
                                          AND e.state = 'expected')",

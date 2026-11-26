@@ -8,18 +8,22 @@
 //! - `svs.tests` (`tests.html`): `GET /svs/tests`, the catalog's tests by technique, each with its state
 //!   and run history, with the tests screen's filters as a `GET` form folded into `f`, pages as First and
 //!   Next links, and the API's exports beside them. The tab opens on ace3's default view, the tests still
-//!   in their repository.
+//!   in their repository that nobody excluded; an excluded test's state is `excluded`, with its reason as
+//!   the state's title.
 //! - `svs.test_detail` (`test.html`): `GET /svs/tests/{guid}`, a test with its description and atomic
 //!   entry, its state on each platform, its observation window's settings, its expectations and the
-//!   ignores that apply to it, and a link to its runs. For `svs:run_manage` the settings are a form
-//!   (`POST /svs/tests/{guid}/settings`), and each expectation and each of the test's ignores has the form
-//!   that removes it (`POST /svs/tests/{guid}/decide`); a global ignore's is `svs:admin`'s.
+//!   ignores that apply to it, its exclusion, and a link to its runs. For `svs:run_manage` the settings
+//!   are a form (`POST /svs/tests/{guid}/settings`), so are excluding the test with a reason and including
+//!   it again (`POST /svs/tests/{guid}/exclusion`, batch 10), and each expectation and each of the test's
+//!   ignores has the form that removes it (`POST /svs/tests/{guid}/decide`); a global ignore's is
+//!   `svs:admin`'s.
 //! - `svs.coverage` (`coverage.html`): `GET /svs/coverage`, coverage per technique and platform as the
 //!   last refresh computed it, with the rows' counts per state, what the refresh did (or why it failed),
 //!   the coverage screen's filters, pages and exports. Read-only. The tab opens on ace3's default view,
 //!   the endpoint platforms' rows that aren't retired.
 //! - `svs.coverage_detail` (`coverage_detail.html`): `GET /svs/coverage/{technique}`, a technique's rows
-//!   and its sub-techniques', the tests and signatures that count toward them now, its removed tests, and
+//!   and its sub-techniques', the tests and signatures that count toward them now, its removed tests, its
+//!   excluded tests with who excluded each, when and why, and
 //!   its own daily snapshots of the last two months, with the year's as an export. Read-only.
 //! - `svs.worklist` (`worklist.html`): `GET /svs/worklist`, each measured signature's technique tags
 //!   against what its tests measure, with the worklist screen's filters, pages and exports. For
@@ -48,8 +52,8 @@ use ace_service::{
     BulkResolution, CatalogTest, CatalogTestDetail, CatalogTestQuery, CoverageHistoryQuery,
     CoverageQuery, CoverageRow, CoverageSnapshotRow, CoverageSummary, Expectation,
     ExpectationQuery, FilterEntry, Ignore, IgnoreQuery, Precondition, SVS_ADMIN, SVS_RUN_MANAGE,
-    ServiceError, SignatureWorklist, SvsCoverageState, TechniqueCoverage, TestSettings, TestState,
-    WorklistQuery, WorklistRow, WorklistStatus,
+    ServiceError, SignatureWorklist, SvsCoverageState, TechniqueCoverage, TestExclusion,
+    TestSettings, TestState, WorklistQuery, WorklistRow, WorklistStatus,
 };
 use askama::Template;
 use axum::body::Bytes;
@@ -119,7 +123,7 @@ fn test_state_class(state: TestState) -> &'static str {
         TestState::Failing => "danger",
         TestState::Stale | TestState::AwaitingReview => "warning",
         TestState::Validated => "success",
-        TestState::NoExpectations | TestState::NeverRun => "secondary",
+        TestState::NoExpectations | TestState::NeverRun | TestState::Excluded => "secondary",
     }
 }
 
@@ -182,6 +186,8 @@ pub struct TestLine {
     /// `2 of 5 missed`, or nothing when no recent run missed.
     pub recent: String,
     pub removed: bool,
+    /// Why a person excluded it, the state's title; empty while it isn't excluded.
+    pub exclusion_reason: String,
 }
 
 pub fn test_line(test: &CatalogTest) -> TestLine {
@@ -204,6 +210,11 @@ pub fn test_line(test: &CatalogTest) -> TestLine {
             String::new()
         },
         removed: test.removed_at.is_some(),
+        exclusion_reason: test
+            .exclusion
+            .as_ref()
+            .map(|e| e.reason.clone())
+            .unwrap_or_default(),
     }
 }
 
@@ -275,6 +286,22 @@ pub struct DecisionLine {
     pub remove: Option<&'static str>,
 }
 
+/// A person's exclusion of a test, as its page and its technique's say it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExclusionLine {
+    pub by: String,
+    pub at: String,
+    pub reason: String,
+}
+
+fn exclusion_line(exclusion: &TestExclusion) -> ExclusionLine {
+    ExclusionLine {
+        by: actor_name(&Some(exclusion.excluded_by.clone())),
+        at: when(exclusion.excluded_at),
+        reason: exclusion.reason.clone(),
+    }
+}
+
 /// `/svs/tests/{guid}`'s content.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TestView {
@@ -293,6 +320,8 @@ pub struct TestView {
     pub minutes: Option<i32>,
     pub holds_host: bool,
     pub has_settings: bool,
+    /// Who excluded the test, when and why; None while it isn't excluded.
+    pub exclusion: Option<ExclusionLine>,
     pub expectations: Vec<DecisionLine>,
     pub ignores: Vec<DecisionLine>,
     /// The runs list narrowed to the test.
@@ -367,6 +396,7 @@ pub fn test_view(
         minutes: settings.and_then(|s| s.observation_minutes),
         holds_host: settings.is_some_and(|s| s.holds_host),
         has_settings: settings.is_some(),
+        exclusion: test.exclusion.as_ref().map(exclusion_line),
         expectations: expectations
             .iter()
             .map(|e| DecisionLine {
@@ -628,6 +658,8 @@ pub struct TechniqueView {
     pub measured: Vec<SignatureLine>,
     pub manual: Vec<SignatureLine>,
     pub removed: Vec<Link>,
+    /// Its tests a person excluded that are still in their repository, each with its exclusion.
+    pub excluded: Vec<(Link, ExclusionLine)>,
     pub history: Vec<SnapshotLine>,
     /// The catalog's tests and the runs of the technique.
     pub tests_href: String,
@@ -741,6 +773,19 @@ pub fn technique_view(
             .map(|test| Link {
                 href: test_href(test.guid),
                 text: format!("{} ({})", test.name, test.technique),
+            })
+            .collect(),
+        excluded: detail
+            .excluded_tests
+            .iter()
+            .map(|test| {
+                (
+                    Link {
+                        href: test_href(test.guid),
+                        text: format!("{} ({})", test.name, test.technique),
+                    },
+                    exclusion_line(&test.exclusion),
+                )
             })
             .collect(),
         history: history
@@ -1030,6 +1075,8 @@ fn notice_of(done: Option<&str>) -> Option<String> {
         match done? {
             "settings" => "The test's settings are set for runs registered from now on.",
             "cleared" => "The test's settings are removed: its runs get the computed window.",
+            "excluded" => "The test is excluded: the next coverage refresh leaves it out.",
+            "included" => "The test is included again.",
             "undecide" => "The decision is removed.",
             "unignore" => "The signature is no longer ignored during this test's runs.",
             "unignore_globally" => "The signature is no longer ignored during every test's runs.",
@@ -1235,6 +1282,46 @@ pub(crate) async fn test_settings(
                 .map(|_| "settings")
         }
         _ => return bad_request("The settings are set or cleared.", &parts),
+    };
+    match done {
+        Ok(done) => see_other(&format!("{}?done={done}", test_href(&guid)), None),
+        Err(error) => failed(error, &parts),
+    }
+}
+
+/// `POST /svs/tests/{guid}/exclusion`: excludes the test on every platform, or brings it back. `action`
+/// is `exclude`, with `reason`, or `include`.
+pub(crate) async fn test_exclusion(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    path: Result<Path<String>, PathRejection>,
+    body: Bytes,
+) -> Response {
+    if let Err(failure) = enter(&gui, &viewer, &parts).await {
+        return failure.into_response();
+    }
+    let Some(guid) = guid_of(path) else {
+        return bad_request("A test is named by its guid.", &parts);
+    };
+    let form = pairs(&body);
+    let done = match one(&form, "action") {
+        Some("exclude") => gui
+            .service
+            .set_svs_test_exclusion(
+                &viewer.actor,
+                &guid,
+                one(&form, "reason").unwrap_or_default(),
+                Utc::now(),
+            )
+            .await
+            .map(|_| "excluded"),
+        Some("include") => gui
+            .service
+            .remove_svs_test_exclusion(&viewer.actor, &guid)
+            .await
+            .map(|()| "included"),
+        _ => return bad_request("A test is excluded or included again.", &parts),
     };
     match done {
         Ok(done) => see_other(&format!("{}?done={done}", test_href(&guid)), None),

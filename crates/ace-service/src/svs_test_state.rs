@@ -2,10 +2,11 @@
 //! ace3's `saq/svs/test_state.py`, over `ace_core::svs::test_state`, which judges.
 //!
 //! [`evaluate_tests`] judges each test on each platform it has a run or a decision on, and
-//! [`catalog_histories`] adds what the Tests screen shows of its runs. Both read for any number of tests in
+//! [`catalog_histories`] adds what the Tests screen shows of its runs and its exclusion, if a person
+//! excluded it (batch 10). Both read for any number of tests in
 //! a fixed number of queries, and nothing here is stored: the catalog's list (`svs_catalog`) asks for the
-//! tests of one page, the coverage refresh (`svs_coverage`) for every test that isn't removed, and the
-//! worklist for the tests a signature is expected of.
+//! tests of one page, the coverage refresh (`svs_coverage`) for every test that isn't removed or excluded,
+//! and the worklist for the tests a signature is expected of.
 //!
 //! How it scales: every query names the tests it is about (`test_guid = ANY`), so a read is linear in the
 //! runs, expectations and ignores of those tests and never in the whole tables. The runs are read through
@@ -34,6 +35,7 @@ use sqlx::PgConnection;
 use uuid::Uuid;
 
 use crate::ServiceError;
+use crate::svs_decisions::{TestExclusion, exclusions};
 use crate::svs_results::yara_signatures;
 
 /// What a test's state reads of its catalog row.
@@ -195,11 +197,11 @@ pub(crate) async fn evaluate_tests(
     Ok(evaluations)
 }
 
-/// The history of each of `tests`, by guid: ace3's `catalog_histories`.
+/// The history of each of `tests` and its exclusion, by guid: ace3's `catalog_histories`.
 pub(crate) async fn catalog_histories(
     conn: &mut PgConnection,
     tests: &[StateTest],
-) -> Result<BTreeMap<Uuid, TestHistory>, ServiceError> {
+) -> Result<BTreeMap<Uuid, (TestHistory, Option<TestExclusion>)>, ServiceError> {
     let guids: Vec<Uuid> = tests.iter().map(|test| test.guid).collect();
     if guids.is_empty() {
         return Ok(BTreeMap::new());
@@ -253,20 +255,21 @@ pub(crate) async fn catalog_histories(
         counts.recent_runs_missing = row.missing;
     }
 
+    let mut excluded = exclusions(&mut *conn, &guids).await?;
     let evaluations = evaluate_tests(conn, tests).await?;
     let no_runs = RunCounts::default();
     let no_evaluations: BTreeMap<String, Evaluation> = BTreeMap::new();
     Ok(tests
         .iter()
         .map(|test| {
-            (
-                test.guid,
-                test_state::history(
-                    &platform_slugs(&test.platforms),
-                    runs.get(&test.guid).unwrap_or(&no_runs),
-                    evaluations.get(&test.guid).unwrap_or(&no_evaluations),
-                ),
-            )
+            let exclusion = excluded.remove(&test.guid);
+            let history = test_state::history(
+                &platform_slugs(&test.platforms),
+                runs.get(&test.guid).unwrap_or(&no_runs),
+                evaluations.get(&test.guid).unwrap_or(&no_evaluations),
+                exclusion.is_some(),
+            );
+            (test.guid, (history, exclusion))
         })
         .collect())
 }

@@ -654,6 +654,7 @@ const SVS_TEST_FILTERS: &[FilterSpec] = &[
         "text the repository's name contains",
     ),
     spec("Removed", "removed", FilterKind::Multi, BOOLEANS, "false"),
+    spec("Excluded", "excluded", FilterKind::Multi, BOOLEANS, "false"),
 ];
 
 /// A test run's states, in ace3's order (`RUN_STATES`).

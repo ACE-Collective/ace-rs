@@ -1684,6 +1684,8 @@ async fn every_write_function_has_an_audit_test_in_turn() {
         svs_results_tests::remove_svs_ignore_records_its_row(db).await,
         svs_results_tests::set_svs_test_settings_records_its_row(db).await,
         svs_results_tests::remove_svs_test_settings_records_its_row(db).await,
+        svs_results_tests::set_svs_test_exclusion_records_its_row(db).await,
+        svs_results_tests::remove_svs_test_exclusion_records_its_row(db).await,
         svs_results_tests::compute_svs_result_records_its_row(db).await,
         svs_results_tests::add_svs_run_comment_records_its_row(db).await,
         svs_results_tests::update_svs_run_comment_records_its_row(db).await,
@@ -27613,6 +27615,127 @@ mod svs_catalog_tests {
         Uuid::from_u128((n << 96) | 0x0000_4000_8000_0000_0000_0000)
     }
 
+    /// test_catalog.py's `test_excluded_tests_are_one_filter_away` (batch 10, with 6db2701c's both values):
+    /// the `excluded` filter, alone, inverted, with both values and beside `removed` as the Tests tab's
+    /// default view has it, and each test's exclusion on its row. The export's column is the API's.
+    #[tokio::test]
+    async fn excluded_tests_are_one_filter_away() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = admin(db).await;
+        let service = service(db);
+        for (n, technique, name, removed) in [
+            (1, "T1059.001", "PowerShell download", false),
+            (2, "T1059", "Command interpreter", false),
+            (3, "T1003", "Dump credentials", false),
+            (4, "T1059.003", "Batch file", true),
+            (5, "T10590", "Not a sub-technique of T1059", false),
+        ] {
+            seed(db, n, technique, name, &["windows"], "powershell", removed).await;
+        }
+        let updated_at = || async {
+            sqlx::query_scalar::<_, chrono::DateTime<chrono::Utc>>(
+                "SELECT updated_at FROM svs.catalog_tests WHERE guid = $1",
+            )
+            .bind(seeded(1))
+            .fetch_one(db.pool())
+            .await
+            .expect("reads")
+        };
+        let before = updated_at().await;
+        let now = chrono::Utc::now();
+        for (n, reason) in [(1, "no PowerShell here"), (4, "removed and excluded")] {
+            service
+                .set_svs_test_exclusion(&actor, &seeded(n).to_string(), reason, now)
+                .await
+                .expect("excludes");
+        }
+        let listed = |filters: &'static [&'static str]| {
+            let (service, actor) = (&service, &actor);
+            async move {
+                let (filters, _) = ace_service::filters::decode(
+                    FilterScreen::SvsTests,
+                    &filters.iter().map(|f| (*f).to_owned()).collect::<Vec<_>>(),
+                    true,
+                )?;
+                let query = CatalogTestQuery {
+                    filters,
+                    ..CatalogTestQuery::default()
+                };
+                service
+                    .svs_catalog_tests(actor, &query, None, None)
+                    .await
+                    .map(|page| {
+                        page.tests
+                            .iter()
+                            .map(|t| t.guid.as_u128() >> 96)
+                            .collect::<Vec<_>>()
+                    })
+            }
+        };
+        assert_eq!(listed(&["excluded:true"]).await.expect("lists"), [1, 4]);
+        assert_eq!(listed(&["excluded:false"]).await.expect("lists"), [3, 2, 5]);
+        assert_eq!(
+            listed(&["!excluded:true", "technique:T1059"])
+                .await
+                .expect("lists"),
+            [2]
+        );
+        // both values: every test, and its inverse none
+        assert_eq!(
+            listed(&["excluded:true,false"]).await.expect("lists").len(),
+            5
+        );
+        assert!(
+            listed(&["!excluded:true,false"])
+                .await
+                .expect("lists")
+                .is_empty()
+        );
+        // the Tests tab's default view: in the catalog, and not excluded
+        assert_eq!(
+            listed(&["removed:false", "excluded:false"])
+                .await
+                .expect("lists"),
+            [3, 2, 5]
+        );
+        assert!(matches!(
+            listed(&["excluded:maybe"]).await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+
+        let page = service
+            .svs_catalog_tests(&actor, &CatalogTestQuery::default(), None, None)
+            .await
+            .expect("lists");
+        let row = |n: u128| {
+            page.tests
+                .iter()
+                .find(|t| t.guid == seeded(n))
+                .expect("listed")
+        };
+        let excluded = row(1);
+        let exclusion = excluded.exclusion.as_ref().expect("excluded");
+        assert_eq!(
+            (
+                excluded.history.state,
+                exclusion.excluded_by.name.as_deref(),
+                exclusion.reason.as_str()
+            ),
+            (
+                ace_service::TestState::Excluded,
+                Some("alice"),
+                "no PowerShell here"
+            )
+        );
+        assert_eq!(
+            (row(3).history.state, row(3).exclusion.as_ref()),
+            (ace_service::TestState::NeverRun, None)
+        );
+        // excluding a test doesn't change its row, so a changed-since pull doesn't see it
+        assert_eq!(updated_at().await, before);
+    }
+
     /// The catalog's cases of ace3's `tests/aceapi_v2/svs/test_catalog.py`: the order, each filter, a bad
     /// filter, the pages and the detail.
     #[tokio::test]
@@ -28798,6 +28921,61 @@ mod svs_runs_tests {
                 "{error}"
             );
         }
+    }
+
+    /// test_runs.py's `test_an_excluded_test_is_refused_with_who_when_and_why` (batch 10): registering a run
+    /// of an excluded test, and a launcher's dry run, say who excluded it, when and why, before the targets
+    /// are judged, and write nothing; included again, it registers.
+    #[tokio::test]
+    async fn an_excluded_test_is_refused_with_who_when_and_why() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let at: DateTime<Utc> = "2026-10-01T09:30:00Z".parse().expect("a time");
+        f.service
+            .set_svs_test_exclusion(&f.admin, GUID, "no PowerShell on our endpoints", at)
+            .await
+            .expect("excludes");
+        let message = format!(
+            "test {GUID} is excluded from SVS: alice excluded it at 2026-10-01 09:30:00 UTC: \
+             no PowerShell on our endpoints"
+        );
+        let audited = audit_rows(db).await.len();
+        let error = f
+            .service
+            .register_svs_run(&f.launcher, &registration(), t0())
+            .await
+            .expect_err("refused");
+        assert!(
+            matches!(&error, ServiceError::InvalidRequest(why) if *why == message),
+            "{error}"
+        );
+        let decision = f
+            .service
+            .validate_svs_run(&f.launcher, &registration(), t0())
+            .await
+            .expect("validates");
+        assert_eq!(
+            (
+                decision.decision,
+                decision.message.as_deref(),
+                decision.targets.is_empty()
+            ),
+            (RegistrationDecision::Invalid, Some(message.as_str()), true)
+        );
+        assert_eq!(count(db, "svs.runs").await, 0);
+        assert_eq!(count(db, "svs.registration_refusals").await, 0);
+        assert_eq!(alerts(db).await, 0);
+        assert_eq!(audit_rows(db).await.len(), audited);
+
+        f.service
+            .remove_svs_test_exclusion(&f.admin, GUID)
+            .await
+            .expect("includes it again");
+        f.service
+            .register_svs_run(&f.launcher, &registration(), t0())
+            .await
+            .expect("registers");
     }
 
     /// The window's source, which test_runs.py leaves to test_expectations.py: a test's settings, else its
@@ -33216,6 +33394,205 @@ mod svs_results_tests {
         ));
     }
 
+    /// test_expectations.py's `TestExclusions` (batch 10) that the service answers: `test_errors` (an
+    /// unknown test, a blank reason, nothing written), `test_the_store_refuses_a_reason_longer_than_the_api_allows`,
+    /// and `test_exclude_read_replace_and_bring_back`'s read, replace and bring back with the decisions and
+    /// ignores untouched. ace3's `test_a_config_key_is_refused` has the opposite here: who excludes is an
+    /// actor, so a key that belongs to nobody excludes and is recorded (`svs_decisions`' docs).
+    #[tokio::test]
+    async fn exclusions_are_read_replaced_and_brought_back() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        f.expect(GUID, YARA, "expected", "windows").await;
+        f.ignore(NOISE, Some(GUID)).await;
+        let unknown = "cccccccc-0000-4000-8000-000000000000";
+        assert!(matches!(
+            f.service.svs_test_exclusion(&f.admin, unknown).await,
+            Err(ServiceError::NotFound(_))
+        ));
+        assert!(matches!(
+            f.service
+                .set_svs_test_exclusion(&f.admin, unknown, "x", t0())
+                .await,
+            Err(ServiceError::NotFound(_))
+        ));
+        assert!(matches!(
+            f.service.remove_svs_test_exclusion(&f.admin, unknown).await,
+            Err(ServiceError::NotFound(_))
+        ));
+        let audits = audit_rows(db).await.len();
+        for (reason, expected) in [
+            ("", "an exclusion needs a reason"),
+            ("   ", "an exclusion needs a reason"),
+            (&*"x".repeat(4097), "longer than 4096"),
+        ] {
+            let error = f
+                .service
+                .set_svs_test_exclusion(&f.admin, GUID, reason, t0())
+                .await
+                .expect_err("refused");
+            assert!(invalid(&error, expected), "{error}");
+        }
+        assert_eq!(
+            f.service
+                .svs_test_exclusion(&f.admin, GUID)
+                .await
+                .expect("reads"),
+            None
+        );
+        assert_eq!(audit_rows(db).await.len(), audits);
+
+        // 4096 characters is the most, whatever their width
+        let longest = "é".repeat(4096);
+        let first = f
+            .service
+            .set_svs_test_exclusion(&f.admin, GUID, &longest, t0())
+            .await
+            .expect("excludes");
+        assert_eq!(first.reason, longest);
+        assert_eq!(
+            f.service
+                .svs_test_exclusion(&f.admin, GUID)
+                .await
+                .expect("reads"),
+            Some(first.clone())
+        );
+        // excluding again replaces who, when and why
+        let nobodys = Actor::ApiKey {
+            id: ApiKeyId(Uuid::from_u128(0x5C)),
+            name: "ci".to_owned(),
+            owner: None,
+        };
+        grant(
+            db,
+            &Holder::ApiKey(ApiKeyId(Uuid::from_u128(0x5C))),
+            "svs",
+            "run_manage",
+            Effect::Allow,
+        )
+        .await;
+        let later = t0() + hours(1);
+        let replaced = f
+            .service
+            .set_svs_test_exclusion(&nobodys, GUID, "retired software", later)
+            .await
+            .expect("a key that belongs to nobody excludes");
+        assert_eq!(
+            (
+                replaced.reason.as_str(),
+                replaced.excluded_by.kind.as_str(),
+                replaced.excluded_by.name.as_deref(),
+                replaced.excluded_at
+            ),
+            ("retired software", "api_key", Some("ci"), later)
+        );
+        f.service
+            .remove_svs_test_exclusion(&f.admin, GUID)
+            .await
+            .expect("brings it back");
+        assert!(matches!(
+            f.service.remove_svs_test_exclusion(&f.admin, GUID).await,
+            Err(ServiceError::NotFound(_))
+        ));
+        // its decisions and ignores were never touched
+        let expectations = f
+            .service
+            .svs_expectations(
+                &f.admin,
+                &ExpectationQuery {
+                    test: Some(GUID.to_owned()),
+                    ..ExpectationQuery::default()
+                },
+                None,
+                None,
+            )
+            .await
+            .expect("lists")
+            .expectations;
+        assert_eq!(
+            expectations
+                .iter()
+                .map(|e| e.signature_uuid.as_str())
+                .collect::<Vec<_>>(),
+            [YARA]
+        );
+        let ignores = f
+            .service
+            .svs_ignores(
+                &f.admin,
+                &IgnoreQuery {
+                    test: Some(GUID.to_owned()),
+                    ..IgnoreQuery::default()
+                },
+                None,
+                None,
+            )
+            .await
+            .expect("lists")
+            .ignores;
+        assert_eq!(
+            ignores
+                .iter()
+                .map(|i| i.signature_uuid.as_str())
+                .collect::<Vec<_>>(),
+            [NOISE]
+        );
+    }
+
+    /// An exclusion's reads need `svs:run_read` and its writes `svs:run_manage`: test_expectations.py's
+    /// `test_permissions` lines. A reader neither excludes nor brings back, and writes nothing.
+    #[tokio::test]
+    async fn exclusions_need_their_permissions() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let reader = user(UserId(Uuid::from_u128(0x5D)));
+        grant(
+            db,
+            &Holder::User(UserId(Uuid::from_u128(0x5D))),
+            "svs",
+            "run_read",
+            Effect::Allow,
+        )
+        .await;
+        let outsider = user(UserId(Uuid::from_u128(0x5E)));
+        exists(db, &Holder::User(UserId(Uuid::from_u128(0x5E)))).await;
+        assert_eq!(
+            f.service
+                .svs_test_exclusion(&reader, GUID)
+                .await
+                .expect("reads"),
+            None
+        );
+        let refused = f.service.svs_test_exclusion(&outsider, GUID).await;
+        assert!(
+            matches!(&refused, Err(ServiceError::PermissionDenied { .. })),
+            "{refused:?}"
+        );
+        assert!(matches!(
+            f.service
+                .set_svs_test_exclusion(&reader, GUID, "x", t0())
+                .await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
+        f.service
+            .set_svs_test_exclusion(&f.admin, GUID, "x", t0())
+            .await
+            .expect("excludes");
+        assert!(matches!(
+            f.service.remove_svs_test_exclusion(&reader, GUID).await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
+        assert!(
+            f.service
+                .svs_test_exclusion(&reader, GUID)
+                .await
+                .expect("reads")
+                .is_some()
+        );
+    }
+
     // TestWindows
 
     /// The registration's event's `observation_source`.
@@ -35326,6 +35703,70 @@ mod svs_results_tests {
         row.action
     }
 
+    /// test_expectations.py's `test_exclude_read_replace_and_bring_back`'s AUDIT records (batch 10): an
+    /// exclusion's row keeps its reason, and excluding again keeps both.
+    pub(super) async fn set_svs_test_exclusion_records_its_row(db: &Db) -> String {
+        let f = audit_fixture(db, "audit-excl").await;
+        let guid = "acacacac-9999-4999-8999-999999999999";
+        catalog_test(db, guid, "T1105", &["windows"]).await;
+        f.service
+            .set_svs_test_exclusion(&f.admin, guid, "  no PowerShell on our endpoints ", t0())
+            .await
+            .expect("excludes");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "set_svs_test_exclusion".to_owned(),
+                target: ("svs_test_exclusion".to_owned(), guid.to_owned()),
+                before: None,
+                after: Some(json!({"reason": "no PowerShell on our endpoints"})),
+                details: json!({}),
+            }
+        );
+        f.service
+            .set_svs_test_exclusion(&f.admin, guid, "retired software", t0())
+            .await
+            .expect("excludes again");
+        let changed = last_audit(db).await;
+        assert_eq!(
+            (changed.before, changed.after),
+            (
+                Some(json!({"reason": "no PowerShell on our endpoints"})),
+                Some(json!({"reason": "retired software"}))
+            )
+        );
+        row.action
+    }
+
+    pub(super) async fn remove_svs_test_exclusion_records_its_row(db: &Db) -> String {
+        let f = audit_fixture(db, "audit-incl").await;
+        let guid = "acacacac-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+        catalog_test(db, guid, "T1105", &["windows"]).await;
+        f.service
+            .set_svs_test_exclusion(&f.admin, guid, "retired software", t0())
+            .await
+            .expect("excludes");
+        f.service
+            .remove_svs_test_exclusion(&f.admin, guid)
+            .await
+            .expect("brings it back");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "remove_svs_test_exclusion".to_owned(),
+                target: ("svs_test_exclusion".to_owned(), guid.to_owned()),
+                before: Some(json!({"reason": "retired software"})),
+                after: None,
+                details: json!({}),
+            }
+        );
+        row.action
+    }
+
     pub(super) async fn compute_svs_result_records_its_row(db: &Db) -> String {
         let f = audit_fixture(db, "audit-res").await;
         let run = f.run(db, AUDIT_GUID).await;
@@ -35438,6 +35879,8 @@ mod svs_results_tests {
     }
 
     const BROKEN_SIGNATURE: &str = "acacacac-9999-4999-8999-999999999999";
+    /// A test excluded before the audit breaks.
+    const EXCLUDED_GUID: &str = "acacacac-cccc-4ccc-8ccc-cccccccccccc";
 
     pub(super) async fn before_the_audit_breaks(db: &Db) -> BeforeTheAuditBreaks {
         let f = audit_fixture(db, "broken-res").await;
@@ -35450,6 +35893,11 @@ mod svs_results_tests {
             .set_svs_test_settings(&f.admin, AUDIT_GUID, Some(30), false)
             .await
             .expect("sets");
+        catalog_test(db, EXCLUDED_GUID, "T1105", &["windows"]).await;
+        f.service
+            .set_svs_test_exclusion(&f.admin, EXCLUDED_GUID, "before", t0())
+            .await
+            .expect("excludes");
         let comment = f
             .service
             .add_svs_run_comment(&f.admin, run.uuid, "before", t0())
@@ -35524,6 +35972,19 @@ mod svs_results_tests {
                     .expect_err("refused"),
             ),
             (
+                "set_svs_test_exclusion",
+                s.set_svs_test_exclusion(actor, AUDIT_GUID, "after", t0())
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+            ),
+            (
+                "remove_svs_test_exclusion",
+                s.remove_svs_test_exclusion(actor, EXCLUDED_GUID)
+                    .await
+                    .expect_err("refused"),
+            ),
+            (
                 "compute_svs_result",
                 s.compute_svs_result(&timers(), before.run.uuid, t0())
                     .await
@@ -35562,6 +36023,8 @@ mod svs_results_tests {
             "SELECT 'ignore ' || signature_uuid || ' ' || updated_at::text FROM svs.ignores ORDER BY id",
             "SELECT 'settings ' || test_guid::text || ' ' || updated_at::text
              FROM svs.test_settings ORDER BY id",
+            "SELECT 'exclusion ' || test_guid::text || ' ' || reason || ' ' || updated_at::text
+             FROM svs.test_exclusions ORDER BY id",
             "SELECT 'result ' || signature_uuid || ' ' || updated_at::text
              FROM svs.run_results ORDER BY id",
             "SELECT 'comment ' || comment || ' ' || updated_at::text FROM svs.run_comments ORDER BY id",
@@ -35733,6 +36196,74 @@ mod svs_results_tests {
                     .iter()
                     .all(|t| t.history.state == TestState::NeverRun)
             );
+        }
+
+        /// `test_excluded_until_it_is_brought_back_as_it_was` (batch 10): excluded, its platforms keep
+        /// their own states and its history is all there; brought back, it is what it was.
+        #[tokio::test]
+        async fn excluded_until_it_is_brought_back_as_it_was() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = state_fixture(db).await;
+            f.expect(GUID, SIGNATURE, "expected", "windows").await;
+            let run = reviewed(&f, db, hours(1)).await;
+            hit(db, &run, SIGNATURE).await;
+            let at: DateTime<Utc> = "2026-10-01T09:00:00Z".parse().expect("a time");
+            f.service
+                .set_svs_test_exclusion(&f.admin, GUID, "no PowerShell here", at)
+                .await
+                .expect("excludes");
+
+            let detail = f
+                .service
+                .svs_catalog_test(&f.admin, GUID)
+                .await
+                .expect("reads the test")
+                .test;
+            let (h, exclusion) = (
+                &detail.history,
+                detail.exclusion.as_ref().expect("excluded"),
+            );
+            assert_eq!(h.state, TestState::Excluded);
+            assert_eq!(
+                (
+                    exclusion.reason.as_str(),
+                    exclusion.excluded_by.name.as_deref(),
+                    exclusion.excluded_at
+                ),
+                ("no PowerShell here", Some("alice"), at)
+            );
+            assert_eq!(h.platform_states["windows"].state, TestState::Validated);
+            assert_eq!((h.run_count, h.expected), (1, 1));
+            // the other test is left alone
+            assert_eq!(history_of(&f, OTHER_GUID).await.state, TestState::NeverRun);
+
+            f.service
+                .remove_svs_test_exclusion(&f.admin, GUID)
+                .await
+                .expect("brings it back");
+            let back = f
+                .service
+                .svs_catalog_test(&f.admin, GUID)
+                .await
+                .expect("reads the test")
+                .test;
+            assert_eq!(
+                (back.history.state, back.exclusion),
+                (TestState::Validated, None)
+            );
+        }
+
+        /// `test_an_excluded_test_that_never_ran`.
+        #[tokio::test]
+        async fn an_excluded_test_that_never_ran() {
+            let test_db = TestDb::new().await;
+            let f = state_fixture(test_db.db()).await;
+            f.service
+                .set_svs_test_exclusion(&f.admin, GUID, "not on our platforms", Utc::now())
+                .await
+                .expect("excludes");
+            assert_eq!(history(&f).await.state, TestState::Excluded);
         }
 
         /// `test_awaiting_review_until_a_run_is_reviewed`.
@@ -36751,6 +37282,53 @@ mod svs_results_tests {
             );
         }
 
+        /// A row's state and its counts of tests and measured signatures.
+        async fn counted(db: &Db, technique: &str) -> (String, i32, i32, i32) {
+            sqlx::query_as(
+                "SELECT state, tests_total, tests_validated, measured_signatures FROM svs.coverage
+                 WHERE technique = $1 AND platform = 'windows'",
+            )
+            .bind(technique)
+            .fetch_one(db.pool())
+            .await
+            .expect("the row")
+        }
+
+        /// `test_an_excluded_test_counts_toward_nothing_until_it_is_back` (batch 10).
+        #[tokio::test]
+        async fn an_excluded_test_counts_toward_nothing_until_it_is_back() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            catalog_test(db, GUID, T1059_001, &["windows"]).await;
+            validated_run(&cx, db, GUID).await;
+            cx.refresh().await;
+            assert_eq!(
+                counted(db, T1059_001).await,
+                ("validated".to_owned(), 1, 1, 1)
+            );
+
+            cx.service
+                .set_svs_test_exclusion(&cx.f.admin, GUID, "no PowerShell here", Utc::now())
+                .await
+                .expect("excludes");
+            // nothing changes until the next refresh
+            assert_eq!(counted(db, T1059_001).await.0, "validated");
+            cx.refresh().await;
+            assert_eq!(counted(db, T1059_001).await, ("none".to_owned(), 0, 0, 0));
+            assert_eq!(coverage_of(db, "T1059", "windows").await.state, "none");
+
+            cx.service
+                .remove_svs_test_exclusion(&cx.f.admin, GUID)
+                .await
+                .expect("brings it back");
+            cx.refresh().await;
+            assert_eq!(
+                counted(db, T1059_001).await,
+                ("validated".to_owned(), 1, 1, 1)
+            );
+        }
+
         /// `test_tags_count`.
         #[tokio::test]
         async fn tags_count() {
@@ -37003,6 +37581,53 @@ mod svs_results_tests {
                 .iter()
                 .map(|(technique, status)| ((*technique).to_owned(), *status))
                 .collect()
+        }
+
+        /// `test_an_excluded_test_measures_nothing_until_it_is_back` (batch 10), and the API's
+        /// `TestSignature` case: a signature's page measures nothing on an excluded test, before any
+        /// refresh.
+        #[tokio::test]
+        async fn an_excluded_test_measures_nothing_until_it_is_back() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = measured(db).await;
+            cx.refresh().await;
+            let live = status_of(&[
+                (T1059_001, WorklistStatus::Undeclared),
+                ("T1547", WorklistStatus::Open),
+            ]);
+            assert_eq!(cx.statuses().await, live);
+            let measured_now = async || {
+                cx.service
+                    .svs_worklist_signature(&cx.f.admin, SIGNATURE)
+                    .await
+                    .expect("the signature")
+                    .measured
+                    .len()
+            };
+            assert_eq!(measured_now().await, 1);
+
+            cx.service
+                .set_svs_test_exclusion(&cx.f.admin, GUID, "no PowerShell here", Utc::now())
+                .await
+                .expect("excludes");
+            assert_eq!(measured_now().await, 0);
+            cx.refresh().await;
+            assert_eq!(
+                cx.statuses().await,
+                status_of(&[
+                    (T1059_001, WorklistStatus::Retired),
+                    ("T1547", WorklistStatus::Retired)
+                ])
+            );
+
+            cx.service
+                .remove_svs_test_exclusion(&cx.f.admin, GUID)
+                .await
+                .expect("brings it back");
+            cx.refresh().await;
+            assert_eq!(cx.statuses().await, live);
+            assert_eq!(measured_now().await, 1);
         }
 
         /// `test_rows_are_written_once`.
@@ -37937,6 +38562,78 @@ mod svs_results_tests {
                     .await,
                 Err(ServiceError::InvalidRequest(_))
             ));
+        }
+
+        /// The API's `test_an_excluded_test_is_listed_apart` and `TestTechnique`'s `excluded_tests == []`
+        /// (batch 10): an excluded test is listed apart from the counted ones, with who excluded it, when
+        /// and why, and a removed test is listed as removed, excluded or not.
+        #[tokio::test]
+        async fn an_excluded_test_is_listed_apart() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            let removed_guid = "dddddddd-4444-4444-8444-444444444444";
+            catalog_test(db, GUID, T1059_001, &["windows"]).await;
+            catalog_test(db, OTHER_GUID, "T1059", &["windows"]).await;
+            catalog_test(db, removed_guid, T1059_001, &["windows"]).await;
+            set_removed(db, removed_guid, true).await;
+            let detail = async || {
+                cx.service
+                    .svs_coverage_technique(&cx.f.admin, "T1059")
+                    .await
+                    .expect("the technique")
+            };
+            let before = detail().await;
+            assert!(before.excluded_tests.is_empty());
+            assert_eq!(before.tests.len(), 2);
+
+            let at: DateTime<Utc> = "2026-10-01T09:00:00Z".parse().expect("a time");
+            for (guid, reason) in [
+                (OTHER_GUID, "no such endpoints"),
+                (removed_guid, "gone anyway"),
+            ] {
+                cx.service
+                    .set_svs_test_exclusion(&cx.f.admin, guid, reason, at)
+                    .await
+                    .expect("excludes");
+            }
+            let after = detail().await;
+            assert_eq!(
+                after
+                    .tests
+                    .iter()
+                    .map(|test| (test.guid.to_string(), test.platform.clone()))
+                    .collect::<Vec<_>>(),
+                [(GUID.to_owned(), "windows".to_owned())]
+            );
+            assert_eq!(
+                after
+                    .excluded_tests
+                    .iter()
+                    .map(|test| (
+                        test.guid.to_string(),
+                        test.technique.clone(),
+                        test.exclusion.excluded_by.name.clone(),
+                        test.exclusion.reason.clone(),
+                        test.exclusion.excluded_at
+                    ))
+                    .collect::<Vec<_>>(),
+                [(
+                    OTHER_GUID.to_owned(),
+                    "T1059".to_owned(),
+                    Some("alice".to_owned()),
+                    "no such endpoints".to_owned(),
+                    at
+                )]
+            );
+            assert_eq!(
+                after
+                    .removed_tests
+                    .iter()
+                    .map(|test| test.guid.to_string())
+                    .collect::<Vec<_>>(),
+                [removed_guid]
+            );
         }
 
         /// A technique's drill-down: its rows and its sub-techniques', the tests counted on each
@@ -48889,8 +49586,11 @@ mod ownership_tests {
                 FilterScreen::SvsTests,
                 vec![(
                     "In the catalog",
-                    "Tests still in their repository",
-                    vec![text("Removed", false, &["false"])],
+                    "Tests still in their repository and not excluded",
+                    vec![
+                        text("Removed", false, &["false"]),
+                        text("Excluded", false, &["false"]),
+                    ],
                 )],
             ),
             (

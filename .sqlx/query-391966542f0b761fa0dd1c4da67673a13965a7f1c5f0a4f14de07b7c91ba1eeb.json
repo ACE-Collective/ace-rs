@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT guid, name, technique, technique_name, platforms, content_hash\n                         FROM svs.catalog_tests t\n                         WHERE t.removed_at IS NULL\n                           AND EXISTS (SELECT FROM svs.expectations e\n                                       WHERE e.test_guid = t.guid AND e.signature_uuid = $1\n                                         AND e.state = 'expected')",
+  "query": "SELECT guid, technique, technique_name, platforms, content_hash\n         FROM svs.catalog_tests t\n         WHERE removed_at IS NULL\n           AND NOT EXISTS (SELECT FROM svs.test_exclusions x WHERE x.test_guid = t.guid)",
   "describe": {
     "columns": [
       {
@@ -16,17 +16,6 @@
       },
       {
         "ordinal": 1,
-        "name": "name",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "svs.catalog_tests",
-            "name": "name"
-          }
-        }
-      },
-      {
-        "ordinal": 2,
         "name": "technique",
         "type_info": "Text",
         "origin": {
@@ -37,7 +26,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 2,
         "name": "technique_name",
         "type_info": "Text",
         "origin": {
@@ -48,7 +37,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 3,
         "name": "platforms",
         "type_info": "TextArray",
         "origin": {
@@ -59,7 +48,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "content_hash",
         "type_info": "Text",
         "origin": {
@@ -71,12 +60,9 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
-      false,
       false,
       false,
       true,
@@ -84,5 +70,5 @@
       false
     ]
   },
-  "hash": "540de36cbb7bd4e9f12932ce459893fa6766c083f512cfe1ee79f21317172baa"
+  "hash": "391966542f0b761fa0dd1c4da67673a13965a7f1c5f0a4f14de07b7c91ba1eeb"
 }

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.test_exclusions (test_guid, reason, excluded_by, excluded_at)\n                         VALUES ($1, $2, $3::jsonb, $4)\n                         ON CONFLICT (test_guid) DO UPDATE\n                         SET reason = EXCLUDED.reason, excluded_by = EXCLUDED.excluded_by,\n                             excluded_at = EXCLUDED.excluded_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "71086ef9715ff5051163a6da84c556c27c2489893c63c1ed40f2235361e207ca"
+}

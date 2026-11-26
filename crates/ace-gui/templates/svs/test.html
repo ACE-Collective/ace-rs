@@ -1,12 +1,12 @@
 {#- ace3's svs/test.html (PLAN.md 7.10 batch 8): one catalog test, its description and atomic entry, its
-    state on each platform, its observation window's settings, its expectations and the ignores that apply
-    to it, with the forms svs:run_manage and svs:admin get (src/svs_coverage.rs). -#}
+    exclusion (batch 10), its state on each platform, its observation window's settings, its expectations and
+    the ignores that apply to it, with the forms svs:run_manage and svs:admin get (src/svs_coverage.rs). -#}
 {% extends "base.html" %}
 {% block title %}Test · SVS · ACE{% endblock %}
 {% block content %}
 <section class="signatures detection svs-test">
   {%- include "svs/tabs.html" %}
-  <p><a href="/svs/tests?f=removed%3Afalse">Tests</a> / <code>{{ view.guid }}</code></p>
+  <p><a href="/svs/tests?f=removed%3Afalse&amp;f=excluded%3Afalse">Tests</a> / <code>{{ view.guid }}</code></p>
   <h2 class="qa-text">{{ view.name }}</h2>
   <p><span class="badge disposition-{{ view.state_class }}">{{ view.state }}</span> · <a href="{{ view.runs }}">Its runs</a></p>
   {%- if let Some(notice) = view.notice %}
@@ -19,6 +19,25 @@
       {%- endfor %}
     </tbody>
   </table>
+
+  <h3 id="exclusion">Exclusion</h3>
+  {%- if let Some(exclusion) = view.exclusion %}
+  <p class="qa-text">Excluded by {{ exclusion.by }} at {{ exclusion.at }}: {{ exclusion.reason }}</p>
+  <p class="muted">It counts toward no coverage, measures no signature, and no run of it can be registered. Its runs, decisions and ignores are kept.</p>
+  {%- if view.manage %}
+  <form method="post" action="{{ view.href }}/exclusion" class="inline"><input type="hidden" name="action" value="include"><button type="submit">Include it again</button></form>
+  {%- endif %}
+  {%- else %}
+  <p class="muted">Not excluded: it counts toward its technique's coverage, and its runs can be registered.</p>
+  {%- if view.manage %}
+  <form method="post" action="{{ view.href }}/exclusion" class="detection-add" id="exclusion-form">
+    <input type="hidden" name="action" value="exclude">
+    <label for="exclusion-reason">Why the test doesn't apply here, or isn't worth measuring</label>
+    <input type="text" id="exclusion-reason" name="reason" maxlength="4096" required>
+    <button type="submit">Exclude</button>
+  </form>
+  {%- endif %}
+  {%- endif %}
 
   <h3>By platform</h3>
   <p class="muted">The test is judged on each platform by its latest reviewed run there against what is expected of it there.</p>

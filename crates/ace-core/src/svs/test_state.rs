@@ -16,9 +16,11 @@
 //!
 //! Expected signatures are those expected of the test on the platform that no ignore applies to.
 //!
-//! A test's state is never_run when no run was ever registered for it, else the worst of its platforms'
-//! states: failing, stale, awaiting_review, validated, no_expectations ([`history`]). A platform counts
-//! when the test has a run or a decision there.
+//! A test's state is excluded while a person has excluded it (batch 10, the service's
+//! `set_svs_test_exclusion`), never_run when no run was ever registered for it, else the worst of its
+//! platforms' states: failing, stale, awaiting_review, validated, no_expectations ([`history`]). A platform
+//! counts when the test has a run or a decision there. An excluded test's platforms keep their own states,
+//! what it comes back to.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -40,6 +42,7 @@ const HIT: &str = "hit";
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TestState {
+    Excluded,
     NeverRun,
     AwaitingReview,
     NoExpectations,
@@ -51,6 +54,7 @@ pub enum TestState {
 impl TestState {
     /// In ace3's order.
     pub const ALL: &[TestState] = &[
+        TestState::Excluded,
         TestState::NeverRun,
         TestState::AwaitingReview,
         TestState::NoExpectations,
@@ -61,6 +65,7 @@ impl TestState {
 
     pub fn as_str(self) -> &'static str {
         match self {
+            TestState::Excluded => "excluded",
             TestState::NeverRun => "never_run",
             TestState::AwaitingReview => "awaiting_review",
             TestState::NoExpectations => "no_expectations",
@@ -255,14 +260,17 @@ pub struct RunCounts {
     pub recent_runs_missing: i64,
 }
 
-/// A test's history from its evaluations by platform, what its runs count to, and the platforms it
-/// supports (as slugs): the body of ace3's `catalog_histories`' loop.
+/// A test's history from its evaluations by platform, what its runs count to, the platforms it supports
+/// (as slugs), and whether a person excluded it: the body of ace3's `catalog_histories`' loop.
 pub fn history(
     platform_slugs: &[String],
     runs: &RunCounts,
     evaluations: &BTreeMap<String, Evaluation>,
+    excluded: bool,
 ) -> TestHistory {
-    let state = if runs.run_count == 0 {
+    let state = if excluded {
+        TestState::Excluded
+    } else if runs.run_count == 0 {
         TestState::NeverRun
     } else {
         let states: BTreeSet<TestState> = evaluations.values().map(|e| e.state).collect();
@@ -466,7 +474,7 @@ mod tests {
                 evaluation(TestState::Failing, true, &[SIGNATURE, OTHER]),
             ),
         ]);
-        let h = history(&slugs, &runs, &evaluations);
+        let h = history(&slugs, &runs, &evaluations, false);
         assert_eq!(h.state, TestState::Failing);
         assert_eq!(h.expected, 2);
         assert_eq!(
@@ -482,14 +490,25 @@ mod tests {
         );
         assert_eq!(h.last_reviewed_run, Some(Uuid::from_u128(1)));
         // no run at all: never run, whatever was decided
-        let h = history(&slugs, &RunCounts::default(), &evaluations);
+        let h = history(&slugs, &RunCounts::default(), &evaluations, false);
         assert_eq!(h.state, TestState::NeverRun);
+        // excluded whatever its runs, and its platforms keep their own states (test_test_state.py's
+        // `test_excluded_until_it_is_brought_back_as_it_was` and `test_an_excluded_test_that_never_ran`)
+        for runs in [runs.clone(), RunCounts::default()] {
+            let excluded = history(&slugs, &runs, &evaluations, true);
+            assert_eq!(excluded.state, TestState::Excluded);
+            assert_eq!(
+                excluded.platform_states,
+                history(&slugs, &runs, &evaluations, false).platform_states
+            );
+        }
         assert_eq!(
             TestState::ALL
                 .iter()
                 .map(|s| s.as_str())
                 .collect::<Vec<_>>(),
             [
+                "excluded",
                 "never_run",
                 "awaiting_review",
                 "no_expectations",

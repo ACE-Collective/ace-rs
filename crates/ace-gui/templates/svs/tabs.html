@@ -5,7 +5,7 @@
   <h1>SVS</h1>
   <nav class="tabs" aria-label="SVS">
     <a href="/svs/runs?f=needs_attention%3Atrue"{% if view.tabs.open == "runs" %} aria-current="page"{% endif %}>Runs</a>
-    <a href="/svs/tests?f=removed%3Afalse"{% if view.tabs.open == "tests" %} aria-current="page"{% endif %}>Tests</a>
+    <a href="/svs/tests?f=removed%3Afalse&amp;f=excluded%3Afalse"{% if view.tabs.open == "tests" %} aria-current="page"{% endif %}>Tests</a>
     <a href="/svs/coverage?f=platform%3Awindows%2Clinux%2Cmacos&amp;f=retired%3Afalse"{% if view.tabs.open == "coverage" %} aria-current="page"{% endif %}>Coverage</a>
     <a href="/svs/worklist?f=status%3Aopen"{% if view.tabs.open == "worklist" %} aria-current="page"{% endif %}>Worklist</a>
     {%- if view.tabs.admin %}

@@ -83,6 +83,7 @@ use uuid::Uuid;
 use crate::alerts::RecordedActor;
 use crate::gate::{Audited, Change, Recorded, Target};
 use crate::permission::{SVS_RUN_MANAGE, SVS_RUN_READ, SVS_RUN_REGISTER, SVS_RUN_TIMERS};
+use crate::svs_decisions::exclusion_of;
 use crate::{Actor, Service, ServiceError};
 
 /// The alert type and tool of a refusal's alert: ace3's `ALERT_TYPE` and `TOOL`.
@@ -794,6 +795,9 @@ async fn check_registration(
             "test {asked} was removed from the catalog at {}",
             removed_at.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
         )));
+    }
+    if let Some(exclusion) = exclusion_of(&mut *conn, test.guid).await? {
+        return Ok(Err(exclusion.refusal()));
     }
     if registration.targets.is_empty() {
         return Ok(Err("a run needs at least one target".to_owned()));

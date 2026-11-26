@@ -236,6 +236,14 @@ impl Target {
         }
     }
 
+    /// An SVS test's exclusion, by the test's guid (PLAN.md 7.10 batch 10).
+    pub(crate) fn svs_test_exclusion(test: Uuid) -> Self {
+        Target {
+            kind: "svs_test_exclusion",
+            id: test.to_string(),
+        }
+    }
+
     /// A comment on an SVS test run, by its id.
     pub(crate) fn svs_run_comment(id: i64) -> Self {
         Target {

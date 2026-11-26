@@ -162,7 +162,7 @@ Invoke-RestMethod -Method Post -Uri "$Ace/api/svs/v1/runs/$($run.run_id)/execute
 | 401 | No key, or one that isn't valid | Nothing |
 | 403 | A target isn't a test host, or the user isn't one the host lists | Nothing is registered. ACE records the refusal and raises a *registration refused* alert in the normal queue, once an hour for each caller and host, because a test tool pointed at a production machine is something an analyst should see |
 | 403 | The key doesn't hold `svs:run_register` | Nothing |
-| 400 | The body isn't valid JSON, has a missing or unknown field, the test isn't in the catalog or was removed from it, a target's platform isn't one the test supports, the targets are on different platforms, there are too many targets, or `extra` is too large | Nothing is registered and nothing is alerted |
+| 400 | The body isn't valid JSON, has a missing or unknown field, the test isn't in the catalog, was removed from it or is excluded, a target's platform isn't one the test supports, the targets are on different platforms, there are too many targets, or `extra` is too large | Nothing is registered and nothing is alerted |
 | 404 | No run has that `run_id` | Nothing |
 | 409 | The call doesn't fit the run's state (starting it twice, `executed` before `start`) | The error says the run's current state, and the call is in the run's event log |
 | 409 | Another run or a maintenance window holds a target's test host, at registration or at start | Nothing is registered or started, and nothing is alerted. The error names each holder: the run and its state, and when its hold ends (or *not started*) |
@@ -514,6 +514,7 @@ expected of it, and how its recent runs did:
 
 | State | Meaning |
 |---|---|
+| `excluded` | A person excluded it: it counts toward no coverage, and no run of it can be registered |
 | `never_run` | No run of it was ever registered |
 | `awaiting_review` | No run of it is reviewed yet, or something was expected of it only after its latest review |
 | `no_expectations` | It has a reviewed run, and nothing is expected of it |
@@ -522,9 +523,9 @@ expected of it, and how its recent runs did:
 | `stale` | It would be validated, but the test or an expected signature's rule changed since that review |
 
 A test is judged on each platform on its own; its state is the worst of its platforms'. The tab
-opens on the tests still in the catalog (*Removed* `false`), and its filters are *Technique*, *Name*,
-*Platform*, *Executor*, *Repository* and *Removed*. Nothing on it suggests what to run next: that is
-your team's call.
+opens on the tests still in the catalog that nobody excluded (*Removed* `false`, *Excluded* `false`),
+and its filters are *Technique*, *Name*, *Platform*, *Executor*, *Repository*, *Removed* and
+*Excluded*. Nothing on it suggests what to run next: that is your team's call.
 
 ![The Tests list](images/tests-list.png)
 
@@ -532,6 +533,12 @@ A test's page has its guid (the `test_guid` a launcher registers), its technique
 and commit, its state on each platform, its description, and its entry from the catalog with its
 commands, input arguments and dependencies. Below them are the decisions about it:
 
+- **Exclusion**: a test that doesn't apply here (no such software or platform), or isn't worth
+  measuring, is excluded on every platform with a reason (`svs:run_manage`). From the next coverage
+  refresh it counts toward no coverage row and measures no signature on the worklist, and registering
+  a run of it answers 400 naming who excluded it, when and why. Its runs, decisions and ignores are
+  kept, and *Include it again* brings it back as it was. A technique's coverage page lists its
+  excluded tests apart.
 - **Observation window**: set minutes here to override the computed window for runs registered from
   now on (`svs:run_manage`); *Remove the settings* goes back to the computed window. Use it when you
   know a test's signatures fire within a minute or two, so its runs end sooner.

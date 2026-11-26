@@ -37,6 +37,7 @@ use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::Web;
+use crate::alerts::ActorBody;
 use crate::auth::Authenticated;
 use crate::error::{ApiError, ErrorBody};
 use crate::export::{self, EXPORT_PAGE, ExportRow, time_cell};
@@ -322,6 +323,17 @@ pub(crate) struct RemovedTestBody {
     removed_at: Option<DateTime<Utc>>,
 }
 
+/// A test a person excluded that is still in its repository; it doesn't count.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct ExcludedTestBody {
+    guid: Uuid,
+    name: String,
+    technique: String,
+    excluded_at: DateTime<Utc>,
+    excluded_by: ActorBody,
+    exclusion_reason: String,
+}
+
 /// A technique's coverage: its rows as of the last refresh, and what counts toward them now.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct TechniqueCoverageBody {
@@ -348,6 +360,8 @@ pub(crate) struct TechniqueCoverageBody {
     manual_signatures: Vec<ManualSignatureBody>,
     /// Tests removed from their repository; they don't count.
     removed_tests: Vec<RemovedTestBody>,
+    /// Tests a person excluded that are still in their repository; they don't count.
+    excluded_tests: Vec<ExcludedTestBody>,
 }
 
 impl From<TechniqueCoverage> for TechniqueCoverageBody {
@@ -419,6 +433,18 @@ impl From<TechniqueCoverage> for TechniqueCoverageBody {
                     name: test.name,
                     technique: test.technique,
                     removed_at: test.removed_at,
+                })
+                .collect(),
+            excluded_tests: t
+                .excluded_tests
+                .into_iter()
+                .map(|test| ExcludedTestBody {
+                    guid: test.guid,
+                    name: test.name,
+                    technique: test.technique,
+                    excluded_at: test.exclusion.excluded_at,
+                    excluded_by: test.exclusion.excluded_by.into(),
+                    exclusion_reason: test.exclusion.reason,
                 })
                 .collect(),
         }

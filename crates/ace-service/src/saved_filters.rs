@@ -250,12 +250,15 @@ fn default_filters(screen: FilterScreen) -> Vec<(&'static str, &'static str, Vec
                 &["ERROR", "FAILED"],
             ),
         ],
-        // DEFAULT_SVS_TEST_SAVED_FILTERS: the tests still in their repository, which the Tests tab opens on
-        FilterScreen::SvsTests => vec![one(
+        // DEFAULT_SVS_TEST_SAVED_FILTERS: the tests still in their repository that nobody excluded, which
+        // the Tests tab opens on
+        FilterScreen::SvsTests => vec![(
             "In the catalog",
-            "Tests still in their repository",
-            "Removed",
-            &["false"],
+            "Tests still in their repository and not excluded",
+            vec![
+                FilterEntry::text("Removed", false, &["false"]),
+                FilterEntry::text("Excluded", false, &["false"]),
+            ],
         )],
         // DEFAULT_SVS_COVERAGE_SAVED_FILTERS: the endpoint platforms, which the Coverage tab opens on; none
         // of them shows a retired row

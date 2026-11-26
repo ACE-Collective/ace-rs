@@ -17342,6 +17342,18 @@ fn fixture_catalog_test() -> ace_service::CatalogTest {
             ]
             .into(),
         },
+        exclusion: None,
+    }
+}
+
+/// A person's exclusion of the fixture test, with hostile text where a person writes it.
+fn fixture_exclusion() -> ace_service::TestExclusion {
+    ace_service::TestExclusion {
+        test_guid: uuid::Uuid::from_u128(0x7e57),
+        reason: HOSTILE.to_owned(),
+        excluded_by: svs_actor(),
+        excluded_at: svs_at(),
+        updated_at: svs_at(),
     }
 }
 
@@ -17461,9 +17473,12 @@ fn the_svs_coverage_views_draw_tests_coverage_and_the_worklist() {
             && list.contains(r#"id="filter-removed" name="removed" value="false""#),
         "{list}"
     );
-    // each tab opens on its default view, and the open one says so
+    // each tab opens on its default view, and the open one says so: Tests on the tests in the catalog that
+    // nobody excluded
     assert!(
-        list.contains(r#"<a href="/svs/tests?f=removed%3Afalse" aria-current="page">Tests</a>"#)
+        list.contains(
+            r#"<a href="/svs/tests?f=removed%3Afalse&amp;f=excluded%3Afalse" aria-current="page">Tests</a>"#
+        )
             && list.contains(
                 r#"<a href="/svs/coverage?f=platform%3Awindows%2Clinux%2Cmacos&amp;f=retired%3Afalse">Coverage</a>"#
             )
@@ -17486,6 +17501,33 @@ fn the_svs_coverage_views_draw_tests_coverage_and_the_worklist() {
     assert!(
         none.contains("No tests.") && !none.contains(">First<"),
         "{none}"
+    );
+    // an excluded test reads excluded, with why as the state's title
+    let excluded_test = ace_service::CatalogTest {
+        history: ace_service::TestHistory {
+            state: TestState::Excluded,
+            ..test.history.clone()
+        },
+        exclusion: Some(fixture_exclusion()),
+        ..test.clone()
+    };
+    let excluded = drawn_safely(&TestsPage {
+        quick: Default::default(),
+        layout: layout(),
+        view: tests_view(
+            tabs("tests"),
+            &CatalogTestQuery::default(),
+            &[],
+            std::slice::from_ref(&excluded_test),
+            None,
+            None,
+        ),
+    });
+    assert!(
+        excluded.contains(&format!(
+            r#"<span class="badge disposition-secondary" title="{HOSTILE_ESCAPED}">excluded</span>"#
+        )) && !list.contains(" title=\"\">"),
+        "{excluded}"
     );
 
     // a test's page
@@ -17589,6 +17631,58 @@ fn the_svs_coverage_views_draw_tests_coverage_and_the_worklist() {
     assert!(
         !unset.contains(r#"value="clear""#) && !unset.contains(" checked"),
         "{unset}"
+    );
+    // test_svs_smoke.py's exclusion section: the form that excludes is svs:run_manage's, and shows only
+    // while the test isn't excluded
+    assert!(
+        manager.contains("Not excluded: it counts toward its technique's coverage")
+            && manager.contains(&format!(
+                r#"<form method="post" action="{page_of}/exclusion" class="detection-add" id="exclusion-form">"#
+            ))
+            && manager.contains(r#"<input type="hidden" name="action" value="exclude">"#)
+            && manager.contains(r#"name="reason" maxlength="4096" required>"#),
+        "{manager}"
+    );
+    assert!(
+        reader.contains(r#"<h3 id="exclusion">Exclusion</h3>"#)
+            && !reader.contains("exclusion-form")
+            && !admin.contains("exclusion-form"),
+        "{reader}"
+    );
+    let excluded_detail = CatalogTestDetail {
+        test: excluded_test.clone(),
+        ..detail.clone()
+    };
+    let draw_excluded = |manage: bool| {
+        drawn_safely(&TestPage {
+            layout: layout(),
+            view: test_view(
+                tabs("tests"),
+                &excluded_detail,
+                None,
+                &[],
+                &[],
+                manage,
+                false,
+                None,
+            ),
+        })
+    };
+    let excluded_reader = draw_excluded(false);
+    assert!(
+        excluded_reader.contains(&format!(
+            "Excluded by {HOSTILE_ESCAPED} at 2023-11-14 22:13:20 UTC: {HOSTILE_ESCAPED}"
+        )) && excluded_reader
+            .contains(r#"<span class="badge disposition-secondary">excluded</span>"#)
+            && !excluded_reader.contains("/exclusion"),
+        "{excluded_reader}"
+    );
+    let excluded_manager = draw_excluded(true);
+    assert!(
+        excluded_manager.contains(&format!(
+            r#"<form method="post" action="{page_of}/exclusion" class="inline"><input type="hidden" name="action" value="include"><button type="submit">Include it again</button></form>"#
+        )) && !excluded_manager.contains("exclusion-form"),
+        "{excluded_manager}"
     );
 
     // the Coverage tab
@@ -17768,6 +17862,12 @@ fn the_svs_coverage_views_draw_tests_coverage_and_the_worklist() {
             technique: "T1086".to_owned(),
             removed_at: Some(svs_at()),
         }],
+        excluded_tests: vec![ace_service::ExcludedTest {
+            guid: test.guid,
+            name: HOSTILE.to_owned(),
+            technique: "T1059.001".to_owned(),
+            exclusion: fixture_exclusion(),
+        }],
     };
     let snapshot = CoverageSnapshotRow {
         snapshot_date: "2026-10-16".parse().expect("a day"),
@@ -17810,6 +17910,31 @@ fn the_svs_coverage_views_draw_tests_coverage_and_the_worklist() {
                 r#"href="/api/svs/v1/coverage/history/export/csv?f=technique%3AT1059.001&#38;f=level%3Asub-technique&#38;f=date%3A-365d""#
             ),
         "{drill}"
+    );
+    // the technique's excluded tests, with who excluded each, when and why
+    assert!(
+        drill.contains("<h3>Excluded tests</h3>")
+            && drill.contains(&format!(
+                r#"<td class="qa-text"><a href="{page_of}">{HOSTILE_ESCAPED} (T1059.001)</a></td>"#
+            ))
+            && drill.contains(r#"<td class="nowrap">2023-11-14 22:13:20 UTC</td>"#)
+            && drill.contains(&format!(r#"<td class="qa-text">{HOSTILE_ESCAPED}</td>"#)),
+        "{drill}"
+    );
+    let no_exclusions = drawn_safely(&TechniquePage {
+        layout: layout(),
+        view: technique_view(
+            tabs("coverage"),
+            &TechniqueCoverage {
+                excluded_tests: vec![],
+                ..technique.clone()
+            },
+            &[],
+        ),
+    });
+    assert!(
+        no_exclusions.contains(r#"<tr><td colspan="4" class="muted">None.</td></tr>"#),
+        "{no_exclusions}"
     );
     // a signature's uuid in a link is percent-encoded, and hostile text never opens a tag
     assert!(
@@ -18093,6 +18218,12 @@ async fn the_svs_coverage_pages_need_run_read_then_run_manage() {
         ]);
         post("/svs/worklist/resolve".to_owned(), form)
     };
+    let exclusion = |action: &'static str, reason: &'static str| {
+        post(
+            format!("{test_page}/exclusion"),
+            vec![("action", action.to_owned()), ("reason", reason.to_owned())],
+        )
+    };
     let row_key = format!("{COVERAGE_SIGNATURE}|T1547");
 
     // without svs:run_read: nothing
@@ -18106,6 +18237,8 @@ async fn the_svs_coverage_pages_need_run_read_then_run_manage() {
     for refused in [
         settings("set", "45").await,
         decide("undecide", COVERAGE_SIGNATURE).await,
+        exclusion("exclude", "no PowerShell here").await,
+        exclusion("include", "").await,
         resolve("keep", "why", String::new()).await,
         bulk(vec![row_key.clone()], "keep", "/svs/worklist").await,
     ] {
@@ -18215,6 +18348,8 @@ async fn the_svs_coverage_pages_need_run_read_then_run_manage() {
     for refused in [
         settings("set", "45").await,
         decide("undecide", COVERAGE_SIGNATURE).await,
+        exclusion("exclude", "no PowerShell here").await,
+        exclusion("include", "").await,
         resolve("keep", "why", String::new()).await,
         bulk(vec![row_key.clone()], "keep", "/svs/worklist").await,
     ] {
@@ -18288,6 +18423,62 @@ async fn the_svs_coverage_pages_need_run_read_then_run_manage() {
         .expect("answered")
         .status(),
         StatusCode::BAD_REQUEST
+    );
+
+    // the test's exclusion (batch 10): excluded with a reason, it leaves the Tests tab's default view and
+    // is listed apart on its technique's page; included again, it is back
+    for (action, reason, status) in [
+        ("exclude", "   ", StatusCode::BAD_REQUEST),
+        ("burn", "why", StatusCode::BAD_REQUEST),
+        ("include", "", StatusCode::NOT_FOUND),
+    ] {
+        assert_eq!(
+            exclusion(action, reason).await.expect("answered").status(),
+            status,
+            "{action}"
+        );
+    }
+    let excluded = exclusion("exclude", "no PowerShell here")
+        .await
+        .expect("answered");
+    assert_eq!(excluded.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&excluded), format!("{test_page}?done=excluded"));
+    let after = text(location(&excluded).to_owned()).await;
+    assert!(
+        after.contains("The test is excluded: the next coverage refresh leaves it out.")
+            && after.contains("Excluded by alice at ")
+            && after.contains(": no PowerShell here</p>")
+            && after.contains(r#"<span class="badge disposition-secondary">excluded</span>"#)
+            && after.contains(r#"<input type="hidden" name="action" value="include">"#)
+            && !after.contains("exclusion-form"),
+        "{after}"
+    );
+    let default_view = text("/svs/tests?f=removed%3Afalse&f=excluded%3Afalse".to_owned()).await;
+    assert!(
+        !default_view.contains(&format!(r#"<a href="{test_page}">"#))
+            && default_view.contains("No tests."),
+        "{default_view}"
+    );
+    let excluded_view = text("/svs/tests?f=excluded%3Atrue".to_owned()).await;
+    assert!(
+        excluded_view.contains(&format!(r#"<a href="{test_page}">"#))
+            && excluded_view.contains(r#"title="no PowerShell here">excluded</span>"#),
+        "{excluded_view}"
+    );
+    let drill_excluded = text("/svs/coverage/T1059.001".to_owned()).await;
+    assert!(
+        drill_excluded.contains(&format!(r#"<td class="qa-text"><a href="{test_page}">"#))
+            && drill_excluded.contains(r#"<td class="qa-text">no PowerShell here</td>"#),
+        "{drill_excluded}"
+    );
+    let included = exclusion("include", "").await.expect("answered");
+    assert_eq!(location(&included), format!("{test_page}?done=included"));
+    let back = text(location(&included).to_owned()).await;
+    assert!(
+        back.contains("The test is included again.")
+            && back.contains("exclusion-form")
+            && back.contains(r#"<span class="badge disposition-secondary">never_run</span>"#),
+        "{back}"
     );
 
     // the worklist's resolutions: one row from the signature's page, with what the page showed
@@ -18486,8 +18677,9 @@ async fn the_svs_coverage_pages_need_run_read_then_run_manage() {
         .await
         .expect("answered");
     assert_eq!(location(&undecided), format!("{test_page}?done=undecide"));
-    // settings set and cleared; kept, reopened, removed in bulk, kept in bulk; undecided
-    assert_eq!(svs_writes().await, audit + 7);
+    // settings set and cleared; excluded and included; kept, reopened, removed in bulk, kept in bulk;
+    // undecided
+    assert_eq!(svs_writes().await, audit + 9);
     assert_eq!(last_action(&stack).await, "remove_svs_expectation");
 }
 
@@ -20022,8 +20214,8 @@ async fn each_seeded_screen_shows_ace3_s_quick_filters_once() {
             "/svs/tests",
             FilterScreen::SvsTests,
             vec![badge(
-                "/svs/tests?f=removed%3Afalse",
-                "Tests still in their repository",
+                "/svs/tests?f=removed%3Afalse&#38;f=excluded%3Afalse",
+                "Tests still in their repository and not excluded",
                 "In the catalog",
             )],
         ),

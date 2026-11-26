@@ -315,12 +315,13 @@
 //! | `PUT`, `DELETE /tests/{guid}/expectations/{platform}/{signature_uuid}` | the same under `/api/svs/v1`, audited |
 //! | `PUT`, `DELETE /tests/{guid}/ignores/{signature_uuid}` | the same under `/api/svs/v1`, audited |
 //! | `GET`, `PUT`, `DELETE /tests/{guid}/settings` | the same under `/api/svs/v1`, the writes audited |
+//! | `GET`, `PUT`, `DELETE /tests/{guid}/exclusion` | the same under `/api/svs/v1`, the writes audited (batch 10) |
 //!
 //! What differs: a page is its rows under their own name and `next`; a refused parameter or decision is 400
 //! where ace3's is 422; an export is one operation with `csv` or `ndjson` as its last segment, at ace3's
 //! two URLs; a write's `If-Match` and `If-None-Match: *` (`aceapi_v2/svs/preconditions.py`) are taken as
 //! in ace3, and a 412's body is `{"error": ...}`, where ace3's carries the row as it is now; who did
-//! something is an actor, so a key that belongs to nobody decides, where ace3 refuses it, but can't
+//! something is an actor, so a key that belongs to nobody decides and excludes, where ace3 refuses it, but can't
 //! comment, as in ace3. Batch 7a's association routes (what SVS makes of an alert, and a person's
 //! associate, disassociate, not a test and keep, from the run's side and the alert's) are `svs_association`'s,
 //! whose docs map them. Batch 7b's (a run's alerts, a person's bulk actions under `/runs/bulk/*`, review
@@ -1164,6 +1165,13 @@ impl Web {
                     .layer(json_limit),
             )
             .route(
+                "/api/svs/v1/tests/{guid}/exclusion",
+                get(svs_decisions::exclusion)
+                    .put(svs_decisions::set_exclusion)
+                    .delete(svs_decisions::remove_exclusion)
+                    .layer(json_limit),
+            )
+            .route(
                 "/api/svs/v1/test-hosts/export/{format}",
                 get(svs_runs::export_test_hosts),
             )
@@ -1617,6 +1625,9 @@ impl Web {
         svs_decisions::settings,
         svs_decisions::set_settings,
         svs_decisions::remove_settings,
+        svs_decisions::exclusion,
+        svs_decisions::set_exclusion,
+        svs_decisions::remove_exclusion,
         svs_runs::test_hosts,
         svs_runs::export_test_hosts,
         svs_runs::create_test_host,

@@ -350,12 +350,13 @@ pub use svs_catalog::{
 pub use svs_coverage::{
     CoverageHistoryCounts, CoverageHistoryPage, CoverageHistoryQuery, CoveragePage, CoverageQuery,
     CoverageRefresh, CoverageRow, CoverageSnapshot, CoverageSnapshotRow, CoverageSummary,
-    CoverageTestRow, HistoryGroup, MAX_COVERAGE_PAGE, MAX_HISTORY_PERIODS, ManualSignature,
-    MeasuredSignature, PeriodCounts, PlatformCounts, RemovedTest, TechniqueCoverage,
+    CoverageTestRow, ExcludedTest, HistoryGroup, MAX_COVERAGE_PAGE, MAX_HISTORY_PERIODS,
+    ManualSignature, MeasuredSignature, PeriodCounts, PlatformCounts, RemovedTest,
+    TechniqueCoverage,
 };
 pub use svs_decisions::{
     Expectation, ExpectationPage, ExpectationQuery, ExpectationState, Ignore, IgnorePage,
-    IgnoreQuery, MAX_DECISION_REASON, MAX_DECISIONS_PAGE, TestSettings,
+    IgnoreQuery, MAX_DECISION_REASON, MAX_DECISIONS_PAGE, TestExclusion, TestSettings,
 };
 pub use svs_results::ComputedResult;
 pub use svs_review::{

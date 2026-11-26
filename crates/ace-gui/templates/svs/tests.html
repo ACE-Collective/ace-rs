@@ -24,7 +24,7 @@
         <td><a href="{{ row.technique_href }}">{{ row.technique }}</a></td>
         <td class="qa-text"><a href="{{ row.href }}">{{ row.name }}</a>{% if row.removed %} <span class="muted">removed</span>{% endif %}</td>
         <td>{{ row.platforms }}</td>
-        <td><span class="badge disposition-{{ row.state_class }}">{{ row.state }}</span></td>
+        <td><span class="badge disposition-{{ row.state_class }}"{% if !row.exclusion_reason.is_empty() %} title="{{ row.exclusion_reason }}"{% endif %}>{{ row.state }}</span></td>
         <td class="num">{% if row.runs > 0 %}{{ row.runs }}{% endif %}</td>
         <td class="nowrap">{% if let Some(run) = row.last_run %}<a href="{{ run.href }}">{{ run.text }}</a>{% endif %}</td>
         <td class="nowrap">{% if let Some(run) = row.last_reviewed %}<a href="{{ run.href }}">{{ run.text }}</a>{% endif %}</td>

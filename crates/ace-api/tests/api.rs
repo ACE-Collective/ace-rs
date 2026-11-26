@@ -886,6 +886,7 @@ const GLOBAL_IGNORE: &str = "/api/svs/v1/ignores/global/{signature_uuid}";
 const EXPECTATION: &str = "/api/svs/v1/tests/{guid}/expectations/{platform}/{signature_uuid}";
 const TEST_IGNORE: &str = "/api/svs/v1/tests/{guid}/ignores/{signature_uuid}";
 const TEST_SETTINGS: &str = "/api/svs/v1/tests/{guid}/settings";
+const TEST_EXCLUSION: &str = "/api/svs/v1/tests/{guid}/exclusion";
 const TEST_HOSTS_EXPORT: &str = "/api/svs/v1/test-hosts/export/{format}";
 const COLLECTIONS_CSV: &str = "/api/file-collections/v1/collections/export/csv";
 const COLLECTIONS_NDJSON: &str = "/api/file-collections/v1/collections/export/ndjson";
@@ -1047,6 +1048,7 @@ fn good_body(route: &str) -> Send {
             "rows": [{"signature_uuid": "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f", "technique": "T1059"}],
         })),
         TEST_IGNORE | GLOBAL_IGNORE | TEST_SETTINGS => Send::Json(json!({})),
+        TEST_EXCLUSION => Send::Json(json!({"reason": "refused"})),
         TEST_HOSTS | TEST_HOST => Send::Json(json!({"hostname": "refused"})),
         MAINTENANCE => Send::Json(json!({"minutes": 30, "reason": "refused"})),
         TARGETS => Send::Json(json!({"observables": [{"type": "test", "value": "SUCCESS"}]})),
@@ -1084,7 +1086,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 252, "{routes:?}");
+    assert_eq!(routes.len(), 255, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -14268,7 +14270,8 @@ async fn svs_catalog(client: &mut Client<'_>) {
         Some(
             "guid,repository,technique,technique_name,name,platforms,executor,path,commit,content_hash,\
              first_seen_at,removed_at,updated_at,test_state,run_count,last_run_id,last_run_at,\
-             last_reviewed_run_id,last_reviewed_at,expected_signatures,recent_runs,recent_runs_missing"
+             last_reviewed_run_id,last_reviewed_at,expected_signatures,recent_runs,recent_runs_missing,\
+             excluded_at,excluded_by,exclusion_reason"
         )
     );
     let row = rows.next().expect("a row");
@@ -16852,6 +16855,207 @@ async fn svs_run_reads(client: &mut Client<'_>) {
             )
             .await;
     }
+
+    // TestExclusions (tests/aceapi_v2/svs/test_expectations.py, batch 10):
+    // test_exclude_read_replace_and_bring_back, test_errors and test_permissions' exclusion lines
+    let exclusion = TEST_EXCLUSION.replace("{guid}", &guid.to_string());
+    let unknown = TEST_EXCLUSION.replace("{guid}", &nowhere);
+    client
+        .json(
+            M::GET,
+            TEST_EXCLUSION,
+            &exclusion,
+            r,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    for body in [
+        json!({}),
+        json!({"reason": ""}),
+        json!({"reason": "   "}),
+        json!({"reason": "x".repeat(4097)}),
+        json!({"reason": "x", "why": "y"}),
+    ] {
+        client
+            .json(
+                M::PUT,
+                TEST_EXCLUSION,
+                &exclusion,
+                m,
+                Send::Json(body),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    // a reader can't exclude
+    client
+        .json(
+            M::PUT,
+            TEST_EXCLUSION,
+            &exclusion,
+            r,
+            Send::Json(json!({"reason": "x"})),
+            S::FORBIDDEN,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            TEST_EXCLUSION,
+            &exclusion,
+            m,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            TEST_EXCLUSION,
+            &unknown,
+            m,
+            Send::Json(json!({"reason": "x"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    let first = client
+        .json(
+            M::PUT,
+            TEST_EXCLUSION,
+            &exclusion,
+            m,
+            Send::Json(json!({"reason": "  no PowerShell on our endpoints "})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &first["test_guid"],
+            &first["reason"],
+            &first["excluded_by"]["kind"]
+        ),
+        (
+            &json!(guid),
+            &json!("no PowerShell on our endpoints"),
+            &json!("api_key")
+        )
+    );
+    let read = client
+        .json(M::GET, TEST_EXCLUSION, &exclusion, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(read, first);
+    let detail = client
+        .json(
+            M::GET,
+            CATALOG_TEST,
+            &CATALOG_TEST.replace("{guid}", &guid.to_string()),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &detail["test_state"],
+            &detail["exclusion_reason"],
+            &detail["excluded_at"],
+            &detail["excluded_by"]
+        ),
+        (
+            &json!("excluded"),
+            &json!("no PowerShell on our endpoints"),
+            &first["excluded_at"],
+            &first["excluded_by"]
+        )
+    );
+    // test_catalog.py's export of an excluded test carries its reason
+    let exported = client
+        .call(
+            M::GET,
+            CATALOG_TESTS_CSV,
+            &format!("{CATALOG_TESTS_CSV}?f=excluded%3Atrue"),
+            r,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(exported.status(), S::OK);
+    let exported = exported.text().await.expect("a body");
+    let rows: Vec<&str> = exported.lines().collect();
+    assert_eq!(rows.len(), 2, "{exported}");
+    assert!(
+        rows[1].starts_with(&guid.to_string())
+            && rows[1].ends_with(",no PowerShell on our endpoints"),
+        "{exported}"
+    );
+    // registering a run of it is refused with who, when and why, and a dry run says the same
+    for route in [RUNS, RUNS_VALIDATE] {
+        let refused = client
+            .call(
+                M::POST,
+                route,
+                route,
+                l,
+                Send::Json(json!({
+                    "test_guid": guid, "targets": [{"hostname": "feed-1"}], "launcher": "feedart",
+                })),
+            )
+            .await;
+        let status = refused.status();
+        let body: Value = refused.json().await.expect("a body");
+        let said = body.to_string();
+        assert!(
+            said.contains(&format!("test {guid} is excluded from SVS: "))
+                && said.contains(" UTC: no PowerShell on our endpoints"),
+            "{route} {status} {said}"
+        );
+        if route == RUNS {
+            assert_eq!(status, S::BAD_REQUEST, "{said}");
+        }
+    }
+    // excluding it again replaces why; bringing it back is once
+    let replaced = client
+        .json(
+            M::PUT,
+            TEST_EXCLUSION,
+            &exclusion,
+            m,
+            Send::Json(json!({"reason": "retired software"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(replaced["reason"], json!("retired software"));
+    let removed = client
+        .call(M::DELETE, TEST_EXCLUSION, &exclusion, m, Send::Nothing)
+        .await;
+    assert_eq!(removed.status(), S::NO_CONTENT);
+    for path in [&exclusion, &unknown] {
+        client
+            .json(
+                M::DELETE,
+                TEST_EXCLUSION,
+                path,
+                m,
+                Send::Nothing,
+                S::NOT_FOUND,
+            )
+            .await;
+    }
+    let back = client
+        .json(
+            M::GET,
+            CATALOG_TEST,
+            &CATALOG_TEST.replace("{guid}", &guid.to_string()),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&back["excluded_at"], &back["exclusion_reason"]),
+        (&Value::Null, &Value::Null)
+    );
+    assert_ne!(back["test_state"], json!("excluded"));
 
     // test_test_hosts.py: test_the_listing_pages_by_hostname
     let hosts = client
@@ -20207,7 +20411,7 @@ async fn a_key_scoped_to_the_ai_api_reaches_nothing_else() {
         );
         checked += 1;
     }
-    assert_eq!(checked, 248, "every other route was swept");
+    assert_eq!(checked, 251, "every other route was swept");
     assert_eq!(
         (audit_count(&stack).await, root_count(&stack).await),
         before,

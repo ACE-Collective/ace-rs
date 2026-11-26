@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT test_guid, reason, excluded_by AS \"excluded_by!: Value\", excluded_at, updated_at\n           FROM svs.test_exclusions WHERE test_guid = ANY ($1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "test_guid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.test_exclusions",
+            "name": "test_guid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.test_exclusions",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "excluded_by!: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.test_exclusions",
+            "name": "excluded_by"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "excluded_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.test_exclusions",
+            "name": "excluded_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.test_exclusions",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ec46695d0be347d5651487a508c8ea90dd248e8c1adbad5f5d4af1d7836486fa"
+}
