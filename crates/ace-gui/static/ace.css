@@ -2364,6 +2364,7 @@ a.pivot img {
 }
 
 .commonality-menu-items > button,
+.commonality-menu-items > form > button,
 .commonality-menu-items > a,
 .commonality-menu-items > span {
   display: block;
@@ -2381,6 +2382,7 @@ a.pivot img {
 }
 
 .commonality-menu-items > button:hover,
+.commonality-menu-items > form > button:hover,
 .commonality-menu-items > a:hover {
   background: var(--accent-soft);
 }
@@ -2530,8 +2532,18 @@ a.pivot img {
   margin: var(--space-1) 0 var(--space-2);
 }
 
+.commonality-unignore,
+.commonality-hide {
+  min-height: 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font-weight: 400;
+  cursor: pointer;
+}
+
 .commonality-unignore {
-  text-decoration: none;
   margin-right: var(--space-2);
 }
 

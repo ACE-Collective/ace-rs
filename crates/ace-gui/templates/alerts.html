@@ -126,8 +126,8 @@
 
   {% include "column_chooser.html" %}
   {#- shows and hides the Commonalities panel (PLAN.md 7.23), above the list -#}
-  <a class="button commonalities-toggle{% if view.commonalities %} active{% endif %}" href="{{ view.commonalities_toggle }}"
-     title="Show which alerts on this page are potentially related: the observables they have in common">{% if view.commonalities %}Hide commonalities{% else %}Commonalities{% endif %}</a>
+  <form method="post" action="/preferences/alert-commonalities" class="inline"><input type="hidden" name="next" value="{{ view.commonalities_toggle }}"><button type="submit" class="commonalities-toggle{% if view.commonalities %} active{% endif %}"
+     title="Show which alerts on this page are potentially related: the observables they have in common">{% if view.commonalities %}Hide commonalities{% else %}Commonalities{% endif %}</button></form>
   <span class="exports">Export: <a href="{{ view.export_csv }}">CSV</a> <a href="{{ view.export_ndjson }}">NDJSON</a></span>
   </div>
 

@@ -113,8 +113,9 @@
 //! the refresh, as in ace3.
 //!
 //! The Commonalities panel (PLAN.md 7.23) is `crate::commonalities`: the list's URL shows it, or else the
-//! viewer's `alert_commonalities` preference, which a page the URL changes it on keeps (decision 72), and
-//! the page and its refresh draw it above the table.
+//! viewer's `alert_commonalities` preference, which only the panel's own controls write, each a
+//! same-origin post (`POST /preferences/alert-commonalities`, decision 72), and the page and its refresh
+//! draw it above the table.
 //!
 //! ace3's search box is the form above the filters, which asks `crate::search`'s page with the list's
 //! filters (PLAN.md 7.11). What ace3's page has that this leaves out: the remediation column and the
@@ -1155,18 +1156,13 @@ pub(crate) async fn viewer_tz(gui: &Gui, viewer: &SignedIn) -> Tz {
 }
 
 /// The Commonalities panel's state for this view (PLAN.md decision 72): the URL's when it says one,
-/// else the viewer's `alert_commonalities` preference, as ace3's script reads its browser storage. With
-/// `keep`, the page's own draw, a state the URL says that isn't the stored one is stored, so the next
-/// visit starts with it; the refresh keeps nothing. A preference that can't be read or stored is logged
-/// and the URL's state, or the default, applies.
-pub(crate) async fn with_panel_preference(
-    gui: &Gui,
-    viewer: &SignedIn,
-    query: &mut ListQuery,
-    keep: bool,
-) {
+/// else the viewer's `alert_commonalities` preference, as ace3's script reads its browser storage. It
+/// only reads: a URL's state holds for that view, and only the panel's own controls store one
+/// ([`set_commonalities`]), so a link from elsewhere can't change what an analyst's next visit starts
+/// with. A preference that can't be read is logged and the default applies.
+pub(crate) async fn with_panel_preference(gui: &Gui, viewer: &SignedIn, query: &mut ListQuery) {
     let actor = &viewer.actor;
-    let mut saved = gui
+    let saved = gui
         .service
         .commonalities_preference(actor)
         .await
@@ -1174,32 +1170,75 @@ pub(crate) async fn with_panel_preference(
             tracing::warn!(%actor, "reading alert_commonalities failed, so the list has the default: {error}");
             ace_service::CommonalitiesPreference::default()
         });
-    if query.panel_from_url {
-        let said = ace_service::CommonalitiesPreference {
-            shown: query.commonalities,
-            ignore: query.ignore.clone(),
-        }
-        .normalized();
-        if keep && said != saved && matches!(actor, ace_service::Actor::User { .. }) {
-            match gui
-                .service
-                .set_preference(
-                    actor,
-                    &ace_service::PreferenceValue::AlertCommonalities(said.clone()),
-                )
-                .await
-            {
-                Ok(_) => saved = said,
-                Err(error) => {
-                    tracing::warn!(%actor, "storing alert_commonalities failed, so the next visit starts as before: {error}");
-                }
-            }
-        }
-    } else {
+    if !query.panel_from_url {
         query.commonalities = saved.shown;
         query.ignore = saved.ignore.clone();
     }
     query.panel_saved = !saved.is_default();
+}
+
+/// A list URL a panel control may send the viewer back to: the alert list, `/` or `/?...`, as text a
+/// link holds. Its query is checked as the list's own when it's parsed.
+fn list_url(next: &str) -> bool {
+    (next == "/" || next.starts_with("/?")) && next.bytes().all(|byte| byte.is_ascii_graphic())
+}
+
+/// `POST /preferences/alert-commonalities`: one of the Commonalities panel's own controls (show, hide,
+/// ignore a value, group by it again), as ace3's script writes its browser storage. `next` is the list
+/// URL the control leads to; the shown and ignored it says become the viewer's `alert_commonalities`
+/// preference, so the next visit starts with them, and the answer is a redirect to it. Storing what is
+/// stored already writes nothing. A state the preference refuses, such as an over-long value, is
+/// logged and holds for the URL alone.
+pub(crate) async fn set_commonalities(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    body: Bytes,
+) -> Response {
+    let form = pairs(&body);
+    let Some(next) = one(&form, "next").filter(|next| list_url(next)) else {
+        return Failure::new(
+            StatusCode::BAD_REQUEST,
+            "next is a link to the alert list.",
+            &parts,
+        )
+        .into_response();
+    };
+    let query = next.split_once('?').map_or("", |(_, query)| query);
+    let query = match ListQuery::parse(&pairs(query.as_bytes())) {
+        Ok(parsed) if parsed.error.is_none() && parsed.query.panel_from_url => parsed.query,
+        _ => {
+            return Failure::new(
+                StatusCode::BAD_REQUEST,
+                "next is a list link that says the panel's state.",
+                &parts,
+            )
+            .into_response();
+        }
+    };
+    let actor = &viewer.actor;
+    if matches!(actor, ace_service::Actor::User { .. }) {
+        let said = ace_service::CommonalitiesPreference {
+            shown: query.commonalities,
+            ignore: query.ignore,
+        }
+        .normalized();
+        let saved = match gui.service.commonalities_preference(actor).await {
+            Ok(saved) => saved,
+            Err(error) => return Failure::from_service(error, &parts).into_response(),
+        };
+        if said != saved {
+            let value = PreferenceValue::AlertCommonalities(said);
+            match gui.service.set_preference(actor, &value).await {
+                Ok(_) => {}
+                Err(ServiceError::InvalidRequest(why)) => {
+                    tracing::warn!(%actor, "alert_commonalities can't keep this state, so it holds for the link alone: {why}");
+                }
+                Err(error) => return Failure::from_service(error, &parts).into_response(),
+            }
+        }
+    }
+    see_other(next, None)
 }
 
 /// `GET /`.
@@ -1218,7 +1257,7 @@ pub(crate) async fn page(
         return see_other(&parsed.query.at("/"), None);
     }
     let mut query = parsed.query;
-    with_panel_preference(&gui, &viewer, &mut query, true).await;
+    with_panel_preference(&gui, &viewer, &mut query).await;
     let tz = viewer_tz(&gui, &viewer).await;
     let actor = &viewer.actor;
     let listed = gui
@@ -1311,7 +1350,7 @@ pub(crate) async fn refresh(
         Ok(parsed) if parsed.error.is_none() && !parsed.added => parsed.query,
         _ => return StatusCode::BAD_REQUEST.into_response(),
     };
-    with_panel_preference(&gui, &viewer, &mut query, false).await;
+    with_panel_preference(&gui, &viewer, &mut query).await;
     let tz = viewer_tz(&gui, &viewer).await;
     let actor = &viewer.actor;
     let listed = gui

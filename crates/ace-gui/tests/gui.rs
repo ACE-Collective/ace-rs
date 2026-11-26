@@ -23470,8 +23470,10 @@ fn the_commonalities_panel_draws_a_page_s_groups() {
         .and_then(|rest| rest.split("</section>").next())
         .expect("the panel");
     assert!(!grid.contains(&ids[4].to_string()), "{grid}");
-    // the links: ignore it, filter it out under both its types, show every column
+    // the links, and the links the panel's forms post: ignore it, filter it out under both its types,
+    // show every column
     let links: Vec<String> = html
+        .replace(r#"name="next" value=""#, "href=\"")
         .split("href=\"")
         .skip(1)
         .filter_map(|rest| rest.split('"').next())
@@ -23607,7 +23609,10 @@ async fn the_list_shows_which_alerts_potentially_relate() {
     let plain = get("/").await;
     assert!(plain.contains("commonalities-toggle"), "{plain}");
     assert!(!plain.contains("commonality-panel"), "{plain}");
-    assert!(plain.contains(r#"href="/?common=1""#), "{plain}");
+    assert!(
+        plain.contains(r#"<input type="hidden" name="next" value="/?common=1">"#),
+        "{plain}"
+    );
 
     let shown = get("/?common=1").await;
     assert!(inline_free(&shown), "{shown}");
@@ -23646,9 +23651,9 @@ async fn the_list_shows_which_alerts_potentially_relate() {
     assert!(refreshed.contains("commonality-panel"), "{refreshed}");
     assert!(!refreshed.contains("commonalities-toggle"), "{refreshed}");
     assert!(refreshed.contains("potentially related to 1 alert"));
-    // the page with common=1 kept it as the viewer's (PLAN.md decision 72): a URL without it shows it
+    // a GET with common=1 kept nothing (PLAN.md decision 72): a URL without it doesn't show it
     let kept = get("/alerts/list").await;
-    assert!(kept.contains("commonality-panel"), "{kept}");
+    assert!(!kept.contains("commonality-panel"), "{kept}");
     let unshown = get("/alerts/list?common=0").await;
     assert!(!unshown.contains("commonality-panel"), "{unshown}");
     assert!(!unshown.contains("potentially related"), "{unshown}");
@@ -24159,9 +24164,11 @@ again</li></ul>"#
 }
 
 /// PLAN.md decision 72 as amended: the Commonalities panel's shown and ignored are the analyst's
-/// `alert_commonalities` preference, as ace3 keeps them in the browser's storage. A page whose URL says
-/// them keeps them; a URL that says nothing takes them, and its links carry them; the URL still wins,
-/// `common=0` among it; the refresh keeps nothing; and another analyst has their own.
+/// `alert_commonalities` preference, as ace3 keeps them in the browser's storage, and only the panel's own
+/// controls store them, each a same-origin post. A GET whose URL says them, as a link from another site
+/// can, holds for that view and writes nothing; a URL that says nothing takes the stored state, and its
+/// links carry it; the URL still wins, `common=0` among it; the refresh keeps nothing; and another
+/// analyst has their own.
 #[tokio::test]
 async fn the_commonalities_panel_is_kept_across_visits() {
     let stack = stack().await;
@@ -24183,6 +24190,12 @@ async fn the_commonalities_panel_is_kept_across_visits() {
             response.text().await.expect("a page")
         }
     };
+    let keep = |session: &str, next: &str| {
+        stack
+            .post("/preferences/alert-commonalities", &[("next", next)])
+            .header("cookie", cookie(session))
+            .send()
+    };
     let stored = || async {
         stack
             .service
@@ -24190,19 +24203,35 @@ async fn the_commonalities_panel_is_kept_across_visits() {
             .await
             .expect("reads")
     };
+    let control = |next: &str| {
+        format!(
+            r#"<form method="post" action="/preferences/alert-commonalities" class="inline"><input type="hidden" name="next" value="{next}">"#
+        )
+    };
 
-    // a fresh visit starts hidden, and its links say nothing of the panel
+    // a fresh visit starts hidden, and the panel's toggle posts the link that shows it
     let plain = get(&alices, "/").await;
     assert!(!plain.contains("commonality-panel"), "{plain}");
-    assert!(plain.contains(r#"href="/?common=1""#), "{plain}");
+    assert!(plain.contains(&control("/?common=1")), "{plain}");
 
-    // a page that shows it with an ignored value keeps both
+    // a GET that says the state, as a link from anywhere can, shows it for that view and stores nothing
     let audits = stack.audit_count().await;
-    let shown = get(&alices, "/?common=1&ignore=user%3Ajdoe").await;
+    let linked = get(&alices, "/?common=1&ignore=user%3Ajdoe").await;
     assert!(
-        shown.contains(r#"<section id="commonality-panel""#),
-        "{shown}"
+        linked.contains(r#"<section id="commonality-panel""#),
+        "{linked}"
     );
+    assert_eq!(stack.audit_count().await, audits, "a GET writes nothing");
+    assert!(stored().await.is_default());
+    let after_link = get(&alices, "/").await;
+    assert!(!after_link.contains("commonality-panel"), "{after_link}");
+
+    // the panel's own control keeps it: a same-origin post of the link it leads to
+    let kept = keep(&alices, "/?common=1&ignore=user%3Ajdoe")
+        .await
+        .expect("answered");
+    assert_eq!(kept.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&kept), "/?common=1&ignore=user%3Ajdoe");
     assert_eq!(
         stack.audit_count().await,
         audits + 1,
@@ -24216,7 +24245,34 @@ async fn the_commonalities_panel_is_kept_across_visits() {
         }
     );
     // the same again keeps nothing new
-    get(&alices, "/?common=1&ignore=user%3Ajdoe").await;
+    keep(&alices, "/?common=1&ignore=user%3Ajdoe")
+        .await
+        .expect("answered");
+    assert_eq!(stack.audit_count().await, audits + 1);
+    // from another site it's refused, and a link that isn't the list's, or says nothing of the panel, too
+    let cross_site = stack
+        .http
+        .post(format!("{}/preferences/alert-commonalities", stack.url))
+        .header("cookie", cookie(&alices))
+        .header("origin", "http://evil.example")
+        .form(&[("next", "/?common=0")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross_site.status(), StatusCode::FORBIDDEN);
+    for next in [
+        "https://evil.example/?common=0",
+        "/admin?common=0",
+        "/?sort=title",
+        "/?common=2",
+        "",
+    ] {
+        assert_eq!(
+            keep(&alices, next).await.expect("answered").status(),
+            StatusCode::BAD_REQUEST,
+            "{next}"
+        );
+    }
     assert_eq!(stack.audit_count().await, audits + 1);
 
     // the next visit, and the refresh, start from it; the refresh writes nothing
@@ -24226,38 +24282,47 @@ async fn the_commonalities_panel_is_kept_across_visits() {
         "{again}"
     );
     assert!(again.contains("common=1&#38;ignore=user%3Ajdoe"), "{again}");
+    // its ignored value's ✕ posts the link that groups by it again
+    assert!(again.contains(&control("/?common=1")), "{again}");
     let refreshed = get(&alices, "/alerts/list").await;
     assert!(refreshed.contains("commonality-panel"), "{refreshed}");
     let refreshed = get(&alices, "/alerts/list?common=0").await;
     assert!(!refreshed.contains("commonality-panel"), "{refreshed}");
+    // a GET that hides it holds for its view alone
+    let hidden_view = get(&alices, "/?common=0").await;
+    assert!(!hidden_view.contains("commonality-panel"), "{hidden_view}");
     assert_eq!(
         stack.audit_count().await,
         audits + 1,
-        "a refresh keeps nothing"
+        "neither a refresh nor a GET keeps anything"
     );
+    assert!(!stored().await.is_default());
 
     // bob has his own
     let bobs_page = get(&bobs, "/").await;
     assert!(!bobs_page.contains("commonality-panel"), "{bobs_page}");
 
-    // hiding it says so in the link, since the stored state would show it, and is kept
+    // hiding says so in the link it posts, since the stored state would show it, and is kept
     assert!(
-        again.contains(r#"href="/?common=0&#38;ignore=user%3Ajdoe""#),
+        again.contains(&control("/?common=0&#38;ignore=user%3Ajdoe")),
         "{again}"
     );
-    let hidden = get(&alices, "/?common=0").await;
-    assert!(!hidden.contains("commonality-panel"), "{hidden}");
+    let hid = keep(&alices, "/?common=0").await.expect("answered");
+    assert_eq!(location(&hid), "/?common=0");
     assert!(stored().await.is_default());
-    assert!(hidden.contains(r#"href="/?common=1""#), "{hidden}");
     let after = get(&alices, "/").await;
     assert!(!after.contains("commonality-panel"), "{after}");
+    assert!(after.contains(&control("/?common=1")), "{after}");
 
-    // a value the preference can't keep is the URL's alone, and the page still draws
+    // a value the preference can't keep is the link's alone: the post still leads to it
     let long = format!(
         "fqdn%3A{}",
         "x".repeat(ace_service::MAX_IGNORE_SPEC_CHARS + 1)
     );
-    let page = get(&alices, &format!("/?common=1&ignore={long}")).await;
+    let next = format!("/?common=1&ignore={long}");
+    let refused = keep(&alices, &next).await.expect("answered");
+    assert_eq!(location(&refused), next);
+    let page = get(&alices, &next).await;
     assert!(page.contains("commonality-panel"), "{page}");
     assert!(stored().await.is_default());
 }

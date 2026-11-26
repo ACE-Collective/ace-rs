@@ -362,6 +362,10 @@ impl Gui {
             .route("/filters/saved/{id}/quick", post(saved_filters::pin_filter))
             .route("/filters/saved/{id}/move", post(saved_filters::move_filter))
             .route("/preferences/manage-columns", post(list::set_columns))
+            .route(
+                "/preferences/alert-commonalities",
+                post(list::set_commonalities),
+            )
             .route("/login", get(auth::login_page).post(auth::login))
             .route("/logout", post(auth::logout))
             .route(

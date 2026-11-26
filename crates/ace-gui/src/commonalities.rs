@@ -8,9 +8,11 @@
 //! `common=1` shows it and `common=0` hides it, `ignore=type:value` leaves a value out of the grouping,
 //! and `expand=<key>` shows every column of a group, keyed by the group's least alert id, which stays its
 //! key while that alert is in it. Every link of the list carries them. A URL that says neither `common`
-//! nor `ignore` takes shown and ignored from the viewer's `alert_commonalities` preference, which the
-//! page keeps whenever its URL says otherwise (`list::with_panel_preference`), as ace3 keeps them in the
-//! browser's storage.
+//! nor `ignore` takes shown and ignored from the viewer's `alert_commonalities` preference
+//! (`list::with_panel_preference`), as ace3 keeps them in the browser's storage. Only the panel's own
+//! controls (show and hide, ignore a value, group by it again) store it: each is a form that posts the
+//! link it leads to (`list::set_commonalities`), so a URL with `common` or `ignore` holds for its view
+//! without changing the analyst's next visit.
 //!
 //! What it does, as ace3's: each group's head says how many alerts are in it and whether they are
 //! near-identical, and what links it to other groups; its box ticks or unticks its alerts for the bulk

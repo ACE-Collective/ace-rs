@@ -1,17 +1,19 @@
 {#- The alert list's Commonalities panel (PLAN.md 7.23, src/commonalities.rs), ace3's manage_commonalities.js
     grid, in the list's fragment so the refresh draws it again. A group's box and a value's Select fold the
     ids in their data-ids, which the server writes as JSON of uuids, into $_sel, the list's ticked ids; the
-    expressions hold no other value. Every other control is a link. -#}
+    expressions hold no other value. Showing, hiding, ignoring and grouping by again are forms that post the
+    link they lead to to /preferences/alert-commonalities, which stores the panel's state for the analyst's
+    next visit (decision 72); expanding and Filter out are links, which store nothing. -#}
 <section id="commonality-panel" class="commonality-panel" aria-label="Commonalities">
   <header class="commonality-head">
     <h2>Commonalities on this page{% if panel.error.is_none() && !panel.empty_page %} <span class="count">{{ panel.groups.len() }} group{% if panel.groups.len() != 1 %}s{% endif %}</span>{% endif %}</h2>
-    <a href="{{ panel.hide }}">Hide</a>
+    <form method="post" action="/preferences/alert-commonalities" class="inline"><input type="hidden" name="next" value="{{ panel.hide }}"><button type="submit" class="commonality-hide">Hide</button></form>
   </header>
   {%- if !panel.ignored.is_empty() %}
   <div class="commonality-ignored">
     <span class="muted">Ignored when grouping ({{ panel.ignored.len() }} of {{ panel.max_ignored }}):</span>
     {%- for (chip, href) in panel.ignored %}
-    <span class="commonality-chip hue-{{ chip.hue }}" title="{{ chip.title }}"><span class="commonality-chip-type">{{ chip.label }}</span><span class="commonality-chip-value">{{ chip.value }}</span></span><a class="commonality-unignore" href="{{ href }}" title="Group by it again" aria-label="Group by it again">✕</a>
+    <span class="commonality-chip hue-{{ chip.hue }}" title="{{ chip.title }}"><span class="commonality-chip-type">{{ chip.label }}</span><span class="commonality-chip-value">{{ chip.value }}</span></span><form method="post" action="/preferences/alert-commonalities" class="inline"><input type="hidden" name="next" value="{{ href }}"><button type="submit" class="commonality-unignore" title="Group by it again" aria-label="Group by it again">✕</button></form>
     {%- endfor %}
   </div>
   {%- endif %}
@@ -40,7 +42,7 @@
                   <button type="button" data-ids="{{ value.ids }}"
                           data-on:click="$_sel = $_sel.filter(id => !JSON.parse(el.dataset.ids).includes(id)).concat(JSON.parse(el.dataset.ids))">Select the {{ value.count }} alert{% if value.count != 1 %}s{% endif %} that have it</button>
                   {%- if let Some(href) = value.ignore %}
-                  <a href="{{ href }}">Ignore it when grouping<small>The alerts stay in the list. They just aren't grouped by this observable any more.</small></a>
+                  <form method="post" action="/preferences/alert-commonalities"><input type="hidden" name="next" value="{{ href }}"><button type="submit">Ignore it when grouping<small>The alerts stay in the list. They just aren't grouped by this observable any more.</small></button></form>
                   {%- else %}
                   <span class="muted">Not ignored: at most {{ panel.max_ignored }} can be. Group by one of those ignored again (✕) to make room.</span>
                   {%- endif %}
