@@ -61,25 +61,72 @@
       },
       "tags": {}
     },
-    "file:0df700dbf8de709b8d624e2a83ed6af499919ab7e964fe663fc17b6400ebd814": {
+    "file:11ee2dbddf91a3d0417abe9f59e5fa96036265e7006567de5ca821feac7a6233": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "extract_urls": true
+      },
       "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
+        "pdf_analyzer": true
       },
       "paths": {
-        "sample_pdf_with_qr_code.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
+        "sample_pdf_with_qr_code.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
         }
       },
+      "redirection": "file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110",
       "relationships": {
         "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
       },
       "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 3 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 3 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "b60b35c50f42e1caee28c50671a46ea7afe8316ee78036e70adaf43ee8ba212d",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": "https://sever.emmetcrcs.org/#",
+            "inverted": false
+          },
+          "summary": "QR Code Analysis: https://sever.emmetcrcs.org/#",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -92,7 +139,9 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "pdf": true
+      }
     },
     "file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": {
       "detections": {},
@@ -111,8 +160,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 12:00:09+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 12:00:09+00:00",
+              "File:FileAccessDate": "2026:11:26 23:13:04+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:13:04+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "sample_pdf_with_qr_code.pdf",
               "File:FilePermissions": 100644,
@@ -276,8 +325,8 @@
         }
       },
       "relationships": {
-        "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true,
-        "extracted_from file:c8d613edc499640eac940f9995bda053f035f472016e95266ee041e533f4d713": true
+        "extracted_from file:11ee2dbddf91a3d0417abe9f59e5fa96036265e7006567de5ca821feac7a6233": true,
+        "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
       },
       "results": {
         "file_type": {
@@ -403,9 +452,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:c8d613edc499640eac940f9995bda053f035f472016e95266ee041e533f4d713",
+      "redirection": "file:11ee2dbddf91a3d0417abe9f59e5fa96036265e7006567de5ca821feac7a6233",
       "relationships": {
-        "extracted_from file:c8d613edc499640eac940f9995bda053f035f472016e95266ee041e533f4d713": true
+        "extracted_from file:11ee2dbddf91a3d0417abe9f59e5fa96036265e7006567de5ca821feac7a6233": true
       },
       "results": {
         "file_type": {
@@ -444,72 +493,25 @@
       },
       "tags": {}
     },
-    "file:c8d613edc499640eac940f9995bda053f035f472016e95266ee041e533f4d713": {
+    "file:f82fe2208f1a1cad2e4e91cd7710ec053ed8a1a3c2f62c38b4d52f56d52bad2b": {
       "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
+      "directives": {},
       "excluded_analysis": {
-        "pdf_analyzer": true
+        "file_hash_analyzer": true,
+        "file_type": true
       },
       "paths": {
-        "sample_pdf_with_qr_code.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
+        "sample_pdf_with_qr_code.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
         }
       },
-      "redirection": "file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110",
       "relationships": {
         "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
       },
       "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 3 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 3 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
         "observable_detection": {
           "details": {
             "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "b60b35c50f42e1caee28c50671a46ea7afe8316ee78036e70adaf43ee8ba212d",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": "https://sever.emmetcrcs.org/#",
-            "inverted": false
-          },
-          "summary": "QR Code Analysis: https://sever.emmetcrcs.org/#",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -522,9 +524,7 @@
           "tags": {}
         }
       },
-      "tags": {
-        "pdf": true
-      }
+      "tags": {}
     },
     "fqdn:example.com": {
       "detections": {},

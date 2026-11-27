@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -134,7 +134,7 @@
             ],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-21 14:38:34.409309 +0000",
+            "date": "2026-11-27 03:03:31.529824 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -490,41 +490,6 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 598,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "8488a3c39b8d0399b70309e48c250019e174ef30cb322855e2751e1530bb10e0"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "sender@external.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "alice@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [],
         "tags": [],
         "type": "email_conversation",
@@ -535,117 +500,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "fqdn",
-        "value": "company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_cc",
-        "value": "carol@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_cc",
-        "value": "outsider@external.example"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 72,
-        "tags": [],
-        "type": "file",
-        "value": "592af3b0c943dc7535b8a0ffbdbf95b7475f1e66ec933d8f7b2463b63b395012"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "Re: Invoices 12927-12929"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "external.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<multi-recipient-test-12345@external.example>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 672,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "47f097f12fd51dc19065770161789a17f621b1c1c131089c0cc5bdbf3b335dc9"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "bob@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "email_conversation",
-        "value": "sender@external.example|carol@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sender@external.example|dan@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_cc",
-        "value": "dan@company.com"
+        "value": "sender@external.example|outsider@external.example"
       },
       {
         "detections": [],
@@ -671,8 +527,152 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "email_to",
+        "value": "bob@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sender@external.example|carol@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Re: Invoices 12927-12929"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "sender@external.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_cc",
+        "value": "outsider@external.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sender@external.example|dan@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "alice@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "email_conversation",
         "value": "sender@external.example|alice@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_cc",
+        "value": "carol@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 72,
+        "tags": [],
+        "type": "file",
+        "value": "592af3b0c943dc7535b8a0ffbdbf95b7475f1e66ec933d8f7b2463b63b395012"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 672,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "47f097f12fd51dc19065770161789a17f621b1c1c131089c0cc5bdbf3b335dc9"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_cc",
+        "value": "dan@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<multi-recipient-test-12345@external.example>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 598,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "8488a3c39b8d0399b70309e48c250019e174ef30cb322855e2751e1530bb10e0"
       },
       {
         "detections": [],
@@ -687,8 +687,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "sender@external.example|outsider@external.example"
+        "type": "fqdn",
+        "value": "external.example"
       }
     ],
     "results": [
@@ -710,8 +710,9 @@
           "mime": "message/rfc822",
           "type": "SMTP mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 0,
+        "observable": 2,
         "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -727,8 +728,9 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 0,
+        "observable": 2,
         "summary": null,
         "tags": []
       },
@@ -740,40 +742,59 @@
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "domain": "external.example"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 1,
-        "summary": "Email Address FQDN: external.example",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 4
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
           "domain": "company.com"
         },
+        "detections": [],
         "module": "email_address_fqdn_analyzer",
-        "observable": 2,
+        "observable": 3,
         "summary": "Email Address FQDN: company.com",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 4
+            "observable": 19
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "external.example"
+        },
+        "detections": [],
+        "module": "email_address_fqdn_analyzer",
+        "observable": 6,
+        "summary": "Email Address FQDN: external.example",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 19
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "external.example"
+        },
+        "detections": [],
+        "module": "email_address_fqdn_analyzer",
+        "observable": 7,
+        "summary": "Email Address FQDN: external.example",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 9
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
           "domain": "company.com"
         },
+        "detections": [],
         "module": "email_address_fqdn_analyzer",
-        "observable": 5,
+        "observable": 10,
         "summary": "Email Address FQDN: company.com",
         "tags": []
       },
@@ -785,11 +806,12 @@
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "domain": "external.example"
+          "domain": "company.com"
         },
+        "detections": [],
         "module": "email_address_fqdn_analyzer",
-        "observable": 6,
-        "summary": "Email Address FQDN: external.example",
+        "observable": 12,
+        "summary": "Email Address FQDN: company.com",
         "tags": []
       },
       {
@@ -810,8 +832,9 @@
           "mime": "text/plain",
           "type": "ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 7,
+        "observable": 13,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
@@ -822,8 +845,9 @@
           "urls": [],
           "urls_grouped_by_domain": {}
         },
+        "detections": [],
         "module": "url_extraction",
-        "observable": 7,
+        "observable": 13,
         "summary": null,
         "tags": []
       },
@@ -833,54 +857,54 @@
             "observable": 18
           },
           {
-            "observable": 2
+            "observable": 10
           },
           {
-            "observable": 17
-          },
-          {
-            "observable": 12
+            "observable": 11
           },
           {
             "observable": 3
           },
           {
-            "observable": 8
-          },
-          {
-            "observable": 10
-          },
-          {
-            "observable": 1
+            "observable": 0
           },
           {
             "observable": 5
           },
           {
-            "observable": 13
+            "observable": 16
           },
           {
             "observable": 6
           },
           {
-            "observable": 19
+            "observable": 12
+          },
+          {
+            "observable": 4
+          },
+          {
+            "observable": 7
+          },
+          {
+            "observable": 1
           },
           {
             "observable": 15
           },
           {
-            "observable": 14
+            "observable": 8
           },
           {
-            "observable": 7,
+            "observable": 13,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 0,
+            "observable": 17,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 16,
+            "observable": 2,
             "path": "email.rfc822.combined"
           }
         ],
@@ -969,7 +993,7 @@
               ],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-21 14:38:34.409309 +0000",
+              "date": "2026-11-27 03:03:31.529824 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -1040,8 +1064,9 @@
             }
           ]
         },
+        "detections": [],
         "module": "email_analyzer",
-        "observable": 11,
+        "observable": 14,
         "summary": "Email Analysis: From External Sender <sender@external.example> To alice@company.com, Bob <bob@company.com> Subject Re: Invoices 12927-12929",
         "tags": []
       },
@@ -1063,8 +1088,9 @@
           "mime": "message/rfc822",
           "type": "SMTP mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 11,
+        "observable": 14,
         "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1080,36 +1106,23 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 11,
+        "observable": 14,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 4
+            "observable": 9
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
           "domain": "company.com"
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 12,
-        "summary": "Email Address FQDN: company.com",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 4
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "company.com"
-        },
+        "detections": [],
         "module": "email_address_fqdn_analyzer",
         "observable": 15,
         "summary": "Email Address FQDN: company.com",
@@ -1133,8 +1146,9 @@
           "mime": "message/rfc822",
           "type": "SMTP mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 16,
+        "observable": 17,
         "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1150,21 +1164,23 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 16,
+        "observable": 17,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 9
+            "observable": 19
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
           "domain": "external.example"
         },
+        "detections": [],
         "module": "email_address_fqdn_analyzer",
         "observable": 18,
         "summary": "Email Address FQDN: external.example",

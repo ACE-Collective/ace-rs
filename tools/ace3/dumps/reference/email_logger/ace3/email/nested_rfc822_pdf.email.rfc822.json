@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -93,7 +93,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-21 13:56:12.121251 +0000",
+            "date": "2026-11-27 04:15:20.673297 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": "sender@example.com",
@@ -412,7 +412,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-21T13:56:12.116013",
+        "timestamp": "2026-11-27T04:15:20.667958",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -422,7 +422,7 @@
         "header": "Received: from smtp.example.com (10.0.0.2) by mail.example.com (10.0.0.1) with Microsoft SMTP Server id 15.20.0.0; Mon, 13 Jan 2026 10:29:59 +0000",
         "header_index": 0,
         "message_id": "<target-message-id-5678@example.com>",
-        "timestamp": "1795269372.121251"
+        "timestamp": "1795752920.673297"
       },
       "tag": "phishfinder-headers"
     },
@@ -431,7 +431,7 @@
         "header": "From: Test Sender <sender@example.com>",
         "header_index": 1,
         "message_id": "<target-message-id-5678@example.com>",
-        "timestamp": "1795269372.121251"
+        "timestamp": "1795752920.673297"
       },
       "tag": "phishfinder-headers"
     },
@@ -440,7 +440,7 @@
         "header": "To: recipient@example.com",
         "header_index": 2,
         "message_id": "<target-message-id-5678@example.com>",
-        "timestamp": "1795269372.121251"
+        "timestamp": "1795752920.673297"
       },
       "tag": "phishfinder-headers"
     },
@@ -449,7 +449,7 @@
         "header": "Subject: Test Email with Nested PDF",
         "header_index": 3,
         "message_id": "<target-message-id-5678@example.com>",
-        "timestamp": "1795269372.121251"
+        "timestamp": "1795752920.673297"
       },
       "tag": "phishfinder-headers"
     },
@@ -458,7 +458,7 @@
         "header": "Message-ID: <target-message-id-5678@example.com>",
         "header_index": 4,
         "message_id": "<target-message-id-5678@example.com>",
-        "timestamp": "1795269372.121251"
+        "timestamp": "1795752920.673297"
       },
       "tag": "phishfinder-headers"
     },
@@ -467,7 +467,7 @@
         "header": "Date: Mon, 13 Jan 2026 10:29:55 +0000",
         "header_index": 5,
         "message_id": "<target-message-id-5678@example.com>",
-        "timestamp": "1795269372.121251"
+        "timestamp": "1795752920.673297"
       },
       "tag": "phishfinder-headers"
     },
@@ -476,7 +476,7 @@
         "header": "MIME-Version: 1.0",
         "header_index": 6,
         "message_id": "<target-message-id-5678@example.com>",
-        "timestamp": "1795269372.121251"
+        "timestamp": "1795752920.673297"
       },
       "tag": "phishfinder-headers"
     },
@@ -485,7 +485,7 @@
         "header": "Content-Type: multipart/mixed;boundary=\"_inner-boundary-5678_\"",
         "header_index": 7,
         "message_id": "<target-message-id-5678@example.com>",
-        "timestamp": "1795269372.121251"
+        "timestamp": "1795752920.673297"
       },
       "tag": "phishfinder-headers"
     },
@@ -514,7 +514,7 @@
         "cc": [],
         "compauth_reason": null,
         "compauth_result": null,
-        "date": "2026-11-21 13:56:12.121251 +0000",
+        "date": "2026-11-27 04:15:20.673297 +0000",
         "dkim_result": null,
         "dmarc_result": null,
         "env_mail_from": "sender@example.com",
@@ -546,7 +546,7 @@
         "subject_raw": "Test Email with Nested PDF",
         "thread_index": null,
         "thread_topic": null,
-        "timestamp": "1795269372.121251",
+        "timestamp": "1795752920.673297",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -576,7 +576,7 @@
         "thread_id": "<target-message-id-5678@example.com>",
         "thread_message_count": 0,
         "thread_method": "self",
-        "timestamp": "1795269372.121251"
+        "timestamp": "1795752920.673297"
       },
       "tag": "phishfinder-lookalike"
     },
@@ -597,53 +597,53 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "5cb007e1-f3a4-4338-9f33-06862896d427",
-        "timestamp": "2026-11-21 13:56:12.526892",
-        "total_analysis_time_seconds": 0.027906,
-        "total_time_seconds": 0.4280858039855957
+        "root_uuid": "5da63edf-3019-40f2-89cc-e454a428ecfd",
+        "timestamp": "2026-11-27 04:15:21.040413",
+        "total_analysis_time_seconds": 0.027069,
+        "total_time_seconds": 0.38907694816589355
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.004093,
+        "analysis_time_seconds": 0.004351000000000001,
         "event_type": "module",
         "exec_count": 3,
         "module": "email_analyzer",
-        "percentage": 0.956116732181505,
-        "root_uuid": "5cb007e1-f3a4-4338-9f33-06862896d427",
-        "timestamp": "2026-11-21 13:56:12.526892"
+        "percentage": 1.1182877887036458,
+        "root_uuid": "5da63edf-3019-40f2-89cc-e454a428ecfd",
+        "timestamp": "2026-11-27 04:15:21.040413"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.001233,
+        "analysis_time_seconds": 0.00126,
         "event_type": "module",
         "exec_count": 11,
         "module": "email_logger",
-        "percentage": 0.28802636960170913,
-        "root_uuid": "5cb007e1-f3a4-4338-9f33-06862896d427",
-        "timestamp": "2026-11-21 13:56:12.526892"
+        "percentage": 0.3238433954876105,
+        "root_uuid": "5da63edf-3019-40f2-89cc-e454a428ecfd",
+        "timestamp": "2026-11-27 04:15:21.040413"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.02258,
+        "analysis_time_seconds": 0.021457999999999998,
         "event_type": "module",
         "exec_count": 5,
         "module": "file_type",
-        "percentage": 5.274643491976149,
-        "root_uuid": "5cb007e1-f3a4-4338-9f33-06862896d427",
-        "timestamp": "2026-11-21 13:56:12.526892"
+        "percentage": 5.515104428867576,
+        "root_uuid": "5da63edf-3019-40f2-89cc-e454a428ecfd",
+        "timestamp": "2026-11-27 04:15:21.040413"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-21T13:56:12.527309",
+        "timestamp": "2026-11-27T04:15:21.040801",
         "value": 0
       },
       "tag": "monitoring"
@@ -651,7 +651,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-21T13:56:12.527333",
+        "timestamp": "2026-11-27T04:15:21.040818",
         "value": 1
       },
       "tag": "monitoring"

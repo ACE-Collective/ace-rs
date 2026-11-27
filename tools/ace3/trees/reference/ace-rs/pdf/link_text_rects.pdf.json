@@ -61,98 +61,25 @@
       },
       "tags": {}
     },
-    "file:0b5859f75f36585f7a42d75525a239caa335c01ca31fef0bdc80178531448903": {
+    "file:1a746042b7ac08f8aeafb91650b94b0ce069f0eb2b2cbdee711b4a1525521f73": {
       "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
+      "directives": {},
       "excluded_analysis": {
-        "pdf_analyzer": true
+        "file_hash_analyzer": true,
+        "file_type": true
       },
       "paths": {
-        "link_text_rects.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
+        "link_text_rects.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
         }
       },
-      "redirection": "file:609219b9e79a0852809a958bdbbd30b6d629c8d3fba1cec0e11f9011ef6bd91d",
       "relationships": {
         "extracted_from file:609219b9e79a0852809a958bdbbd30b6d629c8d3fba1cec0e11f9011ef6bd91d": true
       },
       "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
         "observable_detection": {
           "details": {
             "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdf_link_text": {
-          "details": {
-            "links": [
-              {
-                "line": null,
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/none"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "View invoice online",
-                "url": "https://example.com/reals"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "View invoice online",
-                "url": "https://example.com/indirect-item"
-              }
-            ]
-          },
-          "summary": "PDF Link Text Analysis: 3 links, 2 with text",
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "56cd57a723173ac6639d8a2a7a308775976dc01d8f16824fc2bae009c56ec14c",
-            "stderr": "Syntax Error: Bad bounding box for annotation\n",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -165,9 +92,7 @@
           "tags": {}
         }
       },
-      "tags": {
-        "pdf": true
-      }
+      "tags": {}
     },
     "file:56cd57a723173ac6639d8a2a7a308775976dc01d8f16824fc2bae009c56ec14c": {
       "detections": {},
@@ -183,10 +108,10 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:0b5859f75f36585f7a42d75525a239caa335c01ca31fef0bdc80178531448903",
+      "redirection": "file:c4e602a799ccfe3f821a271865d635adc103c4eccaab117d101d1781e5f32292",
       "relationships": {
-        "extracted_from file:0b5859f75f36585f7a42d75525a239caa335c01ca31fef0bdc80178531448903": true,
-        "extracted_from file:609219b9e79a0852809a958bdbbd30b6d629c8d3fba1cec0e11f9011ef6bd91d": true
+        "extracted_from file:609219b9e79a0852809a958bdbbd30b6d629c8d3fba1cec0e11f9011ef6bd91d": true,
+        "extracted_from file:c4e602a799ccfe3f821a271865d635adc103c4eccaab117d101d1781e5f32292": true
       },
       "results": {
         "file_type": {
@@ -242,9 +167,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 15:03:51+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 15:03:51+00:00",
-              "File:FileModifyDate": "2026:11:16 13:50:16+00:00",
+              "File:FileAccessDate": "2026:11:27 00:09:22+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:09:22+00:00",
+              "File:FileModifyDate": "2026:11:16 16:21:04+00:00",
               "File:FileName": "link_text_rects.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 1771,
@@ -490,25 +415,98 @@
       },
       "tags": {}
     },
-    "file:e00be25ebb3056b6cc68a2a1510643027fa857d20dc344366dabdb8b94d87a0b": {
+    "file:c4e602a799ccfe3f821a271865d635adc103c4eccaab117d101d1781e5f32292": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "extract_urls": true
+      },
       "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
+        "pdf_analyzer": true
       },
       "paths": {
-        "link_text_rects.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
+        "link_text_rects.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
         }
       },
+      "redirection": "file:609219b9e79a0852809a958bdbbd30b6d629c8d3fba1cec0e11f9011ef6bd91d",
       "relationships": {
         "extracted_from file:609219b9e79a0852809a958bdbbd30b6d629c8d3fba1cec0e11f9011ef6bd91d": true
       },
       "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/none"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "View invoice online",
+                "url": "https://example.com/reals"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "View invoice online",
+                "url": "https://example.com/indirect-item"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 3 links, 2 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "56cd57a723173ac6639d8a2a7a308775976dc01d8f16824fc2bae009c56ec14c",
+            "stderr": "Syntax Error: Bad bounding box for annotation\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -521,7 +519,9 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "pdf": true
+      }
     },
     "file:f0e82581e491fce5051bbb783bac14014486c9e5686bca85a0a8683360ab66ba": {
       "detections": {},

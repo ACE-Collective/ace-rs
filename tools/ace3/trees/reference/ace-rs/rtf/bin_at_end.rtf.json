@@ -78,39 +78,6 @@
         "rtf": true
       }
     },
-    "file:b30fbe998a4912b1b29e6daca4a9b95c73aa93ff8565fee20218a1031f0ac0c5": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "bin_at_end.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:c6ee85326699c77abf5c526b69ed897b1ca2f8248f3d51d51bbd8f0b5bc1be2a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:c6ee85326699c77abf5c526b69ed897b1ca2f8248f3d51d51bbd8f0b5bc1be2a": {
       "detections": {},
       "directives": {},
@@ -133,8 +100,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:51:43+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:51:43+00:00",
+              "File:FileAccessDate": "2026:11:27 00:12:56+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:12:56+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "bin_at_end.rtf",
               "File:FilePermissions": 100644,
@@ -214,6 +181,39 @@
         "microsoft_office": true,
         "rtf": true
       }
+    },
+    "file:c8ea180bad5f6df9628b7c09567c5e5be3a955037b9d54317f32ec30ac65efd1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "bin_at_end.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:c6ee85326699c77abf5c526b69ed897b1ca2f8248f3d51d51bbd8f0b5bc1be2a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:7f1bb2de15c35cf520a365e86c5a5764": {
       "detections": {},

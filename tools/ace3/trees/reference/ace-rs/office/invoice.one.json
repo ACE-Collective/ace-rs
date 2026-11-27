@@ -61,7 +61,65 @@
       },
       "tags": {}
     },
-    "file:5045ed578c418bd4efa1cf3685bb79e38e3e7fd30b04ed72843839f660a24154": {
+    "file:6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "invoice.one.extracted-6ac60d": {
+          "type=document.onenote.embedded": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "15cb14752fcfc74a01b5c5156631362d",
+            "sha1": "05538b3747e01f86dedf51d1a85e1b40537db0c8",
+            "sha256": "6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/x-msdos-batch",
+            "type": "DOS batch file, ASCII text, with CRLF line terminators"
+          },
+          "summary": "File Type Analysis: DOS batch file, ASCII text, with CRLF line terminators (text/x-msdos-batch)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8ca02b5bcceab97f0bf74327138b3efa42768da73bebaea31b6561ca618d30ca": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -116,64 +174,6 @@
             }
           },
           "summary": "URL Extraction Analysis (onenote.example.com)",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "paths": {
-        "invoice.one.extracted-6ac60d": {
-          "type=document.onenote.embedded": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731": true
-      },
-      "results": {
-        "file_hash_analyzer": {
-          "details": {
-            "md5": "15cb14752fcfc74a01b5c5156631362d",
-            "sha1": "05538b3747e01f86dedf51d1a85e1b40537db0c8",
-            "sha256": "6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1"
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/x-msdos-batch",
-            "type": "DOS batch file, ASCII text, with CRLF line terminators"
-          },
-          "summary": "File Type Analysis: DOS batch file, ASCII text, with CRLF line terminators (text/x-msdos-batch)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
           "tags": {}
         },
         "user_defined_tagging": {

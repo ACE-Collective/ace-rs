@@ -1,6 +1,6 @@
 # Differences from ace3's reference dumps
 
-`tests/reference.rs` runs each module on each file `tools/ace3/dumps/reference/<module>/` has a dump for, named `<module>/<dump>` here, with the dump's directives, meta tags and relationships. The files are `tools/ace3/dumps/fixtures/html`, hand-made, and the samples the modules take. Both results go into the normal form `ace_testkit::reference` describes, and the test fails on any difference this table doesn't list, or on a row that no longer matches anything. The DOM snapshots ace3 writes beside the scripts are compared too, under `/sidecars/<path>`. The dumps were made with ace3 at commit 85c8e9e5.
+`tests/reference.rs` runs each module on each file `tools/ace3/dumps/reference/<module>/` has a dump for, named `<module>/<dump>` here, with the dump's directives, meta tags and relationships. The files are `tools/ace3/dumps/fixtures/html`, hand-made, and the samples the modules take. Both results go into the normal form `ace_testkit::reference` describes, and the test fails on any difference this table doesn't list, or on a row that no longer matches anything. The DOM snapshots ace3 writes beside the scripts are compared too, under `/sidecars/<path>`. The dumps were made with ace3 at commit c55f15a2.
 
 In the Dumps column, `*` matches any text in a dump's name. In the Path column, a `*` segment matches one segment of the JSON pointer, `**` any number, and a `*` inside a segment any text; `/` alone is the whole result.
 

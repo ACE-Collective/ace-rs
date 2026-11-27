@@ -1,6 +1,6 @@
 # Differences from ace3's reference dumps
 
-`tests/reference.rs` runs the DNS module on each name `tools/ace3/dumps/reference/fqdn_analyzer/` has a dump for, with the answers ace3 got from `tools/ace3/dumps/fake_dns.py` replayed on 127.0.0.1 (`ace_testkit::dns`). It checks that the module asks the same queries in the same order, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 85c8e9e5, against the zone in `tools/ace3/dumps/fixtures/dns/zone.json`.
+`tests/reference.rs` runs the DNS module on each name `tools/ace3/dumps/reference/fqdn_analyzer/` has a dump for, with the answers ace3 got from `tools/ace3/dumps/fake_dns.py` replayed on 127.0.0.1 (`ace_testkit::dns`). It checks that the module asks the same queries in the same order, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit c55f15a2, against the zone in `tools/ace3/dumps/fixtures/dns/zone.json`.
 
 | Dumps | Path | Why |
 |---|---|---|

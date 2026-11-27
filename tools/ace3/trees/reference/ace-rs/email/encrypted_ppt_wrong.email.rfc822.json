@@ -310,6 +310,39 @@
         "email": true
       }
     },
+    "file:38d6c2adbe54651ffbb3c71582137f00eadadf7672f9f84ea8bcd7a77553a0b3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:43cd67834ed3a745948301637e2854cbf927ed86fcffc6e53db70066516d10a5": {
       "detections": {},
       "directives": {},
@@ -511,39 +544,6 @@
         "email": true
       }
     },
-    "file:511a32b67680d740fd67bd21001cf48bfe4d630e1a37531a7fbcf9ce6d6a6cf5": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": {
       "detections": {},
       "directives": {
@@ -563,9 +563,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 12:02:48+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 12:02:48+00:00",
-              "File:FileModifyDate": "2026:11:21 12:02:48+00:00",
+              "File:FileAccessDate": "2026:11:26 23:15:36+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:15:36+00:00",
+              "File:FileModifyDate": "2026:11:26 23:15:36+00:00",
               "File:FileName": "invoice.ppt",
               "File:FilePermissions": 100664,
               "File:FileSize": 2560,

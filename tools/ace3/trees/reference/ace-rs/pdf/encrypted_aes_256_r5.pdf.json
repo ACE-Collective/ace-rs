@@ -535,7 +535,110 @@
       },
       "tags": {}
     },
-    "file:9aed2bce25be1f3a7d6887bb7bfb632d10b0de4465f00c31833c7015e4a3da6f": {
+    "file:9aa672cb5ce9992643e74739e0441468bfc4b3348e83bd903e929183b1069c70": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_aes_256_r5.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:b32cd307a9dca692fa580aaae986aa239484517034ca28752edf921cb9974504": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "encrypted_aes_256_r5.pdf.decrypted.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf",
+      "relationships": {
+        "extracted_from file:55dee21c7b2a7ae2ab9e41f281d17efd15e289ff996b9d49cfc03c3d60b6ca6e": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/encrypted-annotation",
+              "https://example.com/in-a-string",
+              "https://example.com/in-a-stream"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/encrypted-annotation",
+                "https://example.com/in-a-string",
+                "https://example.com/in-a-stream"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:dbe05a1da848e95a4fc86c1d61c40615fe6e2190667f2eac1050b2de07f1aa23": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -617,109 +720,6 @@
         "pdf": true
       }
     },
-    "file:b32cd307a9dca692fa580aaae986aa239484517034ca28752edf921cb9974504": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "encrypted_aes_256_r5.pdf.decrypted.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf",
-      "relationships": {
-        "extracted_from file:55dee21c7b2a7ae2ab9e41f281d17efd15e289ff996b9d49cfc03c3d60b6ca6e": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "data"
-          },
-          "summary": "File Type Analysis: data (application/octet-stream)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [
-              "https://example.com/encrypted-annotation",
-              "https://example.com/in-a-string",
-              "https://example.com/in-a-stream"
-            ],
-            "urls_grouped_by_domain": {
-              "example.com": [
-                "https://example.com/encrypted-annotation",
-                "https://example.com/in-a-string",
-                "https://example.com/in-a-stream"
-              ]
-            }
-          },
-          "summary": "URL Extraction Analysis (example.com)",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:b3ea6ae95e44b355ea5148cf4f1e720dcd2cf8c44a9b3f9e8d1d9e1642bb923f": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_aes_256_r5.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf": {
       "detections": {},
       "directives": {},
@@ -737,8 +737,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:57:56+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:57:56+00:00",
+              "File:FileAccessDate": "2026:11:27 00:03:28+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:03:28+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_aes_256_r5.pdf",
               "File:FilePermissions": 100644,
@@ -869,9 +869,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:9aed2bce25be1f3a7d6887bb7bfb632d10b0de4465f00c31833c7015e4a3da6f",
+      "redirection": "file:dbe05a1da848e95a4fc86c1d61c40615fe6e2190667f2eac1050b2de07f1aa23",
       "relationships": {
-        "extracted_from file:9aed2bce25be1f3a7d6887bb7bfb632d10b0de4465f00c31833c7015e4a3da6f": true,
+        "extracted_from file:dbe05a1da848e95a4fc86c1d61c40615fe6e2190667f2eac1050b2de07f1aa23": true,
         "extracted_from file:de308323882d512dc816d216084b9b5bd59059b0e74c0d49c9ca1168218cc6cf": true
       },
       "results": {

@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -60,7 +60,7 @@
                 "info_3805.xls"
               ]
             ],
-            "observable_uuid": "f5685df9-d007-484f-8579-206c4246bf09",
+            "observable_uuid": "847e5f8e-11de-4510-a824-8649908e2d9b",
             "reasons": [
               "found in attachment info_3805.xls"
             ],
@@ -78,7 +78,7 @@
                 "info_3805.xls"
               ]
             ],
-            "observable_uuid": "bc28fcd9-2294-4c40-8a6a-474f50fa8586",
+            "observable_uuid": "de55f26a-4dab-4cb5-8ba8-a5f8be29b210",
             "reasons": [
               "found in attachment info_3805.xls"
             ],
@@ -98,7 +98,7 @@
               "info_3805.xls"
             ]
           ],
-          "observable_uuid": "f5685df9-d007-484f-8579-206c4246bf09",
+          "observable_uuid": "847e5f8e-11de-4510-a824-8649908e2d9b",
           "reasons": [
             "found in attachment info_3805.xls"
           ],
@@ -232,7 +232,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-21 14:38:15.286688 +0000",
+            "date": "2026-11-27 03:03:08.924620 +0000",
             "dkim_result": "pass",
             "dmarc_result": "pass",
             "env_mail_from": null,
@@ -564,6 +564,79 @@
       {
         "detections": [],
         "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/wp-index.php"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "info_3805.xls.officeparser/stream_3_0.dat",
+            "yara_meta": []
+          },
+          {
+            "path": "info_3805.xls.decrypted.officeparser/stream_3_0.dat",
+            "yara_meta": []
+          }
+        ],
+        "size": 4096,
+        "tags": [],
+        "type": "file",
+        "value": "4137c040feddd71feefc2bc6b8dd7469966c310036ad2276bc78a404d8e17c51"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "user.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 97167,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 932,
+        "tags": [],
+        "type": "file",
+        "value": "a0ed8009073f3abdc1dc979ef137f6d69c62d1920902a29cd3baad0a0c16e747"
+      },
+      {
+        "detections": [],
+        "directives": [],
         "paths": [
           {
             "path": "email.rfc822.headers",
@@ -579,34 +652,6 @@
         ],
         "type": "file",
         "value": "26c514a15652cb61afb1a63b00ebbb64b7c991cc0bd64b693c606ba11918eb6d"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "info_3805.xls.decrypted.officeparser/stream_3_0.dat",
-            "yara_meta": []
-          },
-          {
-            "path": "info_3805.xls.officeparser/stream_3_0.dat",
-            "yara_meta": []
-          }
-        ],
-        "size": 4096,
-        "tags": [],
-        "type": "file",
-        "value": "4137c040feddd71feefc2bc6b8dd7469966c310036ad2276bc78a404d8e17c51"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "sha256",
-        "value": "e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055"
       },
       {
         "detections": [],
@@ -634,50 +679,6 @@
       },
       {
         "detections": [],
-        "directives": [
-          "crawl_extracted_urls",
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscator.stdout",
-            "yara_meta": [
-              "type=script.macro.xlm"
-            ]
-          },
-          {
-            "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout",
-            "yara_meta": [
-              "type=script.macro.xlm"
-            ]
-          }
-        ],
-        "size": 370,
-        "tags": [],
-        "type": "file",
-        "value": "e47fc1671bf1cff13c94b264a5d0eafd0056438696023d3e61ef9b58bfa10d2d"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "crawl_extracted_urls",
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscator.stdout",
-            "yara_meta": [
-              "type=script.macro.xlm"
-            ]
-          }
-        ],
-        "size": 8744,
-        "tags": [],
-        "type": "file",
-        "value": "c6f8ac23e8e9899727fa579ade9c0c185d96562fde52d91610f5d13b16c7730a"
-      },
-      {
-        "detections": [],
         "directives": [],
         "paths": [
           {
@@ -697,74 +698,28 @@
       },
       {
         "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "noreply@tovarioseni9.fun|target@user.com"
-      },
-      {
-        "detections": [],
         "directives": [
+          "crawl_extracted_urls",
           "extract_urls"
         ],
         "paths": [
           {
-            "path": "info_3805.xls.decrypted.officeparser/stream_2_0.dat",
-            "yara_meta": []
+            "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscator.stdout",
+            "yara_meta": [
+              "type=script.macro.xlm"
+            ]
           },
           {
-            "path": "info_3805.xls.officeparser/stream_2_0.dat",
-            "yara_meta": []
-          }
-        ],
-        "size": 4096,
-        "tags": [],
-        "type": "file",
-        "value": "30812268cfefcc8320d3b990169f35de93d7fc7dd749a0b25b9993c0d1347776"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/_rels/.rels",
-            "yara_meta": []
-          }
-        ],
-        "size": 310,
-        "tags": [],
-        "type": "file",
-        "value": "d2d8276ca63e307268dbf1bef2fbf45ba4c65c27494555a7742761c22984f1af"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout",
             "yara_meta": [
-              "type=email.attachment"
+              "type=script.macro.xlm"
             ]
           }
         ],
-        "size": 932,
+        "size": 374,
         "tags": [],
         "type": "file",
-        "value": "a0ed8009073f3abdc1dc979ef137f6d69c62d1920902a29cd3baad0a0c16e747"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_reply_to",
-        "value": "noreply@tovarioseni9.fun"
+        "value": "8a2b99a1df09ad67f1a0b1b9d94835766329091d4dd45a5afecaf3e5e8b5918d"
       },
       {
         "detections": [],
@@ -784,11 +739,146 @@
       },
       {
         "detections": [],
+        "directives": [
+          "crawl_extracted_urls",
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscator.stdout",
+            "yara_meta": [
+              "type=script.macro.xlm"
+            ]
+          }
+        ],
+        "size": 8745,
+        "tags": [],
+        "type": "file",
+        "value": "8c85709c16d1191b8c0d2c6a7f2102e1c6cb75d6c5e0843a3c1d1db810dc102b"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "component.pw"
+      },
+      {
+        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_dkim_signing_domain",
+        "type": "email_from",
+        "value": "noreply@tovarioseni9.fun"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/theme1.xml",
+            "yara_meta": []
+          }
+        ],
+        "size": 6518,
+        "tags": [],
+        "type": "file",
+        "value": "1a73bbcac110fe0137415fd3c1847031464891744879db49b6a78981934a1ccb"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "noreply@tovarioseni9.fun|target@user.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<272b53ff0e5579755277c19266a3e9e5c7283287@tovarioseni9.fun>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "sha256",
+        "value": "e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "crawl"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://component.pw/wp-index.php"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
         "value": "tovarioseni9.fun"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/[Content_Types].xml",
+            "yara_meta": []
+          }
+        ],
+        "size": 540,
+        "tags": [],
+        "type": "file",
+        "value": "6c98d4f2b62b4db730884f9bd6d27e5360693eaad02d9cdbaa0e71c4c747450b"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/_rels/.rels",
+            "yara_meta": []
+          }
+        ],
+        "size": 310,
+        "tags": [],
+        "type": "file",
+        "value": "d2d8276ca63e307268dbf1bef2fbf45ba4c65c27494555a7742761c22984f1af"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "target@user.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "md5",
+        "value": "af93ae2e4dc1d242f984a2325d709e86"
       },
       {
         "detections": [],
@@ -813,92 +903,43 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "noreply@tovarioseni9.fun"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "target@user.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<272b53ff0e5579755277c19266a3e9e5c7283287@tovarioseni9.fun>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "sha256",
         "value": "ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8"
       },
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 97167,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01"
+        "paths": [],
+        "tags": [],
+        "type": "email_reply_to",
+        "value": "noreply@tovarioseni9.fun"
       },
       {
         "detections": [],
         "directives": [
-          "crawl"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://component.pw/wp-index.php,$BB$54"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "Doc #848625: facsimile copy"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/wp-index.php"
-      },
-      {
-        "detections": [],
-        "directives": [
+          "crawl_extracted_urls",
           "extract_urls"
         ],
         "paths": [
           {
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/_rels/themeManager.xml.rels",
-            "yara_meta": []
+            "path": "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout",
+            "yara_meta": [
+              "type=script.macro.xlm"
+            ]
           }
         ],
-        "size": 283,
+        "size": 13787,
         "tags": [],
         "type": "file",
-        "value": "2983db3781942d11b9497551888ee8774f861ff9cbc5c64ddb79eaa0698f87bd"
+        "value": "18ae1044b8afcdb6ec53a5cdde069c6c162a650529657d765f4fd7a06b2e7623"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_dkim_signing_domain",
+        "value": "tovarioseni9.fun"
       },
       {
         "detections": [],
@@ -928,21 +969,22 @@
       {
         "detections": [],
         "directives": [
-          "crawl_extracted_urls",
           "extract_urls"
         ],
         "paths": [
           {
-            "path": "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout",
-            "yara_meta": [
-              "type=script.macro.xlm"
-            ]
+            "path": "info_3805.xls.decrypted.officeparser/stream_2_0.dat",
+            "yara_meta": []
+          },
+          {
+            "path": "info_3805.xls.officeparser/stream_2_0.dat",
+            "yara_meta": []
           }
         ],
-        "size": 13785,
+        "size": 4096,
         "tags": [],
         "type": "file",
-        "value": "22ccb8dbd49bf23bb9d21cd699759aa0b114d1962cb024b3d34ba3961527b04f"
+        "value": "30812268cfefcc8320d3b990169f35de93d7fc7dd749a0b25b9993c0d1347776"
       },
       {
         "detections": [],
@@ -951,56 +993,24 @@
         ],
         "paths": [
           {
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/theme1.xml",
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/_rels/themeManager.xml.rels",
             "yara_meta": []
           }
         ],
-        "size": 6518,
+        "size": 283,
         "tags": [],
         "type": "file",
-        "value": "1a73bbcac110fe0137415fd3c1847031464891744879db49b6a78981934a1ccb"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "md5",
-        "value": "af93ae2e4dc1d242f984a2325d709e86"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "user.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "component.pw"
+        "value": "2983db3781942d11b9497551888ee8774f861ff9cbc5c64ddb79eaa0698f87bd"
       },
       {
         "detections": [],
         "directives": [
-          "extract_urls"
+          "crawl"
         ],
-        "paths": [
-          {
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/[Content_Types].xml",
-            "yara_meta": []
-          }
-        ],
-        "size": 540,
+        "paths": [],
         "tags": [],
-        "type": "file",
-        "value": "6c98d4f2b62b4db730884f9bd6d27e5360693eaad02d9cdbaa0e71c4c747450b"
+        "type": "url",
+        "value": "https://component.pw/wp-index.php,$BB$54"
       },
       {
         "detections": [
@@ -1032,8 +1042,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "fqdn",
-        "value": "tovarioseni9.fun"
+        "type": "email_subject",
+        "value": "Doc #848625: facsimile copy"
       },
       {
         "detections": [],
@@ -1042,16 +1052,6 @@
         "tags": [],
         "type": "uri_path",
         "value": "/wp-index.php,$BB$54"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "crawl"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://component.pw/wp-index.php"
       }
     ],
     "results": [
@@ -1059,46 +1059,6 @@
         "added": [],
         "class": "FileTypeAnalysis",
         "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 0,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 0,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
           "is_email_file": false,
           "is_jar_file": false,
           "is_lnk_file": false,
@@ -1113,6 +1073,7 @@
           "mime": "application/octet-stream",
           "type": "data"
         },
+        "detections": [],
         "module": "file_type",
         "observable": 1,
         "summary": "File Type Analysis: data (application/octet-stream)",
@@ -1124,6 +1085,7 @@
         "details": {
           "suspect_files": []
         },
+        "detections": [],
         "module": "extracted_ole_analyzer",
         "observable": 1,
         "summary": null,
@@ -1136,474 +1098,10 @@
           "urls": [],
           "urls_grouped_by_domain": {}
         },
+        "detections": [],
         "module": "url_extraction",
         "observable": 1,
         "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/xml",
-          "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
-        },
-        "module": "file_type",
-        "observable": 4,
-        "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 4,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 5,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 5,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 6,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 21
-          },
-          {
-            "observable": 35
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://component.pw/wp-index.php,$BB$54",
-            "https://component.pw/wp-index.php"
-          ],
-          "urls_grouped_by_domain": {
-            "component.pw": [
-              "https://component.pw/wp-index.php,$BB$54",
-              "https://component.pw/wp-index.php"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 6,
-        "summary": "URL Extraction Analysis (component.pw)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with CRLF, LF line terminators"
-        },
-        "module": "file_type",
-        "observable": 7,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with CRLF, LF line terminators (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 7,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/octet-stream",
-          "type": "data"
-        },
-        "module": "file_type",
-        "observable": 9,
-        "summary": "File Type Analysis: data (application/octet-stream)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ExtractedOLEAnalysis",
-        "details": {
-          "suspect_files": []
-        },
-        "module": "extracted_ole_analyzer",
-        "observable": 9,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 9,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/xml",
-          "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
-        },
-        "module": "file_type",
-        "observable": 10,
-        "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 10,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text, with CRLF, LF line terminators"
-        },
-        "module": "file_type",
-        "observable": 11,
-        "summary": "File Type Analysis: ASCII text, with CRLF, LF line terminators (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 11,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 33
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "tovarioseni9.fun"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 12,
-        "summary": "Email Address FQDN: tovarioseni9.fun",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/octet-stream",
-          "type": "Applesoft BASIC program data, first line number 16"
-        },
-        "module": "file_type",
-        "observable": 13,
-        "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ExtractedOLEAnalysis",
-        "details": {
-          "suspect_files": []
-        },
-        "module": "extracted_ole_analyzer",
-        "observable": 13,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 13,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 31,
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/[Content_Types].xml"
-          },
-          {
-            "observable": 27,
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/theme1.xml"
-          },
-          {
-            "observable": 4,
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/themeManager.xml"
-          },
-          {
-            "observable": 24,
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/_rels/themeManager.xml.rels"
-          },
-          {
-            "observable": 10,
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/_rels/.rels"
-          }
-        ],
-        "class": "ArchiveAnalysis",
-        "details": {
-          "extracted_files": [
-            "[Content_Types].xml",
-            "theme/theme/theme1.xml",
-            "theme/theme/themeManager.xml",
-            "theme/theme/_rels/themeManager.xml.rels",
-            "_rels/.rels"
-          ],
-          "file_count": 5
-        },
-        "module": "archive",
-        "observable": 15,
-        "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": true,
-          "mime": "application/octet-stream",
-          "type": "Applesoft BASIC program data, first line number 16"
-        },
-        "module": "file_type",
-        "observable": 15,
-        "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream) (zip archive)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ExtractedOLEAnalysis",
-        "details": {
-          "suspect_files": []
-        },
-        "module": "extracted_ole_analyzer",
-        "observable": 15,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "OLEVBA_Analysis_v1_2",
-        "details": {
-          "keyword_summary": {},
-          "macros": [],
-          "type": "OpenXML"
-        },
-        "module": "olevba_v1_2",
-        "observable": 15,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 15,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 33
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "tovarioseni9.fun"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 16,
-        "summary": "Email Address FQDN: tovarioseni9.fun",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 29
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "user.com"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 17,
-        "summary": "Email Address FQDN: user.com",
         "tags": []
       },
       {
@@ -1619,7 +1117,7 @@
                   "info_3805.xls"
                 ]
               ],
-              "observable_uuid": "f5685df9-d007-484f-8579-206c4246bf09",
+              "observable_uuid": "847e5f8e-11de-4510-a824-8649908e2d9b",
               "reasons": [
                 "found in attachment info_3805.xls"
               ],
@@ -1637,7 +1135,7 @@
                   "info_3805.xls"
                 ]
               ],
-              "observable_uuid": "bc28fcd9-2294-4c40-8a6a-474f50fa8586",
+              "observable_uuid": "de55f26a-4dab-4cb5-8ba8-a5f8be29b210",
               "reasons": [
                 "found in attachment info_3805.xls"
               ],
@@ -1657,7 +1155,7 @@
                 "info_3805.xls"
               ]
             ],
-            "observable_uuid": "f5685df9-d007-484f-8579-206c4246bf09",
+            "observable_uuid": "847e5f8e-11de-4510-a824-8649908e2d9b",
             "reasons": [
               "found in attachment info_3805.xls"
             ],
@@ -1669,48 +1167,49 @@
           },
           "subject": "Doc #848625: facsimile copy"
         },
+        "detections": [],
         "module": "lure_url_analyzer",
-        "observable": 20,
+        "observable": 3,
         "summary": "Lure URL Analysis: https://component.pw/wp-index.php (found in attachment info_3805.xls)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 16
-          },
-          {
-            "observable": 17
-          },
-          {
-            "observable": 8
+            "observable": 13
           },
           {
             "observable": 22
           },
           {
-            "observable": 18
+            "observable": 15
           },
           {
-            "observable": 12
+            "observable": 34
           },
           {
-            "observable": 14
+            "observable": 16
           },
           {
-            "observable": 11,
+            "observable": 26
+          },
+          {
+            "observable": 28
+          },
+          {
+            "observable": 4,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 25,
+            "observable": 29,
             "path": "info_3805.xls"
           },
           {
-            "observable": 0,
+            "observable": 5,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 7,
+            "observable": 8,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1829,7 +1328,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-21 14:38:15.286688 +0000",
+              "date": "2026-11-27 03:03:08.924620 +0000",
               "dkim_result": "pass",
               "dmarc_result": "pass",
               "env_mail_from": null,
@@ -1915,8 +1414,9 @@
             }
           ]
         },
+        "detections": [],
         "module": "email_analyzer",
-        "observable": 20,
+        "observable": 3,
         "summary": "Email Analysis: From Peachey Wexler <noreply@tovarioseni9.fun> To target@user.com Subject Doc #848625: facsimile copy",
         "tags": []
       },
@@ -1938,8 +1438,9 @@
           "mime": "message/rfc822",
           "type": "RFC 822 mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 20,
+        "observable": 3,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1955,43 +1456,88 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 20,
+        "observable": 3,
         "summary": null,
         "tags": []
       },
       {
-        "added": [
-          {
-            "observable": 30
-          },
-          {
-            "observable": 34
-          }
-        ],
-        "class": "ParseURLAnalysis",
+        "added": [],
+        "class": "FileTypeAnalysis",
         "details": {
-          "fragment": "",
-          "netloc": "component.pw",
-          "params": null,
-          "path": "/wp-index.php,$BB$54",
-          "query": "",
-          "scheme": "https"
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text, with CRLF, LF line terminators"
         },
-        "module": "parse_url",
-        "observable": 21,
-        "summary": "URL Parser: scheme=https, netloc=component.pw, path=/wp-index.php,$BB$54",
+        "detections": [],
+        "module": "file_type",
+        "observable": 4,
+        "summary": "File Type Analysis: ASCII text, with CRLF, LF line terminators (text/plain)",
         "tags": []
       },
       {
         "added": [],
-        "class": "ProtectedURLAnalysis",
+        "class": "URLExtractionAnalysis",
         "details": {
-          "extracted_url": "https://component.pw/wp-index.php,$BB$54",
-          "protection_type": "unprotected"
+          "urls": [],
+          "urls_grouped_by_domain": {}
         },
-        "module": "protected_url_analyzer",
-        "observable": 21,
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 4,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 5,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "detections": [],
+        "module": "html_js_extraction",
+        "observable": 5,
         "summary": null,
         "tags": []
       },
@@ -2013,8 +1559,9 @@
           "mime": "text/xml",
           "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 24,
+        "observable": 7,
         "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
         "tags": []
       },
@@ -2025,6 +1572,470 @@
           "urls": [],
           "urls_grouped_by_domain": {}
         },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 7,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with CRLF, LF line terminators"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 8,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with CRLF, LF line terminators (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "detections": [],
+        "module": "html_js_extraction",
+        "observable": 8,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 9,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 9,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/octet-stream",
+          "type": "Applesoft BASIC program data, first line number 16"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 10,
+        "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ExtractedOLEAnalysis",
+        "details": {
+          "suspect_files": []
+        },
+        "detections": [],
+        "module": "extracted_ole_analyzer",
+        "observable": 10,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 10,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 11,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 32
+          },
+          {
+            "observable": 18
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://component.pw/wp-index.php,$BB$54",
+            "https://component.pw/wp-index.php"
+          ],
+          "urls_grouped_by_domain": {
+            "component.pw": [
+              "https://component.pw/wp-index.php,$BB$54",
+              "https://component.pw/wp-index.php"
+            ]
+          }
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 11,
+        "summary": "URL Extraction Analysis (component.pw)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 19
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "tovarioseni9.fun"
+        },
+        "detections": [],
+        "module": "email_address_fqdn_analyzer",
+        "observable": 13,
+        "summary": "Email Address FQDN: tovarioseni9.fun",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/xml",
+          "type": "XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6401), with CRLF line terminators"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 14,
+        "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6401), with CRLF line terminators (text/xml)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 14,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 12
+          },
+          {
+            "observable": 0
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "component.pw",
+          "params": null,
+          "path": "/wp-index.php",
+          "query": "",
+          "scheme": "https"
+        },
+        "detections": [],
+        "module": "parse_url",
+        "observable": 18,
+        "summary": "URL Parser: scheme=https, netloc=component.pw, path=/wp-index.php",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://component.pw/wp-index.php",
+          "protection_type": "unprotected"
+        },
+        "detections": [],
+        "module": "protected_url_analyzer",
+        "observable": 18,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/xml",
+          "type": "XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 20,
+        "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators (text/xml)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 20,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/xml",
+          "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 21,
+        "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 21,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 2
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "user.com"
+        },
+        "detections": [],
+        "module": "email_address_fqdn_analyzer",
+        "observable": 22,
+        "summary": "Email Address FQDN: user.com",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 20,
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/[Content_Types].xml"
+          },
+          {
+            "observable": 14,
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/theme1.xml"
+          },
+          {
+            "observable": 7,
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/themeManager.xml"
+          },
+          {
+            "observable": 31,
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/_rels/themeManager.xml.rels"
+          },
+          {
+            "observable": 21,
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/_rels/.rels"
+          }
+        ],
+        "class": "ArchiveAnalysis",
+        "details": {
+          "extracted_files": [
+            "[Content_Types].xml",
+            "theme/theme/theme1.xml",
+            "theme/theme/themeManager.xml",
+            "theme/theme/_rels/themeManager.xml.rels",
+            "_rels/.rels"
+          ],
+          "file_count": 5
+        },
+        "detections": [],
+        "module": "archive",
+        "observable": 24,
+        "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": true,
+          "mime": "application/octet-stream",
+          "type": "Applesoft BASIC program data, first line number 16"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 24,
+        "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream) (zip archive)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ExtractedOLEAnalysis",
+        "details": {
+          "suspect_files": []
+        },
+        "detections": [],
+        "module": "extracted_ole_analyzer",
+        "observable": 24,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "OLEVBA_Analysis_v1_2",
+        "details": {
+          "keyword_summary": {},
+          "macros": [],
+          "type": "OpenXML"
+        },
+        "detections": [],
+        "module": "olevba_v1_2",
+        "observable": 24,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "detections": [],
         "module": "url_extraction",
         "observable": 24,
         "summary": null,
@@ -2033,7 +2044,60 @@
       {
         "added": [
           {
-            "observable": 32,
+            "observable": 19
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "tovarioseni9.fun"
+        },
+        "detections": [],
+        "module": "email_address_fqdn_analyzer",
+        "observable": 26,
+        "summary": "Email Address FQDN: tovarioseni9.fun",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text, with very long lines (421)"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 27,
+        "summary": "File Type Analysis: ASCII text, with very long lines (421) (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 27,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 33,
             "path": "info_3805.xls.decrypted"
           }
         ],
@@ -3044,8 +3108,9 @@
             "ppreciated."
           ]
         },
+        "detections": [],
         "module": "msoffice_encryption_analyzer",
-        "observable": 25,
+        "observable": 29,
         "summary": "MSOffice Encryption Analysis: password 709384",
         "tags": []
       },
@@ -3067,18 +3132,19 @@
           "mime": "application/vnd.ms-excel",
           "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 25,
+        "observable": 29,
         "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 28
+            "observable": 23
           },
           {
-            "observable": 2
+            "observable": 17
           }
         ],
         "class": "FileHashAnalysis",
@@ -3087,19 +3153,20 @@
           "sha1": "b0d77acbb65a534e1ab0a57d69e6e014e5d72452",
           "sha256": "e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055"
         },
+        "detections": [],
         "module": "file_hash_analyzer",
-        "observable": 25,
+        "observable": 29,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 13,
+            "observable": 10,
             "path": "info_3805.xls.officeparser/stream_1_0.dat"
           },
           {
-            "observable": 9,
+            "observable": 30,
             "path": "info_3805.xls.officeparser/stream_2_0.dat"
           },
           {
@@ -3115,8 +3182,9 @@
             "stream_3_0.dat"
           ]
         },
+        "detections": [],
         "module": "officeparser3",
-        "observable": 25,
+        "observable": 29,
         "summary": "OfficeParser3 Analysis: extracted 3 files",
         "tags": []
       },
@@ -3128,8 +3196,9 @@
           "macros": [],
           "type": "OLE"
         },
+        "detections": [],
         "module": "olevba_v1_2",
-        "observable": 25,
+        "observable": 29,
         "summary": null,
         "tags": []
       },
@@ -3140,19 +3209,20 @@
           "urls": [],
           "urls_grouped_by_domain": {}
         },
+        "detections": [],
         "module": "url_extraction",
-        "observable": 25,
+        "observable": 29,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 5,
+            "observable": 9,
             "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscator.stdout"
           },
           {
-            "observable": 5,
+            "observable": 9,
             "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout"
           }
         ],
@@ -3160,8 +3230,9 @@
         "details": {
           "cell_count": 0
         },
+        "detections": [],
         "module": "xlmdeobfuscator",
-        "observable": 25,
+        "observable": 29,
         "summary": "XLMMacroDeobfuscator Analysis - analyzed 0 cells",
         "tags": []
       },
@@ -3180,12 +3251,25 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text, with very long lines (421)"
+          "mime": "application/octet-stream",
+          "type": "data"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 26,
-        "summary": "File Type Analysis: ASCII text, with very long lines (421) (text/plain)",
+        "observable": 30,
+        "summary": "File Type Analysis: data (application/octet-stream)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ExtractedOLEAnalysis",
+        "details": {
+          "suspect_files": []
+        },
+        "detections": [],
+        "module": "extracted_ole_analyzer",
+        "observable": 30,
+        "summary": null,
         "tags": []
       },
       {
@@ -3195,8 +3279,9 @@
           "urls": [],
           "urls_grouped_by_domain": {}
         },
+        "detections": [],
         "module": "url_extraction",
-        "observable": 26,
+        "observable": 30,
         "summary": null,
         "tags": []
       },
@@ -3216,11 +3301,12 @@
           "is_x509": false,
           "is_zip_file": false,
           "mime": "text/xml",
-          "type": "XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6401), with CRLF line terminators"
+          "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 27,
-        "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6401), with CRLF line terminators (text/xml)",
+        "observable": 31,
+        "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
         "tags": []
       },
       {
@@ -3230,43 +3316,46 @@
           "urls": [],
           "urls_grouped_by_domain": {}
         },
+        "detections": [],
         "module": "url_extraction",
-        "observable": 27,
+        "observable": 31,
         "summary": null,
         "tags": []
       },
       {
-        "added": [],
-        "class": "FileTypeAnalysis",
+        "added": [
+          {
+            "observable": 12
+          },
+          {
+            "observable": 35
+          }
+        ],
+        "class": "ParseURLAnalysis",
         "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/xml",
-          "type": "XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators"
+          "fragment": "",
+          "netloc": "component.pw",
+          "params": null,
+          "path": "/wp-index.php,$BB$54",
+          "query": "",
+          "scheme": "https"
         },
-        "module": "file_type",
-        "observable": 31,
-        "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators (text/xml)",
+        "detections": [],
+        "module": "parse_url",
+        "observable": 32,
+        "summary": "URL Parser: scheme=https, netloc=component.pw, path=/wp-index.php,$BB$54",
         "tags": []
       },
       {
         "added": [],
-        "class": "URLExtractionAnalysis",
+        "class": "ProtectedURLAnalysis",
         "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
+          "extracted_url": "https://component.pw/wp-index.php,$BB$54",
+          "protection_type": "unprotected"
         },
-        "module": "url_extraction",
-        "observable": 31,
+        "detections": [],
+        "module": "protected_url_analyzer",
+        "observable": 32,
         "summary": null,
         "tags": []
       },
@@ -3288,18 +3377,19 @@
           "mime": "application/vnd.ms-excel",
           "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 32,
+        "observable": 33,
         "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file) (zip archive)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 3
+            "observable": 6
           },
           {
-            "observable": 19
+            "observable": 25
           }
         ],
         "class": "FileHashAnalysis",
@@ -3308,19 +3398,20 @@
           "sha1": "6189b4106df7d9bd17c8b310c6f0d8ac886fe284",
           "sha256": "ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8"
         },
+        "detections": [],
         "module": "file_hash_analyzer",
-        "observable": 32,
+        "observable": 33,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 15,
+            "observable": 24,
             "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat"
           },
           {
-            "observable": 9,
+            "observable": 30,
             "path": "info_3805.xls.decrypted.officeparser/stream_2_0.dat"
           },
           {
@@ -3336,8 +3427,9 @@
             "stream_3_0.dat"
           ]
         },
+        "detections": [],
         "module": "officeparser3",
-        "observable": 32,
+        "observable": 33,
         "summary": "OfficeParser3 Analysis: extracted 3 files",
         "tags": []
       },
@@ -3349,25 +3441,26 @@
           "macros": [],
           "type": "OLE"
         },
+        "detections": [],
         "module": "olevba_v1_2",
-        "observable": 32,
+        "observable": 33,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 6,
+            "observable": 11,
             "path": "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscator.stdout"
           },
           {
-            "observable": 35
+            "observable": 18
           },
           {
-            "observable": 21
+            "observable": 32
           },
           {
-            "observable": 26,
+            "observable": 27,
             "path": "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout"
           }
         ],
@@ -3375,44 +3468,10 @@
         "details": {
           "cell_count": 383
         },
+        "detections": [],
         "module": "xlmdeobfuscator",
-        "observable": 32,
+        "observable": 33,
         "summary": "XLMMacroDeobfuscator Analysis - analyzed 383 cells",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 30
-          },
-          {
-            "observable": 23
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "component.pw",
-          "params": null,
-          "path": "/wp-index.php",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 35,
-        "summary": "URL Parser: scheme=https, netloc=component.pw, path=/wp-index.php",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://component.pw/wp-index.php",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 35,
-        "summary": null,
         "tags": []
       }
     ]

@@ -304,8 +304,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:59:56+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:59:56+00:00",
+              "File:FileAccessDate": "2026:11:27 00:05:27+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:05:27+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_rc4_crypt_filter.pdf",
               "File:FilePermissions": 100644,
@@ -507,7 +507,7 @@
       },
       "tags": {}
     },
-    "file:2e38664f0017f09bcbd48cbe3deff142215fd5e6cbf881141be22106a6973ffe": {
+    "file:45c319b434b5213944ab47b12ca379d33cc180b865c84476778a4ca8425deee3": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -602,39 +602,6 @@
       "tags": {
         "pdf": true
       }
-    },
-    "file:42ab29a181e2dc28d6f59275df6e9709e54ebc5a0a026ff6db769ebc9361753b": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_rc4_crypt_filter.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:277c468f2ca08eaa645073b6d83b403feb23220ace9cbf6c508b8e0c3a59887c": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:5e218abd0373a6f262027d8f572b2920b83da0d9dc620a68022448d41dd1081e": {
       "detections": {},
@@ -809,6 +776,39 @@
         "js": true
       }
     },
+    "file:77db7c9fd2ca12794c9b047cc610b764e2a0eb2cffbbd364f7b398a30d559107": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_rc4_crypt_filter.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:277c468f2ca08eaa645073b6d83b403feb23220ace9cbf6c508b8e0c3a59887c": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5": {
       "detections": {},
       "directives": {},
@@ -820,9 +820,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:2e38664f0017f09bcbd48cbe3deff142215fd5e6cbf881141be22106a6973ffe",
+      "redirection": "file:45c319b434b5213944ab47b12ca379d33cc180b865c84476778a4ca8425deee3",
       "relationships": {
-        "extracted_from file:2e38664f0017f09bcbd48cbe3deff142215fd5e6cbf881141be22106a6973ffe": true
+        "extracted_from file:45c319b434b5213944ab47b12ca379d33cc180b865c84476778a4ca8425deee3": true
       },
       "results": {
         "file_type": {

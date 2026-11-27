@@ -511,6 +511,39 @@
       },
       "tags": {}
     },
+    "file:20dd6aec382a4e8e87d3cff21a6b5e31f98e8c0e7b7bbe7307c5e8ad38bbb2f9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "info_3805.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:256504ada6a6ecc24ae46a4780b32a30070b0aeea011b2b920d3c32f7403becb": {
       "detections": {},
       "directives": {
@@ -1074,39 +1107,6 @@
       },
       "tags": {}
     },
-    "file:7a9d3bf4cb3290ece0aa7b5f6df3aea80c5b47a458202960cd0a75747d49d61d": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "info_3805.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:a0ed8009073f3abdc1dc979ef137f6d69c62d1920902a29cd3baad0a0c16e747": {
       "detections": {},
       "directives": {
@@ -1579,9 +1579,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 11:55:18+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 11:55:18+00:00",
-              "File:FileModifyDate": "2026:11:21 11:55:18+00:00",
+              "File:FileAccessDate": "2026:11:26 23:08:30+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:08:30+00:00",
+              "File:FileModifyDate": "2026:11:26 23:08:30+00:00",
               "File:FileName": "info_3805.xls.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 69125,
@@ -1753,6 +1753,39 @@
       },
       "tags": {}
     },
+    "file:d4a184de086151ecf99901578c51b9672658b8a6c4683af3ffe4dd8683705238": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "info_3805.xls.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": {
       "detections": {},
       "directives": {
@@ -1772,9 +1805,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 11:55:17+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 11:55:17+00:00",
-              "File:FileModifyDate": "2026:11:21 11:55:17+00:00",
+              "File:FileAccessDate": "2026:11:26 23:08:29+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:08:29+00:00",
+              "File:FileModifyDate": "2026:11:26 23:08:29+00:00",
               "File:FileName": "info_3805.xls",
               "File:FilePermissions": 100664,
               "File:FileSize": 69125,
@@ -2906,39 +2939,6 @@
         "xlm4:error": true,
         "xlm4:no_cells": true
       }
-    },
-    "file:f065092d0f24bb39e37eefa67de60a9b6310f3ee9901330f44a2da7dadfec62a": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "info_3805.xls.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "fqdn:component.pw": {
       "detections": {},

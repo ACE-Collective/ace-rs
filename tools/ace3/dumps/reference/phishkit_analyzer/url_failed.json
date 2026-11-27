@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [],
   "analyses": [
     {
@@ -9,7 +9,7 @@
         "exit_code": null,
         "job_id": "00000000-0000-4000-8000-000000000000",
         "metrics": null,
-        "output_dir": "<work>/tmp/tmpe36_r627",
+        "output_dir": "<work>/tmp/tmpa_9k3ef2",
         "output_files": [],
         "proxy_status": null,
         "scan_result": null,
@@ -40,7 +40,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-21T15:35:17.448432",
+        "timestamp": "2026-11-27T03:54:42.984831",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -56,29 +56,29 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "f526f448-7d7d-4121-ae0f-919a581bfe53",
-        "timestamp": "2026-11-21 15:35:17.451224",
-        "total_analysis_time_seconds": 0.010528,
-        "total_time_seconds": 0.01997971534729004
+        "root_uuid": "75545a1d-0431-4322-9f87-947cf33e798c",
+        "timestamp": "2026-11-27 03:54:42.987824",
+        "total_analysis_time_seconds": 0.010769,
+        "total_time_seconds": 0.020125627517700195
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.010528,
+        "analysis_time_seconds": 0.010769,
         "event_type": "module",
         "exec_count": 1,
         "module": "phishkit_analyzer",
-        "percentage": 52.69344340998317,
-        "root_uuid": "f526f448-7d7d-4121-ae0f-919a581bfe53",
-        "timestamp": "2026-11-21 15:35:17.451224"
+        "percentage": 53.50889054529516,
+        "root_uuid": "75545a1d-0431-4322-9f87-947cf33e798c",
+        "timestamp": "2026-11-27 03:54:42.987824"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-21T15:35:17.451492",
+        "timestamp": "2026-11-27T03:54:42.988113",
         "value": 0
       },
       "tag": "monitoring"
@@ -86,7 +86,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-21T15:35:17.451508",
+        "timestamp": "2026-11-27T03:54:42.988130",
         "value": 1
       },
       "tag": "monitoring"
@@ -94,14 +94,14 @@
     {
       "record": {
         "path": "error.report",
-        "timestamp": "2026-11-21T15:35:23.501702",
+        "timestamp": "2026-11-27T03:54:49.064504",
         "value": {
           "exception": "scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n",
           "exception_source": "",
           "message": "phishkit scan failed for url(https://kit.evil.example/start) job ID 00000000-0000-4000-8000-000000000000: scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n",
           "skipped_repeats": 0,
-          "stack_trace": "  File \"/opt/ace/saq/modules/phishkit.py\", line 603, in continue_analysis\n    scan_results = get_async_scan_result(analysis.job_id, analysis.output_dir, timeout=1)\n  File \"<stdin>\", line 1247, in get_async_scan_result\n  File \"<stdin>\", line 1211, in answer\n",
-          "transaction_id": "f526f448-7d7d-4121-ae0f-919a581bfe53"
+          "stack_trace": "  File \"/opt/ace/saq/modules/phishkit.py\", line 603, in continue_analysis\n    scan_results = get_async_scan_result(analysis.job_id, analysis.output_dir, timeout=1)\n  File \"<stdin>\", line 1373, in get_async_scan_result\n  File \"<stdin>\", line 1337, in answer\n",
+          "transaction_id": "75545a1d-0431-4322-9f87-947cf33e798c"
         }
       },
       "tag": "monitoring"
@@ -136,22 +136,22 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "f526f448-7d7d-4121-ae0f-919a581bfe53",
-        "timestamp": "2026-11-21 15:35:23.504056",
-        "total_analysis_time_seconds": 0.047862,
-        "total_time_seconds": 0.04874539375305176
+        "root_uuid": "75545a1d-0431-4322-9f87-947cf33e798c",
+        "timestamp": "2026-11-27 03:54:49.066717",
+        "total_analysis_time_seconds": 0.072577,
+        "total_time_seconds": 0.07408475875854492
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.047862,
+        "analysis_time_seconds": 0.072577,
         "event_type": "module",
         "exec_count": 1,
         "module": "phishkit_analyzer",
-        "percentage": 98.1877390148347,
-        "root_uuid": "f526f448-7d7d-4121-ae0f-919a581bfe53",
-        "timestamp": "2026-11-21 15:35:23.504056"
+        "percentage": 97.96481923703232,
+        "root_uuid": "75545a1d-0431-4322-9f87-947cf33e798c",
+        "timestamp": "2026-11-27 03:54:49.066717"
       },
       "tag": "metrics"
     }

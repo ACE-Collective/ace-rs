@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -122,7 +122,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-21 14:46:42.352925 +0000",
+            "date": "2026-11-27 03:11:08.388994 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -427,11 +427,22 @@
     "observables": [
       {
         "detections": [],
-        "directives": [],
-        "paths": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 66,
         "tags": [],
-        "type": "message_id",
-        "value": "<lure_button@corp.example>"
+        "type": "file",
+        "value": "35cbe161bb99757665d56d449a0fc36e4c1daa95c220377294e99393551b56dc"
       },
       {
         "detections": [],
@@ -439,55 +450,7 @@
         "paths": [],
         "tags": [],
         "type": "uri_path",
-        "value": "/open?d=1"
-      },
-      {
-        "detections": [
-          "Suspect URL sent from new sender."
-        ],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "mailer.corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "docs.lure-example.net"
-      },
-      {
-        "detections": [
-          "Suspect URL sent from new sender."
-        ],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://login.lure-example.net/verify?id=7"
-      },
-      {
-        "detections": [
-          "Suspect URL sent from new sender."
-        ],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://cdn.lure-example.net/pixel.gif"
+        "value": "/css?family=Roboto"
       },
       {
         "detections": [],
@@ -502,8 +465,72 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_subject",
-        "value": "Action required: verify your mailbox"
+        "type": "fqdn",
+        "value": "corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/verify?id=7"
+      },
+      {
+        "detections": [
+          "Suspect URL sent from new sender."
+        ],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://login.lure-example.net/verify?id=7"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://fonts.googleapis.com/css?family=Roboto"
+      },
+      {
+        "detections": [
+          "Suspect URL sent from new sender."
+        ],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://cdn.lure-example.net/pixel.gif"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 1469,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "890392a1c2d8445fac130cff74dfbc58c00c71a324873b55f3aaf7dd103aaf56"
+      },
+      {
+        "detections": [
+          "Suspect URL sent from new sender."
+        ],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://docs.lure-example.net/open?d=1"
       },
       {
         "detections": [],
@@ -527,21 +554,18 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 304,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "5ba978b14d4991f9ae57018a993afec4b1339b3b808afd19fe4e847f4cddec16"
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/pixel.gif"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/open?d=1"
       },
       {
         "detections": [],
@@ -551,51 +575,7 @@
           "domain_in_url"
         ],
         "type": "fqdn",
-        "value": "t.track-example.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 1469,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "890392a1c2d8445fac130cff74dfbc58c00c71a324873b55f3aaf7dd103aaf56"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/pixel.gif"
-      },
-      {
-        "detections": [
-          "Suspect URL sent from new sender."
-        ],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://docs.lure-example.net/open?d=1"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/post"
+        "value": "login.lure-example.net"
       },
       {
         "detections": [],
@@ -625,44 +605,58 @@
           "domain_in_url"
         ],
         "type": "fqdn",
-        "value": "collect.lure-example.net"
+        "value": "docs.lure-example.net"
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<lure_button@corp.example>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/post"
+      },
+      {
+        "detections": [],
+        "directives": [],
         "paths": [
           {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "path": "email.rfc822.headers",
             "yara_meta": [
-              "type=email.attachment"
+              "type=email",
+              "type=email.headers"
             ]
           }
         ],
-        "size": 66,
-        "tags": [],
+        "size": 304,
+        "tags": [
+          "email"
+        ],
         "type": "file",
-        "value": "35cbe161bb99757665d56d449a0fc36e4c1daa95c220377294e99393551b56dc"
+        "value": "5ba978b14d4991f9ae57018a993afec4b1339b3b808afd19fe4e847f4cddec16"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/verify?id=7"
-      },
-      {
-        "detections": [
-          "Suspect URL sent from new sender."
-        ],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://collect.lure-example.net/post"
+        "type": "email_subject",
+        "value": "Action required: verify your mailbox"
       },
       {
         "detections": [],
@@ -672,59 +666,7 @@
           "domain_in_url"
         ],
         "type": "fqdn",
-        "value": "fonts.googleapis.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/css?family=Roboto"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://fonts.googleapis.com/css?family=Roboto"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "new_sender"
-        ],
-        "type": "email_conversation",
-        "value": "it@corp.example|pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "cdn.lure-example.net"
+        "value": "collect.lure-example.net"
       },
       {
         "detections": [],
@@ -742,66 +684,144 @@
           "domain_in_url"
         ],
         "type": "fqdn",
-        "value": "login.lure-example.net"
+        "value": "t.track-example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "fonts.googleapis.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "cdn.lure-example.net"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1"
+        "type": "fqdn",
+        "value": "mailer.corp.example"
+      },
+      {
+        "detections": [
+          "Suspect URL sent from new sender."
+        ],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://collect.lure-example.net/post"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "new_sender"
+        ],
+        "type": "email_conversation",
+        "value": "it@corp.example|pat@corp.example"
+      },
+      {
+        "detections": [
+          "Suspect URL sent from new sender."
+        ],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1"
       }
     ],
     "results": [
       {
         "added": [],
-        "class": "EmailConversationLinkAnalysis",
-        "details": {},
-        "module": "email_conversation_link_analyzer",
-        "observable": 2,
-        "summary": null,
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 0,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 11
-          },
-          {
-            "observable": 30
+            "observable": 5
           }
         ],
-        "class": "ParseURLAnalysis",
+        "class": "URLExtractionAnalysis",
         "details": {
-          "fragment": "",
-          "netloc": "t.track-example.com",
-          "params": null,
-          "path": "/c",
-          "query": "u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
-          "scheme": "https"
+          "urls": [
+            "https://login.lure-example.net/verify?id=7"
+          ],
+          "urls_grouped_by_domain": {
+            "lure-example.net": [
+              "https://login.lure-example.net/verify?id=7"
+            ]
+          }
         },
-        "module": "parse_url",
-        "observable": 2,
-        "summary": "URL Parser: scheme=https, netloc=t.track-example.com, path=/c, query=u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1, params=(u=https://docs.lure-example.net/open?d=1)",
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 0,
+        "summary": "URL Extraction Analysis (login.lure-example.net)",
         "tags": []
       },
       {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
+        "added": [
+          {
+            "observable": 3
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "extracted_url": "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
-          "protection_type": "unprotected"
+          "domain": "corp.example"
         },
-        "module": "protected_url_analyzer",
+        "detections": [],
+        "module": "email_address_fqdn_analyzer",
         "observable": 2,
-        "summary": null,
+        "summary": "Email Address FQDN: corp.example",
         "tags": []
       },
       {
         "added": [],
         "class": "EmailConversationLinkAnalysis",
         "details": {},
+        "detections": [],
         "module": "email_conversation_link_analyzer",
         "observable": 5,
         "summary": null,
@@ -810,10 +830,10 @@
       {
         "added": [
           {
-            "observable": 29
+            "observable": 13
           },
           {
-            "observable": 19
+            "observable": 4
           }
         ],
         "class": "ParseURLAnalysis",
@@ -825,6 +845,7 @@
           "query": "id=7",
           "scheme": "https"
         },
+        "detections": [],
         "module": "parse_url",
         "observable": 5,
         "summary": "URL Parser: scheme=https, netloc=login.lure-example.net, path=/verify, query=id=7, params=(id=7)",
@@ -837,8 +858,46 @@
           "extracted_url": "https://login.lure-example.net/verify?id=7",
           "protection_type": "unprotected"
         },
+        "detections": [],
         "module": "protected_url_analyzer",
         "observable": 5,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 24
+          },
+          {
+            "observable": 1
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "fonts.googleapis.com",
+          "params": null,
+          "path": "/css",
+          "query": "family=Roboto",
+          "scheme": "https"
+        },
+        "detections": [],
+        "module": "parse_url",
+        "observable": 6,
+        "summary": "URL Parser: scheme=https, netloc=fonts.googleapis.com, path=/css, query=family=Roboto, params=(family=Roboto)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://fonts.googleapis.com/css?family=Roboto",
+          "protection_type": "unprotected"
+        },
+        "detections": [],
+        "module": "protected_url_analyzer",
+        "observable": 6,
         "summary": null,
         "tags": []
       },
@@ -846,18 +905,19 @@
         "added": [],
         "class": "EmailConversationLinkAnalysis",
         "details": {},
+        "detections": [],
         "module": "email_conversation_link_analyzer",
-        "observable": 6,
+        "observable": 7,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 27
+            "observable": 25
           },
           {
-            "observable": 13
+            "observable": 11
           }
         ],
         "class": "ParseURLAnalysis",
@@ -869,8 +929,9 @@
           "query": "",
           "scheme": "https"
         },
+        "detections": [],
         "module": "parse_url",
-        "observable": 6,
+        "observable": 7,
         "summary": "URL Parser: scheme=https, netloc=cdn.lure-example.net, path=/pixel.gif",
         "tags": []
       },
@@ -881,140 +942,46 @@
           "extracted_url": "https://cdn.lure-example.net/pixel.gif",
           "protection_type": "unprotected"
         },
+        "detections": [],
         "module": "protected_url_analyzer",
-        "observable": 6,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 25
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "corp.example"
-        },
-        "module": "email_address_fqdn_analyzer",
         "observable": 7,
-        "summary": "Email Address FQDN: corp.example",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text, with very long lines (790)"
-        },
-        "module": "file_type",
-        "observable": 9,
-        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (790) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 9,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 10,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 10,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 7
-          },
-          {
-            "observable": 26
-          },
-          {
-            "observable": 24
-          },
-          {
-            "observable": 8
-          },
-          {
-            "observable": 0
+            "observable": 2
           },
           {
             "observable": 28
           },
           {
-            "observable": 18,
+            "observable": 29
+          },
+          {
+            "observable": 20
+          },
+          {
+            "observable": 17
+          },
+          {
+            "observable": 22
+          },
+          {
+            "observable": 0,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 16,
+            "observable": 14,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 10,
+            "observable": 19,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 9,
+            "observable": 10,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1090,7 +1057,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-21 14:46:42.352925 +0000",
+              "date": "2026-11-27 03:11:08.388994 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -1161,8 +1128,9 @@
             }
           ]
         },
+        "detections": [],
         "module": "email_analyzer",
-        "observable": 12,
+        "observable": 8,
         "summary": "Email Analysis: From IT Desk <it@corp.example> To pat@corp.example Subject Action required: verify your mailbox",
         "tags": []
       },
@@ -1184,8 +1152,9 @@
           "mime": "message/rfc822",
           "type": "news or mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 12,
+        "observable": 8,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1201,8 +1170,9 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 12,
+        "observable": 8,
         "summary": null,
         "tags": []
       },
@@ -1210,18 +1180,19 @@
         "added": [],
         "class": "EmailConversationLinkAnalysis",
         "details": {},
+        "detections": [],
         "module": "email_conversation_link_analyzer",
-        "observable": 14,
+        "observable": 9,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 4
+            "observable": 15
           },
           {
-            "observable": 1
+            "observable": 12
           }
         ],
         "class": "ParseURLAnalysis",
@@ -1233,8 +1204,9 @@
           "query": "d=1",
           "scheme": "https"
         },
+        "detections": [],
         "module": "parse_url",
-        "observable": 14,
+        "observable": 9,
         "summary": "URL Parser: scheme=https, netloc=docs.lure-example.net, path=/open, query=d=1, params=(d=1)",
         "tags": []
       },
@@ -1245,8 +1217,51 @@
           "extracted_url": "https://docs.lure-example.net/open?d=1",
           "protection_type": "unprotected"
         },
+        "detections": [],
         "module": "protected_url_analyzer",
-        "observable": 14,
+        "observable": 9,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text, with very long lines (790)"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 10,
+        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (790) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "detections": [],
+        "module": "html_js_extraction",
+        "observable": 10,
         "summary": null,
         "tags": []
       },
@@ -1268,8 +1283,9 @@
           "mime": "text/html",
           "type": "HTML document, ASCII text, with very long lines (790)"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 16,
+        "observable": 14,
         "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (790) (text/html)",
         "tags": []
       },
@@ -1285,30 +1301,31 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 16,
+        "observable": 14,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 23
+            "observable": 6
           },
           {
-            "observable": 2
+            "observable": 30
           },
           {
-            "observable": 20
+            "observable": 27
           },
           {
             "observable": 5
           },
           {
-            "observable": 14
+            "observable": 9
           },
           {
-            "observable": 6
+            "observable": 7
           }
         ],
         "class": "URLExtractionAnalysis",
@@ -1336,8 +1353,9 @@
             ]
           }
         },
+        "detections": [],
         "module": "url_extraction",
-        "observable": 16,
+        "observable": 14,
         "summary": "URL Extraction Analysis (cdn.lure-example.net, collect.lure-example.net, docs.lure-example.net, fonts.googleapis.com, login.lure-example.net, t.track-example.com)",
         "tags": []
       },
@@ -1345,7 +1363,7 @@
         "added": [],
         "class": "FileTypeAnalysis",
         "details": {
-          "is_email_file": false,
+          "is_email_file": true,
           "is_jar_file": false,
           "is_lnk_file": false,
           "is_office_document": false,
@@ -1356,52 +1374,66 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 18,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 5
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://login.lure-example.net/verify?id=7"
-          ],
-          "urls_grouped_by_domain": {
-            "lure-example.net": [
-              "https://login.lure-example.net/verify?id=7"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 18,
-        "summary": "URL Extraction Analysis (login.lure-example.net)",
+        "observable": 19,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
       {
         "added": [],
-        "class": "EmailConversationLinkAnalysis",
-        "details": {},
-        "module": "email_conversation_link_analyzer",
-        "observable": 20,
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "detections": [],
+        "module": "html_js_extraction",
+        "observable": 19,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 17
+            "observable": 26
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "mailer.corp.example"
+        },
+        "detections": [],
+        "module": "email_address_fqdn_analyzer",
+        "observable": 22,
+        "summary": "Email Address FQDN: mailer.corp.example",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "EmailConversationLinkAnalysis",
+        "details": {},
+        "detections": [],
+        "module": "email_conversation_link_analyzer",
+        "observable": 27,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 21
           },
           {
-            "observable": 15
+            "observable": 18
           }
         ],
         "class": "ParseURLAnalysis",
@@ -1413,8 +1445,9 @@
           "query": "",
           "scheme": "https"
         },
+        "detections": [],
         "module": "parse_url",
-        "observable": 20,
+        "observable": 27,
         "summary": "URL Parser: scheme=https, netloc=collect.lure-example.net, path=/post",
         "tags": []
       },
@@ -1425,71 +1458,10 @@
           "extracted_url": "https://collect.lure-example.net/post",
           "protection_type": "unprotected"
         },
+        "detections": [],
         "module": "protected_url_analyzer",
-        "observable": 20,
+        "observable": 27,
         "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 21
-          },
-          {
-            "observable": 22
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "fonts.googleapis.com",
-          "params": null,
-          "path": "/css",
-          "query": "family=Roboto",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 23,
-        "summary": "URL Parser: scheme=https, netloc=fonts.googleapis.com, path=/css, query=family=Roboto, params=(family=Roboto)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://fonts.googleapis.com/css?family=Roboto",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 23,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "EmailConversationFrequencyAnalysis",
-        "details": {
-          "dest_count": null,
-          "source_count": 0
-        },
-        "module": "email_conversation_frequency_analyzer",
-        "observable": 24,
-        "summary": "Email Conversation Frequency Analysis - first time received",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 25
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "corp.example"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 26,
-        "summary": "Email Address FQDN: corp.example",
         "tags": []
       },
       {
@@ -1500,11 +1472,72 @@
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "domain": "mailer.corp.example"
+          "domain": "corp.example"
         },
+        "detections": [],
         "module": "email_address_fqdn_analyzer",
         "observable": 28,
-        "summary": "Email Address FQDN: mailer.corp.example",
+        "summary": "Email Address FQDN: corp.example",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "EmailConversationFrequencyAnalysis",
+        "details": {
+          "dest_count": null,
+          "source_count": 0
+        },
+        "detections": [],
+        "module": "email_conversation_frequency_analyzer",
+        "observable": 29,
+        "summary": "Email Conversation Frequency Analysis - first time received",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "EmailConversationLinkAnalysis",
+        "details": {},
+        "detections": [],
+        "module": "email_conversation_link_analyzer",
+        "observable": 30,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 23
+          },
+          {
+            "observable": 16
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "t.track-example.com",
+          "params": null,
+          "path": "/c",
+          "query": "u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
+          "scheme": "https"
+        },
+        "detections": [],
+        "module": "parse_url",
+        "observable": 30,
+        "summary": "URL Parser: scheme=https, netloc=t.track-example.com, path=/c, query=u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1, params=(u=https://docs.lure-example.net/open?d=1)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
+          "protection_type": "unprotected"
+        },
+        "detections": [],
+        "module": "protected_url_analyzer",
+        "observable": 30,
+        "summary": null,
         "tags": []
       }
     ]

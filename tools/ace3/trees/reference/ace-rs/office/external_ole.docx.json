@@ -106,6 +106,39 @@
       },
       "tags": {}
     },
+    "file:698408c693f0b3b144eceb215edcd880d6ab721df262f17adb51b137eddbe38a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "external_ole.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:c64b0c7a028512ace7fd98bb12c5fe0812f04e100b09577edce2f05ad864aa36": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:96e021574b6c901c3f9e44722482666607d2440d36121026d1453910cbb590dd": {
       "detections": {
         "external_ole.docx.extracted/word/_rels/document.xml.rels contains a link to an external oleobject": [
@@ -261,39 +294,6 @@
       },
       "tags": {}
     },
-    "file:a398051107aa287326350814c24cc2340e269218d32c359dc90c02ddf34985d4": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "external_ole.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:c64b0c7a028512ace7fd98bb12c5fe0812f04e100b09577edce2f05ad864aa36": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:a48c2b402065746a90c3c766c91b63f049cb587762d61f1bdf5975349050dc89": {
       "detections": {},
       "directives": {
@@ -388,8 +388,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 12:18:05+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 12:18:05+00:00",
+              "File:FileAccessDate": "2026:11:26 23:29:51+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:29:51+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "external_ole.docx",
               "File:FilePermissions": 100644,

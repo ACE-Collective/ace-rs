@@ -1,0 +1,90 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "c55f15a2",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/plain",
+        "type": "ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: ASCII text (text/plain)",
+      "tags": []
+    },
+    {
+      "class": "HiddenMIMEAnalysis",
+      "details": {
+        "extracted_files": [
+          "<root>/files/nested_970.txt.mime/extracted-0"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.mime:HiddenMIMEAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "nested_970.txt.mime/extracted-0",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "b85e0013519cc1092d75218f35b01013be154b84c79cd7072c42d9183ec647dc"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 9,
+          "tags": [],
+          "type": "file",
+          "value": "613fb964c4a33bf303483d25f0b29a0bd55da3bf5c4d47b3b2425f2c3887824a",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Hidden MIME Analysis: extracted <root>/files/nested_970.txt.mime/extracted-0",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fixtures/office/mime/nested_970.txt",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "nested_970.txt",
+      "size": 61855,
+      "type": "file",
+      "value": "b85e0013519cc1092d75218f35b01013be154b84c79cd7072c42d9183ec647dc"
+    }
+  },
+  "module": "hidden_mime",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "nested_970.txt",
+    "relationships": [],
+    "size": 61855,
+    "tags": [],
+    "type": "file",
+    "value": "b85e0013519cc1092d75218f35b01013be154b84c79cd7072c42d9183ec647dc",
+    "yara_meta": []
+  }
+}

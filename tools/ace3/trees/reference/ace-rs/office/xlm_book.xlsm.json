@@ -267,8 +267,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:11:57+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:11:57+00:00",
+              "File:FileAccessDate": "2026:11:26 23:42:38+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:42:38+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "xlm_book.xlsm",
               "File:FilePermissions": 100644,
@@ -494,39 +494,6 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:5d324f08e7df49bc28c0d1dea69ca8d9f348ccf15f0e9193f510c96705fde34f": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_book.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": true
-      },
-      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -823,6 +790,39 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": "xlm_book.xlsm.extracted/_rels/.rels.noxml"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:848bdd18f0f3b309688cf06ba74e4d257a39fecbe0cfd8854a66212d696f3cf2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_book.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:26626a5234836f7222738a4898cfce8bacd1d0fa898f4cc38eba8f6f228fae84": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

@@ -829,9 +829,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 12:01:06+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 12:01:06+00:00",
-              "File:FileModifyDate": "2026:11:21 12:01:06+00:00",
+              "File:FileAccessDate": "2026:11:26 23:13:59+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:13:59+00:00",
+              "File:FileModifyDate": "2026:11:26 23:13:59+00:00",
               "File:FileName": "invoice.docx.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 12529,
@@ -1073,39 +1073,6 @@
       },
       "tags": {}
     },
-    "file:75cdee0252b19a93e0bb16851d3283964e371ea03d9549d63a8436535c70a418": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:802a346da0760b72b825d9a7857e3e630400a8d33847d94865869877e73c9247": {
       "detections": {},
       "directives": {
@@ -1281,6 +1248,39 @@
       },
       "tags": {}
     },
+    "file:9ca4656b1058de7af7bd7727d9963481894ef0a3107850c719d59d5982a6953e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b161b3f2d5fca3dd7b8ecb2986787f88d86d56e0ed107860b29cc4eb6d3085ec": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ad59db739609567920cdf1eb3d785107e043f25f8e8567338c03b9e50d85025f": {
       "detections": {},
       "directives": {},
@@ -1365,9 +1365,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 12:01:04+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 12:01:04+00:00",
-              "File:FileModifyDate": "2026:11:21 12:01:04+00:00",
+              "File:FileAccessDate": "2026:11:26 23:13:58+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:13:58+00:00",
+              "File:FileModifyDate": "2026:11:26 23:13:58+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -2243,6 +2243,39 @@
       },
       "tags": {}
     },
+    "file:f40c36e598117e93afe726b516cf672c0ba62b7d16b3040960d62f44ea4904f7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:f494618a2f8bb89351a8e5a8fe4d5b902bc40aa286de1edb8c5b8dadab70c253": {
       "detections": {},
       "directives": {},
@@ -2271,39 +2304,6 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:f68858425e7d10ac1ff776eca6e552ab29700421a74ed0292664e28bc9338e41": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b161b3f2d5fca3dd7b8ecb2986787f88d86d56e0ed107860b29cc4eb6d3085ec": true
-      },
-      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false

@@ -139,8 +139,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:58:47+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:58:47+00:00",
+              "File:FileAccessDate": "2026:11:26 23:30:32+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:30:32+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "msoffcrypto_plain.ppt",
               "File:FilePermissions": 100644,
@@ -545,6 +545,39 @@
       },
       "tags": {}
     },
+    "file:b052ada42d9557b0be6bdc5beefb1a94cafe42aaf144513fb4d2b182c9b9682b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "msoffcrypto_plain.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ce2f2da3dc47b38d1d8c9f8971a8553cb19e20d24926cc0bbfa3bd773e5444c6": {
       "detections": {},
       "directives": {
@@ -588,39 +621,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:f92dd2a07f7d3efef0ec883c26d5eeb1b16335b1acb9a96ad3df0bf3e972700c": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "msoffcrypto_plain.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}

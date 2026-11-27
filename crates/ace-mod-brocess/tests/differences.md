@@ -4,7 +4,7 @@
 
 ## email_conversation_frequency_analyzer
 
-The test runs the conversation frequency module on each `email_conversation` value `tools/ace3/dumps/reference/email_conversation_frequency_analyzer/` has a dump for. ace3 counted from the smtplog rows in `tools/ace3/dumps/fixtures/brocess/smtplog.json` in place of brocess (`tools/ace3/dumps/run_module.py --brocess`, which sums them as ace3's SQL does). The test answers the module's `smtp-counts` read with the counts the core's query gives for those rows; ace-pool's `lease_api` test runs that query on the same rows in Postgres and checks it against the same dumps. Both results go into the normal form `ace_testkit::reference` describes, and the test fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 85c8e9e5.
+The test runs the conversation frequency module on each `email_conversation` value `tools/ace3/dumps/reference/email_conversation_frequency_analyzer/` has a dump for. ace3 counted from the smtplog rows in `tools/ace3/dumps/fixtures/brocess/smtplog.json` in place of brocess (`tools/ace3/dumps/run_module.py --brocess`, which sums them as ace3's SQL does). The test answers the module's `smtp-counts` read with the counts the core's query gives for those rows; ace-pool's `lease_api` test runs that query on the same rows in Postgres and checks it against the same dumps. Both results go into the normal form `ace_testkit::reference` describes, and the test fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit c55f15a2.
 
 | Dumps | Path | Why |
 |---|---|---|

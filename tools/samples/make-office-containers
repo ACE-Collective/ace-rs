@@ -153,8 +153,9 @@ def hidden_mime_fixtures(mht_vba):
         ),
         "capture.pcap": struct.pack("<IHHiIII", 0xA1B2C3D4, 2, 4, 0, 0, 65535, 1) + b"Content-Type: multipart/mixed; boundary=p\n\n--p\n\nin a capture\n--p--\n",
         "vba_mht.mht": mht_vba,
+        # the deepest that parses in ace3 since c55f15a2, and the shallowest that raises
+        "nested_970.txt": nested_mime(970),
         "nested_971.txt": nested_mime(971),
-        "nested_972.txt": nested_mime(972),
     }
 
 

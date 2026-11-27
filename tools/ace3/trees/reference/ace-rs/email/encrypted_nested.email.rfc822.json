@@ -334,9 +334,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 12:01:43+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 12:01:43+00:00",
-              "File:FileModifyDate": "2026:11:21 12:01:43+00:00",
+              "File:FileAccessDate": "2026:11:26 23:14:36+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:14:36+00:00",
+              "File:FileModifyDate": "2026:11:26 23:14:36+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -658,6 +658,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:50cc2ee0a5b31aed6acb747fdddd7460e964af4651e0c31dd203c336a3449ba6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2ed4859b4203569d8720219e128039963af868b98f9b04ced3d2db0e49d4bfd2": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -1148,9 +1181,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 12:01:44+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 12:01:44+00:00",
-              "File:FileModifyDate": "2026:11:21 12:01:44+00:00",
+              "File:FileAccessDate": "2026:11:26 23:14:37+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:14:37+00:00",
+              "File:FileModifyDate": "2026:11:26 23:14:37+00:00",
               "File:FileName": "invoice.docx.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 12529,
@@ -1387,39 +1420,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:70d1af91f07ae7c79464b648dc75a7b8b21b8c683ae05fd4423a1a8b53526423": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1678,39 +1678,6 @@
         "email": true
       }
     },
-    "file:95c9ee882687328e9f965bc87c10f66f59acdf9833e80e1623705e2f2ebc6b7c": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice_000.docx.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:990349482cd707ba3093d6fff5bb72167a38f0831e58789a92c25cdeb01f7f93": {
       "detections": {},
       "directives": {
@@ -1777,7 +1744,7 @@
       },
       "tags": {}
     },
-    "file:9d079d3edb65a555ed361571fde911088ccc260b131d31bbb15d079d5eee736e": {
+    "file:9a6d94e93fa5776cc18b97e3bc6d9ef77898f8b176ad0d064aefa8f9fcd90961": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -1785,12 +1752,45 @@
         "file_type": true
       },
       "paths": {
-        "invoice.docx.exif/exiftool.out": {
+        "invoice.docx.decrypted.exif/exiftool.out": {
           "type=metadata.exif": true
         }
       },
       "relationships": {
-        "extracted_from file:2ed4859b4203569d8720219e128039963af868b98f9b04ced3d2db0e49d4bfd2": true
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:b22094687cd040c3ec0bae76a4fabdbdf7bf0855c3a6657ae94325aeabd87f7b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice_000.docx.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
       },
       "results": {
         "observable_detection": {
@@ -2667,7 +2667,7 @@
         "email": true
       }
     },
-    "file:ea919e192732784f77f33ae65a60a62fefb5d7f835c74149f83527ccb8c5f368": {
+    "file:e9f6c064aeb70d3748806920537f456c16de11defa3a87c4b074d71804a813d4": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {

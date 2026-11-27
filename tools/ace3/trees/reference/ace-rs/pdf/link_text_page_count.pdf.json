@@ -61,6 +61,135 @@
       },
       "tags": {}
     },
+    "file:0078ae6c27dc879f4784802818b414bef8a4d9047f0beedf88dbcf87c8fd9876": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "link_text_page_count.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:24be72feae3d402328bc781420480be38470aa03996b94363654aaad277a3e23": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:1ad2f4c859293c47fbe2685bf24ccde4b21f077cb2e3fb59ad8ca4f37d2b875e": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "link_text_page_count.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:24be72feae3d402328bc781420480be38470aa03996b94363654aaad277a3e23",
+      "relationships": {
+        "extracted_from file:24be72feae3d402328bc781420480be38470aa03996b94363654aaad277a3e23": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 2 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 2 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": "View invoice online",
+                "page": 2,
+                "text": "View invoice online",
+                "url": "https://example.com/second-page"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 1 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "68c66beb11768666f7b2e6e5cf580e22c143652c06204068a8e160caae57fdf9",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
     "file:24be72feae3d402328bc781420480be38470aa03996b94363654aaad277a3e23": {
       "detections": {},
       "directives": {},
@@ -78,8 +207,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:47:36+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:47:36+00:00",
+              "File:FileAccessDate": "2026:11:27 00:09:02+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:09:02+00:00",
               "File:FileModifyDate": "2026:11:16 16:21:04+00:00",
               "File:FileName": "link_text_page_count.pdf",
               "File:FilePermissions": 100644,
@@ -192,9 +321,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:9a494ccc2cb8bcbbd16d1a2f4786b7e94e3dcdc3bc26eac911e264fe48af660f",
+      "redirection": "file:1ad2f4c859293c47fbe2685bf24ccde4b21f077cb2e3fb59ad8ca4f37d2b875e",
       "relationships": {
-        "extracted_from file:9a494ccc2cb8bcbbd16d1a2f4786b7e94e3dcdc3bc26eac911e264fe48af660f": true
+        "extracted_from file:1ad2f4c859293c47fbe2685bf24ccde4b21f077cb2e3fb59ad8ca4f37d2b875e": true
       },
       "results": {
         "file_type": {
@@ -310,39 +439,6 @@
       },
       "tags": {}
     },
-    "file:6f1dc3f4cb625e358c37f75b0928cd08dd567960609200a3d3943ab2b7d4d927": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "link_text_page_count.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:24be72feae3d402328bc781420480be38470aa03996b94363654aaad277a3e23": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:78b49e04ad55fc206138f10ae7ff08f6674984c39f347c369258bc8c8218c0fd": {
       "detections": {},
       "directives": {
@@ -408,102 +504,6 @@
         }
       },
       "tags": {}
-    },
-    "file:9a494ccc2cb8bcbbd16d1a2f4786b7e94e3dcdc3bc26eac911e264fe48af660f": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "link_text_page_count.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:24be72feae3d402328bc781420480be38470aa03996b94363654aaad277a3e23",
-      "relationships": {
-        "extracted_from file:24be72feae3d402328bc781420480be38470aa03996b94363654aaad277a3e23": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 2 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 2 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdf_link_text": {
-          "details": {
-            "links": [
-              {
-                "line": "View invoice online",
-                "page": 2,
-                "text": "View invoice online",
-                "url": "https://example.com/second-page"
-              }
-            ]
-          },
-          "summary": "PDF Link Text Analysis: 1 links, 1 with text",
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "68c66beb11768666f7b2e6e5cf580e22c143652c06204068a8e160caae57fdf9",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
     },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},

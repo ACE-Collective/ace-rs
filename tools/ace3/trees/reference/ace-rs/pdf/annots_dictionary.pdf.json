@@ -1,7 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:130e1f5e5d87af456d585994373d0a1ecae213b5ec84f5bf51e2d4066f70a99b": {
+    "file:02ac2070a5baf6be69c39bc97909397b3b4fc7bc65862f9e08db1f3a927fe639": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -51,8 +51,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:56:08+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:56:08+00:00",
+              "File:FileAccessDate": "2026:11:27 00:01:47+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:01:47+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "annots_dictionary.pdf",
               "File:FilePermissions": 100644,
@@ -139,67 +139,7 @@
         "pdf": true
       }
     },
-    "file:a3099b672e3ac916bd27131688af6a7d64895a699d46d3e5fed5aaccafdb3076": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "annots_dictionary.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:57f0712c519152c3e7c976e32db715e55f515adcf2cba65dd94c9c8d73f4c0d5",
-      "relationships": {
-        "extracted_from file:57f0712c519152c3e7c976e32db715e55f515adcf2cba65dd94c9c8d73f4c0d5": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text (application/pdf)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:a9b721c7b74cb711d3430c4478ce4827849737e46f40ea10ee0d5d4ce2ab7560": {
+    "file:9a71f3f6aac27b591c6b9320de3ee050549a6df2e9b53de3e713bcd30a2040bc": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -281,6 +221,66 @@
         "pdf": true
       }
     },
+    "file:a3099b672e3ac916bd27131688af6a7d64895a699d46d3e5fed5aaccafdb3076": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "annots_dictionary.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:57f0712c519152c3e7c976e32db715e55f515adcf2cba65dd94c9c8d73f4c0d5",
+      "relationships": {
+        "extracted_from file:57f0712c519152c3e7c976e32db715e55f515adcf2cba65dd94c9c8d73f4c0d5": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text (application/pdf)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
       "detections": {},
       "directives": {},
@@ -344,9 +344,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:a9b721c7b74cb711d3430c4478ce4827849737e46f40ea10ee0d5d4ce2ab7560",
+      "redirection": "file:9a71f3f6aac27b591c6b9320de3ee050549a6df2e9b53de3e713bcd30a2040bc",
       "relationships": {
-        "extracted_from file:a9b721c7b74cb711d3430c4478ce4827849737e46f40ea10ee0d5d4ce2ab7560": true
+        "extracted_from file:9a71f3f6aac27b591c6b9320de3ee050549a6df2e9b53de3e713bcd30a2040bc": true
       },
       "results": {
         "file_type": {

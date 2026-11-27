@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -67,7 +67,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-21 13:57:20.474455 +0000",
+            "date": "2026-11-27 04:16:13.936267 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -339,7 +339,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-21T13:57:20.469273",
+        "timestamp": "2026-11-27T04:16:13.930578",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -349,7 +349,7 @@
         "header": "From: sender@example.com",
         "header_index": 0,
         "message_id": "<encrypted_no_body.email.rfc822@example.com>",
-        "timestamp": "1795269440.474455"
+        "timestamp": "1795752973.936267"
       },
       "tag": "phishfinder-headers"
     },
@@ -358,7 +358,7 @@
         "header": "To: recipient@example.com",
         "header_index": 1,
         "message_id": "<encrypted_no_body.email.rfc822@example.com>",
-        "timestamp": "1795269440.474455"
+        "timestamp": "1795752973.936267"
       },
       "tag": "phishfinder-headers"
     },
@@ -367,7 +367,7 @@
         "header": "Subject: the attached file",
         "header_index": 2,
         "message_id": "<encrypted_no_body.email.rfc822@example.com>",
-        "timestamp": "1795269440.474455"
+        "timestamp": "1795752973.936267"
       },
       "tag": "phishfinder-headers"
     },
@@ -376,7 +376,7 @@
         "header": "Date: Fri, 06 Nov 2026 12:00:00 +0000",
         "header_index": 3,
         "message_id": "<encrypted_no_body.email.rfc822@example.com>",
-        "timestamp": "1795269440.474455"
+        "timestamp": "1795752973.936267"
       },
       "tag": "phishfinder-headers"
     },
@@ -385,7 +385,7 @@
         "header": "Message-ID: <encrypted_no_body.email.rfc822@example.com>",
         "header_index": 4,
         "message_id": "<encrypted_no_body.email.rfc822@example.com>",
-        "timestamp": "1795269440.474455"
+        "timestamp": "1795752973.936267"
       },
       "tag": "phishfinder-headers"
     },
@@ -394,7 +394,7 @@
         "header": "Content-Type: multipart/mixed; boundary=\"===============6359657604749616519==\"",
         "header_index": 5,
         "message_id": "<encrypted_no_body.email.rfc822@example.com>",
-        "timestamp": "1795269440.474455"
+        "timestamp": "1795752973.936267"
       },
       "tag": "phishfinder-headers"
     },
@@ -419,7 +419,7 @@
         "cc": [],
         "compauth_reason": null,
         "compauth_result": null,
-        "date": "2026-11-21 13:57:20.474455 +0000",
+        "date": "2026-11-27 04:16:13.936267 +0000",
         "dkim_result": null,
         "dmarc_result": null,
         "env_mail_from": null,
@@ -447,7 +447,7 @@
         "subject_raw": "the attached file",
         "thread_index": null,
         "thread_topic": null,
-        "timestamp": "1795269440.474455",
+        "timestamp": "1795752973.936267",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -477,7 +477,7 @@
         "thread_id": "<encrypted_no_body.email.rfc822@example.com>",
         "thread_message_count": 0,
         "thread_method": "self",
-        "timestamp": "1795269440.474455"
+        "timestamp": "1795752973.936267"
       },
       "tag": "phishfinder-lookalike"
     },
@@ -497,53 +497,53 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "e569352d-8ce5-4f5b-9395-edd02884aa78",
-        "timestamp": "2026-11-21 13:57:20.857711",
-        "total_analysis_time_seconds": 0.022122999999999997,
-        "total_time_seconds": 0.40529441833496094
+        "root_uuid": "7b910793-0425-4c42-a4ee-5dd833cdb2fc",
+        "timestamp": "2026-11-27 04:16:14.303205",
+        "total_analysis_time_seconds": 0.025212000000000002,
+        "total_time_seconds": 0.39278507232666016
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.017386,
+        "analysis_time_seconds": 0.019852,
         "event_type": "module",
         "exec_count": 4,
         "module": "file_type",
-        "percentage": 4.289721055479997,
-        "root_uuid": "e569352d-8ce5-4f5b-9395-edd02884aa78",
-        "timestamp": "2026-11-21 13:57:20.857711"
+        "percentage": 5.054163561361126,
+        "root_uuid": "7b910793-0425-4c42-a4ee-5dd833cdb2fc",
+        "timestamp": "2026-11-27 04:16:14.303205"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.003519,
+        "analysis_time_seconds": 0.003926,
         "event_type": "module",
         "exec_count": 2,
         "module": "email_analyzer",
-        "percentage": 0.8682577012673477,
-        "root_uuid": "e569352d-8ce5-4f5b-9395-edd02884aa78",
-        "timestamp": "2026-11-21 13:57:20.857711"
+        "percentage": 0.9995288203658966,
+        "root_uuid": "7b910793-0425-4c42-a4ee-5dd833cdb2fc",
+        "timestamp": "2026-11-27 04:16:14.303205"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.001218,
+        "analysis_time_seconds": 0.001434,
         "event_type": "module",
         "exec_count": 9,
         "module": "email_logger",
-        "percentage": 0.3005222734139328,
-        "root_uuid": "e569352d-8ce5-4f5b-9395-edd02884aa78",
-        "timestamp": "2026-11-21 13:57:20.857711"
+        "percentage": 0.3650851575152052,
+        "root_uuid": "7b910793-0425-4c42-a4ee-5dd833cdb2fc",
+        "timestamp": "2026-11-27 04:16:14.303205"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-21T13:57:20.858087",
+        "timestamp": "2026-11-27T04:16:14.303528",
         "value": 0
       },
       "tag": "monitoring"
@@ -551,7 +551,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-21T13:57:20.858112",
+        "timestamp": "2026-11-27T04:16:14.303542",
         "value": 1
       },
       "tag": "monitoring"

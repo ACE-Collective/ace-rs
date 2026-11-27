@@ -61,108 +61,6 @@
       },
       "tags": {}
     },
-    "file:03075efc89b60e5eeafff55daff87c9047c898116da3a4a34d0db7eb02f1a059": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "ComplaintApril_424256637.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076",
-      "relationships": {
-        "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdf_link_text": {
-          "details": {
-            "links": [
-              {
-                "line": "Keep your software up to date. trademarks are the property of their respective owners.",
-                "page": 1,
-                "text": "up to date.",
-                "url": "https://www.adobe.com"
-              },
-              {
-                "line": "the world gets work OPEN",
-                "page": 1,
-                "text": "OPEN",
-                "url": "http://12tkj5.my.id/blog/642ec2b466aed.zip"
-              }
-            ]
-          },
-          "summary": "PDF Link Text Analysis: 2 links, 2 with text",
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "9e2edecc508b0c464ba6b6532134756b915fee713bdd0efd18f98ffbb2fb3238",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
     "file:234001d104b81822d825068e6e39b434c768df40b979eefe9a12f8fc5434c417": {
       "detections": {},
       "directives": {},
@@ -231,7 +129,7 @@
         "pdf": true
       }
     },
-    "file:2840e10080df020cc4ad160bb9b334a6acf6152537bbbdf0442b04cdeaaef525": {
+    "file:7eb5eddeb38f0d11bdaf91861d9f799b87399f8f2cc03d3b00559967906f4180": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -429,9 +327,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:03075efc89b60e5eeafff55daff87c9047c898116da3a4a34d0db7eb02f1a059",
+      "redirection": "file:a35d2363cb95d3e9937536905e704a3e6f571e928c358aebf613eaffebc041d4",
       "relationships": {
-        "extracted_from file:03075efc89b60e5eeafff55daff87c9047c898116da3a4a34d0db7eb02f1a059": true,
+        "extracted_from file:a35d2363cb95d3e9937536905e704a3e6f571e928c358aebf613eaffebc041d4": true,
         "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
       },
       "results": {
@@ -470,6 +368,108 @@
         }
       },
       "tags": {}
+    },
+    "file:a35d2363cb95d3e9937536905e704a3e6f571e928c358aebf613eaffebc041d4": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "ComplaintApril_424256637.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076",
+      "relationships": {
+        "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": "Keep your software up to date. trademarks are the property of their respective owners.",
+                "page": 1,
+                "text": "up to date.",
+                "url": "https://www.adobe.com"
+              },
+              {
+                "line": "the world gets work OPEN",
+                "page": 1,
+                "text": "OPEN",
+                "url": "http://12tkj5.my.id/blog/642ec2b466aed.zip"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 2 links, 2 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "9e2edecc508b0c464ba6b6532134756b915fee713bdd0efd18f98ffbb2fb3238",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
     },
     "file:f3494a3ad0d407af43a45d0b12de066f1830d28bca30f3f4a29ab437faaa73fd": {
       "detections": {},
@@ -549,8 +549,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 11:59:45+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 11:59:45+00:00",
+              "File:FileAccessDate": "2026:11:26 23:12:41+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:12:41+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "ComplaintApril_424256637.pdf",
               "File:FilePermissions": 100644,

@@ -84,8 +84,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:11:08+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:11:08+00:00",
+              "File:FileAccessDate": "2026:11:26 23:41:52+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:41:52+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "vba_powerpoint_raw.ppt",
               "File:FilePermissions": 100644,
@@ -242,39 +242,6 @@
         "macro": true
       }
     },
-    "file:85787e99c76e2472906a1357b58183c2c298923ffcb4b4c5910a628544567a04": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "vba_powerpoint_raw.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2f45d1313c776ad2a0d0c3c75b0f549a3cf2775725f0906b34ebc09d61e48d13": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:9f2c0f2548ffc2a5660aa3b8280ad4b889e6024f2e8ce867c88fee7a74f86860": {
       "detections": {},
       "directives": {
@@ -326,6 +293,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:bf0e7c15952e89e1477bb165d32d63e20182fa1a2ada1c6d1efe98b93af08c13": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_powerpoint_raw.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2f45d1313c776ad2a0d0c3c75b0f549a3cf2775725f0906b34ebc09d61e48d13": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

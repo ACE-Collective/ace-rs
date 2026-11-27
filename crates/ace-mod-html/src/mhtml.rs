@@ -39,10 +39,11 @@ pub const MANIFEST: Manifest = Manifest::parser::<MhtmlAnalyzer>();
 const MHTML_EXTENSIONS: [&str; 2] = [".mhtml", ".mht"];
 
 /// Python frames under the root `_parsegen` when ace3's `mhtml` module feeds its parser, as
-/// measured in ace3's dump harness: there a file nested 974 multiparts deep parses and one 975
-/// deep raises `RecursionError` (`docs/measurements/html.md`).
-const MHTML_ROOT_DEPTH: usize = 19;
-/// The same under `html_js_extraction`'s `_parse_mhtml`, a frame deeper: 973 parse, 974 don't.
+/// measured in ace3's dump harness at `c55f15a2`: there a file nested 973 multiparts deep parses
+/// and one 974 deep raises `RecursionError` (`docs/measurements/html.md`). ace3's `5ca91195` added
+/// a frame under every module, `AnalysisModule.analyze` calling `_analyze`; before it 974 parsed.
+const MHTML_ROOT_DEPTH: usize = 20;
+/// The same under `html_js_extraction`'s `_parse_mhtml`, a frame deeper: 972 parse, 973 don't.
 const JS_ROOT_DEPTH: usize = MHTML_ROOT_DEPTH + 1;
 
 /// `BytesFeedParser`, the stock `headerRE`, fed from one of ace3's modules.
@@ -216,10 +217,10 @@ mod tests {
 
     #[test]
     fn recursion_errors_come_where_ace3_s_do() {
-        assert!(walk(&nested(974), MHTML_ROOT_DEPTH).is_ok());
-        assert!(walk(&nested(975), MHTML_ROOT_DEPTH).is_err());
-        assert_eq!(html_parts(&nested(973)).len(), 1);
-        assert!(html_parts(&nested(974)).is_empty());
+        assert!(walk(&nested(973), MHTML_ROOT_DEPTH).is_ok());
+        assert!(walk(&nested(974), MHTML_ROOT_DEPTH).is_err());
+        assert_eq!(html_parts(&nested(972)).len(), 1);
+        assert!(html_parts(&nested(973)).is_empty());
     }
 
     #[test]

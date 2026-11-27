@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "email_analyzer",
     "file_type",
@@ -574,7 +574,7 @@
             "cc": [],
             "compauth_reason": "300",
             "compauth_result": "none",
-            "date": "2026-11-21 14:50:30.598670 +0000",
+            "date": "2026-11-27 05:04:53.882006 +0000",
             "dkim_result": "none",
             "dmarc_result": "none",
             "env_mail_from": "ap@someothercompany.com",
@@ -928,7 +928,7 @@
     "archived_messages": [
       {
         "digest": "71040db1d86e00082b630459a94cb2913fb4ed06880fffdf58c275f98034cbb6",
-        "insert_date": "2026-11-21 14:50:30",
+        "insert_date": "2026-11-27 05:04:53",
         "message_id_hash": "E28B35A4C1ECA266BF76D8DB317866E0225463996975F1BD321020C52BBA74FB"
       }
     ],
@@ -991,59 +991,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_x_sender_id",
-        "value": "ap@someothercompany.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "ap@someothercompany.com|charlie.jones@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 19739,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "fdc30e4971262a455403dd49b60eb6b5e86357703a47e792e825c1c12d7cb998"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "INVOICE PDL-06-38776"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "email_envelope_rcpt_to",
         "value": "charlie.jones@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_x_sender_id",
+        "value": "ap@someothercompany.com"
       },
       {
         "detections": [],
@@ -1058,7 +1015,15 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
+        "type": "email_to",
+        "value": "random.person@whatever.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_x_auth_id",
         "value": "ap@someothercompany.com"
       },
       {
@@ -1067,31 +1032,7 @@
         "paths": [],
         "tags": [],
         "type": "email_conversation",
-        "value": "ap@someothercompany.com|lulu.zingzing@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "ap@someothercompany.com|random.person@whatever.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
         "value": "ap@someothercompany.com|bob.smith@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_first_hop_ip",
-        "value": "207.211.31.81"
       },
       {
         "detections": [],
@@ -1125,8 +1066,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_first_hop_helo",
-        "value": "us-smtp-1.mimecast.com"
+        "type": "email_conversation",
+        "value": "ap@someothercompany.com|random.person@whatever.com"
       },
       {
         "detections": [],
@@ -1153,6 +1094,38 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "email_envelope_rcpt_to",
+        "value": "lulu.zingzing@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "ap@someothercompany.com|lulu.zingzing@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_first_hop_helo",
+        "value": "us-smtp-1.mimecast.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "url",
         "value": "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18"
       },
@@ -1161,8 +1134,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_envelope_rcpt_to",
-        "value": "lulu.zingzing@company.com"
+        "type": "message_id",
+        "value": "<13268020124593518925.93733CB7019D1C46@company.com>"
       },
       {
         "detections": [],
@@ -1187,26 +1160,53 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<13268020124593518925.93733CB7019D1C46@company.com>"
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 19739,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "fdc30e4971262a455403dd49b60eb6b5e86357703a47e792e825c1c12d7cb998"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_x_auth_id",
+        "type": "email_first_hop_ip",
+        "value": "207.211.31.81"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "ap@someothercompany.com|charlie.jones@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "INVOICE PDL-06-38776"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
         "value": "ap@someothercompany.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "random.person@whatever.com"
       }
     ],
     "results": [
@@ -1228,31 +1228,9 @@
           "mime": "message/rfc822",
           "type": "RFC 822 mail, ASCII text, with very long lines (1998)"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 3,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (1998) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with very long lines (1998)"
-        },
-        "module": "file_type",
-        "observable": 13,
+        "observable": 7,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (1998) (message/rfc822) (email)",
         "tags": []
       },
@@ -1263,71 +1241,72 @@
           "hash": "71040db1d86e00082b630459a94cb2913fb4ed06880fffdf58c275f98034cbb6",
           "message_id": null
         },
+        "detections": [],
         "module": "email_archiver",
-        "observable": 15,
+        "observable": 9,
         "summary": "Archived Email: 71040db1d86e00082b630459a94cb2913fb4ed06880fffdf58c275f98034cbb6",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 7
-          },
-          {
-            "observable": 17
-          },
-          {
-            "observable": 8
-          },
-          {
-            "observable": 12
+            "observable": 21
           },
           {
             "observable": 10
           },
           {
-            "observable": 5
-          },
-          {
-            "observable": 2
-          },
-          {
-            "observable": 21
-          },
-          {
-            "observable": 9
-          },
-          {
-            "observable": 4
-          },
-          {
-            "observable": 19
-          },
-          {
-            "observable": 0
-          },
-          {
-            "observable": 20
+            "observable": 11
           },
           {
             "observable": 6
           },
           {
-            "observable": 11
+            "observable": 5
           },
           {
-            "observable": 14
+            "observable": 0
           },
           {
-            "observable": 18,
+            "observable": 19
+          },
+          {
+            "observable": 3
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 20
+          },
+          {
+            "observable": 15
+          },
+          {
+            "observable": 1
+          },
+          {
+            "observable": 4
+          },
+          {
+            "observable": 2
+          },
+          {
+            "observable": 18
+          },
+          {
+            "observable": 13
+          },
+          {
+            "observable": 16,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 13,
+            "observable": 7,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 3,
+            "observable": 17,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1885,7 +1864,7 @@
               "cc": [],
               "compauth_reason": "300",
               "compauth_result": "none",
-              "date": "2026-11-21 14:50:30.598670 +0000",
+              "date": "2026-11-27 05:04:53.882006 +0000",
               "dkim_result": "none",
               "dmarc_result": "none",
               "env_mail_from": "ap@someothercompany.com",
@@ -1993,8 +1972,9 @@
             }
           ]
         },
+        "detections": [],
         "module": "email_analyzer",
-        "observable": 15,
+        "observable": 9,
         "summary": "Email Analysis: From Bobbie Fruitypie <ap@someothercompany.com> To lulu.zingzing@company.com Subject INVOICE PDL-06-38776",
         "tags": []
       },
@@ -2016,8 +1996,9 @@
           "mime": "message/rfc822",
           "type": "SMTP mail, ASCII text, with very long lines (818)"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 15,
+        "observable": 9,
         "summary": "File Type Analysis: SMTP mail, ASCII text, with very long lines (818) (message/rfc822) (email)",
         "tags": []
       },
@@ -2039,18 +2020,19 @@
           "mime": "text/html",
           "type": "HTML document, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 18,
+        "observable": 16,
         "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 16
+            "observable": 14
           },
           {
-            "observable": 1
+            "observable": 12
           }
         ],
         "class": "URLExtractionAnalysis",
@@ -2066,9 +2048,34 @@
             ]
           }
         },
+        "detections": [],
         "module": "url_extraction",
-        "observable": 18,
+        "observable": 16,
         "summary": "URL Extraction Analysis (www.universalgreentech.co.uk)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with very long lines (1998)"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 17,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (1998) (message/rfc822) (email)",
         "tags": []
       }
     ]

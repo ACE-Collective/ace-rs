@@ -66,39 +66,6 @@
       },
       "tags": {}
     },
-    "file:090e472f8f6b1cc9f58bb0f0751e987b701f6a28af86fbe12f869cebc9eb3c4f": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "zip_bad_rels.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:12f38cb4a227f1f4e8834440f7565e9ea65d7d432ec67d28a0e3f16096a12329": {
       "detections": {},
       "directives": {
@@ -188,8 +155,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/zip_bad_rels.docm.extracted/word",
-              "File:FileAccessDate": "2026:11:16 20:24:30+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:24:29+00:00",
+              "File:FileAccessDate": "2026:11:26 23:46:34+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:46:34+00:00",
               "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
@@ -476,7 +443,7 @@
       },
       "tags": {}
     },
-    "file:253b3a2d281341a1305fc0eecc219cb590d5d1c41330af60bb894ad9df64d137": {
+    "file:3670cf3eff906ae78bac1c27f7db2f674b039be131782b7bf56f3b9000f878d9": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -484,12 +451,12 @@
         "file_type": true
       },
       "paths": {
-        "zip_bad_rels.docm.exif/exiftool.out": {
+        "zip_bad_rels.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
           "type=metadata.exif": true
         }
       },
       "relationships": {
-        "extracted_from file:c94cfed2698aa66dd0391b667aa09c44cabe28dacf9de5e13c8641a492e037bb": true
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
       },
       "results": {
         "observable_detection": {
@@ -723,8 +690,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:24:28+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:24:28+00:00",
+              "File:FileAccessDate": "2026:11:26 23:46:33+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:46:33+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "zip_bad_rels.docm",
               "File:FilePermissions": 100644,
@@ -857,6 +824,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f7f03bf13cb96bdb9b5461b7c714bec64801638db7a2eb2014146c151880e44d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_bad_rels.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:c94cfed2698aa66dd0391b667aa09c44cabe28dacf9de5e13c8641a492e037bb": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

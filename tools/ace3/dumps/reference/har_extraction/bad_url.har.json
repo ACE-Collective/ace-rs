@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [],
   "analyses": [
     {
@@ -20,7 +20,7 @@
         "skipped_count": 0
       },
       "detections": [],
-      "error": "ValueError: Invalid IPv6 URL (crash_id 9f1de78e-c028-422b-962b-e63ec59ec758)",
+      "error": "ValueError: Invalid IPv6 URL (crash_id 694f0975-9a70-409f-9be8-311b40bc9e4d)",
       "module_path": "saq.modules.file_analysis.har:HARAnalysis",
       "observables": [
         {
@@ -62,7 +62,7 @@
           "value": "https://ok.example.com/first.html"
         }
       ],
-      "summary": "HTTP Archive: failed: ValueError: Invalid IPv6 URL (crash_id 9f1de78e-c028-422b-962b-e63ec59ec758)",
+      "summary": "HTTP Archive: failed: ValueError: Invalid IPv6 URL (crash_id 694f0975-9a70-409f-9be8-311b40bc9e4d)",
       "tags": []
     }
   ],

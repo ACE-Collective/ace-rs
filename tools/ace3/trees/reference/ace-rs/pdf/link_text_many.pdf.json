@@ -156,1280 +156,25 @@
       },
       "tags": {}
     },
-    "file:517f106223da89cf5318ef926c1e313168419b8609d9b3cc90078366dee57ca8": {
+    "file:30e5084f77955169886e3f8f39ac9bb9204a8ae0a804ed9d33f3457293193b6d": {
       "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
+      "directives": {},
       "excluded_analysis": {
-        "pdf_analyzer": true
+        "file_hash_analyzer": true,
+        "file_type": true
       },
       "paths": {
-        "link_text_many.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
+        "link_text_many.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
         }
       },
-      "redirection": "file:7224e0725f1a8b7d912494f70d0bc281da7ea3693a7a7ea5f48a26e2d2de0b29",
       "relationships": {
         "extracted_from file:7224e0725f1a8b7d912494f70d0bc281da7ea3693a7a7ea5f48a26e2d2de0b29": true
       },
       "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
         "observable_detection": {
           "details": {
             "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdf_link_text": {
-          "details": {
-            "links": [
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "View",
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "View",
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "View",
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "View",
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "View",
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "invoice",
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "invoice",
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "invoice",
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "invoice",
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "invoice",
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "online",
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "online",
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "online",
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "online",
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": "online",
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/0"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/1"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/2"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/3"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/4"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/5"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/6"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/7"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/8"
-              },
-              {
-                "line": "View invoice online",
-                "page": 1,
-                "text": null,
-                "url": "https://example.com/many/9"
-              }
-            ]
-          },
-          "summary": "PDF Link Text Analysis: 200 links, 200 with text",
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "56cd57a723173ac6639d8a2a7a308775976dc01d8f16824fc2bae009c56ec14c",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -1442,9 +187,7 @@
           "tags": {}
         }
       },
-      "tags": {
-        "pdf": true
-      }
+      "tags": {}
     },
     "file:56cd57a723173ac6639d8a2a7a308775976dc01d8f16824fc2bae009c56ec14c": {
       "detections": {},
@@ -1460,10 +203,10 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:517f106223da89cf5318ef926c1e313168419b8609d9b3cc90078366dee57ca8",
+      "redirection": "file:b62c2cfe64f2e760fce848e9eb70b055945232184aa08919c3f3f4739a36b3f1",
       "relationships": {
-        "extracted_from file:517f106223da89cf5318ef926c1e313168419b8609d9b3cc90078366dee57ca8": true,
-        "extracted_from file:7224e0725f1a8b7d912494f70d0bc281da7ea3693a7a7ea5f48a26e2d2de0b29": true
+        "extracted_from file:7224e0725f1a8b7d912494f70d0bc281da7ea3693a7a7ea5f48a26e2d2de0b29": true,
+        "extracted_from file:b62c2cfe64f2e760fce848e9eb70b055945232184aa08919c3f3f4739a36b3f1": true
       },
       "results": {
         "file_type": {
@@ -1519,8 +262,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 16:22:00+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 16:22:00+00:00",
+              "File:FileAccessDate": "2026:11:27 00:08:41+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:08:41+00:00",
               "File:FileModifyDate": "2026:11:16 16:21:04+00:00",
               "File:FileName": "link_text_many.pdf",
               "File:FilePermissions": 100644,
@@ -2899,25 +1642,1280 @@
       },
       "tags": {}
     },
-    "file:ef64681834a7e48cc40cacc8d2c1e1c1562919d53b93cc855528575d8cb9bf28": {
+    "file:b62c2cfe64f2e760fce848e9eb70b055945232184aa08919c3f3f4739a36b3f1": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "extract_urls": true
+      },
       "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
+        "pdf_analyzer": true
       },
       "paths": {
-        "link_text_many.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
+        "link_text_many.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
         }
       },
+      "redirection": "file:7224e0725f1a8b7d912494f70d0bc281da7ea3693a7a7ea5f48a26e2d2de0b29",
       "relationships": {
         "extracted_from file:7224e0725f1a8b7d912494f70d0bc281da7ea3693a7a7ea5f48a26e2d2de0b29": true
       },
       "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "View",
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "View",
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "View",
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "View",
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "View",
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "invoice",
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "invoice",
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "invoice",
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "invoice",
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "invoice",
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "online",
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "online",
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "online",
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "online",
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "online",
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/0"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/1"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/2"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/3"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/4"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/5"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/6"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/7"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/8"
+              },
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/many/9"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 200 links, 200 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "56cd57a723173ac6639d8a2a7a308775976dc01d8f16824fc2bae009c56ec14c",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -2930,7 +2928,9 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "pdf": true
+      }
     },
     "fqdn:example.com": {
       "detections": {},

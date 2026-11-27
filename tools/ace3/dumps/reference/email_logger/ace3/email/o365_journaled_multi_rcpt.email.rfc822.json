@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -553,7 +553,7 @@
             "cc": [],
             "compauth_reason": "300",
             "compauth_result": "none",
-            "date": "2026-11-21 13:56:23.831003 +0000",
+            "date": "2026-11-27 04:15:30.306486 +0000",
             "dkim_result": "none",
             "dmarc_result": "none",
             "env_mail_from": "ap@someothercompany.com",
@@ -999,7 +999,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-21T13:56:23.822473",
+        "timestamp": "2026-11-27T04:15:30.298810",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -1009,7 +1009,7 @@
         "header": "Received: from CY1PR20CA0059.namprd20.prod.outlook.com (2a01:111:e400:597b::27) by DM3PR20MB0522.namprd20.prod.outlook.com (2a01:111:e400:5b68::22) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.952.18; Tue, 17 Jul 2018 12:13:28 +0000",
         "header_index": 0,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1018,7 +1018,7 @@
         "header": "Received: from BY2NAM01FT062.eop-nam01.prod.protection.outlook.com (2a01:111:f400:7e42::201) by CY1PR20CA0059.outlook.office365.com (2a01:111:e400:597b::27) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384) id 15.20.952.18 via Frontend Transport; Tue, 17 Jul 2018 12:13:28 +0000",
         "header_index": 1,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1027,7 +1027,7 @@
         "header": "Authentication-Results: spf=none (sender IP is 207.211.31.81) smtp.mailfrom=someothercompany.com; company.com; dkim=none (message not signed) header.d=none;company.com; dmarc=none action=none header.from=someothercompany.com;",
         "header_index": 2,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1036,7 +1036,7 @@
         "header": "Received-SPF: None (protection.outlook.com: someothercompany.com does not designate permitted sender hosts)",
         "header_index": 3,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1045,7 +1045,7 @@
         "header": "Received: from us-smtp-1.mimecast.com (207.211.31.81) by BY2NAM01FT062.mail.protection.outlook.com (10.152.69.159) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P384) id 15.20.952.17 via Frontend Transport; Tue, 17 Jul 2018 12:13:27 +0000",
         "header_index": 4,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1054,7 +1054,7 @@
         "header": "Received: from smtp93.iad3a.emailsrvr.com (smtp93.iad3a.emailsrvr.com [173.203.187.93]) (Using TLS) by us-smtp-1.mimecast.com with ESMTP id us-mta-245-1RMELhQ6PISbfzgFDBhzkg-1; Tue, 17 Jul 2018 08:13:25 -0400",
         "header_index": 5,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1063,7 +1063,7 @@
         "header": "Received: from smtp4.relay.iad3a.emailsrvr.com (localhost [127.0.0.1])by smtp4.relay.iad3a.emailsrvr.com (SMTP Server) with ESMTP id 4C0685B2Bfor <lulu.zingzing@company.com>; Tue, 17 Jul 2018 08:13:25 -0400 (EDT)",
         "header_index": 6,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1072,7 +1072,7 @@
         "header": "X-Auth-ID: ap@someothercompany.com",
         "header_index": 7,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1081,7 +1081,7 @@
         "header": "Received: by smtp4.relay.iad3a.emailsrvr.com (Authenticated sender: ap-AT-someothercompany.com) with ESMTPSA id DB5584286for <lulu.zingzing@company.com>; Tue, 17 Jul 2018 08:13:24 -0400 (EDT)",
         "header_index": 8,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1090,7 +1090,7 @@
         "header": "X-Sender-Id: ap@someothercompany.com",
         "header_index": 9,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1099,7 +1099,7 @@
         "header": "Received: from 10.13.46.65 ([UNAVAILABLE]. [82.117.219.130])(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384)by 0.0.0.0:587 (trex/5.7.12);Tue, 17 Jul 2018 08:13:25 -0400",
         "header_index": 10,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1108,7 +1108,7 @@
         "header": "Date: Tue, 17 Jul 2018 14:13:25 +0100",
         "header_index": 11,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1117,7 +1117,7 @@
         "header": "From: Bobbie Fruitypie <ap@someothercompany.com>",
         "header_index": 12,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1126,7 +1126,7 @@
         "header": "To: <random.person@whatever.com>",
         "header_index": 13,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1135,7 +1135,7 @@
         "header": "Message-ID: <13268020124593518925.93733CB7019D1C46@company.com>",
         "header_index": 14,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1144,7 +1144,7 @@
         "header": "Subject: INVOICE PDL-06-38776",
         "header_index": 15,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1153,7 +1153,7 @@
         "header": "MIME-Version: 1.0",
         "header_index": 16,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1162,7 +1162,7 @@
         "header": "X-MC-Unique: 1RMELhQ6PISbfzgFDBhzkg-1",
         "header_index": 17,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1171,7 +1171,7 @@
         "header": "Authentication-Results-Original: mimecast.com;spf=none (spfCheck: 173.203.187.93 is neither permitted nor denied by domain of someothercompany.com) client-ip=173.203.187.93; envelope-from=ap@someothercompany.com; helo=smtp93.iad3a.emailsrvr.com;dkim=none;dmarc=none (p=allow dis=allow) header.from=someothercompany.com",
         "header_index": 18,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1180,7 +1180,7 @@
         "header": "Content-Type: multipart/mixed;boundary=\"_454f5116-fe0e-4ea1-ac48-e274330363f4_\"",
         "header_index": 19,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1189,7 +1189,7 @@
         "header": "Return-Path: ap@someothercompany.com",
         "header_index": 20,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1198,7 +1198,7 @@
         "header": "X-EOPAttributedMessage: 0",
         "header_index": 21,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1207,7 +1207,7 @@
         "header": "X-EOPTenantAttributedMessage: 6e1e3a0a-cb5b-4699-9a6a-595e9ef289e9:0",
         "header_index": 22,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1216,7 +1216,7 @@
         "header": "X-Forefront-Antispam-Report: CIP:207.211.31.81;IPV:CAL;SCL:-1;CTRY:US;EFV:NLI;SFV:SKN;SFS:;DIR:INB;SFP:;SCL:-1;SRVR:DM3PR20MB0522;H:us-smtp-1.mimecast.com;FPR:;SPF:None;LANG:en;",
         "header_index": 23,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1225,7 +1225,7 @@
         "header": "X-Microsoft-Exchange-Diagnostics: 1;BY2NAM01FT062;1:obMZLC6rImdfqHZOMgTUnORtp3c7Kr91/x+EL13BeCoQmV3LXr0ATCQyO9Ubmn1NwihZMy2u2YucXgTgm7w8KQA7PEOWL4tMXsI3hPdwe217Mi4vi0uaB38/LI2XHrmn",
         "header_index": 24,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1234,7 +1234,7 @@
         "header": "X-MS-PublicTrafficType: Email",
         "header_index": 25,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1243,7 +1243,7 @@
         "header": "X-MS-Office365-Filtering-Correlation-Id: b90e2664-f206-4ae2-2bb4-08d5ebdeb3f0",
         "header_index": 26,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1252,7 +1252,7 @@
         "header": "X-Microsoft-Antispam: UriScan:;BCL:0;PCL:0;RULEID:(7020095)(4652040)(5600053)(711020)(4605076)(1401180)(71702078);SRVR:DM3PR20MB0522;",
         "header_index": 27,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1261,7 +1261,7 @@
         "header": "X-Microsoft-Exchange-Diagnostics: 1;DM3PR20MB0522;3:9eWp9K8fjd4XNqz+BaBP79Xm3DjyYLDdvJBXyQ7mnPUY/82s9TQnFRjYjxGJX+NEE2oMrxR1eKYu1q8p5lB/F+4arszITOu5Uj3hmtLjjwknrMK3GpTVOZNXmTNrQctdUEHN5NqHuOnr7io/SrIlr0O0XP2sMaVuj+bWcpyZxCPjrge7ifZHOKxqTeM0TSweIfa/G+hDDwhOEp+I6WvONiWI4VyLhepIyNB976EDI24BW7pz6RJs0IIGFU+PRdcve/8GppGdJUcdU6rvFX3W9URCS9bchrTLxHuYuzVk5WMU+QIKoRB4FO3s8lFHwu/uUxUIaTzcdrauAoj5Y51Kwj+GzdaZKP2zyLaltSdTIwA=;25:HTW1RG+DEIp1BI/GoUmNmRCh1wsEy1ETKNcdVsYg/YFve8793Qp/VCBgNErb77brM+TYgDW9HiCurEtf1Y1ydC4fVJ/vCEKKeFiITQ1fg+k5EWnP4nR5w0G/UkIUUP/ANd74JvHYpPiPqrvZlWGOxx++GjvbWZzv9XKF/51BJLC7mPVCyf+jSliT87t1q1UMGF8z+2OB7Ygp7aXO4CnOeKYt2tmFnWgJIWFvURMNsF5YzrYXUGi79i9Lc+ZJB5X+GlhDe5aoOcAOSRHn9JCcFWJymQ3kCXePwNEvO4QiJgg7hfMSFpaHGCfp+1krskwnr59OFsiVtPDbj80Az6Xa3Q==",
         "header_index": 28,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1270,7 +1270,7 @@
         "header": "X-MS-TrafficTypeDiagnostic: DM3PR20MB0522:",
         "header_index": 29,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1279,7 +1279,7 @@
         "header": "X-Microsoft-Exchange-Diagnostics: 1;DM3PR20MB0522;31:zjgede+OQ47hvW4nORvkS3PQDK9Vn41/uysyFJuuXPgHX5/rN6VM04HTdt3G7/m0S0O5rp3vLTCsOW/GpASavudQkSFh6PyOJiuZkzuhos5imU/AGJeyuFWIpvucMV9pZJ6u1+lDJyl7R6rfnIVILZasMo+q7mrl5jS4xpMaPbmetT0rdDaQrQjlJGUXJI59vGYAMqcdOEeCbBpYdVVrnqjnijTelpv12Eqo7AQ8dUU=;20:cxxbocB/uc7UCxKl9hv9y2ynyvVWpd/eVLQBmYY+opuj3OCwuWmYLD7VI15rzaCdNBVN/Rl0uf+SBcJ5GeWjd3gJByXNzfVxAlfoFEmwGJ/aWAptqvWNyGiOVSGtet/Gz8riAHHz8TNfxxb0zQVaRkVhysHkGxzP+BGWIfwsCZp/T4nVRpOUXwL4CPm5XgHkvLqKE/bof31aPwcmoWXLY1S4TPEO62bPjm9K/FSUMkSuqahNc+qQuR2q+Gqf+2bnwPQ9SBqnKUv9JtUAf8WusSCfsXs6IC+Ew7V2I9W5c86Gse2W33qhHpJyMKojrh8PkyLtN4+2BzMZgB/lCpCpnahoVHJfE0QW8Ti9LpSzfUg5wUVSajuYnx0vZlo6USGuGakzlwzmg6gN1I3FW/BkelJ4VyuAg5yF6DyzFGjNKQZ8BxW1oG1wAdElXJ5pJ5hlpoDDwBys3WSdqkFP49njsAFk5vKfGih7srWjPYgmOEN2qq+u0D9gn7eKho6js5Vm",
         "header_index": 30,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1288,7 +1288,7 @@
         "header": "X-Exchange-Antispam-Report-Test: UriScan:(102415718013797)(21019136346599);",
         "header_index": 31,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1297,7 +1297,7 @@
         "header": "X-Exchange-Antispam-Report-CFA-Test: BCL:0;PCL:0;RULEID:(8021118)(2018062399030)(2018011200283)(8001254)(8003045)(8040027)(8004108)(8007045)(2401047)(8121501046)(1430482)(1431068)(1500222)(8020062)(8030027)(8008073)(8028028)(8029027)(8041027)(8042027)(8019054)(1501036)(1551054)(823300264)(823330083)(9101536074)(3002001)(93006095)(93003095)(10201501046)(3231311)(901025)(902075)(913088)(7045084)(2217020)(2280121)(2350123)(944500087)(944510158)(944921075)(946801078)(946901078)(9300000166)(9301000104)(52103095)(52105095)(52106170)(52401285)(52601095)(52606095)(52505095)(52406095)(52405095)(52305095)(52206095)(1610001)(8301001075)(8301003183)(201708071742011)(7699016);SRVR:DM3PR20MB0522;BCL:0;PCL:0;RULEID:;SRVR:DM3PR20MB0522;",
         "header_index": 32,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1306,7 +1306,7 @@
         "header": "X-Microsoft-Exchange-Diagnostics: 1;DM3PR20MB0522;4:aLFO87AeVxw9JS/7SCmYpWoAipV6atP30HQnP9jc68/Myw5H2aGgg+bdpTxDhMHiTu/CGj9lTEwGPbg6LLkwBA9CPUb+U4+iy6kn23MfN/QeLGVlzYQ6kJQlQJB8qwLjPmGMS4epngsqeqd9i019GzYL8WKp0O2z+CL2U5DXE0EQIiVBgD3IlpANFL1kn4pcCOT5BQHz+35rlH24RAQ8n5MMWv4Yv9/2c706clQmQYvW7/Qz84Ok/6ZYRzO5QMNhpgBGwFLaEnmPJnvqlwb7k/uxXCk/JirrOLXbk/eLRAe1Es4dhgwafoJvJlvJkqbEg7qkZgerJgjOHQ4vCvzW3sVRKWYhEEvsVtGIyew/Xlo=;23:nLUsIxjmJnuSdDiFVm6RTEDlWrjjWRGIKor/w7PRVAzZyY6CtAgMFUKRNWb/urzjYaeAriw2KisdgbuvJuFLQwrAtXwXaDCUaABDCBRSQwhmzsxzIvSCdG+cpNpvaS5Mb5jZTjeE8pg0NRfoP4mfZYpDs5FIP6Wrfd2uuzIAO0Cp2ZLUchie0ga5ZyIG4Pgd",
         "header_index": 33,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1315,7 +1315,7 @@
         "header": "X-Microsoft-Antispam-Message-Info: s62s5lyx+YEncCnGBNDkUOTuleteMWmcFF4KJgVFhXXqBuGZKIGHfcgAFEZF2E6Xjz0ZBnICtI3oX04Rk3wKYPphuyObfUAIbXumkSR9j/uVabOix1qLxkGyEFCtRjD8kwO3Luqd7lZMiMHiBAbKaewActEhuy/4X0R1kwcsPDUZYpNKzTBjQV0fYt4b1xe6j8vSmicQnBr1cx3Mq2t6yDWGLnByU+sUC7z0c0KiNQJC6pklw6uBGiBywwQ/XJuUDPVkkcxixNgTpaq6HFFPqLnzSx/dGzDF4fRt5+3VJP/8P4V2bFI2/lkp65cp92BNPFPjdSagOYvb0d8C30gHnyduQ5eiShXcYsDPYveBZ9FH72mPlVrA3wt7HIh0253Zzk8fysUmE2xNlVOnTp+d+0+FXiNE0cJrc9Wd2x8YqCEMIZNs2XQhyVTwDzfICNPrpbV2jO2mJgreem0BF/5feaNwb3UhLGvf4az511hTPh2CBJoRRzSP339UNaCpkC7tZvdeeji0JyjNBPyiGcds6boKvywtOFtf1oYIQb2X5bja+K3PArD9yyZ2y40Au0haFcUk10CcHBBpAbsNegKzO4ykzexRAKIBNLy9C3s8SJ7iL70ouLjkSYHY2AGW9FXKUk6GXPxQQOyvUkupqPZEa4oTT/ppVdzwsjAYev7PrHN0miLYasEazIi3XFOSUYCaadT28Wd1C9oYobjO0TgBVe361qazFij74sAk6XdZJ97XYLtVbW3mFcfLWA/+sGJQuf48JeMIOH3EuV1P94+2krGsNyDGXAor1eoAXm1VRSbPXLarlrQHiyR/3zinc/w5mUMSgBEG6pP2GJouxE/syKJkyly48u3w7viR4osUh+5ThgkV431dTGBJQ7yq/Oxg209RlPuB5UnRbiIxc/EWscHnsKvQZlOnkUqtnM7RJfBHWY4Ws5AWCbHDbwTzOg6D0gVB4oItP2fIAhkC1lUEJD/2t5NCSC0ODvGOHk4PRKvlzGxaaIkIj8cwngpD6es5CAlTQYGzgZLDng9/SPgAf+8zpJciBvG/h6jXT3Yf9mOL+A9NWwSgJ00vyh+qw5+0BkL1jUv1hzQ9mAURe8MxuqIIuWg5czrOst0HDOAg2HK1VU26aMJZxd0/Nu2df0f0OExG8JebY/VCBxP62x72+86Ox5U6w5ecgiGiyPWxaNaZPyIpZWSp4QblH7LiN0Dz4qRXPkYKO9vjPSKQmL4vwfY51JMepUB2mnDONrruIVA=",
         "header_index": 34,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1324,7 +1324,7 @@
         "header": "X-Microsoft-Exchange-Diagnostics: 1;DM3PR20MB0522;6:VC0vB5WjFIT763U4sDi7KC/c7jl1zSLAzI5WAHVbrCmXzWNn4q6zrQRyooElRLdcwdA8XtsoZ5oTwZP1EAFX+CxJKG7ho4YN0vDlj7luwauJk8s7bdg1nWAeirJvJTPj1Dpeniv+WKujxhOFiK7Cec+10EN1kEV3PVg3AxlOvLShj8fIo1Jm4LdN2wnQCj6ueMsVAVl1LaaAT497GnSJjy0aCOUqJ8lmLBFUEWjE0DPP8TUMVoxNmFcr9dFDHf6cjh4gONgAUqtQzOD216NL5Y3mDBELlS48TNtg1hzdhTZXvBa4gpzlR69j3Cn6jwVHd6WKK5ukdkXkHvUdWtvaqtTGw6F7b4LIlPeFpP72n1c3Ff9UFLOsYayuVyCbopisOPgZ2GwNtlLE9x8eU42GViZCn+r39rVIUwSzLtUnYLgBNMPkoscteWw8RJIha6BYrepxjN1Zc5dwsULpr9mI97GGEvnow9Tn7ElRjZlH41nVSXSuf526R2ZfjV9cHCy+;5:T8WyFAbn/Br5Z6JYeqaCGh/h9nE+fa/P4fFrqbMzVQzG+MLwZp40+TKgurC1uIqQ2YMwY1qPFlazSNS4H5rfjoGgWkxRPIr6rKJp9B4wdDeM900hFvCP0VDACjqqAknpPq7NDgL7OxmlaJfC7RqOcBgfWVcPBfnXXX+Ly6TKFok=;24:9xZAqZ+X3GStUCW4s+vpq+xm9FEr9aEksEL4xdx34pYCsja6o3nmtszfnDhFStTPUly2ODd9wpSNwq5MvivH8agcnQ7UJHTSfPiWKwKZ9IY=",
         "header_index": 35,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1333,7 +1333,7 @@
         "header": "SpamDiagnosticOutput: 1:99",
         "header_index": 36,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1342,7 +1342,7 @@
         "header": "SpamDiagnosticMetadata: SKN",
         "header_index": 37,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1351,7 +1351,7 @@
         "header": "X-Microsoft-Exchange-Diagnostics: 1;DM3PR20MB0522;7:smnBnE+8FR4RpNAHM6VPhV6CrvDnqtOybehI5jRxQqX4oxnsyVqzoYcfbnuEcxJ8/r6xCYDTrUzkziqcA4rIzKj9qkM7dexGqoFLRCEMQCZcaUGKaz0eRhYHJIUFMTemjVVYRSznxO+Sd3dobne64uFQgkD+Xc8GQnmuMkT53UlbWttmoE1d+YkQcz6ZZ4nS6uti3Sn5NDyZPeZiO1SueNvVJ6ifWzcmXuot7vTUPwA1fJOmq4yLQxxAZLN2M+wI;20:xS7Gn4L3XfD4qxbIElpQhmf22q/ApREazb2ex2ZajZtSaqtIsX4zj0998kBMKDt1xbtAmnbUoqhPMf92uLWnuFJSmkW85OEMLzc5HRnMY4d7AqsiJ01cDtz/iCMB2CBCW8gLimUpZ/+oC4lGdO8qm3EAi4K4XIyHjl3laPk9YKA=",
         "header_index": 38,
         "message_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-headers"
     },
@@ -1376,7 +1376,7 @@
         "cc": [],
         "compauth_reason": "300",
         "compauth_result": "none",
-        "date": "2026-11-21 13:56:23.831003 +0000",
+        "date": "2026-11-27 04:15:30.306486 +0000",
         "dkim_result": "none",
         "dmarc_result": "none",
         "env_mail_from": "ap@someothercompany.com",
@@ -1413,7 +1413,7 @@
         "subject_raw": "INVOICE PDL-06-38776",
         "thread_index": null,
         "thread_topic": null,
-        "timestamp": "1795269383.831003",
+        "timestamp": "1795752930.306486",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -1450,7 +1450,7 @@
         "thread_id": "<13268020124593518925.93733CB7019D1C46@company.com>",
         "thread_message_count": 0,
         "thread_method": "self",
-        "timestamp": "1795269383.831003"
+        "timestamp": "1795752930.306486"
       },
       "tag": "phishfinder-lookalike"
     },
@@ -1476,53 +1476,53 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "77b19505-b994-4b9a-afbb-65b86ab6ad32",
-        "timestamp": "2026-11-21 13:56:24.229867",
-        "total_analysis_time_seconds": 0.037098000000000006,
-        "total_time_seconds": 0.4292616844177246
+        "root_uuid": "2bbb11ff-63be-467e-890e-827e82281f5f",
+        "timestamp": "2026-11-27 04:15:30.700761",
+        "total_analysis_time_seconds": 0.030079,
+        "total_time_seconds": 0.4208688735961914
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.026513000000000002,
-        "event_type": "module",
-        "exec_count": 4,
-        "module": "file_type",
-        "percentage": 6.176418944999428,
-        "root_uuid": "77b19505-b994-4b9a-afbb-65b86ab6ad32",
-        "timestamp": "2026-11-21 13:56:24.229867"
-      },
-      "tag": "metrics"
-    },
-    {
-      "record": {
-        "analysis_time_seconds": 0.006840000000000001,
+        "analysis_time_seconds": 0.005483,
         "event_type": "module",
         "exec_count": 2,
         "module": "email_analyzer",
-        "percentage": 1.593433620631241,
-        "root_uuid": "77b19505-b994-4b9a-afbb-65b86ab6ad32",
-        "timestamp": "2026-11-21 13:56:24.229867"
+        "percentage": 1.3027810664992874,
+        "root_uuid": "2bbb11ff-63be-467e-890e-827e82281f5f",
+        "timestamp": "2026-11-27 04:15:30.700761"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.0037450000000000005,
+        "analysis_time_seconds": 0.021609000000000003,
+        "event_type": "module",
+        "exec_count": 4,
+        "module": "file_type",
+        "percentage": 5.134378272110725,
+        "root_uuid": "2bbb11ff-63be-467e-890e-827e82281f5f",
+        "timestamp": "2026-11-27 04:15:30.700761"
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.002987,
         "event_type": "module",
         "exec_count": 20,
         "module": "email_logger",
-        "percentage": 0.8724282031087716,
-        "root_uuid": "77b19505-b994-4b9a-afbb-65b86ab6ad32",
-        "timestamp": "2026-11-21 13:56:24.229867"
+        "percentage": 0.7097222406772518,
+        "root_uuid": "2bbb11ff-63be-467e-890e-827e82281f5f",
+        "timestamp": "2026-11-27 04:15:30.700761"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-21T13:56:24.230975",
+        "timestamp": "2026-11-27T04:15:30.701169",
         "value": 0
       },
       "tag": "monitoring"
@@ -1530,7 +1530,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-21T13:56:24.231040",
+        "timestamp": "2026-11-27T04:15:30.701192",
         "value": 1
       },
       "tag": "monitoring"

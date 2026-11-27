@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "file_type",
     "email_analyzer"
@@ -131,7 +131,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-21 14:38:22.696069 +0000",
+            "date": "2026-11-27 03:03:21.089177 +0000",
             "dkim_result": "pass",
             "dmarc_result": "pass",
             "env_mail_from": null,
@@ -550,7 +550,7 @@
           "cc": [],
           "compauth_reason": null,
           "compauth_result": null,
-          "date": "2026-11-21 14:38:22.696069 +0000",
+          "date": "2026-11-27 03:03:21.089177 +0000",
           "dkim_result": "pass",
           "dmarc_result": "pass",
           "env_mail_from": null,
@@ -627,12 +627,12 @@
         {
           "content_type": "text/plain",
           "role": "body",
-          "uuid": "5c6832d4-75a0-4380-bdec-53b342077c02"
+          "uuid": "cc3e7034-552c-4694-861b-e9697cdaa505"
         },
         {
           "content_type": "application/vnd.ms-excel",
           "role": "attachment",
-          "uuid": "c634fb9e-3f89-4989-97cd-62e3e23007b4"
+          "uuid": "e3039a19-f410-4e57-b5ce-a1aabfaab939"
         }
       ]
     }
@@ -646,10 +646,64 @@
       {
         "detections": [],
         "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 3081,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "be9ce3733c126f844e3bf872e7c10da1d4ca66940419671f337bdb889fdd00f8"
+      },
+      {
+        "detections": [],
+        "directives": [],
         "paths": [],
         "tags": [],
         "type": "email_from",
         "value": "noreply@tovarioseni9.fun"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "target@user.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_reply_to",
+        "value": "noreply@tovarioseni9.fun"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 2145,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "26c514a15652cb61afb1a63b00ebbb64b7c991cc0bd64b693c606ba11918eb6d"
       },
       {
         "detections": [],
@@ -669,14 +723,6 @@
         "tags": [],
         "type": "file",
         "value": "a0ed8009073f3abdc1dc979ef137f6d69c62d1920902a29cd3baad0a0c16e747"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_reply_to",
-        "value": "noreply@tovarioseni9.fun"
       },
       {
         "detections": [],
@@ -708,14 +754,6 @@
       },
       {
         "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_dkim_signing_domain",
-        "value": "tovarioseni9.fun"
-      },
-      {
-        "detections": [],
         "directives": [
           "tracked"
         ],
@@ -729,8 +767,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "target@user.com"
+        "type": "email_subject",
+        "value": "Doc #848625: facsimile copy"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_dkim_signing_domain",
+        "value": "tovarioseni9.fun"
       },
       {
         "detections": [],
@@ -753,55 +799,57 @@
         ],
         "type": "file",
         "value": "e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 3081,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "be9ce3733c126f844e3bf872e7c10da1d4ca66940419671f337bdb889fdd00f8"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 2145,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "26c514a15652cb61afb1a63b00ebbb64b7c991cc0bd64b693c606ba11918eb6d"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "Doc #848625: facsimile copy"
       }
     ],
     "results": [
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with CRLF, LF line terminators"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 0,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with CRLF, LF line terminators (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 4,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
       {
         "added": [],
         "class": "FileTypeAnalysis",
@@ -820,8 +868,9 @@
           "mime": "text/plain",
           "type": "ASCII text, with CRLF, LF line terminators"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 1,
+        "observable": 5,
         "summary": "File Type Analysis: ASCII text, with CRLF, LF line terminators (text/plain)",
         "tags": []
       },
@@ -829,48 +878,49 @@
         "added": [],
         "class": "MailboxEmailAnalysis",
         "details": {},
+        "detections": [],
         "module": "mailbox_email_analyzer",
-        "observable": 4,
+        "observable": 7,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 0
-          },
-          {
-            "observable": 7
-          },
-          {
-            "observable": 3
-          },
-          {
-            "observable": 11
-          },
-          {
-            "observable": 6
+            "observable": 1
           },
           {
             "observable": 2
           },
           {
-            "observable": 5
+            "observable": 6
           },
           {
-            "observable": 1,
+            "observable": 9
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 3
+          },
+          {
+            "observable": 10
+          },
+          {
+            "observable": 5,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 8,
+            "observable": 11,
             "path": "info_3805.xls"
           },
           {
-            "observable": 10,
+            "observable": 4,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 9,
+            "observable": 0,
             "path": "email.rfc822.combined"
           }
         ],
@@ -989,7 +1039,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-21 14:38:22.696069 +0000",
+              "date": "2026-11-27 03:03:21.089177 +0000",
               "dkim_result": "pass",
               "dmarc_result": "pass",
               "env_mail_from": null,
@@ -1075,8 +1125,9 @@
             }
           ]
         },
+        "detections": [],
         "module": "email_analyzer",
-        "observable": 4,
+        "observable": 7,
         "summary": "Email Analysis: From Peachey Wexler <noreply@tovarioseni9.fun> To target@user.com Subject Doc #848625: facsimile copy",
         "tags": []
       },
@@ -1098,8 +1149,9 @@
           "mime": "message/rfc822",
           "type": "RFC 822 mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 4,
+        "observable": 7,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1121,55 +1173,10 @@
           "mime": "application/vnd.ms-excel",
           "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 8,
+        "observable": 11,
         "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with CRLF, LF line terminators"
-        },
-        "module": "file_type",
-        "observable": 9,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with CRLF, LF line terminators (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 10,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       }
     ]

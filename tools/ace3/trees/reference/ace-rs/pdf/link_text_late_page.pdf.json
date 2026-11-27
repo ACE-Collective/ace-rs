@@ -204,39 +204,6 @@
       },
       "tags": {}
     },
-    "file:625d422deb15c138f9a48b0a3ba2e4001a24cdc0a0b1a12ebbfe16b5d2a24164": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "link_text_late_page.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:aff8ba2b1bf77b81532a8bfa93641fb1c076bd1e3d0e33deaabc7aa76e4659ea": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:aff8ba2b1bf77b81532a8bfa93641fb1c076bd1e3d0e33deaabc7aa76e4659ea": {
       "detections": {},
       "directives": {},
@@ -254,9 +221,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 15:03:02+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 15:03:02+00:00",
-              "File:FileModifyDate": "2026:11:16 13:50:16+00:00",
+              "File:FileAccessDate": "2026:11:27 00:08:31+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:08:31+00:00",
+              "File:FileModifyDate": "2026:11:16 16:21:04+00:00",
               "File:FileName": "link_text_late_page.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 1974,
@@ -356,7 +323,96 @@
         "pdf": true
       }
     },
-    "file:b285a840db808653a9e57a94440223447db8225855dbff270b99d4f8092dee42": {
+    "file:bbc10ffbf16d9d5b2649716ef5b1832dce306228a9add1937588160325bc3974": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "link_text_late_page.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        },
+        "link_text_late_page.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:f6e9fe114009e771d095845becf083ef0230803e2323cd812869b29adf0b4560",
+      "relationships": {
+        "extracted_from file:aff8ba2b1bf77b81532a8bfa93641fb1c076bd1e3d0e33deaabc7aa76e4659ea": true,
+        "extracted_from file:f6e9fe114009e771d095845becf083ef0230803e2323cd812869b29adf0b4560": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d85ac4294b9b6453e8b0431901962a63c7bd58f0e8e9cc7481434328374daa11": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "link_text_late_page.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:aff8ba2b1bf77b81532a8bfa93641fb1c076bd1e3d0e33deaabc7aa76e4659ea": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f6e9fe114009e771d095845becf083ef0230803e2323cd812869b29adf0b4560": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -451,62 +507,6 @@
       "tags": {
         "pdf": true
       }
-    },
-    "file:bbc10ffbf16d9d5b2649716ef5b1832dce306228a9add1937588160325bc3974": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "archive": true
-      },
-      "paths": {
-        "link_text_late_page.pdf.gs.pdf.txt": {
-          "type=document.pdf.text": true
-        },
-        "link_text_late_page.pdf.txt": {
-          "type=document.pdf.text": true
-        }
-      },
-      "redirection": "file:b285a840db808653a9e57a94440223447db8225855dbff270b99d4f8092dee42",
-      "relationships": {
-        "extracted_from file:aff8ba2b1bf77b81532a8bfa93641fb1c076bd1e3d0e33deaabc7aa76e4659ea": true,
-        "extracted_from file:b285a840db808653a9e57a94440223447db8225855dbff270b99d4f8092dee42": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "fqdn:example.com": {
       "detections": {},

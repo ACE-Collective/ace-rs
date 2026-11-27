@@ -66,6 +66,39 @@
       },
       "tags": {}
     },
+    "file:5fed1351f1723b050dd1fd6f9eb98c12008ff000de60dfe23299a59d2099b099": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_standard_name.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b3ec160f5339033e6e381a190364b063bc67095b6c855e42ec45e3785f1bce22": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:7992965fd31cb4b8757fede61b4ddf5a5fa37f33a569e2c7f9d888e72455ca98": {
       "detections": {},
       "directives": {
@@ -117,39 +150,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:8f87be07056985f996a986fc77e9d54aedfd25f3ccaf278ddbcbd827bc42f597": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_bad_standard_name.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b3ec160f5339033e6e381a190364b063bc67095b6c855e42ec45e3785f1bce22": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -310,8 +310,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:55:52+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:55:52+00:00",
+              "File:FileAccessDate": "2026:11:26 23:28:05+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:28:05+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_bad_standard_name.docx",
               "File:FilePermissions": 100644,

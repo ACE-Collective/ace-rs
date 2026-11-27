@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -63,7 +63,7 @@
               [],
               []
             ],
-            "observable_uuid": "0320eca2-24fa-4e36-af7b-fa1b72bed996",
+            "observable_uuid": "d13ffe69-04bf-4939-b8c0-2cb8728cd7d4",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Update remittance details'",
@@ -87,7 +87,7 @@
               [],
               []
             ],
-            "observable_uuid": "5cc7e578-6aea-45d2-bcdf-edf792dc4e93",
+            "observable_uuid": "329d6c8d-cb93-4162-ac22-d2a519c8e57b",
             "reasons": [
               "found in the email body",
               "clickable link with text 'the first form'",
@@ -111,7 +111,7 @@
               [],
               []
             ],
-            "observable_uuid": "6c32c8f0-17bb-40d6-bc51-c6249cf5cec4",
+            "observable_uuid": "3e298bc1-c0a1-4742-bc8a-8060cfc20450",
             "reasons": [
               "found in the email body",
               "clickable link with text 'an older form'",
@@ -135,7 +135,7 @@
               [],
               []
             ],
-            "observable_uuid": "3ad6746d-8792-4534-ae37-d596c8891981",
+            "observable_uuid": "5d34416f-8ea2-44a4-9d48-d05db15b1096",
             "reasons": [
               "found in the email body",
               "clickable link with text 'About us'",
@@ -161,7 +161,7 @@
             [],
             []
           ],
-          "observable_uuid": "0320eca2-24fa-4e36-af7b-fa1b72bed996",
+          "observable_uuid": "d13ffe69-04bf-4939-b8c0-2cb8728cd7d4",
           "reasons": [
             "found in the email body",
             "clickable link with text 'Update remittance details'",
@@ -255,7 +255,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-21 14:47:57.300860 +0000",
+            "date": "2026-11-27 03:12:14.267915 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -558,21 +558,43 @@
     "observables": [
       {
         "detections": [],
-        "directives": [
-          "crawl"
-        ],
+        "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://forms.lure-example.net/remit"
+        "type": "uri_path",
+        "value": "/first"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_subject",
-        "value": "RE: Updated remittance details"
+        "type": "fqdn",
+        "value": "partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sam@partner-example.org|pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://portal.partner-example.org/first"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://portal.partner-example.org/older"
       },
       {
         "detections": [],
@@ -599,22 +621,6 @@
         "paths": [],
         "tags": [],
         "type": "uri_path",
-        "value": "/older"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
         "value": "/remit"
       },
       {
@@ -622,16 +628,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://www.partner-example.org/about"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "corp.example"
+        "type": "email_return_path",
+        "value": "sam@partner-example.org"
       },
       {
         "detections": [],
@@ -647,23 +645,23 @@
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "https://portal.partner-example.org/first"
+        "value": "https://www.partner-example.org/about"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://portal.partner-example.org/older"
+        "type": "uri_path",
+        "value": "/older"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_return_path",
-        "value": "sam@partner-example.org"
+        "type": "fqdn",
+        "value": "corp.example"
       },
       {
         "detections": [],
@@ -677,32 +675,11 @@
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 19,
-        "tags": [],
-        "type": "file",
-        "value": "c1c97de8022f1e664982378daa9e238e16cb9e15ce3197a72f21572c0640b484"
-      },
-      {
-        "detections": [],
         "directives": [],
         "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "portal.partner-example.org"
+        "tags": [],
+        "type": "email_to",
+        "value": "pat@corp.example"
       },
       {
         "detections": [],
@@ -727,24 +704,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<lure_thread@partner-example.org>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/first"
+        "type": "email_subject",
+        "value": "RE: Updated remittance details"
       },
       {
         "detections": [],
@@ -754,15 +715,36 @@
           "domain_in_url"
         ],
         "type": "fqdn",
-        "value": "www.partner-example.org"
+        "value": "portal.partner-example.org"
       },
       {
         "detections": [],
-        "directives": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 19,
+        "tags": [],
+        "type": "file",
+        "value": "c1c97de8022f1e664982378daa9e238e16cb9e15ce3197a72f21572c0640b484"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "crawl"
+        ],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "sam@partner-example.org|pat@corp.example"
+        "type": "url",
+        "value": "https://forms.lure-example.net/remit"
       },
       {
         "detections": [],
@@ -782,6 +764,14 @@
         ],
         "type": "file",
         "value": "ebe0884642bb805b0bfa6f8489fb018f6b4ee7f70ae36e0b17a027277d141e7d"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<lure_thread@partner-example.org>"
       },
       {
         "detections": [],
@@ -807,6 +797,16 @@
         "detections": [],
         "directives": [],
         "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "www.partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
         "tags": [],
         "type": "email_from",
         "value": "sam@partner-example.org"
@@ -816,35 +816,74 @@
       {
         "added": [
           {
-            "observable": 12
+            "observable": 16
           },
           {
-            "observable": 5
+            "observable": 0
           }
         ],
         "class": "ParseURLAnalysis",
         "details": {
           "fragment": "",
-          "netloc": "forms.lure-example.net",
+          "netloc": "portal.partner-example.org",
           "params": null,
-          "path": "/remit",
+          "path": "/first",
           "query": "",
           "scheme": "https"
         },
+        "detections": [],
         "module": "parse_url",
-        "observable": 0,
-        "summary": "URL Parser: scheme=https, netloc=forms.lure-example.net, path=/remit",
+        "observable": 3,
+        "summary": "URL Parser: scheme=https, netloc=portal.partner-example.org, path=/first",
         "tags": []
       },
       {
         "added": [],
         "class": "ProtectedURLAnalysis",
         "details": {
-          "extracted_url": "https://forms.lure-example.net/remit",
+          "extracted_url": "https://portal.partner-example.org/first",
           "protection_type": "unprotected"
         },
+        "detections": [],
         "module": "protected_url_analyzer",
-        "observable": 0,
+        "observable": 3,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 16
+          },
+          {
+            "observable": 10
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "portal.partner-example.org",
+          "params": null,
+          "path": "/older",
+          "query": "",
+          "scheme": "https"
+        },
+        "detections": [],
+        "module": "parse_url",
+        "observable": 4,
+        "summary": "URL Parser: scheme=https, netloc=portal.partner-example.org, path=/older",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://portal.partner-example.org/older",
+          "protection_type": "unprotected"
+        },
+        "detections": [],
+        "module": "protected_url_analyzer",
+        "observable": 4,
         "summary": null,
         "tags": []
       },
@@ -866,8 +905,9 @@
           "mime": "message/rfc822",
           "type": "news or mail, ASCII text, with very long lines (1050)"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 2,
+        "observable": 5,
         "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (1050) (message/rfc822) (email)",
         "tags": []
       },
@@ -883,15 +923,32 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 2,
+        "observable": 5,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 19
+            "observable": 1
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "partner-example.org"
+        },
+        "detections": [],
+        "module": "email_address_fqdn_analyzer",
+        "observable": 7,
+        "summary": "Email Address FQDN: partner-example.org",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 22
           },
           {
             "observable": 8
@@ -906,8 +963,9 @@
           "query": "",
           "scheme": "https"
         },
+        "detections": [],
         "module": "parse_url",
-        "observable": 6,
+        "observable": 9,
         "summary": "URL Parser: scheme=https, netloc=www.partner-example.org, path=/about",
         "tags": []
       },
@@ -918,41 +976,7 @@
           "extracted_url": "https://www.partner-example.org/about",
           "protection_type": "unprotected"
         },
-        "module": "protected_url_analyzer",
-        "observable": 6,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 14
-          },
-          {
-            "observable": 18
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "portal.partner-example.org",
-          "params": null,
-          "path": "/first",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 9,
-        "summary": "URL Parser: scheme=https, netloc=portal.partner-example.org, path=/first",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://portal.partner-example.org/first",
-          "protection_type": "unprotected"
-        },
+        "detections": [],
         "module": "protected_url_analyzer",
         "observable": 9,
         "summary": null,
@@ -961,86 +985,17 @@
       {
         "added": [
           {
-            "observable": 14
-          },
-          {
-            "observable": 3
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "portal.partner-example.org",
-          "params": null,
-          "path": "/older",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 10,
-        "summary": "URL Parser: scheme=https, netloc=portal.partner-example.org, path=/older",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://portal.partner-example.org/older",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 10,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 4
+            "observable": 11
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "domain": "partner-example.org"
+          "domain": "corp.example"
         },
+        "detections": [],
         "module": "email_address_fqdn_analyzer",
-        "observable": 11,
-        "summary": "Email Address FQDN: partner-example.org",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
         "observable": 13,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 13,
-        "summary": null,
+        "summary": "Email Address FQDN: corp.example",
         "tags": []
       },
       {
@@ -1059,7 +1014,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "0320eca2-24fa-4e36-af7b-fa1b72bed996",
+              "observable_uuid": "d13ffe69-04bf-4939-b8c0-2cb8728cd7d4",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'Update remittance details'",
@@ -1083,7 +1038,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "5cc7e578-6aea-45d2-bcdf-edf792dc4e93",
+              "observable_uuid": "329d6c8d-cb93-4162-ac22-d2a519c8e57b",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'the first form'",
@@ -1107,7 +1062,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "6c32c8f0-17bb-40d6-bc51-c6249cf5cec4",
+              "observable_uuid": "3e298bc1-c0a1-4742-bc8a-8060cfc20450",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'an older form'",
@@ -1131,7 +1086,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "3ad6746d-8792-4534-ae37-d596c8891981",
+              "observable_uuid": "5d34416f-8ea2-44a4-9d48-d05db15b1096",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'About us'",
@@ -1157,7 +1112,7 @@
               [],
               []
             ],
-            "observable_uuid": "0320eca2-24fa-4e36-af7b-fa1b72bed996",
+            "observable_uuid": "d13ffe69-04bf-4939-b8c0-2cb8728cd7d4",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Update remittance details'",
@@ -1172,8 +1127,9 @@
           },
           "subject": "RE: Updated remittance details"
         },
+        "detections": [],
         "module": "lure_url_analyzer",
-        "observable": 15,
+        "observable": 14,
         "summary": "Lure URL Analysis: https://forms.lure-example.net/remit (found in the email body; clickable link with text 'Update remittance details'; call-to-action text (update); the only linked external domain)",
         "tags": []
       },
@@ -1183,34 +1139,34 @@
             "observable": 23
           },
           {
-            "observable": 16
+            "observable": 13
+          },
+          {
+            "observable": 2
+          },
+          {
+            "observable": 15
           },
           {
             "observable": 20
           },
           {
-            "observable": 1
+            "observable": 7
           },
           {
-            "observable": 17
-          },
-          {
-            "observable": 11
-          },
-          {
-            "observable": 13,
+            "observable": 17,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 22,
+            "observable": 21,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 21,
+            "observable": 19,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 2,
+            "observable": 5,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1286,7 +1242,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-21 14:47:57.300860 +0000",
+              "date": "2026-11-27 03:12:14.267915 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -1357,8 +1313,9 @@
             }
           ]
         },
+        "detections": [],
         "module": "email_analyzer",
-        "observable": 15,
+        "observable": 14,
         "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject RE: Updated remittance details",
         "tags": []
       },
@@ -1380,8 +1337,9 @@
           "mime": "message/rfc822",
           "type": "news or mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 15,
+        "observable": 14,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1397,24 +1355,84 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 15,
+        "observable": 14,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 17,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 17,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 7
+            "observable": 12
+          },
+          {
+            "observable": 6
           }
         ],
-        "class": "EmailAddressFQDNAnalysis",
+        "class": "ParseURLAnalysis",
         "details": {
-          "domain": "corp.example"
+          "fragment": "",
+          "netloc": "forms.lure-example.net",
+          "params": null,
+          "path": "/remit",
+          "query": "",
+          "scheme": "https"
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 16,
-        "summary": "Email Address FQDN: corp.example",
+        "detections": [],
+        "module": "parse_url",
+        "observable": 18,
+        "summary": "URL Parser: scheme=https, netloc=forms.lure-example.net, path=/remit",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://forms.lure-example.net/remit",
+          "protection_type": "unprotected"
+        },
+        "detections": [],
+        "module": "protected_url_analyzer",
+        "observable": 18,
+        "summary": null,
         "tags": []
       },
       {
@@ -1435,8 +1453,9 @@
           "mime": "message/rfc822",
           "type": "news or mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 21,
+        "observable": 19,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1452,8 +1471,9 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 21,
+        "observable": 19,
         "summary": null,
         "tags": []
       },
@@ -1475,8 +1495,9 @@
           "mime": "text/html",
           "type": "HTML document, ASCII text, with very long lines (1050)"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 22,
+        "observable": 21,
         "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (1050) (text/html)",
         "tags": []
       },
@@ -1492,24 +1513,25 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 22,
+        "observable": 21,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 0
+            "observable": 18
+          },
+          {
+            "observable": 3
           },
           {
             "observable": 9
           },
           {
-            "observable": 6
-          },
-          {
-            "observable": 10
+            "observable": 4
           }
         ],
         "class": "URLExtractionAnalysis",
@@ -1531,21 +1553,23 @@
             ]
           }
         },
+        "detections": [],
         "module": "url_extraction",
-        "observable": 22,
+        "observable": 21,
         "summary": "URL Extraction Analysis (forms.lure-example.net, portal.partner-example.org, www.partner-example.org)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 4
+            "observable": 1
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
           "domain": "partner-example.org"
         },
+        "detections": [],
         "module": "email_address_fqdn_analyzer",
         "observable": 23,
         "summary": "Email Address FQDN: partner-example.org",

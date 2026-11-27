@@ -196,6 +196,39 @@
       },
       "tags": {}
     },
+    "file:9ef93af990fea29730a44e0d2c1497b0627c3355f1e67f8f880b3eda13190b9a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_cryptoapi_40.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e57ac91ceb6200f95a8200282ddda1b76331ed08d2784ed6ad5eb0d8ab23be27": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:a097978b5aaead1c786201bacf959e7be32267b41938dc60e7128fb91d2dad69": {
       "detections": {},
       "directives": {
@@ -261,39 +294,6 @@
       },
       "tags": {}
     },
-    "file:be85bf583990eae6509a94a07cb09fef98477b082bc0194d4f0eeaf61954f677": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_cryptoapi_40.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:e57ac91ceb6200f95a8200282ddda1b76331ed08d2784ed6ad5eb0d8ab23be27": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:e57ac91ceb6200f95a8200282ddda1b76331ed08d2784ed6ad5eb0d8ab23be27": {
       "detections": {},
       "directives": {},
@@ -310,8 +310,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 04:10:16+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 04:10:16+00:00",
+              "File:FileAccessDate": "2026:11:26 23:28:43+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:28:43+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_cryptoapi_40.doc",
               "File:FilePermissions": 100644,

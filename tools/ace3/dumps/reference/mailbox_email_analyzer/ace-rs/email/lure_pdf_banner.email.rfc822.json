@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "file_type",
     "email_analyzer"
@@ -92,7 +92,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-21 14:47:15.710635 +0000",
+            "date": "2026-11-27 03:11:37.947504 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -473,7 +473,7 @@
           "cc": [],
           "compauth_reason": null,
           "compauth_result": null,
-          "date": "2026-11-21 14:47:15.710635 +0000",
+          "date": "2026-11-27 03:11:37.947504 +0000",
           "dkim_result": null,
           "dmarc_result": null,
           "env_mail_from": null,
@@ -535,17 +535,17 @@
         {
           "content_type": "text/plain",
           "role": "body",
-          "uuid": "e6b9ee29-d21e-4f52-945f-fdea55ef6dc4"
+          "uuid": "d424d301-83ef-4a55-a5c1-81c5e658c056"
         },
         {
           "content_type": "text/html",
           "role": "body",
-          "uuid": "0b37a458-e6a8-47c7-8b4a-a4a57b6adabd"
+          "uuid": "7515fb79-e190-47a5-8358-3feb44006282"
         },
         {
           "content_type": "application/pdf",
           "role": "attachment",
-          "uuid": "f3fa45a6-b75e-4ba9-9339-1456295b5750"
+          "uuid": "a865844e-1e7c-4fb0-b3d7-46912c7172ad"
         }
       ]
     }
@@ -559,42 +559,31 @@
     "observables": [
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_html_000.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 289,
+        "directives": [],
+        "paths": [],
         "tags": [],
-        "type": "file",
-        "value": "2126fdc6d85744971ca60d5319485f68ff5c63cc621c886d7d8079b1fdfba6aa"
+        "type": "email_subject",
+        "value": "Statement"
       },
       {
         "detections": [],
-        "directives": [],
+        "directives": [
+          "original_email"
+        ],
         "paths": [
           {
-            "path": "email.rfc822.combined",
+            "path": "email.rfc822",
             "yara_meta": [
-              "type=email",
-              "type=email.combined"
+              "type=email"
             ]
           }
         ],
-        "size": 607,
+        "size": 3149,
         "tags": [
           "email"
         ],
         "type": "file",
-        "value": "9d4f77898685a3d9594308af200180eee1308ba08443171338a58a81d1efe416"
+        "value": "b729cd18a75c2391979cbc42c6c022055f571b6b6f38822f4ae9624c87404324"
       },
       {
         "detections": [],
@@ -622,31 +611,31 @@
       },
       {
         "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 289,
+        "tags": [],
+        "type": "file",
+        "value": "2126fdc6d85744971ca60d5319485f68ff5c63cc621c886d7d8079b1fdfba6aa"
+      },
+      {
+        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
         "type": "email_conversation",
         "value": "sam@partner-example.org|pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "original_email"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 3149,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "b729cd18a75c2391979cbc42c6c022055f571b6b6f38822f4ae9624c87404324"
       },
       {
         "detections": [],
@@ -657,33 +646,6 @@
         "tags": [],
         "type": "message_id",
         "value": "<lure_pdf_banner@partner-example.org>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "Statement"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 19,
-        "tags": [],
-        "type": "file",
-        "value": "c1c97de8022f1e664982378daa9e238e16cb9e15ce3197a72f21572c0640b484"
       },
       {
         "detections": [],
@@ -725,61 +687,54 @@
         ],
         "type": "file",
         "value": "8336b4ff55820cbc9cf8ef2351186a53c9c6d6a30f1e95cf1b9c8be5f0f95183"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 19,
+        "tags": [],
+        "type": "file",
+        "value": "c1c97de8022f1e664982378daa9e238e16cb9e15ce3197a72f21572c0640b484"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 607,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "9d4f77898685a3d9594308af200180eee1308ba08443171338a58a81d1efe416"
       }
     ],
     "results": [
       {
         "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 0,
-        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 1,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
         "class": "MailboxEmailAnalysis",
         "details": {},
+        "detections": [],
         "module": "mailbox_email_analyzer",
-        "observable": 6,
+        "observable": 1,
         "summary": null,
         "tags": []
       },
@@ -792,10 +747,10 @@
             "observable": 3
           },
           {
-            "observable": 5
+            "observable": 6
           },
           {
-            "observable": 8
+            "observable": 0
           },
           {
             "observable": 7
@@ -804,23 +759,23 @@
             "observable": 2
           },
           {
-            "observable": 9,
+            "observable": 10,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 0,
+            "observable": 5,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 10,
+            "observable": 8,
             "path": "statement.pdf"
           },
           {
-            "observable": 11,
+            "observable": 9,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 1,
+            "observable": 11,
             "path": "email.rfc822.combined"
           }
         ],
@@ -900,7 +855,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-21 14:47:15.710635 +0000",
+              "date": "2026-11-27 03:11:37.947504 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -976,8 +931,9 @@
             }
           ]
         },
+        "detections": [],
         "module": "email_analyzer",
-        "observable": 6,
+        "observable": 1,
         "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject Statement",
         "tags": []
       },
@@ -999,8 +955,9 @@
           "mime": "message/rfc822",
           "type": "news or mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 6,
+        "observable": 1,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1019,12 +976,13 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
+          "mime": "text/html",
+          "type": "HTML document, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 9,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "observable": 5,
+        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
         "tags": []
       },
       {
@@ -1045,8 +1003,9 @@
           "mime": "application/pdf",
           "type": "PDF document, version 1.7, 1 page(s)"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 10,
+        "observable": 8,
         "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
         "tags": []
       },
@@ -1068,6 +1027,55 @@
           "mime": "message/rfc822",
           "type": "news or mail, ASCII text"
         },
+        "detections": [],
+        "module": "file_type",
+        "observable": 9,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 10,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "detections": [],
         "module": "file_type",
         "observable": 11,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",

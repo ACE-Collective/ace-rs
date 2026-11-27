@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [],
   "analyses": [
     {
@@ -11,12 +11,12 @@
         "gui_link": null,
         "query": "index=proxy (transport=HTTPS OR transport=HTTP) hostname=\"www.example.com\"\n| eval full_url = lower(transport) . \"://\" . url\n",
         "query_results": null,
-        "query_start": 1795269295.4592764,
+        "query_start": 1795752853.4037182,
         "query_summary": "Proxy correlation",
         "question": "Was this domain seen in proxy logs?",
-        "running_start_time": "2026-11-21T13:54:56.485-00:00",
+        "running_start_time": "2026-11-27T04:14:14.431-00:00",
         "search_id": "1767225600.1",
-        "start_time": "2026-11-21T13:54:55.459-00:00"
+        "start_time": "2026-11-27T04:14:13.403-00:00"
       },
       "detections": [],
       "error": "timed out",

@@ -176,6 +176,39 @@
       },
       "tags": {}
     },
+    "file:33ac5efe40b20553bf727d680795cca6e183715eb4d60e7a67e503a30952d551": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_obfuscated.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:58dbf5bcd8781bd3d43541a627cf913ea1416a504ac566ab4739077da75cfe0e": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:58dbf5bcd8781bd3d43541a627cf913ea1416a504ac566ab4739077da75cfe0e": {
       "detections": {
         "A url was found in an Excel 4.0 macro.": [
@@ -210,8 +243,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 12:35:34+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 12:35:34+00:00",
+              "File:FileAccessDate": "2026:11:26 23:45:57+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:45:57+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "xlm_obfuscated.xlsm",
               "File:FilePermissions": 100644,
@@ -761,39 +794,6 @@
             }
           },
           "summary": "URL Extraction Analysis (upper.example.com, xlm-plain.example.com)",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:bb5a944cb292e28ada4188bf3d60ee9424120857895f6d67b8620006c380bc7a": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_obfuscated.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:58dbf5bcd8781bd3d43541a627cf913ea1416a504ac566ab4739077da75cfe0e": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
           "tags": {}
         },
         "user_defined_tagging": {

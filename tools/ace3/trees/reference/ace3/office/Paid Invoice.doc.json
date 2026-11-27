@@ -188,6 +188,39 @@
       },
       "tags": {}
     },
+    "file:23c37844213d26ae5d82a5264e6d0e544c1863e613339cbcf68542bb7a6ceb5a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Paid Invoice.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2983db3781942d11b9497551888ee8774f861ff9cbc5c64ddb79eaa0698f87bd": {
       "detections": {},
       "directives": {
@@ -353,39 +386,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:438e1e5e6609709f01221b655f9e485b872312f7b4ff499b6140c212afb4f89b": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "Paid Invoice.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -1692,8 +1692,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:38:34+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:38:34+00:00",
+              "File:FileAccessDate": "2026:11:26 23:10:56+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:10:56+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "Paid Invoice.doc",
               "File:FilePermissions": 100644,

@@ -152,9 +152,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/objects.rtf.rtfobj",
-              "File:FileAccessDate": "2026:11:16 20:52:59+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:52:59+00:00",
-              "File:FileModifyDate": "2026:11:16 20:52:59+00:00",
+              "File:FileAccessDate": "2026:11:27 00:14:06+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:14:06+00:00",
+              "File:FileModifyDate": "2026:11:27 00:14:06+00:00",
               "File:FileName": "objects.rtf_inner.rtf",
               "File:FilePermissions": 100666,
               "File:FileSize": 284,
@@ -385,8 +385,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:52:58+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:52:58+00:00",
+              "File:FileAccessDate": "2026:11:27 00:14:05+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:14:05+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "objects.rtf",
               "File:FilePermissions": 100644,
@@ -1171,6 +1171,39 @@
       },
       "tags": {}
     },
+    "file:31ee5187cde5f48e5b8f15a8a04b478d4e97d9add40c3d0be8584db3191478f3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:350a229d177d0b15a711ffa88b723aa42b88e9d90a03165bb5bf145d24bd25d5": {
       "detections": {},
       "directives": {},
@@ -1485,39 +1518,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:40fe22b06a32fe85af7e619c806001b170276b0f0d6fbdfcf426c4ec7e1b4c2a": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -2530,6 +2530,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:77942135b01444ad4e300813f3aeac823de4b9fe5e2362391e2f190d2fcb6256": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "objects.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -3781,9 +3814,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/objects.rtf.rtfobj",
-              "File:FileAccessDate": "2026:11:16 20:52:59+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:52:59+00:00",
-              "File:FileModifyDate": "2026:11:16 20:52:59+00:00",
+              "File:FileAccessDate": "2026:11:27 00:14:06+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:14:06+00:00",
+              "File:FileModifyDate": "2026:11:27 00:14:06+00:00",
               "File:FileName": "objects.rtf_object_00000C9B.doc",
               "File:FilePermissions": 100666,
               "File:FileSize": 219648,
@@ -4623,72 +4656,6 @@
         "extracted_rtf": true
       }
     },
-    "file:bcf1f8c2566ad2fa0afc61b28a149c969624706b68468d9d366763b05fe225bd": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "objects.rtf.rtfobj/objects.rtf_inner.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:03ba05db6317fd6bd7227583402ca28e41454fb99641e279bf19404d5dd00ba7": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:c01f4c3f66e24e509469feabe8ae76e213bddda495e76b3ab7550847f7d24ee4": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "objects.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:c30186bcfe6ce894da77cea466ebabc941b25ff9a2330120d9fb39ccb2863b5c": {
       "detections": {
         "file extracted from RTF has suspect file extension": [
@@ -4950,6 +4917,39 @@
       "tags": {
         "macro": true
       }
+    },
+    "file:c75efc669ea0c45ef74ffb5e6d1fb8858f3e7e196f79299c1e5c90dba96678cf": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_inner.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:03ba05db6317fd6bd7227583402ca28e41454fb99641e279bf19404d5dd00ba7": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:c9dacb1116e4396da1f58f6fc1d80983b7524e4f692d1a2aeec1ef366144a619": {
       "detections": {},

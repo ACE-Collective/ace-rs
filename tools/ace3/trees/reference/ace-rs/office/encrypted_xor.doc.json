@@ -310,39 +310,6 @@
       },
       "tags": {}
     },
-    "file:5ce327af5c7cdcea3d675fb91f4dec243880587c241af45fa3e37776380047cb": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_xor.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:bcedd34c04ce0ddfcf20cd56b183fd07ffafdb6cbca6f5737412ce8fc129167d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:6c98d4f2b62b4db730884f9bd6d27e5360693eaad02d9cdbaa0e71c4c747450b": {
       "detections": {},
       "directives": {
@@ -473,8 +440,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:06:29+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:06:29+00:00",
+              "File:FileAccessDate": "2026:11:26 23:29:33+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:29:33+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_xor.doc",
               "File:FilePermissions": 100644,
@@ -817,6 +784,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:fd56fe6939916079008be4eb1977ae8c95f7496f33fdf043cf5f0321f594d039": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_xor.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:bcedd34c04ce0ddfcf20cd56b183fd07ffafdb6cbca6f5737412ce8fc129167d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

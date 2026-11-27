@@ -394,9 +394,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 12:03:25+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 12:03:25+00:00",
-              "File:FileModifyDate": "2026:11:21 12:03:25+00:00",
+              "File:FileAccessDate": "2026:11:26 23:16:08+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:16:08+00:00",
+              "File:FileModifyDate": "2026:11:26 23:16:08+00:00",
               "File:FileName": "invoice.doc",
               "File:FilePermissions": 100664,
               "File:FileSize": 22528,
@@ -577,6 +577,39 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:610c5ca57017fd97a8d0ab458f31c9a692fa20d898d2824616b95b46793a2d89": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:3e3f189ac36ec0c2a480bfa7ac4d80ef8dd2ca8d91b4f4a8697df966afd0784b": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:6145050fff56d0e22f2adbf5ae124a718a262e8fc01216b25009aa7b198723f3": {
       "detections": {},
@@ -973,39 +1006,6 @@
       "tags": {
         "email": true
       }
-    },
-    "file:e1e7b9a55b60d9f82e07ae6624e4766420454b392929bf63ec463cc9e4990926": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:3e3f189ac36ec0c2a480bfa7ac4d80ef8dd2ca8d91b4f4a8697df966afd0784b": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:f70fe384c672865fff4bb8ab60d73098bc751e8f2aa915b8aff2e2085648b428": {
       "detections": {},

@@ -558,6 +558,39 @@
       },
       "tags": {}
     },
+    "file:bed58891eb57a9132ba15d52c4b8e55231c6f8a7501ddc1df6b58a8983af1df0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_branch_err_range_formula.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:df7d100a2d0c90c3e2fdede7a91d376acb7a9e23418821567915b109ef5daa00": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:df7d100a2d0c90c3e2fdede7a91d376acb7a9e23418821567915b109ef5daa00": {
       "detections": {},
       "directives": {},
@@ -588,8 +621,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:13:04+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:13:04+00:00",
+              "File:FileAccessDate": "2026:11:26 23:43:40+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:43:40+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "xlm_branch_err_range_formula.xlsm",
               "File:FilePermissions": 100644,
@@ -735,39 +768,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": "xlm_branch_err_range_formula.xlsm.extracted/[Content_Types].xml.noxml"
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:fbf1842949a09e7594575f4ff24dab8325dfa2c9672d3c3b58b010e5bf4a1727": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_branch_err_range_formula.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:df7d100a2d0c90c3e2fdede7a91d376acb7a9e23418821567915b109ef5daa00": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}

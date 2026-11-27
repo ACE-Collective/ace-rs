@@ -1,6 +1,6 @@
 # Differences from ace3's reference dumps
 
-`tests/reference.rs` runs the two email archive modules on ace3's dumps, made by `tools/ace3/dumps/make-dumps email_archive`, where ace3's archive was `run_module.py`'s in-memory `archived_messages` and its CAS pool in the work directory, under the test-only key in `tools/ace3/dumps/fixtures/email_archive/key`. The test answers each read as the core answers it over the same archive; ace-pool's `lease_api` test runs the core's read and the archiver's write over the same fixtures and checks them against these dumps. The test fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 85c8e9e5.
+`tests/reference.rs` runs the two email archive modules on ace3's dumps, made by `tools/ace3/dumps/make-dumps email_archive`, where ace3's archive was `run_module.py`'s in-memory `archived_messages` and its CAS pool in the work directory, under the test-only key in `tools/ace3/dumps/fixtures/email_archive/key`. The test answers each read as the core answers it over the same archive; ace-pool's `lease_api` test runs the core's read and the archiver's write over the same fixtures and checks them against these dumps. The test fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit c55f15a2.
 
 ace3's 4f1fa192 cut its archive to the Message-ID to the email and removed `encrypted_archive_analyzer` and `url_email_pivot_analyzer`, and ace-rs followed it (the owner, 2026-11-21).
 

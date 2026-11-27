@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -650,7 +650,7 @@
             "cc": [],
             "compauth_reason": "109",
             "compauth_result": "pass",
-            "date": "2026-11-21 13:56:00.804482 +0000",
+            "date": "2026-11-27 04:15:10.914031 +0000",
             "dkim_result": "fail",
             "dmarc_result": "bestguesspass",
             "env_mail_from": "jrobinson@company.com",
@@ -1199,7 +1199,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-21T13:56:00.794502",
+        "timestamp": "2026-11-27T04:15:10.904502",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -1209,7 +1209,7 @@
         "header": "Received: from CY4PR22CA0026.namprd22.prod.outlook.com (2603:10b6:903:ed::12) by BN6PR22MB0131.namprd22.prod.outlook.com (2603:10b6:404:34::14) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.930.19; Thu, 12 Jul 2018 12:56:22 +0000",
         "header_index": 0,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1218,7 +1218,7 @@
         "header": "Received: from BY2NAM03FT020.eop-NAM03.prod.protection.outlook.com (2a01:111:f400:7e4a::207) by CY4PR22CA0026.outlook.office365.com (2603:10b6:903:ed::12) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384) id 15.20.952.17 via Frontend Transport; Thu, 12 Jul 2018 12:56:21 +0000",
         "header_index": 1,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1227,7 +1227,7 @@
         "header": "Authentication-Results: spf=pass (sender IP is 216.205.24.190) smtp.mailfrom=company.com; integraldefense.com; dkim=fail (body hash did not verify) header.d=teamcompany.onmicrosoft.com;integraldefense.com; dmarc=bestguesspass action=none header.from=company.com;",
         "header_index": 2,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1236,7 +1236,7 @@
         "header": "Received-SPF: Pass (protection.outlook.com: domain of company.com designates 216.205.24.190 as permitted sender) receiver=protection.outlook.com; client-ip=216.205.24.190; helo=us-smtp-delivery-190.mimecast.com;",
         "header_index": 3,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1245,7 +1245,7 @@
         "header": "Received: from us-smtp-delivery-190.mimecast.com (216.205.24.190) by BY2NAM03FT020.mail.protection.outlook.com (10.152.84.224) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P384) id 15.20.952.17 via Frontend Transport; Thu, 12 Jul 2018 12:56:21 +0000",
         "header_index": 4,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1254,7 +1254,7 @@
         "header": "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=teamcompany.onmicrosoft.com; s=selector1-company-com; h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck; bh=U3PBuSrY5Gucf2k3aKh74HfuFi0LQdCMuXKQNbdkJ/0=; b=ZbbjZv3VYFaJ74MPN/IHlpPCv3w/IUWsNOpibRhwNznV6sbP9Hqifq84ujA2a00z4nQ4AQDedUfRQddYkO28gonpgxUjTT6sEvmJCuqFi+aWJVqyMps7wE8PkvU80mGdLelnSdz/sQg4I7z5k2uxpxYXKTt2Zutny/Q4zZmQxqo=",
         "header_index": 5,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1263,7 +1263,7 @@
         "header": "Received: from NAM03-CO1-obe.outbound.protection.outlook.com (mail-co1nam03lp0018.outbound.protection.outlook.com [216.32.181.18]) (Using TLS) by us-smtp-1.mimecast.com with ESMTP id us-mta-201-khmVc7CeNIS_vui2ormEMw-1; Thu, 12 Jul 2018 08:56:13 -0400",
         "header_index": 6,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1272,7 +1272,7 @@
         "header": "Received: from MW2PR16MB2249.namprd16.prod.outlook.com (52.132.181.148) by MW2PR16MB2297.namprd16.prod.outlook.com (52.132.181.160) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.930.20; Thu, 12 Jul 2018 12:56:09 +0000",
         "header_index": 7,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1281,7 +1281,7 @@
         "header": "Received: from MW2PR16MB2249.namprd16.prod.outlook.com ([fe80::4841:ea10:8fad:14f3]) by MW2PR16MB2249.namprd16.prod.outlook.com ([fe80::4841:ea10:8fad:14f3%2]) with mapi id 15.20.0930.016; Thu, 12 Jul 2018 12:56:09 +0000",
         "header_index": 8,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1290,7 +1290,7 @@
         "header": "From: Jacob Picklefoot <jrobinson@company.com>",
         "header_index": 9,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1299,7 +1299,7 @@
         "header": "To: \"ashphish@integraldefense.com\" <ashphish@integraldefense.com>",
         "header_index": 10,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1308,7 +1308,7 @@
         "header": "Subject: [POTENTIAL PHISH] FW: URGENT RFQ-03167218 IGOL MEF project 2018",
         "header_index": 11,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1317,7 +1317,7 @@
         "header": "Thread-Topic: [POTENTIAL PHISH] FW: URGENT RFQ-03167218 IGOL MEF project 2018",
         "header_index": 12,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1326,7 +1326,7 @@
         "header": "Thread-Index: AdQZ37F7a0PwyB0UTYGu3iaPpeaTHA==",
         "header_index": 13,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1335,7 +1335,7 @@
         "header": "Date: Thu, 12 Jul 2018 12:56:09 +0000",
         "header_index": 14,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1344,7 +1344,7 @@
         "header": "Message-ID: <MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
         "header_index": 15,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1353,7 +1353,7 @@
         "header": "Accept-Language: en-US",
         "header_index": 16,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1362,7 +1362,7 @@
         "header": "Content-Language: en-US",
         "header_index": 17,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1371,7 +1371,7 @@
         "header": "X-MS-Has-Attach: yes",
         "header_index": 18,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1380,7 +1380,7 @@
         "header": "X-MS-TNEF-Correlator: ",
         "header_index": 19,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1389,7 +1389,7 @@
         "header": "x-dg-ref: PG1ldGE+PGF0IG5tPSJib2R5Lmh0bWwiIHA9ImM6XHVzZXJzXGM4MDA2NzVcYXBwZGF0YVxyb2FtaW5nXDA5ZDg0OWI2LTMyZDMtNGE0MC04NWVlLTZiODRiYTI5ZTM1Ylxtc2dzXG1zZy1lZjUyMzVjOC04NWQyLTExZTgtYmYzYi01YzUxNGZmYjA2ZmNcYW1lLXRlc3RcZWY1MjM1Y2EtODVkMi0xMWU4LWJmM2ItNWM1MTRmZmIwNmZjYm9keS5odG1sIiBzej0iMTgyMzAiIHQ9IjEzMTc1ODczNzY0OTY5ODg0MCIgaD0iK1luc0Z5YThPMTZ5TzdZN2FwbjdkaFRXOWlJPSIgaWQ9IiIgYmw9IjAiIGJvPSIxIiBjaT0iY0FBQUFFUkhVMVJTUlVGTkNnVUFBSEFBQUFBQUFBQUFBQUFBQUpHNWI0L3ZuNGtJa2JsdmorK2ZpUWdBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBSUFBQUFvc2dNeHdBQUFBQUFBQUFBQUFBQUFBPT0iLz48L21ldGE+",
         "header_index": 20,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1398,7 +1398,7 @@
         "header": "x-originating-ip: [149.55.24.4]",
         "header_index": 21,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1407,7 +1407,7 @@
         "header": "x-ms-publictraffictype: Email",
         "header_index": 22,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1416,7 +1416,7 @@
         "header": "X-Microsoft-Exchange-Diagnostics-untrusted: 1;MW2PR16MB2297;7:UVLUsziRhyCaaDew0ySZDkQmY3pDt1BKdsSEUouX1rOUsyRgzE1zvB+o1Ci2EHc/zNybajSjIv62WXg5TY+PzbvUsvp5ZdbOyxKs/vPmbSEoPZT9OxJNNTOnaRx5g3YRNnaOYJc4R6DX2qcnhTd394f2JBRgGR12So9JbEXO0PouaD211ZwHU1pbWM6j2OJ7ClGKH24yBApRhycGGH7ZdUhXNeVHXnPrhtzaumcMU7uSnwS9H/DIz/4uB+yuy7Zu;20:mlaI10Qqk/URBaURZUyU7mENqZ+ABU1kbXlYAXqLRnUEc/EyIQNpJlcmBDgeL0UHq4oqioKw7FjuaXyizA3hLMNar+sUI4cSPxT7Qupc3xUeW87Xpc7APcCCmsrqfnu5It0yf+l/v8u1yENTTxDWwP/lir9Apdzi6R4zHXXjexU=",
         "header_index": 23,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1425,7 +1425,7 @@
         "header": "X-MS-Office365-Filtering-Correlation-Id: 2b7b9a1c-b6ca-466e-bfe4-08d5e7f6de17",
         "header_index": 24,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1434,7 +1434,7 @@
         "header": "X-Microsoft-Antispam-Untrusted: UriScan:(248529296997954);BCL:0;PCL:0;RULEID:(7020095)(4652040)(8989117)(5600053)(711020)(4534165)(4627221)(201703031133081)(201702281549075)(8990107)(2017052603328)(7153060)(49563074)(7193020);SRVR:MW2PR16MB2297;",
         "header_index": 25,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1443,7 +1443,7 @@
         "header": "X-MS-TrafficTypeDiagnostic: MW2PR16MB2297:|BN6PR22MB0131:",
         "header_index": 26,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1452,7 +1452,7 @@
         "header": "x-microsoft-antispam-prvs: <MW2PR16MB2297206A3C8A9DD2436E3967A8590@MW2PR16MB2297.namprd16.prod.outlook.com>",
         "header_index": 27,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1461,7 +1461,7 @@
         "header": "x-exchange-antispam-report-test: UriScan:(158342451672863)(85712091589598)(160011542660777)(189930954265078)(223705240517415)(171496233030310)(277809949798613)(188209762667185)(246761809553906)(13630703328958);UriScan:(158342451672863)(85712091589598)(160011542660777)(189930954265078)(223705240517415)(171496233030310)(277809949798613)(188209762667185)(246761809553906)(13630703328958);",
         "header_index": 28,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1470,7 +1470,7 @@
         "header": "x-exchange-antispam-report-cfa-test: BCL:0;PCL:0;RULEID:(102415395)(6040522)(2401047)(8121501046)(5005006)(3002001)(93006095)(93001095)(10201501046)(3231311)(944501410)(52105095)(149027)(150027)(6041310)(20161123562045)(20161123564045)(201703131423095)(201702281528075)(20161123555045)(201703061421075)(201703061406153)(20161123558120)(20161123560045)(6072148)(201708071742011)(7699016);SRVR:MW2PR16MB2297;BCL:0;PCL:0;RULEID:;SRVR:MW2PR16MB2297;BCL:0;PCL:0;RULEID:(102415395)(2018062399030)(2018011200283)(2401047)(7630418)(8121501046)(7631346)(7632307)(7633261)(1430482)(1431068)(1432130)(1551054)(823300264)(823330083)(9101536074)(93006095)(93004095)(10201501046)(3231311)(901025)(902075)(913088)(7045084)(806099)(944500087)(944510158)(944921075)(946801078)(946901078)(9300000166)(9301000104)(52103095)(52104123)(52105095)(52106170)(52401257)(52601095)(52606095)(52606095)(52606095)(52606095)(52606095)(52606095)(52505095)(52406095)(52305095)(52206095)(3002001)(1610001)(8301001075)(8301003183)(201708071742011)(7699016);SRVR:BN6PR22MB0131;BCL:0;PCL:0;RULEID:;SRVR:BN6PR22MB0131;",
         "header_index": 29,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1479,7 +1479,7 @@
         "header": "x-forefront-prvs: 0731AA2DE6",
         "header_index": 30,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1488,7 +1488,7 @@
         "header": "X-Forefront-Antispam-Report-Untrusted: SFV:NSPM;SFS:(10019020)(376002)(346002)(136003)(366004)(39860400002)(396003)(189003)(199004)(7696005)(106356001)(486006)(256004)(33656002)(478600001)(66066001)(25786009)(8676002)(575784001)(99286004)(316002)(102836004)(81166006)(68736007)(1730700003)(105586002)(81156014)(6916009)(45080400002)(7736002)(606006)(86362001)(1847600001)(5660300001)(2900100001)(99936001)(54896002)(2351001)(6306002)(3846002)(236005)(55016002)(9686003)(97736004)(6116002)(2906002)(218543002)(14444005)(5640700003)(14454004)(26005)(6436002)(53936002)(186003)(5250100002)(6506007)(966005)(5024004)(114624004)(8936002)(74316002)(476003)(2501003)(15974865002)(4623004)(217873001)(2499815003);DIR:OUT;SFP:1102;SCL:1;SRVR:MW2PR16MB2297;H:MW2PR16MB2249.namprd16.prod.outlook.com;FPR:;SPF:None;LANG:en;PTR:InfoNoRecords;MX:3;A:1;",
         "header_index": 31,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1497,7 +1497,7 @@
         "header": "X-Microsoft-Antispam-Message-Info-Original: 7vKu8GX9Et7JjvBYRz+nWz4Tl/S+MN+2vZK4/HtzwZSjtHj8VdnEra6+IrvrH/J0GH2WykHxssEvZLyyXLquEDyYNE2x9VRAd2sAc2sTZWCbfcfq0piRe9dySZdmdm9pTlr7MFfPZqY8z0SlIFQ2XE7tJK3XgPgEdG81XlN2Zpz3r2FjdUmmWyeyNCDAekGZvYtYIbglqNTmEAT5Tt4nJv5fn9RJJhAYVrZlLpdFCbB0wQoggNAWmPSLuxq2A/V7xgfZ8OrYQmYWF6yuQeCwLw0Q/N2en6iu5IkyEB8VXI/Vu0RCZEZbnjbYbudpRfiodmc1gR+wFAXTujbGxJdLRKkSL79UPKXfcLwDS+lmH6M=",
         "header_index": 32,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1506,7 +1506,7 @@
         "header": "SpamDiagnosticOutput: 1:24",
         "header_index": 33,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1515,7 +1515,7 @@
         "header": "SpamDiagnosticMetadata: Default",
         "header_index": 34,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1524,7 +1524,7 @@
         "header": "MIME-Version: 1.0",
         "header_index": 35,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1533,7 +1533,7 @@
         "header": "X-MC-Unique: khmVc7CeNIS_vui2ormEMw-1",
         "header_index": 36,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1542,7 +1542,7 @@
         "header": "Content-Type: multipart/mixed;boundary=\"_c43fa4a9-af1c-4ef1-af53-ca00fca419b8_\"",
         "header_index": 37,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1551,7 +1551,7 @@
         "header": "Return-Path: jrobinson@company.com",
         "header_index": 38,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1560,7 +1560,7 @@
         "header": "X-EOPAttributedMessage: 0",
         "header_index": 39,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1569,7 +1569,7 @@
         "header": "X-EOPTenantAttributedMessage: d278989d-1867-4992-aefc-07283e73df94:0",
         "header_index": 40,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1578,7 +1578,7 @@
         "header": "X-Forefront-Antispam-Report: CIP:216.205.24.190;IPV:NLI;CTRY:US;EFV:NLI;SFV:SKA;SFS:;DIR:INB;SFP:;SCL:-1;SRVR:BN6PR22MB0131;H:us-smtp-delivery-190.mimecast.com;FPR:;SPF:None;LANG:en;",
         "header_index": 41,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1587,7 +1587,7 @@
         "header": "X-Microsoft-Exchange-Diagnostics: 1;BY2NAM03FT020;1:7W4rS7lhFh29CA9Cpe2fRMYk5KREG3t49XMwg/5T0H8A2fbtrLkJHiwe6HD/bNE6aOltsNhaEqzm5XrCDKZhGyP5YfDKLHKOORnId82F7lNwjYgzdG3xvnW5P1y1MoJk",
         "header_index": 42,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1596,7 +1596,7 @@
         "header": "X-MS-Office365-Filtering-Correlation-Id-Prvs: 592ec5c2-6a89-499a-4ce6-08d5e7f6d6c4",
         "header_index": 43,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1605,7 +1605,7 @@
         "header": "X-Microsoft-Antispam: UriScan:(248529296997954)(223705240517415);BCL:0;PCL:0;RULEID:(7020095)(4652040)(5600053)(710020)(711020)(4605076)(4608076)(49563074)(1401180)(1414027)(71702078)(7193020);SRVR:BN6PR22MB0131;",
         "header_index": 44,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1614,7 +1614,7 @@
         "header": "X-Microsoft-Exchange-Diagnostics: 1;BN6PR22MB0131;3:k5j81Xvhvzys6P17ZiXRQ7Pc2VE/nRlfeNy6kk+I1KYlx0DSCFGoyoAuiJhdrBmbOaTJ9Tb0NPK//T3z96QJ8XLuxTPkZPxJl2Qb4ar9E06T+LSpMBjy/TKq+hv6gzUfAA3log92ODy2pNNUW4PfE10keDbbAgZfHZoVLJEKsacCQ1Q0HtNlme3Ci/5MyoM1cL5sK9EIZzk/gF0mqB3YfoWLmdle7e91YGIYN3CirMguj5bfjEGCezWedwNnOwYtJE25BJ1aurKVrr4C0vo6cXb5oMLQ5f8uhNHccf2sQcyrXwGqtcMzmelwAMO5oFg4whmLmBwwohjGPGwmXa79UoUUEQkwLFjdiZLzbP7lyV8i1PUtdy0pBEWrtTUgTUK0tdTRhMoBl7YL1WYg0QrP4hBTOkIh4Lp1YtbEsbBhm1w=;25:WMI8jDFUcHCZc5XQX/2ZGePwmw440UtEjYfVz5GKsOjdkxhAi+nFLf7h7Qot4dFn4+z806PdJMVclrN/BVmvBqyg/2RDGBB6bNBnpF5hSebtfvgEsLgpvtfA9ZLxvWZt4zDZh6vU1zWibXrZT4ulRgna5T83l3aKOHXPtvp0xpnFtdO0Fk9a0nQ6c8S2Jl0xij6f63nKlfG6JZDQpPbi4O5Q7gB9xXqnHEg2nTl6v2IwFN/K/sRj5l85fYmDl53159FgwqE/vgQypf7MFqdXbfUtI3mAyToWYswvZ2IYLTeAG3YX0JTP5qu3bEE4MNGrK1zIxNJ12+jQT78G3lHpjg==",
         "header_index": 45,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1623,7 +1623,7 @@
         "header": "X-Microsoft-Exchange-Diagnostics: 1;BN6PR22MB0131;31:0VF+u4yOOgtyY/LYkU9V67JQ+U4kBtngow/sGHoVw0iLXubK/K844xfZzhJvtMVvPyJsvvjf1G59DRIKohIymVqq3jqqxbqbU5LxVy2KWneIK+gwajq7DfGtDEQEdtOnUyR2kM5LD5U0o9tDZUsr2lknNzU69uPNzLK2GkcxkSd1QYWM+6eRuq3L26C5DxTjcD9tqz5dZCYJHm55UZcBjR1dH66RbJUwWSlvHvHeJb4=;4:jdD856vcKdoakAaU3kpz7M0GLOs2hB2zq/zLa+xUXakd9Kcn6bgKMq2GUgcZayyx96O9FgL10c2Yjes8Tb/YAexu4s0Gk6oumQqeH2Yp8GIhZZPwqVkXpFmrv0r4HwwrIml9O9NR0tOr+OtcxnYXJNDXuPLQX8nc2JKTCblzs6x2iMMVgFxOzK0Q9+aLcj2J2OzV5z81t/YJccKHD6Tg96pt7iPkVgkRoNq0WXH+gjMazOxoP1upJDeELCKiRmYYzEe9W3G7cLwsQ5RuiulY5KWNKHxXs50VQMfTuKeEC+8AALhsdABv8tmxuUkh0eawB6E6f9wk51wIpdRc9TWzvd4s9qK5m5opjc/MzFCTIUnXyj40JOHsKjxn4u1btQEz2VhKlPjMeoulX+etMPQ5zB41oMMDymB175SVNXRRyZmIsjeXi8fJ8AwBt71nJyYgCzmMShBMuFqeNUTDK5E58h3EhH50OFs1tJBwoioyTMq/Ha20tDuvkQKC4+tBhjn/oXg0AzEiaGvLEvpozxRT05RKbKc70tLNzGIVAz7TK/fiypOhm744AqMg3ynbFJpVJF6aYKd36DeSBR5vVOYlXzMSoowTqUGi9/CLtULA3d5h+zJ3X/He00Ct+blttEpN",
         "header_index": 46,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1632,7 +1632,7 @@
         "header": "X-Microsoft-Exchange-Diagnostics: 1;BN6PR22MB0131;23:tnnPWYxjeizaD8lJx8/ZgGVgMLGQO7IFGJNQbZbGXIHfNo4UMLrCfyLTCIPEzfyh1VNlWQeCkZxUy45F7e/CRx8rSLf8D6Bz+A3tjPv4kQQTvJ8uEcrhn9JQeZjoIFmZcigZ7P0OeBg1GTmNJNgsjPcNbH7PNIGiCnEgqYWVNqYyLJys+U89FTP8yHvbfjAE;6:iXZwuSM8SCpoIybz0MhZvKDVnNbYPPhViPxUWJqA892HynNjN6O05rRUVWrpQYwEwU+YQRtPDnkSFfLG0ryqnMRS6MSZvYmrF3dqcveJJuQIVBTEHijckvgVpknhj2wKFkke0fHpM2R2+ZsUT93/Oi6XfHOHuky+0hoyGoJf9I/wz8+C7kT5BfsQ+53aKS+fwJhxZotCQbsNcAmMM7cE5XqURqnx0Ywf5LYgBmBNPTl861VpRVcmqhKOLqUMBROhunwgAfgCb326roylniBnJmSF9Y+JTQRSQidnIx9QuuJi/C4WXnqPS5GJsvdgekRASGFpAxVhN5BkTeaBGkHa7n5cdwtAiRRoovuReI2j/dgYcN+ucT8LVfqshzdDWMiuqpu2y8Mbx6hHBXNDoWWFwgMT681tLjWt4KexuL7qpcDlh/FE9mTCcaznfkfHjzFMYPXfap/H/riBvz1iK+19gg==;5:zHwGgeRLEUu3HpbOkcdNVW4z3g/DiW6RjTzk6KdtLFKEc9QvweOWCgoHta3QsBNYz9g6iBa2CpKxloTRh15Zahyb0khzAEqprJjqIc+rv5ZDXkedNmHOdV/3T+0Iv6yQFdU2HR9Tk5WqsU8QwiD8WyUkQnqaBdwgkjWmjEVkWmg=",
         "header_index": 47,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1641,7 +1641,7 @@
         "header": "X-Microsoft-Antispam-Message-Info: 6/Si9RK/9H8OTqYJYTWCToOv3GFY91CD6a3XN9tUrl14ALc4k3UVbVTplIYAQHKD/by3gK6bDHwNXBy5isP1EPac1iXWnySpxHsHa0i41KovnmVoJN32gAOE5gqyarPtzumQ1RuHaduzh+KxJttwwNkc7ql2n8BWpmWZ8W7uySruWS9c2866Ho2G6V8YxUU8yhvRhtZe7yhl65h10bzk1s81VlOtAbtsVkHfkq52p7ZIkDiYHs0jY8yf0l8ptUUi+X4aEsFInaFzw2+m3H0bWbpiVBEKTI/aeiw5E8SjY/k7rVJRqZahi1u3oOceB3ofClGEqtKhrq6JH+E2V4PzxUoTu06w7y0UC1qNn+T+ljefAgej+3opBMiQxDIaHIHqMHxMDMiRCGy1bs6SOjFp/dAVpSdcHXReOgGGf/QmEOm2K27JLGX6pmEnc20wPWhHRNhtLftQufcJxYJk9lAGOWtP/cJ3dW+dvZQA2g0HyPJkwj3jHiXzYIiBHvxBsZBSdaWj3YqvCFbPLj237J/qz87AAbw/Fb+kvdkbcm+nX5ugH819rhZuG83CWlVEUjtgTLgHhFlOzsl9HstzHQzFTG6MYKGD0YGYkae4Q4ANeBgS/auIBgCzAZNBse8if69gWlMmW737ZVtEvxMtVou9CI6bzxPiha1uyGLx7hCVFHUtCIsXfvJ2sILQTQ6B+ucjcYjlO5gBOZHDiHCRE4shoq82EFOVrh3h2DKniFNfHmHG/GXmQmTalSbtzN8p1Q2pGerUpRaYVB7TA/Tw/VMnjbfzcUBYvOVLBG/Bobe5qD7F65T8trps6b43mGqxWky+4qe2JvA9ROpXMYmxeBk/WVO/OjlZQA7ijE9wt2TY12U=",
         "header_index": 48,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1650,7 +1650,7 @@
         "header": "X-Microsoft-Exchange-Diagnostics: 1;BN6PR22MB0131;24:wvHyG5aHvwxhGAcM0kfE9Q9uuFk50R3huhkUEdh3OynNMjn0hh/0YaqojYdluAQPLKfFmOeHqYevvPI/PlbiNGoCpHdrCZrHFDptfxBSL4Q=;7:0rgeiCmVwWVexY0EZELD3UXP1WNRuO5GKnxj+kIchRNHocJmTkcjmk+rqJadQGSddA4wPEWrAhCkIQUQ1WAyYNUabiencz6QCWekm30E+1jVqzstESA1Ch6KSWic+6cHpC0IwBmI65ABrAtbAwNemBYXNXA3PELaKQXuQch2XyUC8KXuQo6b8Thhb2gj7ID0HcbFOVwI7P6w8FCx6owlF8dF8E2WbeIwtvcxqHl4NzzdYKtOhO5uDJ3tyGaeYEuo;20:uJEf8VknHBx0vxpSsGOsj4lNP3pbVEUQfD+rAo1B7v2+sYO7+w2s4oIcm61yCePDjiHB4baB0XpAODcyjze4hLIBa2c3Z4hj8JTBgNdFN5nvJkOIoDj/Yb7ycAMmVFz7s0r8tJlyWGS1JiOMc3fJ6k7T+x+fWKpBwgmNrFElq7s=",
         "header_index": 49,
         "message_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-headers"
     },
@@ -1699,7 +1699,7 @@
         "cc": [],
         "compauth_reason": "109",
         "compauth_result": "pass",
-        "date": "2026-11-21 13:56:00.804482 +0000",
+        "date": "2026-11-27 04:15:10.914031 +0000",
         "dkim_result": "fail",
         "dmarc_result": "bestguesspass",
         "env_mail_from": "jrobinson@company.com",
@@ -1733,7 +1733,7 @@
         "subject_raw": "[POTENTIAL PHISH] FW: URGENT RFQ-03167218 IGOL MEF project 2018",
         "thread_index": "AdQZ37F7a0PwyB0UTYGu3iaPpeaTHA==",
         "thread_topic": "[POTENTIAL PHISH] FW: URGENT RFQ-03167218 IGOL MEF project 2018",
-        "timestamp": "1795269360.804482",
+        "timestamp": "1795752910.914031",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -1770,7 +1770,7 @@
         "thread_id": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>",
         "thread_message_count": 0,
         "thread_method": "self",
-        "timestamp": "1795269360.804482"
+        "timestamp": "1795752910.914031"
       },
       "tag": "phishfinder-lookalike"
     },
@@ -1796,53 +1796,53 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "bf9ad66e-d1f0-4656-9ad7-ecb680e5f331",
-        "timestamp": "2026-11-21 13:56:01.299520",
-        "total_analysis_time_seconds": 0.111945,
-        "total_time_seconds": 0.5233798027038574
+        "root_uuid": "3bd4eede-c220-49d5-a772-a0a54d49b2a0",
+        "timestamp": "2026-11-27 04:15:11.356843",
+        "total_analysis_time_seconds": 0.10447200000000001,
+        "total_time_seconds": 0.47051382064819336
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.018024999999999996,
-        "event_type": "module",
-        "exec_count": 14,
-        "module": "email_analyzer",
-        "percentage": 3.4439617094278727,
-        "root_uuid": "bf9ad66e-d1f0-4656-9ad7-ecb680e5f331",
-        "timestamp": "2026-11-21 13:56:01.299520"
-      },
-      "tag": "metrics"
-    },
-    {
-      "record": {
-        "analysis_time_seconds": 0.006341999999999999,
+        "analysis_time_seconds": 0.006056000000000001,
         "event_type": "module",
         "exec_count": 41,
         "module": "email_logger",
-        "percentage": 1.2117395373753992,
-        "root_uuid": "bf9ad66e-d1f0-4656-9ad7-ecb680e5f331",
-        "timestamp": "2026-11-21 13:56:01.299520"
+        "percentage": 1.2871035311262655,
+        "root_uuid": "3bd4eede-c220-49d5-a772-a0a54d49b2a0",
+        "timestamp": "2026-11-27 04:15:11.356843"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.087578,
+        "analysis_time_seconds": 0.081195,
         "event_type": "module",
         "exec_count": 22,
         "module": "file_type",
-        "percentage": 16.73316386065322,
-        "root_uuid": "bf9ad66e-d1f0-4656-9ad7-ecb680e5f331",
-        "timestamp": "2026-11-21 13:56:01.299520"
+        "percentage": 17.256666316016698,
+        "root_uuid": "3bd4eede-c220-49d5-a772-a0a54d49b2a0",
+        "timestamp": "2026-11-27 04:15:11.356843"
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.017221,
+        "event_type": "module",
+        "exec_count": 14,
+        "module": "email_analyzer",
+        "percentage": 3.6600412664341837,
+        "root_uuid": "3bd4eede-c220-49d5-a772-a0a54d49b2a0",
+        "timestamp": "2026-11-27 04:15:11.356843"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-21T13:56:01.299873",
+        "timestamp": "2026-11-27T04:15:11.357238",
         "value": 0
       },
       "tag": "monitoring"
@@ -1850,7 +1850,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-21T13:56:01.299886",
+        "timestamp": "2026-11-27T04:15:11.357252",
         "value": 1
       },
       "tag": "monitoring"

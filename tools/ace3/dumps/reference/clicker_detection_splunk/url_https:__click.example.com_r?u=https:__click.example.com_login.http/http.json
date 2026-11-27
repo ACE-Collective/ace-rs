@@ -11,7 +11,7 @@
         "Accept": "*/*",
         "Accept-Encoding": "identity",
         "Connection": "Close",
-        "Content-Length": "50",
+        "Content-Length": "54",
         "Host": "127.0.0.1:8089",
         "User-Agent": "splunk-sdk-python/3.0.1"
       },
@@ -27,8 +27,8 @@
       "url": "https://127.0.0.1:8089/services/auth/login"
     },
     {
-      "body_file": "001-c5ca2949edef.body",
-      "body_sha256": "c5ca2949edef35982fa06c5ba0560a7cc842e313eea3f22bd3c654cb44bcf53d",
+      "body_file": "001-2691d6b3556f.body",
+      "body_sha256": "2691d6b3556f726b312bbc336965de2696464074a1ff2accdb5b2b0991a4d426",
       "body_size": 1162,
       "method": "GET",
       "request_body": "",
@@ -51,8 +51,8 @@
       "url": "https://127.0.0.1:8089/services/server/info"
     },
     {
-      "body_file": "002-c5ca2949edef.body",
-      "body_sha256": "c5ca2949edef35982fa06c5ba0560a7cc842e313eea3f22bd3c654cb44bcf53d",
+      "body_file": "002-2691d6b3556f.body",
+      "body_sha256": "2691d6b3556f726b312bbc336965de2696464074a1ff2accdb5b2b0991a4d426",
       "body_size": 1162,
       "method": "GET",
       "request_body": "",
@@ -79,12 +79,12 @@
       "body_sha256": "dd64f6a27b045d96c4042cd94d42cbf916f1db4c379e3e8f37348e20c14ad3f7",
       "body_size": 88,
       "method": "POST",
-      "request_body": "search=search+index%3Dace_rs_clicks+sourcetype%3D%22ace-rs%3Aclick%22+Url%3D%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%3A%2F%2Fclick.example.com%2Fr%3Fu%3Dhttps%3A%2F%2Fclick.example.com%2Flogin%22%29+earliest+%3D+11%2F14%2F2026%3A14%3A01%3A47+latest+%3D+11%2F21%2F2026%3A15%3A01%3A47%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId%0A&max_count=1000&exec_mode=normal",
+      "request_body": "search=search+index%3Dace_rs_clicks+sourcetype%3D%22ace-rs%3Aclick%22+Url%3D%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%3A%2F%2Fclick.example.com%2Fr%3Fu%3Dhttps%3A%2F%2Fclick.example.com%2Flogin%22%29+earliest+%3D+11%2F20%2F2026%3A04%3A19%3A49+latest+%3D+11%2F27%2F2026%3A05%3A19%3A49%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId%0A&max_count=1000&exec_mode=normal",
       "request_headers": {
         "Accept": "*/*",
         "Accept-Encoding": "identity",
         "Connection": "Close",
-        "Content-Length": "398",
+        "Content-Length": "402",
         "Host": "127.0.0.1:8089",
         "User-Agent": "splunk-sdk-python/3.0.1"
       },
@@ -99,9 +99,9 @@
       "url": "https://127.0.0.1:8089/services/search/v2/jobs/"
     },
     {
-      "body_file": "004-75bfa3ee0af7.body",
-      "body_sha256": "75bfa3ee0af727f9863182a43a18a76cf5e5716dd9b27ee161a30dd73e1cc60a",
-      "body_size": 2576,
+      "body_file": "004-259be93a6d8b.body",
+      "body_sha256": "259be93a6d8b6b87249c987bee5294296a430fb80707d612577952fae60c8697",
+      "body_size": 2580,
       "method": "GET",
       "request_body": "",
       "request_headers": {
@@ -115,7 +115,7 @@
       "response_headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Connection": "Close",
-        "Content-Length": "2576",
+        "Content-Length": "2580",
         "Content-Type": "text/xml; charset=UTF-8",
         "X-Content-Type-Options": "nosniff"
       },
@@ -123,9 +123,9 @@
       "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.1"
     },
     {
-      "body_file": "005-2d363382b933.body",
-      "body_sha256": "2d363382b9330def31e712abeb593f9e2318cfe9608fb65fbb1cbbcbc23d33c2",
-      "body_size": 2576,
+      "body_file": "005-dec054b75ffe.body",
+      "body_sha256": "dec054b75ffe484e0119e26e164f88f0f97fed5c2ad431775e6295c15a33662c",
+      "body_size": 2580,
       "method": "GET",
       "request_body": "",
       "request_headers": {
@@ -139,7 +139,7 @@
       "response_headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Connection": "Close",
-        "Content-Length": "2576",
+        "Content-Length": "2580",
         "Content-Type": "text/xml; charset=UTF-8",
         "X-Content-Type-Options": "nosniff"
       },
@@ -147,9 +147,9 @@
       "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.1"
     },
     {
-      "body_file": "006-10276757686c.body",
-      "body_sha256": "10276757686c3c0598b1c9ff8b44cd960b7e53920d9ebdcafde160f13017948a",
-      "body_size": 2575,
+      "body_file": "006-7ad0ac44488a.body",
+      "body_sha256": "7ad0ac44488a3d70ee942c9271cfae5738346ba13f83dcfc4112210d2a026e11",
+      "body_size": 2579,
       "method": "GET",
       "request_body": "",
       "request_headers": {
@@ -163,7 +163,7 @@
       "response_headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Connection": "Close",
-        "Content-Length": "2575",
+        "Content-Length": "2579",
         "Content-Type": "text/xml; charset=UTF-8",
         "X-Content-Type-Options": "nosniff"
       },
@@ -171,8 +171,32 @@
       "url": "https://127.0.0.1:8089/servicesNS/nobody/search/search/v2/jobs/1767225600.1"
     },
     {
-      "body_file": "007-da35e340c3e3.body",
-      "body_sha256": "da35e340c3e321650df5bed3da2e4508e0e7ec0ecabd7e275db167916f578a58",
+      "body_file": "007-775713b78628.body",
+      "body_sha256": "775713b78628b42b378d7fd62d1f566fea7c9cd57e374e2e590b7a8edbc0331c",
+      "body_size": 2580,
+      "method": "GET",
+      "request_body": "",
+      "request_headers": {
+        "Accept": "*/*",
+        "Accept-Encoding": "identity",
+        "Connection": "Close",
+        "Content-Length": "0",
+        "Host": "127.0.0.1:8089",
+        "User-Agent": "splunk-sdk-python/3.0.1"
+      },
+      "response_headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Connection": "Close",
+        "Content-Length": "2580",
+        "Content-Type": "text/xml; charset=UTF-8",
+        "X-Content-Type-Options": "nosniff"
+      },
+      "status": 200,
+      "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.1"
+    },
+    {
+      "body_file": "008-77f04724dc2d.body",
+      "body_sha256": "77f04724dc2d94f41024bc50a11c900b6a7e992e97e71a401425bcf001d1abd0",
       "body_size": 2576,
       "method": "GET",
       "request_body": "",
@@ -195,9 +219,9 @@
       "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.1"
     },
     {
-      "body_file": "008-8a5a72592736.body",
-      "body_sha256": "8a5a72592736d948b43548a4ab2a22690c398de272fff9de5b9895ff8f5340d2",
-      "body_size": 2572,
+      "body_file": "009-69e40c6b8d28.body",
+      "body_sha256": "69e40c6b8d2841fc32ed2a78033ac962df62a40c4fbbf6b812e0957e412fbdd4",
+      "body_size": 2576,
       "method": "GET",
       "request_body": "",
       "request_headers": {
@@ -211,31 +235,7 @@
       "response_headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Connection": "Close",
-        "Content-Length": "2572",
-        "Content-Type": "text/xml; charset=UTF-8",
-        "X-Content-Type-Options": "nosniff"
-      },
-      "status": 200,
-      "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.1"
-    },
-    {
-      "body_file": "009-ab88a5fd8151.body",
-      "body_sha256": "ab88a5fd8151610d1d5dc392b6aaa5bf62104c88e13a34140d4dd7f316002580",
-      "body_size": 2572,
-      "method": "GET",
-      "request_body": "",
-      "request_headers": {
-        "Accept": "*/*",
-        "Accept-Encoding": "identity",
-        "Connection": "Close",
-        "Content-Length": "0",
-        "Host": "127.0.0.1:8089",
-        "User-Agent": "splunk-sdk-python/3.0.1"
-      },
-      "response_headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-        "Connection": "Close",
-        "Content-Length": "2572",
+        "Content-Length": "2576",
         "Content-Type": "text/xml; charset=UTF-8",
         "X-Content-Type-Options": "nosniff"
       },
@@ -295,12 +295,12 @@
       "body_sha256": "815ce16dd6c79d9d97e9a291a1bc3a00d7228f1c54bfbe17b702d36adf7730d7",
       "body_size": 88,
       "method": "POST",
-      "request_body": "search=search+index%3Dace_rs_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%3A%2F%2Fclick.example.com%2Fr%3Fu%3Dhttps%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Fr%253Fu%253Dhttps%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F20%2F2026%3A14%3A01%3A47+_index_latest+%3D+11%2F21%2F2026%3A15%3A01%3A47%0A%60%60%60one+comment+the+web+link+leaves+out%60%60%60%0A%7C+table+_time+user+url%0A&max_count=1000&exec_mode=normal",
+      "request_body": "search=search+index%3Dace_rs_proxy+%28%22https%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%3A%2F%2Fclick.example.com%2Fr%3Fu%3Dhttps%3A%2F%2Fclick.example.com%2Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Flogin%22+OR+%22https%253A%252F%252Fclick.example.com%252Fr%253Fu%253Dhttps%253A%252F%252Fclick.example.com%252Flogin%22%29+_index_earliest+%3D+11%2F26%2F2026%3A04%3A19%3A49+_index_latest+%3D+11%2F27%2F2026%3A05%3A19%3A49%0A%60%60%60one+comment+the+web+link+leaves+out%60%60%60%0A%7C+table+_time+user+url%0A&max_count=1000&exec_mode=normal",
       "request_headers": {
         "Accept": "*/*",
         "Accept-Encoding": "identity",
         "Connection": "Close",
-        "Content-Length": "559",
+        "Content-Length": "561",
         "Host": "127.0.0.1:8089",
         "User-Agent": "splunk-sdk-python/3.0.1"
       },
@@ -315,9 +315,9 @@
       "url": "https://127.0.0.1:8089/services/search/v2/jobs/"
     },
     {
-      "body_file": "013-8817933a79c8.body",
-      "body_sha256": "8817933a79c8d95c88f8e285dc1d03a92906b924236041da6884155d48fedbbc",
-      "body_size": 2707,
+      "body_file": "013-cf8229cef924.body",
+      "body_sha256": "cf8229cef9249f582474ff143004c80913d2076f0fbc4d5ba92e8b19ed5a9a57",
+      "body_size": 2709,
       "method": "GET",
       "request_body": "",
       "request_headers": {
@@ -331,7 +331,7 @@
       "response_headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Connection": "Close",
-        "Content-Length": "2707",
+        "Content-Length": "2709",
         "Content-Type": "text/xml; charset=UTF-8",
         "X-Content-Type-Options": "nosniff"
       },
@@ -339,9 +339,9 @@
       "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.2"
     },
     {
-      "body_file": "014-d60a8e194f0b.body",
-      "body_sha256": "d60a8e194f0bbc1d3721c1fa01d2baf6ffde7f8355b3c8e4e2d51a16786e0ee6",
-      "body_size": 2707,
+      "body_file": "014-813478d308ce.body",
+      "body_sha256": "813478d308ce27bf0abe4682db6f17a3f65e8a7399abb53daae090cba4f90636",
+      "body_size": 2709,
       "method": "GET",
       "request_body": "",
       "request_headers": {
@@ -355,7 +355,7 @@
       "response_headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Connection": "Close",
-        "Content-Length": "2707",
+        "Content-Length": "2709",
         "Content-Type": "text/xml; charset=UTF-8",
         "X-Content-Type-Options": "nosniff"
       },
@@ -363,9 +363,9 @@
       "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.2"
     },
     {
-      "body_file": "015-07c65f9f6be9.body",
-      "body_sha256": "07c65f9f6be9af20355c80f55537fa04d9caf26ccf1c8574b2fec62a02d46683",
-      "body_size": 2706,
+      "body_file": "015-bfc7102542a8.body",
+      "body_sha256": "bfc7102542a84dcfee36fa1f389a24b9fa9cb9229b618ec9f79df970895e4696",
+      "body_size": 2708,
       "method": "GET",
       "request_body": "",
       "request_headers": {
@@ -379,7 +379,7 @@
       "response_headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Connection": "Close",
-        "Content-Length": "2706",
+        "Content-Length": "2708",
         "Content-Type": "text/xml; charset=UTF-8",
         "X-Content-Type-Options": "nosniff"
       },
@@ -387,9 +387,9 @@
       "url": "https://127.0.0.1:8089/servicesNS/nobody/search/search/v2/jobs/1767225600.2"
     },
     {
-      "body_file": "016-f131b57f22c7.body",
-      "body_sha256": "f131b57f22c784ec8f281bcfaeadd6feca9a45b12bfb168dd6eab091b437dd03",
-      "body_size": 2707,
+      "body_file": "016-4ce76a075035.body",
+      "body_sha256": "4ce76a0750352e227394aba264ba3eaacbb33708618cea36d7f05a5934937dbe",
+      "body_size": 2709,
       "method": "GET",
       "request_body": "",
       "request_headers": {
@@ -403,7 +403,7 @@
       "response_headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Connection": "Close",
-        "Content-Length": "2707",
+        "Content-Length": "2709",
         "Content-Type": "text/xml; charset=UTF-8",
         "X-Content-Type-Options": "nosniff"
       },
@@ -411,9 +411,9 @@
       "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.2"
     },
     {
-      "body_file": "017-950691e6228e.body",
-      "body_sha256": "950691e6228ec8859a661b3a3f2e042cd5df1ca5d93d46a5766913472f229a29",
-      "body_size": 2703,
+      "body_file": "017-5810a80d5ba5.body",
+      "body_sha256": "5810a80d5ba5def911a457a8341515ad353c6b79c099a6ed16d399c5a923fa11",
+      "body_size": 2705,
       "method": "GET",
       "request_body": "",
       "request_headers": {
@@ -427,7 +427,7 @@
       "response_headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Connection": "Close",
-        "Content-Length": "2703",
+        "Content-Length": "2705",
         "Content-Type": "text/xml; charset=UTF-8",
         "X-Content-Type-Options": "nosniff"
       },
@@ -435,9 +435,9 @@
       "url": "https://127.0.0.1:8089/services/search/v2/jobs/1767225600.2"
     },
     {
-      "body_file": "018-d6438af69f69.body",
-      "body_sha256": "d6438af69f69b30a634ba9a0d92e401bac53ddcb755d55c27f22941e19568a0b",
-      "body_size": 2703,
+      "body_file": "018-f380bbd88c33.body",
+      "body_sha256": "f380bbd88c3335d5fa5021b0f32bfb9ff59c39a8eb5867ff96614f2297477c0a",
+      "body_size": 2705,
       "method": "GET",
       "request_body": "",
       "request_headers": {
@@ -451,7 +451,7 @@
       "response_headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Connection": "Close",
-        "Content-Length": "2703",
+        "Content-Length": "2705",
         "Content-Type": "text/xml; charset=UTF-8",
         "X-Content-Type-Options": "nosniff"
       },

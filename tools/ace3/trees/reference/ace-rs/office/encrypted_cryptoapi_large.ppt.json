@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:1eac81b65d9ac7c33bac85827908c15842ac259b778166d45137daf04f0838ac": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_cryptoapi_large.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:c41dfb9f640d4986971b5495cc2bd74999b8cd7f14209c547ded916f400f54da": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:289a10f8bc1c09112a2824fb932252c1a61f224ee18cf09afcc837b75de4d0e4": {
       "detections": {},
       "directives": {
@@ -52,39 +85,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:6afb7ffe0d41f3f73bdd9bbf81673131a79c2fadb6ddc8c1d34efbbf87e3eae4": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_cryptoapi_large.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:c41dfb9f640d4986971b5495cc2bd74999b8cd7f14209c547ded916f400f54da": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -180,8 +180,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:18 04:10:20+00:00",
-              "File:FileInodeChangeDate": "2026:11:18 04:10:20+00:00",
+              "File:FileAccessDate": "2026:11:26 23:28:47+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:28:47+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_cryptoapi_large.ppt",
               "File:FilePermissions": 100644,

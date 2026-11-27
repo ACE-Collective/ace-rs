@@ -139,39 +139,6 @@
       },
       "tags": {}
     },
-    "file:22c0e979e6cdbc4a29333c4c9d378f21397a0deb21339ac9e5eafabe3927058d": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_agile_sha384.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b9e770383258d57dfebd40d8963e20ca1ff832aacc107b12d8cfccf6335973bf": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:255e348b7c22866ef5b913c3fa5db91ad645098a9ddf73837a7f6c4c685372ce": {
       "detections": {},
       "directives": {
@@ -383,8 +350,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:03:29+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:03:29+00:00",
+              "File:FileAccessDate": "2026:11:26 23:27:27+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:27:27+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_agile_sha384.docx",
               "File:FilePermissions": 100644,
@@ -482,6 +449,39 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:e659df9b5125d9c3c729500b1bf8bb1f87685f12327ddb45863c5bb84e441882": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_agile_sha384.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b9e770383258d57dfebd40d8963e20ca1ff832aacc107b12d8cfccf6335973bf": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:e81d2d7f4d8b4aa96a9d1ac9aad489caa06f24c3de2b66471479daf34672ce3a": {
       "detections": {},

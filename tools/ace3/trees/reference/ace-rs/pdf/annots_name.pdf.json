@@ -1,7 +1,40 @@
 {
   "form": 1,
   "observables": {
-    "file:19f5d4cc572225080c2dac81f71764d0958c1f0642fd737231b948095b5d7e6d": {
+    "file:4ee36cdcaeb7a1ec02c058a063d6f7e7ccf0c3076c4950e20f38604dab8a16f6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "annots_name.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:cf4a8f14329c4626ad49b1931611a8673379710f5a47efc0b3111668ca5e458c": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8d821691179b723cf6deec07f73d9a68894cd9474b3d3166e8f6244223a50e3f": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -83,39 +116,6 @@
         "pdf": true
       }
     },
-    "file:99cc657a364e973fc5c3440a0d8d8a3b1c2f515fab0e9eebd8ad6b6bfc11665c": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "annots_name.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:cf4a8f14329c4626ad49b1931611a8673379710f5a47efc0b3111668ca5e458c": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:cf4a8f14329c4626ad49b1931611a8673379710f5a47efc0b3111668ca5e458c": {
       "detections": {},
       "directives": {},
@@ -133,8 +133,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:56:16+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:56:16+00:00",
+              "File:FileAccessDate": "2026:11:27 00:01:54+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:01:54+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "annots_name.pdf",
               "File:FilePermissions": 100644,
@@ -344,9 +344,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:19f5d4cc572225080c2dac81f71764d0958c1f0642fd737231b948095b5d7e6d",
+      "redirection": "file:8d821691179b723cf6deec07f73d9a68894cd9474b3d3166e8f6244223a50e3f",
       "relationships": {
-        "extracted_from file:19f5d4cc572225080c2dac81f71764d0958c1f0642fd737231b948095b5d7e6d": true
+        "extracted_from file:8d821691179b723cf6deec07f73d9a68894cd9474b3d3166e8f6244223a50e3f": true
       },
       "results": {
         "file_type": {

@@ -702,39 +702,6 @@
       },
       "tags": {}
     },
-    "file:cddd641fac391571462d6e5876963f0d144814f685fd0498454adc7d16bf6322": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "package_object.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:dc14beeac0e90f3b0855882a425a07407d58d4e038d1180e16d420660fd5ae29": {
       "detections": {},
       "directives": {
@@ -824,8 +791,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Error extracting value for ModifyDate",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:09:14+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:09:14+00:00",
+              "File:FileAccessDate": "2026:11:26 23:40:14+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:40:14+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "package_object.doc",
               "File:FilePermissions": 100644,
@@ -940,6 +907,39 @@
         "ole": true,
         "olevba": true
       }
+    },
+    "file:fb1723415bd522197e45e2ed77801e9dd0d1a4c46ca23192b32b3d0d40923ab3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "package_object.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:e90745552a0fb8af0574be82d5ec09f4": {
       "detections": {},

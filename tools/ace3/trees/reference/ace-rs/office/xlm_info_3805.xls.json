@@ -118,6 +118,39 @@
       },
       "tags": {}
     },
+    "file:0e06ef7ea16a3a47623c58d052d75067b1c2b93d46f2c2259fd54d2586fd1523": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_info_3805.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:18875c0447d54bc222ec7d10817a98d1f56efffa6a3760a5f81d75f2755a4fc7": {
       "detections": {},
       "directives": {
@@ -575,39 +608,6 @@
       },
       "tags": {}
     },
-    "file:9c4bf7b8c5d69d049edfe352331adc3432435b1e46d1e399cd90493149b0dd7c": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_info_3805.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": {
       "detections": {
         "A url was found in an Excel 4.0 macro.": [
@@ -628,8 +628,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:22:53+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:22:53+00:00",
+              "File:FileAccessDate": "2026:11:26 23:45:01+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:45:01+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "xlm_info_3805.xls",
               "File:FilePermissions": 100644,

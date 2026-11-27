@@ -152,9 +152,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/word2003.xml.xml/word",
-              "File:FileAccessDate": "2026:11:16 14:11:45+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:11:45+00:00",
-              "File:FileModifyDate": "2026:11:16 14:11:45+00:00",
+              "File:FileAccessDate": "2026:11:26 23:42:27+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:42:27+00:00",
+              "File:FileModifyDate": "2026:11:26 23:42:27+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
               "File:FileSize": 23552,
@@ -317,6 +317,39 @@
       },
       "tags": {}
     },
+    "file:3951d86ce6d6e14af7d168381e91848510094f94a2449920797dcc67de364a4e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "word2003.xml.xml/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:3c5b6f7844104c9efe7899f7e274266a7faa92fe72a14702912b5a2de1c00fb4": {
       "detections": {},
       "directives": {},
@@ -368,39 +401,6 @@
             ]
           },
           "summary": "XML Binary Data Analysis: extracted files/word2003.xml.xml/word/vbaProject.bin",
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:5ad5ff570f6eb327a434b9dc0eb5866542ab529fb875e2851338afc4d53d5747": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "word2003.xml.xml/word/vbaProject.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
           "tags": {}
         }
       },

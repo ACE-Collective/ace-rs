@@ -1,6 +1,6 @@
 # Differences from ace3's reference dumps
 
-`tests/reference.rs` runs the archive module on each sample that `tools/ace3/dumps/reference/archive/` has a dump for, with the mime type ace3's file_type module found, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 85c8e9e5. A second test runs the module with no file limit and checks every file ace3 extracted against ace-rs's by path, size and sha256.
+`tests/reference.rs` runs the archive module on each sample that `tools/ace3/dumps/reference/archive/` has a dump for, with the mime type ace3's file_type module found, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit c55f15a2. A second test runs the module with no file limit and checks every file ace3 extracted against ace-rs's by path, size and sha256.
 
 In the Dumps column, `*` matches any text in a dump's name. In the Path column, a `*` segment matches one segment of the JSON pointer, `**` any number, and a `*` inside a segment any text; `/` alone is the whole result.
 

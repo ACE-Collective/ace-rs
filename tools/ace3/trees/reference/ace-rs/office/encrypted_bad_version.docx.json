@@ -196,6 +196,39 @@
       },
       "tags": {}
     },
+    "file:a92bde2d17ddbb21debf3606d4e50f17a24b4cc9153cd7923d65716583ffec48": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_version.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:dc27508854fe8e33a7319b53b6d01a2c4f3fd7131a28660ab298f085b99b6faf": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7": {
       "detections": {},
       "directives": {
@@ -342,8 +375,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:56:04+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:56:04+00:00",
+              "File:FileAccessDate": "2026:11:26 23:28:15+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:28:15+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_bad_version.docx",
               "File:FilePermissions": 100644,
@@ -428,39 +461,6 @@
         "microsoft_office": true,
         "ole": true
       }
-    },
-    "file:de6e6a156018a38aeb3ba817563f68888bf4136ff54262de33c134983ac64b15": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_bad_version.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:dc27508854fe8e33a7319b53b6d01a2c4f3fd7131a28660ab298f085b99b6faf": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:e81d2d7f4d8b4aa96a9d1ac9aad489caa06f24c3de2b66471479daf34672ce3a": {
       "detections": {},

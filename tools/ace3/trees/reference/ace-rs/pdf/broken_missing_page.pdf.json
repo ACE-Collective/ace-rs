@@ -19,8 +19,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Bad Kids reference",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:56:47+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:56:47+00:00",
+              "File:FileAccessDate": "2026:11:27 00:02:23+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:02:23+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "broken_missing_page.pdf",
               "File:FilePermissions": 100644,
@@ -99,7 +99,7 @@
         "pdf": true
       }
     },
-    "file:0c3687993ad84a9bb9e2510776686678ee146a85e2cf04ee546f9dc4841b517b": {
+    "file:56d856e194a58afb740a7d817b2ab62a548425ac52ba9cb1714bcbb512f7e989": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -181,39 +181,6 @@
         "pdf": true
       }
     },
-    "file:790a0f4c717e7eed2ec2f99f3f3d25c5482f741244a5437da6216e2735379db7": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "broken_missing_page.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:0b545e3a7a4e59c3bb2950a2b43ce916627e543c83862ffe323606123ed14e54": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:c73b7425d96394217e689016fe7d867c68cedfc36763267dbdcdcf681c4a81ef": {
       "detections": {},
       "directives": {
@@ -274,6 +241,39 @@
       },
       "tags": {}
     },
+    "file:ebfc9601eef13e7dba1751e136bd6833ae29ee0ad5619082c96ac23b558c91eb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "broken_missing_page.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0b545e3a7a4e59c3bb2950a2b43ce916627e543c83862ffe323606123ed14e54": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},
       "directives": {},
@@ -288,10 +288,10 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:0c3687993ad84a9bb9e2510776686678ee146a85e2cf04ee546f9dc4841b517b",
+      "redirection": "file:56d856e194a58afb740a7d817b2ab62a548425ac52ba9cb1714bcbb512f7e989",
       "relationships": {
         "extracted_from file:0b545e3a7a4e59c3bb2950a2b43ce916627e543c83862ffe323606123ed14e54": true,
-        "extracted_from file:0c3687993ad84a9bb9e2510776686678ee146a85e2cf04ee546f9dc4841b517b": true
+        "extracted_from file:56d856e194a58afb740a7d817b2ab62a548425ac52ba9cb1714bcbb512f7e989": true
       },
       "results": {
         "file_type": {

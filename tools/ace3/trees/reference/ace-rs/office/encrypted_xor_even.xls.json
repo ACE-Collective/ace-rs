@@ -196,39 +196,6 @@
       },
       "tags": {}
     },
-    "file:603663259c4b00cd1793e15117ebddc6a07a7545eb23c52c887f23edd1ebaa2f": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_xor_even.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:c547ac83bd3a093ddc9acb76125b18ea9b35522038cea4f0ff02306d88706f63": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:b1749182062f191f418fb152108b1f9850cf57350ca0c975707b994cd0341eb9": {
       "detections": {},
       "directives": {
@@ -306,8 +273,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:06:38+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:06:38+00:00",
+              "File:FileAccessDate": "2026:11:26 23:29:41+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:29:41+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_xor_even.xls",
               "File:FilePermissions": 100644,
@@ -434,6 +401,39 @@
         "xlm4:error": true,
         "xlm4:no_cells": true
       }
+    },
+    "file:d11d6bab67b97ac6261c1f7614360ee57caa717c5271aef223b7972b47198c69": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_xor_even.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:c547ac83bd3a093ddc9acb76125b18ea9b35522038cea4f0ff02306d88706f63": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:6288de9f7cf59046ffe8b7b893227ee4": {
       "detections": {},

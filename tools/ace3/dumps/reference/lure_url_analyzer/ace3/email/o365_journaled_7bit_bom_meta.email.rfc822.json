@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -158,7 +158,7 @@
             ],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-21 14:39:09.669597 +0000",
+            "date": "2026-11-27 03:04:02.885507 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": "john.smith@contractor.example",
@@ -568,38 +568,6 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "john.smith@contractor.example|user2@partner.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "acmecorp.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_cc",
-        "value": "user1@partner.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<000001dcb67c$11223344$55667788$@contractor.example>"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [
           {
             "path": "email.rfc822",
@@ -620,56 +588,35 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "fqdn",
-        "value": "contractor.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "partner.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "email_conversation",
-        "value": "john.smith@contractor.example|user3@contractor.example"
+        "value": "john.smith@contractor.example|user2@partner.example"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "john.smith@contractor.example|alice@acmecorp.com"
+        "type": "email_cc",
+        "value": "user1@partner.example"
       },
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "john.smith@contractor.example|carol@acmecorp.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "john.smith@contractor.example|bob@acmecorp.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_envelope_rcpt_to",
-        "value": "bob@acmecorp.com"
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 883,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "b25b7ac1b1ad03d6d2a62a6a5f429be18676024b8fa136a236f7b7999eed1e97"
       },
       {
         "detections": [],
@@ -695,8 +642,32 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "john.smith@contractor.example|jane.doe@partner.example"
+        "type": "email_envelope_rcpt_to",
+        "value": "carol@acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "john.smith@contractor.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<000001dcb67c$11223344$55667788$@contractor.example>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_envelope_rcpt_to",
+        "value": "alice@acmecorp.com"
       },
       {
         "detections": [],
@@ -722,8 +693,24 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "jane.doe@partner.example"
+        "type": "email_conversation",
+        "value": "john.smith@contractor.example|user1@partner.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "contractor.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "john.smith@contractor.example|carol@acmecorp.com"
       },
       {
         "detections": [],
@@ -731,7 +718,15 @@
         "paths": [],
         "tags": [],
         "type": "email_envelope_rcpt_to",
-        "value": "carol@acmecorp.com"
+        "value": "bob@acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_cc",
+        "value": "user3@contractor.example"
       },
       {
         "detections": [],
@@ -746,6 +741,38 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "fqdn",
+        "value": "partner.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "john.smith@contractor.example|alice@acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "john.smith@contractor.example|user3@contractor.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "john.smith@contractor.example|bob@acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "email_subject",
         "value": "RE: Test Subject Line"
       },
@@ -754,27 +781,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_cc",
-        "value": "user3@contractor.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 883,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "b25b7ac1b1ad03d6d2a62a6a5f429be18676024b8fa136a236f7b7999eed1e97"
+        "type": "fqdn",
+        "value": "acmecorp.com"
       },
       {
         "detections": [],
@@ -801,24 +809,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_envelope_rcpt_to",
-        "value": "alice@acmecorp.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "email_conversation",
-        "value": "john.smith@contractor.example|user1@partner.example"
+        "value": "john.smith@contractor.example|jane.doe@partner.example"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "john.smith@contractor.example"
+        "type": "email_to",
+        "value": "jane.doe@partner.example"
       }
     ],
     "results": [
@@ -826,84 +826,69 @@
         "added": [
           {
             "observable": 6
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "partner.example"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 2,
-        "summary": "Email Address FQDN: partner.example",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 24
-          },
-          {
-            "observable": 22
           },
           {
             "observable": 8
           },
           {
-            "observable": 11
-          },
-          {
-            "observable": 10
-          },
-          {
-            "observable": 16
-          },
-          {
-            "observable": 9
-          },
-          {
-            "observable": 15
+            "observable": 17
           },
           {
             "observable": 13
           },
           {
-            "observable": 18
+            "observable": 19
           },
           {
-            "observable": 3
+            "observable": 5
           },
           {
-            "observable": 2
+            "observable": 12
+          },
+          {
+            "observable": 24
           },
           {
             "observable": 23
           },
           {
-            "observable": 17
-          },
-          {
-            "observable": 0
-          },
-          {
-            "observable": 19
+            "observable": 20
           },
           {
             "observable": 7
           },
           {
-            "observable": 12,
+            "observable": 2
+          },
+          {
+            "observable": 10
+          },
+          {
+            "observable": 15
+          },
+          {
+            "observable": 1
+          },
+          {
+            "observable": 14
+          },
+          {
+            "observable": 18
+          },
+          {
+            "observable": 4,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 21,
+            "observable": 22,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 14,
+            "observable": 9,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 20,
+            "observable": 3,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1016,7 +1001,7 @@
               ],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-21 14:39:09.669597 +0000",
+              "date": "2026-11-27 03:04:02.885507 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": "john.smith@contractor.example",
@@ -1093,8 +1078,9 @@
             }
           ]
         },
+        "detections": [],
         "module": "email_analyzer",
-        "observable": 4,
+        "observable": 0,
         "summary": "Email Analysis: From \"John Smith\" <john.smith@contractor.example> To alice@acmecorp.com Subject RE: Test Subject Line",
         "tags": []
       },
@@ -1116,8 +1102,9 @@
           "mime": "message/rfc822",
           "type": "SMTP mail, Unicode text, UTF-8 text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 4,
+        "observable": 0,
         "summary": "File Type Analysis: SMTP mail, Unicode text, UTF-8 text (message/rfc822) (email)",
         "tags": []
       },
@@ -1133,24 +1120,68 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 4,
+        "observable": 0,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 1
+            "observable": 16
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "domain": "acmecorp.com"
+          "domain": "partner.example"
         },
+        "detections": [],
         "module": "email_address_fqdn_analyzer",
-        "observable": 11,
-        "summary": "Email Address FQDN: acmecorp.com",
+        "observable": 2,
+        "summary": "Email Address FQDN: partner.example",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 3,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "detections": [],
+        "module": "html_js_extraction",
+        "observable": 3,
+        "summary": null,
         "tags": []
       },
       {
@@ -1171,8 +1202,9 @@
           "mime": "text/plain",
           "type": "ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 12,
+        "observable": 4,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
@@ -1183,109 +1215,58 @@
           "urls": [],
           "urls_grouped_by_domain": {}
         },
+        "detections": [],
         "module": "url_extraction",
-        "observable": 12,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 14,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 14,
+        "observable": 4,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 6
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "partner.example"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 15,
-        "summary": "Email Address FQDN: partner.example",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 1
+            "observable": 21
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
           "domain": "acmecorp.com"
         },
+        "detections": [],
         "module": "email_address_fqdn_analyzer",
-        "observable": 16,
+        "observable": 5,
         "summary": "Email Address FQDN: acmecorp.com",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 6
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "partner.example"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 17,
-        "summary": "Email Address FQDN: partner.example",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 5
+            "observable": 11
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
           "domain": "contractor.example"
         },
+        "detections": [],
         "module": "email_address_fqdn_analyzer",
-        "observable": 19,
+        "observable": 6,
         "summary": "Email Address FQDN: contractor.example",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 21
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "acmecorp.com"
+        },
+        "detections": [],
+        "module": "email_address_fqdn_analyzer",
+        "observable": 8,
+        "summary": "Email Address FQDN: acmecorp.com",
         "tags": []
       },
       {
@@ -1306,8 +1287,9 @@
           "mime": "message/rfc822",
           "type": "RFC 822 mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 20,
+        "observable": 9,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1323,9 +1305,58 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 20,
+        "observable": 9,
         "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 21
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "acmecorp.com"
+        },
+        "detections": [],
+        "module": "email_address_fqdn_analyzer",
+        "observable": 13,
+        "summary": "Email Address FQDN: acmecorp.com",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 11
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "contractor.example"
+        },
+        "detections": [],
+        "module": "email_address_fqdn_analyzer",
+        "observable": 14,
+        "summary": "Email Address FQDN: contractor.example",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 16
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "partner.example"
+        },
+        "detections": [],
+        "module": "email_address_fqdn_analyzer",
+        "observable": 15,
+        "summary": "Email Address FQDN: partner.example",
         "tags": []
       },
       {
@@ -1346,8 +1377,9 @@
           "mime": "text/html",
           "type": "HTML document, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 21,
+        "observable": 22,
         "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
         "tags": []
       },
@@ -1363,8 +1395,9 @@
           "inline_handlers": [],
           "script_count": 0
         },
+        "detections": [],
         "module": "html_js_extraction",
-        "observable": 21,
+        "observable": 22,
         "summary": null,
         "tags": []
       },
@@ -1375,39 +1408,26 @@
           "urls": [],
           "urls_grouped_by_domain": {}
         },
+        "detections": [],
         "module": "url_extraction",
-        "observable": 21,
+        "observable": 22,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 1
+            "observable": 16
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "domain": "acmecorp.com"
+          "domain": "partner.example"
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 22,
-        "summary": "Email Address FQDN: acmecorp.com",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 5
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "contractor.example"
-        },
+        "detections": [],
         "module": "email_address_fqdn_analyzer",
         "observable": 24,
-        "summary": "Email Address FQDN: contractor.example",
+        "summary": "Email Address FQDN: partner.example",
         "tags": []
       }
     ]

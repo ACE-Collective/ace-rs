@@ -1,102 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:50cb5f1d38638687fe48f3fb30fe26d9d4a0274c4108d89292f1d3770eaff051": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "uri_dictionary.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:5a7e675d771ef3439d5bf011557931d0a976f5d43435ae6d1a53ce5646907194",
-      "relationships": {
-        "extracted_from file:5a7e675d771ef3439d5bf011557931d0a976f5d43435ae6d1a53ce5646907194": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdf_link_text": {
-          "details": {
-            "links": [
-              {
-                "line": null,
-                "page": 1,
-                "text": null,
-                "url": "<pikepdf.Dictionary(Type=\"/Thing\")({\n  \"/A\": \"b\",\n  \"/C\": pikepdf.Stream(owner=<...>, data=b'data', {\n    \"/Filter\": \"/FlateDecode\",\n    \"/Length\": 12\n  }),\n  \"/Type\": \"/Thing\"\n})>"
-              }
-            ]
-          },
-          "summary": "PDF Link Text Analysis: 1 links, 0 with text",
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
-            "stderr": "Syntax Warning: Illegal URI-type link\n",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
     "file:52fd03aa7ded376b38fd68f37433ca255112ae14f3940bc3e801784b910494ad": {
       "detections": {},
       "directives": {
@@ -185,8 +89,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 15:07:18+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 15:07:18+00:00",
+              "File:FileAccessDate": "2026:11:27 00:12:36+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:12:36+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "uri_dictionary.pdf",
               "File:FilePermissions": 100644,
@@ -287,6 +191,102 @@
         "pdf": true
       }
     },
+    "file:5b636b86bbbd6ab1e90f433cc383c07e0e4562793faba885a4e868e83c6a414a": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "uri_dictionary.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:5a7e675d771ef3439d5bf011557931d0a976f5d43435ae6d1a53ce5646907194",
+      "relationships": {
+        "extracted_from file:5a7e675d771ef3439d5bf011557931d0a976f5d43435ae6d1a53ce5646907194": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "<pikepdf.Dictionary(Type=\"/Thing\")({\n  \"/A\": \"b\",\n  \"/C\": pikepdf.Stream(owner=<...>, data=b'data', {\n    \"/Filter\": \"/FlateDecode\",\n    \"/Length\": 12\n  }),\n  \"/Type\": \"/Thing\"\n})>"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 0 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "Syntax Warning: Illegal URI-type link\n",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
     "file:67990cf6b3674eecf91c7c4b0a557149ed2508b29ba307cdcf369af40040a7ec": {
       "detections": {},
       "directives": {
@@ -347,7 +347,7 @@
       },
       "tags": {}
     },
-    "file:a366d317d7735e744602b8fe546c02c4ca24e022160f3c7009e0767401621bb1": {
+    "file:a4e350917bb0b325bee3c3e93034c32f2cafdfbe1f84fd4b556ace42db57efef": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -394,10 +394,10 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:50cb5f1d38638687fe48f3fb30fe26d9d4a0274c4108d89292f1d3770eaff051",
+      "redirection": "file:5b636b86bbbd6ab1e90f433cc383c07e0e4562793faba885a4e868e83c6a414a",
       "relationships": {
-        "extracted_from file:50cb5f1d38638687fe48f3fb30fe26d9d4a0274c4108d89292f1d3770eaff051": true,
-        "extracted_from file:5a7e675d771ef3439d5bf011557931d0a976f5d43435ae6d1a53ce5646907194": true
+        "extracted_from file:5a7e675d771ef3439d5bf011557931d0a976f5d43435ae6d1a53ce5646907194": true,
+        "extracted_from file:5b636b86bbbd6ab1e90f433cc383c07e0e4562793faba885a4e868e83c6a414a": true
       },
       "results": {
         "file_type": {

@@ -19,8 +19,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 15:05:18+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 15:05:18+00:00",
+              "File:FileAccessDate": "2026:11:27 00:10:46+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:10:46+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "parser_nested_499.pdf",
               "File:FilePermissions": 100644,
@@ -98,25 +98,52 @@
         "pdf": true
       }
     },
-    "file:2c897c4632d9e6873a6271abac97f032c61a2ce24e70da9dc7f47b182e93f230": {
+    "file:6dc602bbbacf9f6ade6c194dbaabb8f62eb258de1e4c1d2a7b15281e57000c6e": {
       "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
+      "directives": {
+        "extract_urls": true
       },
+      "excluded_analysis": {},
       "paths": {
-        "parser_nested_499.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
+        "parser_nested_499.pdf.pdfparser": {
+          "type=document.pdf.object": true
         }
       },
+      "redirection": "file:289ecff20c8e4ebd8db0499107a0f956e74e3c9dc14e75dcd4ba7be9c3aaf110",
       "relationships": {
         "extracted_from file:289ecff20c8e4ebd8db0499107a0f956e74e3c9dc14e75dcd4ba7be9c3aaf110": true
       },
       "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, ASCII text, with very long lines (3501)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, ASCII text, with very long lines (3501) (application/pdf)",
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -131,7 +158,7 @@
       },
       "tags": {}
     },
-    "file:4c359d69589c458ea0e80871ec6063a145fe2a67f94ecf93739e5e7ec4b74a08": {
+    "file:86416594c94e9b99a69f691ecd13ca9f63fad777154a9eb8943f2f10b1472484": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -213,66 +240,6 @@
         "pdf": true
       }
     },
-    "file:6dc602bbbacf9f6ade6c194dbaabb8f62eb258de1e4c1d2a7b15281e57000c6e": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "parser_nested_499.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:289ecff20c8e4ebd8db0499107a0f956e74e3c9dc14e75dcd4ba7be9c3aaf110",
-      "relationships": {
-        "extracted_from file:289ecff20c8e4ebd8db0499107a0f956e74e3c9dc14e75dcd4ba7be9c3aaf110": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, ASCII text, with very long lines (3501)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, ASCII text, with very long lines (3501) (application/pdf)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},
       "directives": {},
@@ -284,9 +251,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:4c359d69589c458ea0e80871ec6063a145fe2a67f94ecf93739e5e7ec4b74a08",
+      "redirection": "file:86416594c94e9b99a69f691ecd13ca9f63fad777154a9eb8943f2f10b1472484",
       "relationships": {
-        "extracted_from file:4c359d69589c458ea0e80871ec6063a145fe2a67f94ecf93739e5e7ec4b74a08": true
+        "extracted_from file:86416594c94e9b99a69f691ecd13ca9f63fad777154a9eb8943f2f10b1472484": true
       },
       "results": {
         "file_type": {
@@ -308,6 +275,39 @@
           "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f34906a14383e7c511271126966eed8a2fd6bd7e3fe909368f832dd46c2b9b45": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "parser_nested_499.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:289ecff20c8e4ebd8db0499107a0f956e74e3c9dc14e75dcd4ba7be9c3aaf110": true
+      },
+      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false

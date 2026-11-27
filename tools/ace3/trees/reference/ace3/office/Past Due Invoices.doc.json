@@ -851,6 +851,39 @@
         "macro": true
       }
     },
+    "file:4b1b2b906a692b5db349bcfcd19fa2d17b4f6c41a44a61697e7e954955062406": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Past Due Invoices.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:57534217a0c689d4b74a5f54533441e2b91d96e5e7a602cb31a5d537645fbe1e": {
       "detections": {},
       "directives": {
@@ -1370,8 +1403,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 19:43:00+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 19:43:00+00:00",
+              "File:FileAccessDate": "2026:11:26 23:11:01+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:11:01+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "Past Due Invoices.doc",
               "File:FilePermissions": 100644,
@@ -1602,39 +1635,6 @@
       "tags": {
         "macro": true
       }
-    },
-    "file:b644fd25ff1aa24b5011769af392b7365cdcd52b2ad7bf13b38309b1853d76b2": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "Past Due Invoices.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:c45c1f0bd17eb1b2d4c6b01c32272f40d762bb12825d812dea80a4bc3a6496e9": {
       "detections": {},

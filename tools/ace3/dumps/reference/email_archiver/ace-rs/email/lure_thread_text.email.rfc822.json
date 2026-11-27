@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "email_analyzer",
     "file_type",
@@ -92,7 +92,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-21 14:52:19.147438 +0000",
+            "date": "2026-11-27 05:06:30.307418 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -313,7 +313,7 @@
     "archived_messages": [
       {
         "digest": "e1e898edef785750d32cc9c65d6a8732e8211b259c315d1d131aa6ca21343674",
-        "insert_date": "2026-11-21 14:52:19",
+        "insert_date": "2026-11-27 05:06:30",
         "message_id_hash": "85E924702E81383E67CD390F771EF3F31C9F564AC11597966A93E344A0A99468"
       }
     ],
@@ -373,6 +373,57 @@
     "observables": [
       {
         "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "sam@partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Re: Contract draft"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://sign.lure-example.net/d/5521."
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 611,
+        "tags": [],
+        "type": "file",
+        "value": "b966a995aeebc7806741f3ba798cc1a22824e92359204fb51830ea9c90e3d5e5"
+      },
+      {
+        "detections": [],
         "directives": [
           "archive"
         ],
@@ -396,78 +447,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "url",
+        "value": "https://portal.partner-example.org/request"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "email_from",
         "value": "sam@partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "sam@partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://docs.lure-example.net/ref/5521"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 611,
-        "tags": [],
-        "type": "file",
-        "value": "b966a995aeebc7806741f3ba798cc1a22824e92359204fb51830ea9c90e3d5e5"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sam@partner-example.org|pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://sign.lure-example.net/d/5521."
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 310,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "99859fb3105c1d5816dded250d4549dee0c05b6a1afb72e13a12bc894da388d6"
       },
       {
         "detections": [],
@@ -482,32 +471,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_subject",
-        "value": "Re: Contract draft"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "url",
-        "value": "https://portal.partner-example.org/request"
+        "value": "https://docs.lure-example.net/ref/5521"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://www.partner-example.org/sam"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
+        "type": "email_conversation",
+        "value": "sam@partner-example.org|pat@corp.example"
       },
       {
         "detections": [],
@@ -535,9 +508,105 @@
         ],
         "type": "file",
         "value": "e826c0db13b347eb1cdfa002cf1afaf361e75016a51b4afdda92a55b6bdca7f0"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 310,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "99859fb3105c1d5816dded250d4549dee0c05b6a1afb72e13a12bc894da388d6"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://www.partner-example.org/sam"
       }
     ],
     "results": [
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 4,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 14
+          },
+          {
+            "observable": 6
+          },
+          {
+            "observable": 3
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 9
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://www.partner-example.org/sam",
+            "https://portal.partner-example.org/request",
+            "https://sign.lure-example.net/d/5521.",
+            "https://sign.lure-example.net/help",
+            "https://docs.lure-example.net/ref/5521"
+          ],
+          "urls_grouped_by_domain": {
+            "lure-example.net": [
+              "https://sign.lure-example.net/d/5521.",
+              "https://sign.lure-example.net/help",
+              "https://docs.lure-example.net/ref/5521"
+            ],
+            "partner-example.org": [
+              "https://www.partner-example.org/sam",
+              "https://portal.partner-example.org/request"
+            ]
+          }
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 4,
+        "summary": "URL Extraction Analysis (docs.lure-example.net, portal.partner-example.org, sign.lure-example.net, www.partner-example.org)",
+        "tags": []
+      },
       {
         "added": [],
         "class": "EmailArchiveResults",
@@ -545,41 +614,42 @@
           "hash": "e1e898edef785750d32cc9c65d6a8732e8211b259c315d1d131aa6ca21343674",
           "message_id": null
         },
+        "detections": [],
         "module": "email_archiver",
-        "observable": 0,
+        "observable": 5,
         "summary": "Archived Email: e1e898edef785750d32cc9c65d6a8732e8211b259c315d1d131aa6ca21343674",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 1
+            "observable": 7
           },
           {
-            "observable": 12
+            "observable": 0
           },
           {
-            "observable": 5
-          },
-          {
-            "observable": 9
-          },
-          {
-            "observable": 13
+            "observable": 10
           },
           {
             "observable": 2
+          },
+          {
+            "observable": 11
+          },
+          {
+            "observable": 1
           },
           {
             "observable": 4,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 7,
+            "observable": 13,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 14,
+            "observable": 12,
             "path": "email.rfc822.combined"
           }
         ],
@@ -655,7 +725,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-21 14:52:19.147438 +0000",
+              "date": "2026-11-27 05:06:30.307418 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -722,8 +792,9 @@
             }
           ]
         },
+        "detections": [],
         "module": "email_analyzer",
-        "observable": 0,
+        "observable": 5,
         "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject Re: Contract draft",
         "tags": []
       },
@@ -745,98 +816,9 @@
           "mime": "message/rfc822",
           "type": "news or mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 0,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 4,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 10
-          },
-          {
-            "observable": 11
-          },
-          {
-            "observable": 6
-          },
-          {
-            "observable": 3
-          },
-          {
-            "observable": 8
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://portal.partner-example.org/request",
-            "https://www.partner-example.org/sam",
-            "https://sign.lure-example.net/d/5521.",
-            "https://docs.lure-example.net/ref/5521",
-            "https://sign.lure-example.net/help"
-          ],
-          "urls_grouped_by_domain": {
-            "lure-example.net": [
-              "https://sign.lure-example.net/d/5521.",
-              "https://docs.lure-example.net/ref/5521",
-              "https://sign.lure-example.net/help"
-            ],
-            "partner-example.org": [
-              "https://portal.partner-example.org/request",
-              "https://www.partner-example.org/sam"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 4,
-        "summary": "URL Extraction Analysis (docs.lure-example.net, portal.partner-example.org, sign.lure-example.net, www.partner-example.org)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 7,
+        "observable": 5,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -858,8 +840,33 @@
           "mime": "message/rfc822",
           "type": "news or mail, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 14,
+        "observable": 12,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 13,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       }

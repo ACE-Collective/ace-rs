@@ -148,8 +148,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:58:59+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:58:59+00:00",
+              "File:FileAccessDate": "2026:11:27 00:04:30+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:04:30+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_no_permissions_aes_128.pdf",
               "File:FilePermissions": 100644,
@@ -620,6 +620,39 @@
         "js": true
       }
     },
+    "file:8d915a070ffdb3f0cc71ee06a88addb0011472f3068e2018dd40e6db31db20fe": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_no_permissions_aes_128.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5": {
       "detections": {},
       "directives": {},
@@ -631,9 +664,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:dfe0c86e60a28a2e8cc686f6bcab1bca34aaf4e578f7dec6cef5512653920697",
+      "redirection": "file:d3220ab8d8244026ee86d68ddd9355dfa26d630a55e905a797d6278354447916",
       "relationships": {
-        "extracted_from file:dfe0c86e60a28a2e8cc686f6bcab1bca34aaf4e578f7dec6cef5512653920697": true
+        "extracted_from file:d3220ab8d8244026ee86d68ddd9355dfa26d630a55e905a797d6278354447916": true
       },
       "results": {
         "file_type": {
@@ -740,67 +773,7 @@
         "pdf": true
       }
     },
-    "file:d4c58daa01d41b75d81b66b8d426a475c0739a5880585a83ac209d8e1ede4fb0": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "encrypted_no_permissions_aes_128.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094",
-      "relationships": {
-        "extracted_from file:0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (777)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (777) (application/pdf)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:dfe0c86e60a28a2e8cc686f6bcab1bca34aaf4e578f7dec6cef5512653920697": {
+    "file:d3220ab8d8244026ee86d68ddd9355dfa26d630a55e905a797d6278354447916": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -896,25 +869,52 @@
         "pdf": true
       }
     },
-    "file:ea46b7cc5cc014afd3fa8afe2a224517a2035a4892a300fd27579facd8064a9d": {
+    "file:d4c58daa01d41b75d81b66b8d426a475c0739a5880585a83ac209d8e1ede4fb0": {
       "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
+      "directives": {
+        "extract_urls": true
       },
+      "excluded_analysis": {},
       "paths": {
-        "encrypted_no_permissions_aes_128.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
+        "encrypted_no_permissions_aes_128.pdf.pdfparser": {
+          "type=document.pdf.object": true
         }
       },
+      "redirection": "file:0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094",
       "relationships": {
         "extracted_from file:0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094": true
       },
       "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (777)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (777) (application/pdf)",
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}

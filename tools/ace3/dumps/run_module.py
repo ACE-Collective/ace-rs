@@ -683,8 +683,8 @@ class FakeEmailArchive:
     their sha256, and the email archive database's archived_messages, the one table ace3 reads, keyed
     as MySQL keys it: message_id_hash is UNHEX(SHA2(normalized Message-ID, 256)), INSERT IGNORE
     leaves a duplicate key's row, and a lookup is newest first. ace3's own archive_email and
-    query_archive_hashes send their statements through a private session this answers; a statement
-    it doesn't know fails the run."""
+    query_archived_copies (since ace3's e7cd8be8, which query_archive_hashes calls) send their
+    statements through a private session this answers; a statement it doesn't know fails the run."""
 
     def __init__(self, pool_dir):
         self.pool_dir = pool_dir
@@ -731,6 +731,9 @@ class FakeEmailArchive:
             def scalars(self):
                 return iter(self.values)
 
+            def __iter__(self):
+                return iter(self.values)
+
         class Session:
             def execute(self, statement):
                 return Result(store.execute(statement))
@@ -749,6 +752,8 @@ class FakeEmailArchive:
         return private_transaction, run_private_transaction
 
     def execute(self, statement):
+        import datetime
+
         from sqlalchemy.sql import Insert, Select
 
         params = statement.compile().params
@@ -761,12 +766,23 @@ class FakeEmailArchive:
             if row not in self.messages:
                 self.messages.append(row)
             return []
-        if isinstance(statement, Select) and [c.name for c in statement.selected_columns] == ["digest"]:
-            wanted = next(v for k, v in params.items() if k.startswith("message_id_hash")).hex().upper()
-            found = sorted((m for m in self.messages if m["message_id_hash"] == wanted),
-                           key=lambda m: m["insert_date"], reverse=True)
-            self.reads.append({"query_by_message_id_hash": wanted, "digests": [m["digest"] for m in found]})
-            return [bytes.fromhex(m["digest"]) for m in found]
+        columns = [c.name for c in statement.selected_columns] if isinstance(statement, Select) else None
+        if columns == ["message_id_hash", "digest", "insert_date"]:
+            # query_archived_copies: one IN list of Message-ID hashes per batch, newest first
+            wanted = [v.hex().upper() for k, values in params.items() if k.startswith("message_id_hash")
+                      for v in values]
+            rows = []
+            for hash_ in wanted:
+                found = sorted((m for m in self.messages if m["message_id_hash"] == hash_),
+                               key=lambda m: m["insert_date"], reverse=True)
+                self.reads.append({"query_by_message_id_hash": hash_, "digests": [m["digest"] for m in found]})
+                rows += found
+            rows.sort(key=lambda m: m["insert_date"], reverse=True)
+            return [
+                (bytes.fromhex(m["message_id_hash"]), bytes.fromhex(m["digest"]),
+                 datetime.datetime.strptime(m["insert_date"], "%Y-%m-%d %H:%M:%S"))
+                for m in rows
+            ]
         raise RuntimeError(f"FakeEmailArchive doesn't know {statement}")
 
 

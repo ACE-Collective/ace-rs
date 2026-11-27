@@ -3,7 +3,7 @@
 PLAN.md 7.5: a contained parser task is one thread with no exec, so each module is bounded for hostile input, and what crafted input costs it is measured against its limits. The four modules have the default 300 s, 1 GiB and 300 CPU seconds; ace3 gives them its default `maximum_analysis_time` of 60 s. What bounds each:
 
 - `html_data_url_extraction` reads at most `max_bytes` (100 MiB), as ace3 does, and writes at most 500 files.
-- `mhtml` writes at most 500 parts. Python's feed parser raises `RecursionError` on a file nested past 974 multiparts in ace3; the port raises it at the same depth, without recursing.
+- `mhtml` writes at most 500 parts. Python's feed parser raises `RecursionError` on a file nested past 974 multiparts in ace3 (past 973 since ace3's `5ca91195` added a frame under every module, measured at `c55f15a2`); the port raises it at the same depth, without recursing.
 - `html_js_extraction` parses the whole file, as ace3 does, into BeautifulSoup's tree, which `ace_lxml::soup` keeps flat, in document order, so no depth of nesting recurses. It writes at most 500 scripts and adds at most 500 URLs and 500 URI paths. Each document's DOM snapshot stops at 2,000 elements and 512 KiB, 16 KiB an attribute and 4 KiB a text, as ace3's does, and a result keeps at most 16 MiB of snapshots.
 - `har_extraction` parses at most `max_file_size` (50 MiB) of JSON, as ace3 does, and extracts at most `max_extracted_files` (50) bodies.
 

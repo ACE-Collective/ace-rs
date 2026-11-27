@@ -131,6 +131,39 @@
       },
       "tags": {}
     },
+    "file:36a4f07ac09b663c8632e4977438b1523c6bcf51d129c85cbaa4f09d7f8c72ec": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_xor_odd.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:93c2cf0568f10152f37d3ebb83e6bc2b2ddd37cb515d2a08c1671f93dcff7b80": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:4137c040feddd71feefc2bc6b8dd7469966c310036ad2276bc78a404d8e17c51": {
       "detections": {},
       "directives": {
@@ -182,39 +215,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:639470cf6408598e592fa178e79027082d8d212da44bd6770efbc5135ffe9f51": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_xor_odd.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:93c2cf0568f10152f37d3ebb83e6bc2b2ddd37cb515d2a08c1671f93dcff7b80": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -306,8 +306,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:06:42+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:06:42+00:00",
+              "File:FileAccessDate": "2026:11:26 23:29:44+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:29:44+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_xor_odd.xls",
               "File:FilePermissions": 100644,

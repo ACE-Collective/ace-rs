@@ -18,8 +18,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 15:01:45+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 15:01:45+00:00",
+              "File:FileAccessDate": "2026:11:27 00:07:15+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:07:15+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "js_bad_name.pdf",
               "File:FilePermissions": 100644,
@@ -166,6 +166,39 @@
       },
       "tags": {}
     },
+    "file:5f31b931a8f8e4c2aa5fe95968e897e54e824d83276739c1ce4b629889642540": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "js_bad_name.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0d3c3ef6f0f5a3b8cc70f6635b89a32adfc92e2b188209def0862bfdb9f8d887": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:6d5fe21689cb547ccaf39e0e0a78aed0ab4e71eb56ab773acac77f6a20b047ee": {
       "detections": {},
       "directives": {
@@ -256,40 +289,7 @@
         "js": true
       }
     },
-    "file:797de1df4795c93f23eeedbeded04fd1d5240b757c55825d3664ab23658c83e4": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "js_bad_name.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:0d3c3ef6f0f5a3b8cc70f6635b89a32adfc92e2b188209def0862bfdb9f8d887": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:992e1a4992abe39681c787e76913f108fe082b479945b0641e2e99e30f9e85f8": {
+    "file:c06e16b6825edd72c94e3e3da8be8fff25539480cfa5ca0529f2466bbb13776c": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -385,10 +385,10 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:992e1a4992abe39681c787e76913f108fe082b479945b0641e2e99e30f9e85f8",
+      "redirection": "file:c06e16b6825edd72c94e3e3da8be8fff25539480cfa5ca0529f2466bbb13776c",
       "relationships": {
         "extracted_from file:0d3c3ef6f0f5a3b8cc70f6635b89a32adfc92e2b188209def0862bfdb9f8d887": true,
-        "extracted_from file:992e1a4992abe39681c787e76913f108fe082b479945b0641e2e99e30f9e85f8": true
+        "extracted_from file:c06e16b6825edd72c94e3e3da8be8fff25539480cfa5ca0529f2466bbb13776c": true
       },
       "results": {
         "file_type": {

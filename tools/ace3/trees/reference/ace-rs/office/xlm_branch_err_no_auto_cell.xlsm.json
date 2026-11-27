@@ -134,8 +134,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:12:51+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:12:51+00:00",
+              "File:FileAccessDate": "2026:11:26 23:43:28+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:43:28+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "xlm_branch_err_no_auto_cell.xlsm",
               "File:FilePermissions": 100644,
@@ -444,39 +444,6 @@
       },
       "tags": {}
     },
-    "file:87627c5b7a2e2eb994f2f4da3d3fe58159bacaddda0bf90197f16e2f555d1b2c": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_branch_err_no_auto_cell.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2d46c8f5aae95d6b33c28460f30a2fef5ef8ea532087e6e00cc3d55f18aa884b": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:8ce939511980df6c5deb8c1a2807692e9c8855bb2623963619aeb90d2aa1a5bb": {
       "detections": {},
       "directives": {},
@@ -696,6 +663,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e43bed1cbcca95ee6ffa6855cb6c73affdf084cfc681056ad15ce47fb032ecc1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_branch_err_no_auto_cell.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2d46c8f5aae95d6b33c28460f30a2fef5ef8ea532087e6e00cc3d55f18aa884b": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

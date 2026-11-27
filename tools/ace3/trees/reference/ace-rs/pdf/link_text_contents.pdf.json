@@ -154,39 +154,6 @@
       },
       "tags": {}
     },
-    "file:1d692ed72a45c5875c60426d2de60ebc93a27bbec95dbe82346e2f3518d8ac8e": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "link_text_contents.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:fe47ec9106299ae802ffb7960dfc40ad7b4eb5d9df9f840c7466690dc48cb5a8": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:56cd57a723173ac6639d8a2a7a308775976dc01d8f16824fc2bae009c56ec14c": {
       "detections": {},
       "directives": {},
@@ -201,9 +168,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:fb3aacc4b8516fea831d4c56b21ac724ae431c5bf436cdf093b0d8783d0bf7fd",
+      "redirection": "file:e504ea4cfb877b161b115ec7fb3f20d2820d97bd1e8235d807106aeb341ee63c",
       "relationships": {
-        "extracted_from file:fb3aacc4b8516fea831d4c56b21ac724ae431c5bf436cdf093b0d8783d0bf7fd": true,
+        "extracted_from file:e504ea4cfb877b161b115ec7fb3f20d2820d97bd1e8235d807106aeb341ee63c": true,
         "extracted_from file:fe47ec9106299ae802ffb7960dfc40ad7b4eb5d9df9f840c7466690dc48cb5a8": true
       },
       "results": {
@@ -243,74 +210,27 @@
       },
       "tags": {}
     },
-    "file:ef06ef5adef92293336c79af9ca20f78ae6dc065a0f8e03e321e39ad5d10d979": {
+    "file:af5393e6978ac9c9bbec90e9e4f62725b19e890ced1a5a44a1404bc00c99ad47": {
       "detections": {},
-      "directives": {
-        "extract_urls": true
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
       },
-      "excluded_analysis": {},
       "paths": {
-        "link_text_contents.pdf.pdfparser": {
-          "type=document.pdf.object": true
+        "link_text_contents.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
         }
       },
-      "redirection": "file:fe47ec9106299ae802ffb7960dfc40ad7b4eb5d9df9f840c7466690dc48cb5a8",
       "relationships": {
         "extracted_from file:fe47ec9106299ae802ffb7960dfc40ad7b4eb5d9df9f840c7466690dc48cb5a8": true
       },
       "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text, with very long lines (1448)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text, with very long lines (1448) (application/pdf)",
-          "tags": {}
-        },
         "observable_detection": {
           "details": {
             "for_detection": false
           },
           "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [
-              "https://example.com/real",
-              "https://example.com/integer",
-              "https://example.com/array",
-              "https://example.com/name",
-              "https://example.com/empty",
-              "https://example.com/utf16",
-              "https://example.com/long",
-              "https://example.com/boolean"
-            ],
-            "urls_grouped_by_domain": {
-              "example.com": [
-                "https://example.com/real",
-                "https://example.com/integer",
-                "https://example.com/array",
-                "https://example.com/name",
-                "https://example.com/empty",
-                "https://example.com/utf16",
-                "https://example.com/long",
-                "https://example.com/boolean"
-              ]
-            }
-          },
-          "summary": "URL Extraction Analysis (example.com)",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -323,7 +243,7 @@
       },
       "tags": {}
     },
-    "file:fb3aacc4b8516fea831d4c56b21ac724ae431c5bf436cdf093b0d8783d0bf7fd": {
+    "file:e504ea4cfb877b161b115ec7fb3f20d2820d97bd1e8235d807106aeb341ee63c": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -467,6 +387,86 @@
         "pdf": true
       }
     },
+    "file:ef06ef5adef92293336c79af9ca20f78ae6dc065a0f8e03e321e39ad5d10d979": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "link_text_contents.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:fe47ec9106299ae802ffb7960dfc40ad7b4eb5d9df9f840c7466690dc48cb5a8",
+      "relationships": {
+        "extracted_from file:fe47ec9106299ae802ffb7960dfc40ad7b4eb5d9df9f840c7466690dc48cb5a8": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text, with very long lines (1448)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text, with very long lines (1448) (application/pdf)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/real",
+              "https://example.com/integer",
+              "https://example.com/array",
+              "https://example.com/name",
+              "https://example.com/empty",
+              "https://example.com/utf16",
+              "https://example.com/long",
+              "https://example.com/boolean"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/real",
+                "https://example.com/integer",
+                "https://example.com/array",
+                "https://example.com/name",
+                "https://example.com/empty",
+                "https://example.com/utf16",
+                "https://example.com/long",
+                "https://example.com/boolean"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:fe47ec9106299ae802ffb7960dfc40ad7b4eb5d9df9f840c7466690dc48cb5a8": {
       "detections": {},
       "directives": {},
@@ -484,9 +484,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 15:02:32+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 15:02:32+00:00",
-              "File:FileModifyDate": "2026:11:16 13:50:16+00:00",
+              "File:FileAccessDate": "2026:11:27 00:08:00+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:08:00+00:00",
+              "File:FileModifyDate": "2026:11:16 16:21:04+00:00",
               "File:FileName": "link_text_contents.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 1948,

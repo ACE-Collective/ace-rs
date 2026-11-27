@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "email_analyzer",
     "file_type",
@@ -663,7 +663,7 @@
             "cc": [],
             "compauth_reason": "109",
             "compauth_result": "pass",
-            "date": "2026-11-21 14:50:14.129347 +0000",
+            "date": "2026-11-27 05:04:39.495512 +0000",
             "dkim_result": "fail",
             "dmarc_result": "bestguesspass",
             "env_mail_from": "jrobinson@company.com",
@@ -1132,7 +1132,7 @@
     "archived_messages": [
       {
         "digest": "776c86f29ff3d002f0b5d4fe4bd52e0498836b5b433c9109a687f1f4f231d62e",
-        "insert_date": "2026-11-21 14:50:14",
+        "insert_date": "2026-11-27 05:04:39",
         "message_id_hash": "E5CDFDADFD24607F213069B3AF7DA4B888F21C60366B965632B1979902D8091D"
       }
     ],
@@ -1199,8 +1199,99 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "url",
+        "value": "https://s.yimg.com/cv/ae/nq/storm/assets/enhancrV21/1/enhancr_gradient-400x175.png"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.email_000.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          },
+          {
+            "path": "email.rfc822.email.rfc822.email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 307,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "36864eee438b967e41dfe6d07a539cfd49b604f2d7baac04540047618b6e14c2"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "response@promechautomation.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "message_id",
-        "value": "<attach-11807120851310021@localhost>"
+        "value": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_html_002.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          },
+          {
+            "path": "email.rfc822.email.rfc822.email.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          },
+          {
+            "path": "email.rfc822.email.rfc822.unknown_text_html_001.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          },
+          {
+            "path": "email.rfc822.email_000.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 1073,
+        "tags": [],
+        "type": "file",
+        "value": "9fbcc18bc8b289066ce0e5f34039de1e74830b420d59eb09dcd62a662a999f65"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://proxy.imgsmail.ru/?email=ahmed.abdullahi@bk.ru"
       },
       {
         "detections": [],
@@ -1213,46 +1304,43 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.email.rfc822.email.rfc822.combined",
-            "yara_meta": [
-              "type=document.html",
-              "type=email",
-              "type=email.combined"
-            ]
-          },
-          {
-            "path": "email.rfc822.email_000.rfc822.combined",
-            "yara_meta": [
-              "type=document.html",
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 1384,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "9a659f1d7b54c368a291a3a8fd8256fd0c9db1e37dd387e593fbbd679610550e"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<MW2PR16MB224997B938FB40AA00214DACA8590@MW2PR16MB2249.namprd16.prod.outlook.com>"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [],
         "tags": [],
         "type": "ip",
         "value": "149.55.24.4"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_001.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          },
+          {
+            "path": "email.rfc822.email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 2075,
+        "tags": [],
+        "type": "file",
+        "value": "8f8907cc53028bc4e55eb5e3532483b6f1d24eef99a392d5f0071cdfa7a1a0c3"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "jrobinson@company.com"
       },
       {
         "detections": [],
@@ -1267,8 +1355,157 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "url",
+        "value": "https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 99972,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "2d94aafd7b8226d04daebc3986e663b2f5ff03813cf9f5e169d4b87182a2ba37"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 14415,
+        "tags": [],
+        "type": "file",
+        "value": "83a2a1cd3be355d137bd2a5d03c709854274d38089a35f81dad5ad315b303357"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_first_hop_helo",
+        "value": "us-smtp-1.mimecast.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://ecp.yusercontent.com/mail?url=https%3A%2F%2Fproxy.imgsmail.ru%2F%3Femail%3Dahmed.abdullahi%2540bk.ru%26e%3D1519804183%26h%3DDDFtSALAy7tdKfe9AP8idA%26url171%3Dc3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc%7E%26is_https%3D0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 4171,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "7aff5333afd973f64c37fdb31a403d0db54cd057d7a08f71ddf036e7180a1f03"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<20180712054835.897463934aacad0d98225fa80f3b9477.32ef5a540c.mailapi@email19.godaddy.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_first_hop_helo",
+        "value": "us-smtp-delivery-190.mimecast.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 19980,
+        "tags": [],
+        "type": "file",
+        "value": "85d4721050cd43a6bd03de6dd434018ab26b978832f71c70c622ba099cdfc708"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==3/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "jrobinson@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "email_subject",
-        "value": "[POTENTIAL PHISH] FW: URGENT RFQ-03167218 IGOL MEF project 2018"
+        "value": "FW: URGENT RFQ-03167218 IGOL MEF project 2018"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "jrobinson@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "http://www.igpetro.com"
       },
       {
         "detections": [],
@@ -1305,7 +1542,7 @@
         ],
         "paths": [
           {
-            "path": "email.rfc822.email.rfc822.email.rfc822",
+            "path": "email.rfc822.email_000.rfc822",
             "yara_meta": [
               "type=document.html",
               "type=email",
@@ -1313,7 +1550,7 @@
             ]
           },
           {
-            "path": "email.rfc822.email_000.rfc822",
+            "path": "email.rfc822.email.rfc822.email.rfc822",
             "yara_meta": [
               "type=document.html",
               "type=email",
@@ -1333,89 +1570,27 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_first_hop_helo",
-        "value": "us-smtp-1.mimecast.com"
+        "type": "email_first_hop_ip",
+        "value": "216.205.24.190"
       },
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "jrobinson@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "jrobinson@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
         "paths": [
           {
-            "path": "email.rfc822.email.rfc822.email.rfc822.unknown_text_html_000.html",
+            "path": "email.rfc822.headers",
             "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          },
-          {
-            "path": "email.rfc822.email_000.rfc822.unknown_text_html_000.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          },
-          {
-            "path": "email.rfc822.email.rfc822.unknown_text_html_001.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          },
-          {
-            "path": "email.rfc822.unknown_text_html_002.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
+              "type=email",
+              "type=email.headers"
             ]
           }
         ],
-        "size": 1073,
-        "tags": [],
+        "size": 40361,
+        "tags": [
+          "email"
+        ],
         "type": "file",
-        "value": "9fbcc18bc8b289066ce0e5f34039de1e74830b420d59eb09dcd62a662a999f65"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_first_hop_helo",
-        "value": "us-smtp-delivery-190.mimecast.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://proxy.imgsmail.ru/?email=ahmed.abdullahi@bk.ru"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "FW: URGENT RFQ-03167218 IGOL MEF project 2018"
+        "value": "75a6dff7aeba3af3f1c3159674c0efbc6593cb25ad0759d08a55de50f1355d54"
       },
       {
         "detections": [],
@@ -1442,73 +1617,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0"
+        "type": "email_subject",
+        "value": "RFQ-03167218 IGOL MEF project 2018.rar"
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_html_000.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 19980,
+        "directives": [],
+        "paths": [],
         "tags": [],
-        "type": "file",
-        "value": "85d4721050cd43a6bd03de6dd434018ab26b978832f71c70c622ba099cdfc708"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.email_000.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          },
-          {
-            "path": "email.rfc822.email.rfc822.email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 307,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "36864eee438b967e41dfe6d07a539cfd49b604f2d7baac04540047618b6e14c2"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 99972,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "2d94aafd7b8226d04daebc3986e663b2f5ff03813cf9f5e169d4b87182a2ba37"
+        "type": "email_subject",
+        "value": "[POTENTIAL PHISH] FW: URGENT RFQ-03167218 IGOL MEF project 2018"
       },
       {
         "detections": [],
@@ -1516,7 +1634,7 @@
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "http://www.igpetro.com"
+        "value": "https://s.yimg.com/lo/api/res/1.2/n9.tpnN8N8gspzxhMO4xnA--~A/Zmk9ZmlsbDt3PTQwMDtoPTIwMDthcHBpZD1pZXh0cmFjdA--/http://www.igpetro.com/sites/default/files/999111NewHomePage.jpg.cf.jpg"
       },
       {
         "detections": [],
@@ -1524,7 +1642,7 @@
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "https://s.yimg.com/cv/ae/nq/storm/assets/enhancrV21/1/enhancr_gradient-400x175.png"
+        "value": "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==2/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx"
       },
       {
         "detections": [],
@@ -1533,50 +1651,6 @@
         "tags": [],
         "type": "email_to",
         "value": "ashphish@integraldefense.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 4171,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "7aff5333afd973f64c37fdb31a403d0db54cd057d7a08f71ddf036e7180a1f03"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_001.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          },
-          {
-            "path": "email.rfc822.email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 2075,
-        "tags": [],
-        "type": "file",
-        "value": "8f8907cc53028bc4e55eb5e3532483b6f1d24eef99a392d5f0071cdfa7a1a0c3"
       },
       {
         "detections": [],
@@ -1600,50 +1674,38 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://ecp.yusercontent.com/mail?url=https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C"
+        "paths": [
+          {
+            "path": "email.rfc822.email_000.rfc822.combined",
+            "yara_meta": [
+              "type=document.html",
+              "type=email",
+              "type=email.combined"
+            ]
+          },
+          {
+            "path": "email.rfc822.email.rfc822.email.rfc822.combined",
+            "yara_meta": [
+              "type=document.html",
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 1384,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "9a659f1d7b54c368a291a3a8fd8256fd0c9db1e37dd387e593fbbd679610550e"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://ecp.yusercontent.com/mail?url=https%3A%2F%2Fproxy.imgsmail.ru%2F%3Femail%3Dahmed.abdullahi%2540bk.ru%26e%3D1519804183%26h%3DDDFtSALAy7tdKfe9AP8idA%26url171%3Dc3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc%7E%26is_https%3D0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "response@promechautomation.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "RFQ-03167218 IGOL MEF project 2018.rar"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==3/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<20180712054835.897463934aacad0d98225fa80f3b9477.32ef5a540c.mailapi@email19.godaddy.com>"
+        "type": "email_dkim_signing_domain",
+        "value": "teamcompany.onmicrosoft.com"
       },
       {
         "detections": [],
@@ -1656,21 +1718,10 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 40361,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "75a6dff7aeba3af3f1c3159674c0efbc6593cb25ad0759d08a55de50f1355d54"
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "jrobinson@company.com|ashphish@integraldefense.com"
       },
       {
         "detections": [],
@@ -1678,15 +1729,7 @@
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "https://s.yimg.com/lo/api/res/1.2/n9.tpnN8N8gspzxhMO4xnA--~A/Zmk9ZmlsbDt3PTQwMDtoPTIwMDthcHBpZD1pZXh0cmFjdA--/http://www.igpetro.com/sites/default/files/999111NewHomePage.jpg.cf.jpg"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_first_hop_ip",
-        "value": "216.205.24.190"
+        "value": "https://ecp.yusercontent.com/mail?url=https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C"
       },
       {
         "detections": [],
@@ -1712,54 +1755,11 @@
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 14415,
-        "tags": [],
-        "type": "file",
-        "value": "83a2a1cd3be355d137bd2a5d03c709854274d38089a35f81dad5ad315b303357"
-      },
-      {
-        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "jrobinson@company.com|ashphish@integraldefense.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==2/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_dkim_signing_domain",
-        "value": "teamcompany.onmicrosoft.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "jrobinson@company.com"
+        "type": "message_id",
+        "value": "<attach-11807120851310021@localhost>"
       }
     ],
     "results": [
@@ -1778,12 +1778,226 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 1,
+        "summary": "File Type Analysis: ASCII text (text/plain) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
           "mime": "text/html",
           "type": "HTML document, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 2,
-        "summary": "File Type Analysis: HTML document, ASCII text (text/html) (email)",
+        "observable": 4,
+        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 4,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "Unicode text, UTF-8 text, with very long lines (496), with CRLF line terminators"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 8,
+        "summary": "File Type Analysis: Unicode text, UTF-8 text, with very long lines (496), with CRLF line terminators (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 24
+          },
+          {
+            "observable": 10
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "http://www.igpetro.com",
+            "https://www.avast.com/antivirus"
+          ],
+          "urls_grouped_by_domain": {
+            "avast.com": [
+              "https://www.avast.com/antivirus"
+            ],
+            "igpetro.com": [
+              "http://www.igpetro.com"
+            ]
+          }
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 8,
+        "summary": "URL Extraction Analysis (www.avast.com, www.igpetro.com)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with very long lines (2096)"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 12,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (2096) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text, with very long lines (904)"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 13,
+        "summary": "File Type Analysis: ASCII text, with very long lines (904) (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 13,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with very long lines (931)"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 16,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (931) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/html",
+          "type": "HTML document, ASCII text, with very long lines (1035)"
+        },
+        "detections": [],
+        "module": "file_type",
+        "observable": 19,
+        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (1035) (text/html)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "detections": [],
+        "module": "url_extraction",
+        "observable": 19,
+        "summary": null,
         "tags": []
       },
       {
@@ -1804,57 +2018,58 @@
           "mime": "text/html",
           "type": "HTML document, Unicode text, UTF-8 text, with very long lines (794), with CRLF line terminators"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 7,
+        "observable": 25,
         "summary": "File Type Analysis: HTML document, Unicode text, UTF-8 text, with very long lines (794), with CRLF line terminators (text/html)",
         "tags": []
       },
       {
         "added": [
           {
+            "observable": 24
+          },
+          {
+            "observable": 10
+          },
+          {
             "observable": 5
           },
           {
-            "observable": 21
-          },
-          {
-            "observable": 14
-          },
-          {
-            "observable": 17
-          },
-          {
-            "observable": 27
-          },
-          {
-            "observable": 28
-          },
-          {
-            "observable": 31
+            "observable": 11
           },
           {
             "observable": 40
           },
           {
-            "observable": 22
+            "observable": 15
           },
           {
-            "observable": 35
+            "observable": 33
+          },
+          {
+            "observable": 20
+          },
+          {
+            "observable": 32
+          },
+          {
+            "observable": 0
           }
         ],
         "class": "URLExtractionAnalysis",
         "details": {
           "urls": [
-            "https://www.avast.com/antivirus",
             "http://www.igpetro.com",
+            "https://www.avast.com/antivirus",
             "https://proxy.imgsmail.ru/?email=ahmed.abdullahi@bk.ru",
             "https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0",
             "https://ecp.yusercontent.com/mail?url=https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C",
             "https://ecp.yusercontent.com/mail?url=https%3A%2F%2Fproxy.imgsmail.ru%2F%3Femail%3Dahmed.abdullahi%2540bk.ru%26e%3D1519804183%26h%3DDDFtSALAy7tdKfe9AP8idA%26url171%3Dc3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc%7E%26is_https%3D0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C",
-            "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==3/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx",
             "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==2/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx",
-            "https://s.yimg.com/cv/ae/nq/storm/assets/enhancrV21/1/enhancr_gradient-400x175.png",
-            "https://s.yimg.com/lo/api/res/1.2/n9.tpnN8N8gspzxhMO4xnA--~A/Zmk9ZmlsbDt3PTQwMDtoPTIwMDthcHBpZD1pZXh0cmFjdA--/http://www.igpetro.com/sites/default/files/999111NewHomePage.jpg.cf.jpg"
+            "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==3/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx",
+            "https://s.yimg.com/lo/api/res/1.2/n9.tpnN8N8gspzxhMO4xnA--~A/Zmk9ZmlsbDt3PTQwMDtoPTIwMDthcHBpZD1pZXh0cmFjdA--/http://www.igpetro.com/sites/default/files/999111NewHomePage.jpg.cf.jpg",
+            "https://s.yimg.com/cv/ae/nq/storm/assets/enhancrV21/1/enhancr_gradient-400x175.png"
           ],
           "urls_grouped_by_domain": {
             "avast.com": [
@@ -1868,12 +2083,12 @@
               "https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0"
             ],
             "yimg.com": [
-              "https://s.yimg.com/cv/ae/nq/storm/assets/enhancrV21/1/enhancr_gradient-400x175.png",
-              "https://s.yimg.com/lo/api/res/1.2/n9.tpnN8N8gspzxhMO4xnA--~A/Zmk9ZmlsbDt3PTQwMDtoPTIwMDthcHBpZD1pZXh0cmFjdA--/http://www.igpetro.com/sites/default/files/999111NewHomePage.jpg.cf.jpg"
+              "https://s.yimg.com/lo/api/res/1.2/n9.tpnN8N8gspzxhMO4xnA--~A/Zmk9ZmlsbDt3PTQwMDtoPTIwMDthcHBpZD1pZXh0cmFjdA--/http://www.igpetro.com/sites/default/files/999111NewHomePage.jpg.cf.jpg",
+              "https://s.yimg.com/cv/ae/nq/storm/assets/enhancrV21/1/enhancr_gradient-400x175.png"
             ],
             "ymail.com": [
-              "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==3/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx",
-              "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==2/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx"
+              "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==2/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx",
+              "https://dl-mail.ymail.com/ws/download/mailboxes/@.id==VjN-m83ISXEldnP3T3Z9zOAG2O_rV4kAJGuvyQczuPNe3y6uH_kFJNwFEzAczlKfcSRK6F676llwJijNHGM9Rx73ng/messages/@.id==AA4rCakccZBlW0Rb_QmZCEdw8Rg/content/parts/@.id==3/raw?appid=YMailNorrin&ymreqid=3109e8dd-cabe-e03f-1c02-ec000001ce00&token=zitEzqOML3j84e6ealFTT5U7-km5qEQF52lp7AcCuBZg26zr02uU5z6B1uolKzq34BgNQEb_9RqrqBvlkd0nLFP77A-_HO2u05oMfSLv6k0GYHG5zZROOYeWZBW-NzAx"
             ],
             "yusercontent.com": [
               "https://ecp.yusercontent.com/mail?url=https://proxy.imgsmail.ru/?email=ahmed.abdullahi%40bk.ru&e=1519804183&h=DDFtSALAy7tdKfe9AP8idA&url171=c3RhdGljLmF2YXN0LmNvbS9lbWFpbHMvYXZhc3QtbWFpbC1zdGFtcC5wbmc~&is_https=0&t=1531352401&ymreqid=3109e8dd-cabe-e03f-1cf5-0f001201f400&sig=ExHusom4LyGNK.DkXZhm7A--~C",
@@ -1881,33 +2096,34 @@
             ]
           }
         },
+        "detections": [],
         "module": "url_extraction",
-        "observable": 7,
+        "observable": 25,
         "summary": "URL Extraction Analysis (dl-mail.ymail.com, ecp.yusercontent.com, proxy.imgsmail.ru, s.yimg.com, www.avast.com, www.igpetro.com)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 11
+            "observable": 21
           },
           {
             "observable": 30
           },
           {
-            "observable": 0
+            "observable": 42
           },
           {
-            "observable": 12,
-            "path": "email.rfc822.email.rfc822.email.rfc822.unknown_text_html_000.html"
+            "observable": 4,
+            "path": "email.rfc822.email_000.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 19,
-            "path": "email.rfc822.email.rfc822.email.rfc822.headers"
+            "observable": 1,
+            "path": "email.rfc822.email_000.rfc822.headers"
           },
           {
-            "observable": 2,
-            "path": "email.rfc822.email.rfc822.email.rfc822.combined"
+            "observable": 36,
+            "path": "email.rfc822.email_000.rfc822.combined"
           }
         ],
         "class": "EmailAnalysis",
@@ -1965,7 +2181,7 @@
                 "9fbcc18bc8b289066ce0e5f34039de1e74830b420d59eb09dcd62a662a999f65"
               ],
               "attachment_names": [
-                "email.rfc822.email.rfc822.email.rfc822.unknown_text_html_000.html"
+                "email.rfc822.email_000.rfc822.unknown_text_html_000.html"
               ],
               "attachment_sizes": [
                 1073
@@ -1978,7 +2194,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-21 14:50:14.241624 +0000",
+              "date": "2026-11-27 05:04:39.571865 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -2038,13 +2254,14 @@
           "parts": [
             {
               "content_type": "text/html",
-              "path": "email.rfc822.email.rfc822.email.rfc822.unknown_text_html_000.html",
+              "path": "email.rfc822.email_000.rfc822.unknown_text_html_000.html",
               "role": "body"
             }
           ]
         },
+        "detections": [],
         "module": "email_analyzer",
-        "observable": 8,
+        "observable": 26,
         "summary": "Email Analysis: From Postmaster <> To Jacob Picklefoot<jrobinson@company.com> Subject RFQ-03167218 IGOL MEF project 2018.rar",
         "tags": []
       },
@@ -2066,8 +2283,9 @@
           "mime": "text/html",
           "type": "HTML document, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 8,
+        "observable": 26,
         "summary": "File Type Analysis: HTML document, ASCII text (text/html) (email)",
         "tags": []
       },
@@ -2078,8 +2296,9 @@
           "urls": [],
           "urls_grouped_by_domain": {}
         },
+        "detections": [],
         "module": "url_extraction",
-        "observable": 8,
+        "observable": 26,
         "summary": null,
         "tags": []
       },
@@ -2087,7 +2306,7 @@
         "added": [],
         "class": "FileTypeAnalysis",
         "details": {
-          "is_email_file": false,
+          "is_email_file": true,
           "is_jar_file": false,
           "is_lnk_file": false,
           "is_office_document": false,
@@ -2098,24 +2317,13 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text"
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with very long lines (2096)"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 12,
-        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 12,
-        "summary": null,
+        "observable": 28,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (2096) (message/rfc822) (email)",
         "tags": []
       },
       {
@@ -2125,80 +2333,81 @@
           "hash": "776c86f29ff3d002f0b5d4fe4bd52e0498836b5b433c9109a687f1f4f231d62e",
           "message_id": null
         },
+        "detections": [],
         "module": "email_archiver",
-        "observable": 16,
+        "observable": 29,
         "summary": "Archived Email: 776c86f29ff3d002f0b5d4fe4bd52e0498836b5b433c9109a687f1f4f231d62e",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 42
-          },
-          {
-            "observable": 1
-          },
-          {
-            "observable": 39
-          },
-          {
-            "observable": 23
+            "observable": 9
           },
           {
             "observable": 6
           },
           {
+            "observable": 39
+          },
+          {
+            "observable": 34
+          },
+          {
+            "observable": 31
+          },
+          {
             "observable": 3
           },
           {
-            "observable": 10
+            "observable": 23
           },
           {
-            "observable": 4
+            "observable": 7
           },
           {
-            "observable": 36
+            "observable": 27
           },
           {
-            "observable": 13
+            "observable": 18
           },
           {
-            "observable": 41
+            "observable": 37
           },
           {
-            "observable": 38,
+            "observable": 13,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 18,
+            "observable": 19,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 37,
+            "observable": 41,
             "path": "email.rfc822.email.rfc822"
           },
           {
-            "observable": 25,
+            "observable": 8,
             "path": "email.rfc822.unknown_text_plain_001.txt"
           },
           {
-            "observable": 7,
+            "observable": 25,
             "path": "email.rfc822.unknown_text_html_001.html"
           },
           {
-            "observable": 8,
+            "observable": 26,
             "path": "email.rfc822.email_000.rfc822"
           },
           {
-            "observable": 12,
+            "observable": 4,
             "path": "email.rfc822.unknown_text_html_002.html"
           },
           {
-            "observable": 34,
+            "observable": 28,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 20,
+            "observable": 12,
             "path": "email.rfc822.combined"
           }
         ],
@@ -2845,7 +3054,7 @@
               "cc": [],
               "compauth_reason": "109",
               "compauth_result": "pass",
-              "date": "2026-11-21 14:50:14.129347 +0000",
+              "date": "2026-11-27 05:04:39.495512 +0000",
               "dkim_result": "fail",
               "dmarc_result": "bestguesspass",
               "env_mail_from": "jrobinson@company.com",
@@ -2990,8 +3199,9 @@
             }
           ]
         },
+        "detections": [],
         "module": "email_analyzer",
-        "observable": 16,
+        "observable": 29,
         "summary": "Email Analysis: From Jacob Picklefoot <jrobinson@company.com> To ashphish@integraldefense.com Subject [POTENTIAL PHISH] FW: URGENT RFQ-03167218 IGOL MEF project 2018",
         "tags": []
       },
@@ -3013,165 +3223,10 @@
           "mime": "message/rfc822",
           "type": "SMTP mail, ASCII text, with very long lines (899)"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 16,
+        "observable": 29,
         "summary": "File Type Analysis: SMTP mail, ASCII text, with very long lines (899) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text, with very long lines (1035)"
-        },
-        "module": "file_type",
-        "observable": 18,
-        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (1035) (text/html)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 18,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 19,
-        "summary": "File Type Analysis: ASCII text (text/plain) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with very long lines (2096)"
-        },
-        "module": "file_type",
-        "observable": 20,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (2096) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with very long lines (931)"
-        },
-        "module": "file_type",
-        "observable": 24,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (931) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "Unicode text, UTF-8 text, with very long lines (496), with CRLF line terminators"
-        },
-        "module": "file_type",
-        "observable": 25,
-        "summary": "File Type Analysis: Unicode text, UTF-8 text, with very long lines (496), with CRLF line terminators (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 21
-          },
-          {
-            "observable": 5
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "http://www.igpetro.com",
-            "https://www.avast.com/antivirus"
-          ],
-          "urls_grouped_by_domain": {
-            "avast.com": [
-              "https://www.avast.com/antivirus"
-            ],
-            "igpetro.com": [
-              "http://www.igpetro.com"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 25,
-        "summary": "URL Extraction Analysis (www.avast.com, www.igpetro.com)",
         "tags": []
       },
       {
@@ -3192,8 +3247,9 @@
           "mime": "message/rfc822",
           "type": "RFC 822 mail, Unicode text, UTF-8 text, with very long lines (931), with CRLF, LF line terminators"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 26,
+        "observable": 35,
         "summary": "File Type Analysis: RFC 822 mail, Unicode text, UTF-8 text, with very long lines (931), with CRLF, LF line terminators (message/rfc822) (email)",
         "tags": []
       },
@@ -3212,53 +3268,54 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with very long lines (2096)"
+          "mime": "text/html",
+          "type": "HTML document, ASCII text"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 34,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (2096) (message/rfc822) (email)",
+        "observable": 36,
+        "summary": "File Type Analysis: HTML document, ASCII text (text/html) (email)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 29
+            "observable": 2
           },
           {
-            "observable": 15
+            "observable": 22
           },
           {
-            "observable": 32
+            "observable": 17
           },
           {
-            "observable": 33
+            "observable": 38
           },
           {
-            "observable": 9
-          },
-          {
-            "observable": 25,
-            "path": "email.rfc822.email.rfc822.unknown_text_plain_000.txt"
-          },
-          {
-            "observable": 7,
-            "path": "email.rfc822.email.rfc822.unknown_text_html_000.html"
+            "observable": 14
           },
           {
             "observable": 8,
-            "path": "email.rfc822.email.rfc822.email.rfc822"
+            "path": "email.rfc822.email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 12,
-            "path": "email.rfc822.email.rfc822.unknown_text_html_001.html"
-          },
-          {
-            "observable": 24,
-            "path": "email.rfc822.email.rfc822.headers"
+            "observable": 25,
+            "path": "email.rfc822.email.rfc822.unknown_text_html_000.html"
           },
           {
             "observable": 26,
+            "path": "email.rfc822.email.rfc822.email.rfc822"
+          },
+          {
+            "observable": 4,
+            "path": "email.rfc822.email.rfc822.unknown_text_html_001.html"
+          },
+          {
+            "observable": 16,
+            "path": "email.rfc822.email.rfc822.headers"
+          },
+          {
+            "observable": 35,
             "path": "email.rfc822.email.rfc822.combined"
           }
         ],
@@ -3436,7 +3493,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-21 14:50:14.158192 +0000",
+              "date": "2026-11-27 05:04:39.527353 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -3529,8 +3586,9 @@
             }
           ]
         },
+        "detections": [],
         "module": "email_analyzer",
-        "observable": 37,
+        "observable": 41,
         "summary": "Email Analysis: From \"response@promechautomation.com\" <response@promechautomation.com> Subject FW: URGENT RFQ-03167218 IGOL MEF project 2018",
         "tags": []
       },
@@ -3552,8 +3610,9 @@
           "mime": "message/rfc822",
           "type": "RFC 822 mail, ASCII text, with very long lines (897)"
         },
+        "detections": [],
         "module": "file_type",
-        "observable": 37,
+        "observable": 41,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (897) (message/rfc822) (email)",
         "tags": []
       },
@@ -3564,43 +3623,9 @@
           "urls": [],
           "urls_grouped_by_domain": {}
         },
+        "detections": [],
         "module": "url_extraction",
-        "observable": 37,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text, with very long lines (904)"
-        },
-        "module": "file_type",
-        "observable": 38,
-        "summary": "File Type Analysis: ASCII text, with very long lines (904) (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 38,
+        "observable": 41,
         "summary": null,
         "tags": []
       }

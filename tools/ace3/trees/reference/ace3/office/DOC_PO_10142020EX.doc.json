@@ -797,8 +797,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:38:21+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:38:21+00:00",
+              "File:FileAccessDate": "2026:11:26 23:10:44+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:10:44+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "DOC_PO_10142020EX.doc",
               "File:FilePermissions": 100644,
@@ -1083,39 +1083,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:5c2922e1aa8e4e0d342a246a498057a8c6ab6e80735b71a015f3449e9e650ee6": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "DOC_PO_10142020EX.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -1636,6 +1603,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:93c21ee3378999351f9b1a88726074cf82ebdc155a37f9dd1ec8691d6c208812": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "DOC_PO_10142020EX.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:3d437dd761fe4f9ff78f13f6336862842b0528c1081680055029bcfb2ce5647a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

@@ -131,6 +131,39 @@
       },
       "tags": {}
     },
+    "file:6f52db1f239983fe65e40917d19cc337f974d67d60546503fb1346f348681c38": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_standard_short.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e91f85165caf9756998b6c922f4463ff99ebb2a75c76d390ad8787b686912485": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:990349482cd707ba3093d6fff5bb72167a38f0831e58789a92c25cdeb01f7f93": {
       "detections": {},
       "directives": {
@@ -326,39 +359,6 @@
       },
       "tags": {}
     },
-    "file:b665ea0ce48c9d56bb04e2ceff4a7f9f62f1180106b5efe19feb271f5e5a2303": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_bad_standard_short.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:e91f85165caf9756998b6c922f4463ff99ebb2a75c76d390ad8787b686912485": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:e81d2d7f4d8b4aa96a9d1ac9aad489caa06f24c3de2b66471479daf34672ce3a": {
       "detections": {},
       "directives": {
@@ -440,8 +440,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:55:56+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:55:56+00:00",
+              "File:FileAccessDate": "2026:11:26 23:28:08+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:28:08+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_bad_standard_short.docx",
               "File:FilePermissions": 100644,

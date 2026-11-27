@@ -34,10 +34,11 @@ static RE_BOUNDARY: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// Python frames under the root `_parsegen` when `parse_mime` parses, as measured in ace3's dump
-/// harness: there a part nested 971 multiparts deep parses and one 972 deep raises
+/// harness at `c55f15a2`: there a part nested 970 multiparts deep parses and one 971 deep raises
 /// `RecursionError`, three short of `mhtml`'s, whose parse is three frames nearer the top
-/// (`docs/measurements/office-containers.md`).
-const ROOT_DEPTH: usize = 22;
+/// (`docs/measurements/office-containers.md`). ace3's `5ca91195` added a frame under every module,
+/// `AnalysisModule.analyze` calling `_analyze`; before it 971 parsed.
+const ROOT_DEPTH: usize = 23;
 
 pub struct HiddenMimeAnalyzer;
 
@@ -209,7 +210,7 @@ mod tests {
 
     #[test]
     fn recursion_errors_come_where_ace3_s_do() {
-        assert_eq!(parts(&nested(971)), Some(Ok(vec![b"deep part".to_vec()])));
-        assert!(matches!(parts(&nested(972)), Some(Err(_))));
+        assert_eq!(parts(&nested(970)), Some(Ok(vec![b"deep part".to_vec()])));
+        assert!(matches!(parts(&nested(971)), Some(Err(_))));
     }
 }

@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [],
   "analyses": [
     {
@@ -9,7 +9,7 @@
         "extracted_files": []
       },
       "detections": [],
-      "error": "StreamError: Error in path (parsing) -> FileDataStoreObject -> cbLength\nstream read less than specified amount, expected 8, found 1 (crash_id d1b75dc0-6cfa-4d29-8854-a5033cf36cf7)",
+      "error": "StreamError: Error in path (parsing) -> FileDataStoreObject -> cbLength\nstream read less than specified amount, expected 8, found 1 (crash_id b2bb6b8f-e359-48ca-b4ec-9a0c0595e92a)",
       "module_path": "saq.modules.file_analysis.one_note:OneNoteFileAnalysis",
       "observables": [],
       "summary": null,

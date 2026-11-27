@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "85c8e9e5",
+  "ace3_commit": "c55f15a2",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -67,7 +67,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-21 13:59:08.766761 +0000",
+            "date": "2026-11-27 04:17:48.497060 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -844,7 +844,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-21T13:59:08.762007",
+        "timestamp": "2026-11-27T04:17:48.492625",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -870,7 +870,7 @@
         "cc": [],
         "compauth_reason": null,
         "compauth_result": null,
-        "date": "2026-11-21 13:59:08.766761 +0000",
+        "date": "2026-11-27 04:17:48.497060 +0000",
         "dkim_result": null,
         "dmarc_result": null,
         "env_mail_from": null,
@@ -907,7 +907,7 @@
         "subject_raw": "Re: Quarterly invoice",
         "thread_index": null,
         "thread_topic": null,
-        "timestamp": "1795269548.766761",
+        "timestamp": "1795753068.49706",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -929,34 +929,22 @@
         },
         "outcome": "completed",
         "queue": "default",
-        "root_uuid": "96666a0c-0aa5-47a6-a61d-f56a401c894c",
-        "timestamp": "2026-11-21 13:59:09.149797",
-        "total_analysis_time_seconds": 0.025918000000000004,
-        "total_time_seconds": 0.4062991142272949
+        "root_uuid": "b6ba11d1-f6b3-49e4-aeb2-fd75115623f2",
+        "timestamp": "2026-11-27 04:17:48.864626",
+        "total_analysis_time_seconds": 0.025122000000000005,
+        "total_time_seconds": 0.3888676166534424
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "analysis_time_seconds": 0.0032400000000000003,
-        "event_type": "module",
-        "exec_count": 2,
-        "module": "email_analyzer",
-        "percentage": 0.7974420535377921,
-        "root_uuid": "96666a0c-0aa5-47a6-a61d-f56a401c894c",
-        "timestamp": "2026-11-21 13:59:09.149797"
-      },
-      "tag": "metrics"
-    },
-    {
-      "record": {
-        "analysis_time_seconds": 0.021521000000000002,
+        "analysis_time_seconds": 0.020729000000000004,
         "event_type": "module",
         "exec_count": 4,
         "module": "file_type",
-        "percentage": 5.2968365537613655,
-        "root_uuid": "96666a0c-0aa5-47a6-a61d-f56a401c894c",
-        "timestamp": "2026-11-21 13:59:09.149797"
+        "percentage": 5.3306058700366465,
+        "root_uuid": "b6ba11d1-f6b3-49e4-aeb2-fd75115623f2",
+        "timestamp": "2026-11-27 04:17:48.864626"
       },
       "tag": "metrics"
     },
@@ -966,16 +954,28 @@
         "event_type": "module",
         "exec_count": 8,
         "module": "email_logger",
-        "percentage": 0.2847655728219831,
-        "root_uuid": "96666a0c-0aa5-47a6-a61d-f56a401c894c",
-        "timestamp": "2026-11-21 13:59:09.149797"
+        "percentage": 0.2975305606460707,
+        "root_uuid": "b6ba11d1-f6b3-49e4-aeb2-fd75115623f2",
+        "timestamp": "2026-11-27 04:17:48.864626"
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.003236,
+        "event_type": "module",
+        "exec_count": 2,
+        "module": "email_analyzer",
+        "percentage": 0.8321598048839107,
+        "root_uuid": "b6ba11d1-f6b3-49e4-aeb2-fd75115623f2",
+        "timestamp": "2026-11-27 04:17:48.864626"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-21T13:59:09.150160",
+        "timestamp": "2026-11-27T04:17:48.865031",
         "value": 0
       },
       "tag": "monitoring"
@@ -983,7 +983,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-21T13:59:09.150175",
+        "timestamp": "2026-11-27T04:17:48.865067",
         "value": 1
       },
       "tag": "monitoring"

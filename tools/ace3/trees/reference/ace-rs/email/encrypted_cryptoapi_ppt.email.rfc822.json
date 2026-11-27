@@ -238,39 +238,6 @@
       },
       "tags": {}
     },
-    "file:2911fc1c4990b89242d1a80cf3ac45f9cd4b23590ee9784912aaa5f2de20de3d": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.ppt.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a31409a43eb61fb673a2c6cb0dddc479b589d33663016c5a1fa26dde87fc189": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:4e1a5ed6f3ce5703217974ca9968a08ec00a8551aa8959da43fc59b5e97c36df": {
       "detections": {},
       "directives": {},
@@ -420,9 +387,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 12:00:57+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 12:00:57+00:00",
-              "File:FileModifyDate": "2026:11:21 12:00:57+00:00",
+              "File:FileAccessDate": "2026:11:26 23:13:51+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:13:51+00:00",
+              "File:FileModifyDate": "2026:11:26 23:13:51+00:00",
               "File:FileName": "invoice.ppt",
               "File:FilePermissions": 100664,
               "File:FileSize": 2560,
@@ -563,6 +530,39 @@
         "ole": true
       }
     },
+    "file:5a26a0e6977a076d2242614cc00404ee0a4818132e5d05c16a80af6b2d25f6dd": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:6a31409a43eb61fb673a2c6cb0dddc479b589d33663016c5a1fa26dde87fc189": {
       "detections": {
         "Was able to decrypt based on contents of email.": [
@@ -583,9 +583,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 12:00:58+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 12:00:58+00:00",
-              "File:FileModifyDate": "2026:11:21 12:00:58+00:00",
+              "File:FileAccessDate": "2026:11:26 23:13:52+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:13:52+00:00",
+              "File:FileModifyDate": "2026:11:26 23:13:52+00:00",
               "File:FileName": "invoice.ppt.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 2560,
@@ -667,39 +667,6 @@
         "microsoft_office": true,
         "ole": true
       }
-    },
-    "file:862ab383b80c6c0072ad962901bfb07af3c36fe7c9d5c53e19bdec1a5a8d898d": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:9c6b482c56abc1760cba854018af735b3903d7d85295df35f3aca4f392191ee4": {
       "detections": {},
@@ -1148,6 +1115,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ec76342ddaee362c04178e38509f1187223ebb0f2f79745745583f60c3c69025": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.ppt.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a31409a43eb61fb673a2c6cb0dddc479b589d33663016c5a1fa26dde87fc189": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

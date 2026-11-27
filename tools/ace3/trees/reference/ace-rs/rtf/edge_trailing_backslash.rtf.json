@@ -24,8 +24,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Unspecified RTF encoding. Will assume Latin",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:52:36+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:52:36+00:00",
+              "File:FileAccessDate": "2026:11:27 00:13:46+00:00",
+              "File:FileInodeChangeDate": "2026:11:27 00:13:46+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "edge_trailing_backslash.rtf",
               "File:FilePermissions": 100644,
@@ -106,6 +106,39 @@
         "rtf": true
       }
     },
+    "file:74b523325cea18fe5cddd93275e22107cef9917d9c3ac9688ede9d91995b359f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_trailing_backslash.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:92d865425620ba8159d8688c1c3a32111c602ad9a815365314867fb99db530f4": {
       "detections": {},
       "directives": {},
@@ -182,39 +215,6 @@
         "microsoft_office": true,
         "rtf": true
       }
-    },
-    "file:e93a3aaca21ccea07fc624c58ffbf3bc70fb906a4f23f4f606fe1b1631d85fcb": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "edge_trailing_backslash.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "md5:1ede86c71ad87b0ec9cec9069b3c374a": {
       "detections": {},

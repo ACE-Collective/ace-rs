@@ -123,6 +123,60 @@
       },
       "tags": {}
     },
+    "file:1263120ba759c9569f4c05ca055fa212e3e520ddeaab411d23e3da48d8f25e08": {
+      "detections": {},
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "olevba_v1_2": true
+      },
+      "paths": {
+        "word2013_macro_stripped.doc.olevba/macro_1.bas": {
+          "type=script.macro.vba": true
+        }
+      },
+      "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "macro": true
+      }
+    },
     "file:1a5ce2eb33e4dcd8bf09a57d740649e2aec359dc2c0fd952ac0d19d4a63d0c42": {
       "detections": {},
       "directives": {
@@ -216,8 +270,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:39:46+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:39:46+00:00",
+              "File:FileAccessDate": "2026:11:26 23:11:57+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:11:57+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "word2013_macro_stripped.doc",
               "File:FilePermissions": 100644,
@@ -342,7 +396,7 @@
               },
               {
                 "file_name": "VBA P-code",
-                "local_path": "2d4f8142bdb14e53e947b814efb27603533d6fce48928ceb5b510ba536b9a9a2",
+                "local_path": "1263120ba759c9569f4c05ca055fa212e3e520ddeaab411d23e3da48d8f25e08",
                 "stream_path": "VBA P-code",
                 "vba_code": "' Processing file: <root>/files/word2013_macro_stripped.doc\n' ===============================================================================\n' Module streams:\n' Macros/VBA/ThisDocument - 1517 bytes\n' Line #0:\n' \tFuncDefn (Private Sub Document_Open())\n' Line #1:\n' \tLitStr 0x001D \"This could have been a virus!\"\n' \tLd vbOKOnly \n' \tLd vbInformation \n' \tAdd \n' \tLitStr 0x0006 \"Virus!\"\n' \tArgsCall MsgBox 0x0003 \n' Line #2:\n' \tLitStr 0x0008 \"calc.exe\"\n' \tParen \n' \tArgsCall Shell 0x0001 \n' Line #3:\n' \tEndSub ",
                 "vba_filename": "VBA_P-code.txt"
@@ -431,60 +485,6 @@
         }
       },
       "tags": {}
-    },
-    "file:2d4f8142bdb14e53e947b814efb27603533d6fce48928ceb5b510ba536b9a9a2": {
-      "detections": {},
-      "directives": {
-        "sandbox": true
-      },
-      "excluded_analysis": {
-        "olevba_v1_2": true
-      },
-      "paths": {
-        "word2013_macro_stripped.doc.olevba/macro_1.bas": {
-          "type=script.macro.vba": true
-        }
-      },
-      "redirection": "file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5",
-      "relationships": {},
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "macro": true
-      }
     },
     "file:4813796761016213b59e87f1e485b0b4c410b979003629cd29763e440d948e35": {
       "detections": {},
@@ -667,39 +667,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:5c42aa2fb7a2e9118e9161967a93f67867957a875a90c3911dae3867ad0dec93": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "word2013_macro_stripped.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -969,6 +936,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a5a58492b43fef37924c924313332b68c99b7b604770da40a8383349ab654921": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "word2013_macro_stripped.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

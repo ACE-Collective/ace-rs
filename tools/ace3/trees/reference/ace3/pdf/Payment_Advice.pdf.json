@@ -127,7 +127,40 @@
       },
       "tags": {}
     },
-    "file:63f3ec43ac1680202c95de00bdeed34d12e5d25fe86c533df5d559e7fe6b98c7": {
+    "file:3fc22fff8fa3caac25cd375228c91fbde7fa7009e41fe89c3ee47b26084da2e7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Payment_Advice.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:73b270508e250b04368c011ef0cdbd5984b7d8cfa685e941a96f0204dea19c66": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -223,39 +256,6 @@
         "pdf": true
       }
     },
-    "file:ee0fbee399bceaca11ff856d87b5aef10156c833b977427ead8f61461208fd30": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "Payment_Advice.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},
       "directives": {},
@@ -270,9 +270,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:63f3ec43ac1680202c95de00bdeed34d12e5d25fe86c533df5d559e7fe6b98c7",
+      "redirection": "file:73b270508e250b04368c011ef0cdbd5984b7d8cfa685e941a96f0204dea19c66",
       "relationships": {
-        "extracted_from file:63f3ec43ac1680202c95de00bdeed34d12e5d25fe86c533df5d559e7fe6b98c7": true,
+        "extracted_from file:73b270508e250b04368c011ef0cdbd5984b7d8cfa685e941a96f0204dea19c66": true,
         "extracted_from file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
       },
       "results": {
@@ -406,8 +406,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:21 12:00:00+00:00",
-              "File:FileInodeChangeDate": "2026:11:21 12:00:00+00:00",
+              "File:FileAccessDate": "2026:11:26 23:12:56+00:00",
+              "File:FileInodeChangeDate": "2026:11:26 23:12:56+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "Payment_Advice.pdf",
               "File:FilePermissions": 100644,
